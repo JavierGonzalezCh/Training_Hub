@@ -15,7 +15,7 @@ public sealed class UpdateFeatureFlagsHandler(
     public async Task<GymFeatureFlagsResponse> HandleAsync(
         UpdateFeatureFlagsRequest request, CancellationToken cancellationToken)
     {
-        var gymId = CurrentGym.RequireId(currentUser);
+        var gymId = currentUser.RequireGymId();
         var flags = await gyms.GetFeatureFlagsAsync(gymId, cancellationToken)
             ?? throw new NotFoundException("El gym del usuario no tiene feature flags.");
 

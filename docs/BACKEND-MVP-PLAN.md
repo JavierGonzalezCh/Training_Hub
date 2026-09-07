@@ -117,13 +117,14 @@ Dos gyms con datos; autenticado como owner del gym A, ninguna consulta devuelve 
 **Schema:** `members`
 
 ### Entidad
-`Member` — id, gym_id, user_id (nullable), first_name, last_name, document_number, phone, email, birth_date, photo_url, emergency_contact, status (`active|inactive`), qr_code, joined_at.
+`Member` — id, gym_id, user_id (nullable), first_name, last_name, document_number (**requerido**, único por gym), phone, email, birth_date (`DateOnly?`), photo_url, emergency_contact (texto libre), status (enum nativo `members.member_status` = active/inactive), qr_code, joined_at (`DateOnly`). Implementa `ITenantEntity` con columna `gym_id`.
 
 ### Reglas
-- `qr_code` único por gym, generado al crear. No es la PK.
-- Un miembro puede existir sin `user_id`: se registra en recepción y luego canjea un código de invitación que crea su `AppUser`. El vínculo con Identity se coordina por evento, no por FK cruzada entre schemas.
+- `qr_code` único por gym, generado al crear (GUID "N", 32 chars). No es la PK.
+- Un miembro puede existir sin `user_id`: se registra en recepción y luego canjea un código de invitación que crea su `AppUser`. El vínculo con Identity se coordina por evento, no por FK cruzada entre schemas. **(el canje/invitación es la sub-etapa 3b, no está en la 3.)**
 - `document_number` único dentro del gym.
-- Baja = soft delete a `inactive`.
+- Baja = soft delete a `inactive` (idempotente). `DELETE /api/members/{id}`.
+- Un `Member` solo ve su propia ficha; owner/staff ven cualquiera de su gym (chequeo en `GetMemberHandler`).
 
 ### Public
 `IMemberReader`: `GetAsync(memberId)`, `ExistsAsync(memberId)`, `ResolveByQrAsync(qrCode)`, `GetActiveCountAsync(gymId)`.
@@ -131,8 +132,14 @@ Dos gyms con datos; autenticado como owner del gym A, ninguna consulta devuelve 
 ### Events
 `MemberCreated`, `MemberDeactivated`.
 
-### Endpoints propuestos
-`GET /members` (paginado; filtros por nombre, documento, estado) · `GET /members/{id}` · `POST /members` · `PUT /members/{id}` · `DELETE /members/{id}` · `POST /members/{id}/invite` · `POST /members/register` (anónimo, canjea código)
+### Endpoints (etapa 3)
+`GET /api/members` (paginado `page`/`pageSize`; filtros `search` sobre nombre/apellido/documento, `status`) · `GET /api/members/{id}` (staff o el propio miembro) · `POST /api/members` [staff] · `PUT /api/members/{id}` [staff] · `DELETE /api/members/{id}` [staff]
+
+### Sub-etapa 3b (después)
+`POST /api/members/{id}/invite` (genera código) · `POST /api/members/register` (anónimo, canjea código, crea `AppUser` vía `IUserProvisioning`, vincula con `Member.LinkUser`). El método de dominio `LinkUser` ya existe.
+
+### Piezas transversales añadidas aquí
+`PagedResult<T>` en `GSM.Application/Common/` · `ICurrentUserService.RequireGymId()` (reemplaza el helper local de Gyms).
 
 ---
 

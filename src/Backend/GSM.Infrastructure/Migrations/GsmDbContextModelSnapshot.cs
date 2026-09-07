@@ -2,6 +2,7 @@
 using System;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
+using GSM.Domain.Members;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -25,6 +26,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "user_role", new[] { "superadmin", "owner", "staff", "member" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_status", new[] { "active", "inactive" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("GSM.Domain.Gyms.Gym", b =>
@@ -184,6 +186,105 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_gym_feature_flags_gym_id");
 
                     b.ToTable("gym_feature_flags", "gyms");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.Member", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date")
+                        .HasColumnName("birth_date");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("document_number");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("EmergencyContact")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("emergency_contact");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("first_name");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<DateOnly>("JoinedAt")
+                        .HasColumnType("date")
+                        .HasColumnName("joined_at");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_name");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("photo_url");
+
+                    b.Property<string>("QrCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("qr_code");
+
+                    b.Property<MemberStatus>("Status")
+                        .HasColumnType("members.member_status")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_members_user_id");
+
+                    b.HasIndex("GymId", "DocumentNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_members_gym_id_document_number");
+
+                    b.HasIndex("GymId", "QrCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_members_gym_id_qr_code");
+
+                    b.HasIndex("GymId", "Status")
+                        .HasDatabaseName("ix_members_gym_id_status");
+
+                    b.ToTable("members", "members");
                 });
 
             modelBuilder.Entity("GSM.Infrastructure.Identity.AppUser", b =>

@@ -4,10 +4,14 @@ using GSM.Application.Gyms.Public;
 using GSM.Application.Identity;
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Public;
+using GSM.Application.Members.Abstractions;
+using GSM.Application.Members.Public;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
+using GSM.Domain.Members;
 using GSM.Infrastructure.Gyms;
 using GSM.Infrastructure.Identity;
+using GSM.Infrastructure.Members;
 using GSM.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +37,7 @@ public static class DependencyInjection
                     npgsql.MapEnum<UserRole>("user_role", "identity", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<GymPlan>("gym_plan", "gyms", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<GymStatus>("gym_status", "gyms", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<MemberStatus>("member_status", "members", LowerCaseNameTranslator.Instance);
                 })
                 .UseSnakeCaseNamingConvention());
 
@@ -62,6 +67,9 @@ public static class DependencyInjection
 
         services.AddScoped<IGymRepository, GymRepository>();
         services.AddScoped<IGymReader, GymReader>();
+
+        services.AddScoped<IMemberRepository, MemberRepository>();
+        services.AddScoped<IMemberReader, MemberReader>();
 
         return services;
     }

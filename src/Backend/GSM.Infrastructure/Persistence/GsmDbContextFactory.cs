@@ -1,5 +1,6 @@
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
+using GSM.Domain.Members;
 using GSM.Infrastructure.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -25,6 +26,7 @@ public sealed class GsmDbContextFactory : IDesignTimeDbContextFactory<GsmDbConte
                 npgsql.MapEnum<UserRole>("user_role", "identity", LowerCaseNameTranslator.Instance);
                 npgsql.MapEnum<GymPlan>("gym_plan", "gyms", LowerCaseNameTranslator.Instance);
                 npgsql.MapEnum<GymStatus>("gym_status", "gyms", LowerCaseNameTranslator.Instance);
+                npgsql.MapEnum<MemberStatus>("member_status", "members", LowerCaseNameTranslator.Instance);
             })
             .UseSnakeCaseNamingConvention()
             .Options;

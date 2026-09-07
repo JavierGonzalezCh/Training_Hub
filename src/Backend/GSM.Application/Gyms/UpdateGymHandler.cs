@@ -14,7 +14,7 @@ public sealed class UpdateGymHandler(
 {
     public async Task<GymResponse> HandleAsync(UpdateGymRequest request, CancellationToken cancellationToken)
     {
-        var gymId = CurrentGym.RequireId(currentUser);
+        var gymId = currentUser.RequireGymId();
         var gym = await gyms.GetByIdAsync(gymId, cancellationToken)
             ?? throw new NotFoundException("El gym del usuario no existe.");
 
