@@ -3,8 +3,8 @@ using GSM.API.Filters;
 using GSM.API.Middleware;
 using GSM.Application;
 using GSM.Application.Common.Abstractions;
+using GSM.API.Seed;
 using GSM.Infrastructure;
-using GSM.Infrastructure.Identity;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -32,7 +32,11 @@ builder.Services.AddGsmRateLimiting();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddControllers(options => options.Filters.Add<ValidationActionFilter>());
+builder.Services
+    .AddControllers(options => options.Filters.Add<ValidationActionFilter>())
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddOpenApi();
@@ -49,7 +53,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 
     await using var scope = app.Services.CreateAsyncScope();
-    await IdentityDataSeeder.SeedAsync(scope.ServiceProvider);
+    await DevSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 app.UseHttpsRedirection();

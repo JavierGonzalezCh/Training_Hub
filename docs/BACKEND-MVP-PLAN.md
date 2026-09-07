@@ -22,7 +22,8 @@
 - **Mapeo:** Mapperly, un mapper parcial estático por módulo. Las consultas de lectura pesadas usan proyección explícita con `Select`, no mapeo post-materialización.
 - **DTOs:** `record` inmutables. Nunca exponer entidades de Domain.
 - **Validación:** FluentValidation sobre los requests, vía filtro de acción.
-- **Endpoints:** Controllers (`[ApiController]`), uno por módulo. `[Authorize(Policy = ...)]` a nivel de clase.
+- **Endpoints:** Controllers (`[ApiController]`), uno por módulo, bajo el prefijo `/api`. `[Authorize(Policy = ...)]` a nivel de clase (se puede endurecer por acción). `/health` queda fuera del prefijo.
+- **Enums en JSON:** `JsonStringEnumConverter` global — los enums viajan por nombre en requests y responses.
 - **Migraciones:** una por etapa, `Etapa0X_{Módulo}`.
 - **Logging:** Serilog structured, un log de entrada/salida por caso de uso, enriquecido con `gym_id` y `user_id`. Nunca passwords ni tokens.
 - **Commits:** Conventional Commits.
@@ -82,10 +83,14 @@
 **Schema:** `gyms`
 
 ### Entidades
-- `Gym` — id, name, slug, nit, phone, email, logo_url, primary_color, secondary_color, is_active, created_at.
-- `GymFeatureFlags` — gym_id PK, `show_routines`, `show_classes`, `show_progress`, `show_gamification`, `show_community`, `checkin_qr`, `community_comments`. Todos default `true`.
+- `Gym` — id, name, slug (único), nit, phone, email, logo_url, primary_color, secondary_color, is_active, **plan** (enum `gyms.gym_plan` = basic/pro/enterprise), **status** (enum `gyms.gym_status` = trial/active/suspended, arranca en `trial`), **owner_id** (Guid, sin FK: el user vive en otro schema), created_at. Branding inline (sin `GymTheme` aparte). `Gym` implementa `ITenantEntity` con `GymId => Id`.
+- `GymFeatureFlags` — **PK `id`** (convención §8.1) + `gym_id` con índice único (1:1 con `gym`), `show_routines`, `show_classes`, `show_progress`, `show_gamification`, `show_community`, `checkin_qr`, `community_comments`. Todos default `true`.
 
+> Híbrido entre plan y spec: forma plana del plan + `plan`/`status` de la spec (para no migrar datos cuando llegue el módulo SaaS), sin entidad de tema.
 > Los flags de módulos aún no construidos se crean igual: la app móvil los lee desde ya y así no hay migración de datos cuando lleguen.
+
+### Global Query Filter — nota
+El filtro dinámico debe leer la identidad a través de **miembros del `GsmDbContext`** (`TenantFilterDisabled`, `TenantFilterGymId`), no de una constante con el `ICurrentUserService` capturado: EF Core sustituye la constante-contexto por el contexto activo en cada consulta; una constante con el servicio se evalúa una sola vez y congela el primer gym que consulte.
 
 ### Trabajo
 1. Alta de gym (solo superadmin): crea gym + owner inicial + feature flags por defecto, en una transacción.
@@ -98,8 +103,9 @@
 ### Events
 `GymCreated` — lo consumirá Achievements (etapa 7) para sembrar los logros por defecto.
 
-### Endpoints propuestos
-`POST /gyms` · `GET /gym` · `PUT /gym` · `GET|PUT /gym/feature-flags`
+### Endpoints
+`POST /api/gyms` [superadmin] · `GET /api/gym` [staff] · `PUT /api/gym` [owner] · `GET /api/gym/feature-flags` [staff] · `PUT /api/gym/feature-flags` [owner] — todos operan sobre el gym del token (sin `{id}` en la ruta).
+Además: `GET /api/auth/me` pasa a incluir `gym` (branding) y `featureFlags` cuando el usuario tiene gym.
 
 ### Prueba crítica de tenancy
 Dos gyms con datos; autenticado como owner del gym A, ninguna consulta devuelve nada del gym B. **Test automatizado, no manual.** Se escribe aquí y se re-corre en cada etapa siguiente.

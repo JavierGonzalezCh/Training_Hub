@@ -1,0 +1,31 @@
+using GSM.Domain.Gyms;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace GSM.Infrastructure.Gyms;
+
+public sealed class GymFeatureFlagsConfiguration : IEntityTypeConfiguration<GymFeatureFlags>
+{
+    public void Configure(EntityTypeBuilder<GymFeatureFlags> builder)
+    {
+        builder.ToTable("gym_feature_flags", "gyms");
+
+        builder.HasIndex(f => f.GymId).IsUnique();
+
+        builder.HasOne<Gym>()
+            .WithOne()
+            .HasForeignKey<GymFeatureFlags>(f => f.GymId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        foreach (var flag in new[]
+        {
+            nameof(GymFeatureFlags.ShowRoutines), nameof(GymFeatureFlags.ShowClasses),
+            nameof(GymFeatureFlags.ShowProgress), nameof(GymFeatureFlags.ShowGamification),
+            nameof(GymFeatureFlags.ShowCommunity), nameof(GymFeatureFlags.CheckinQr),
+            nameof(GymFeatureFlags.CommunityComments),
+        })
+        {
+            builder.Property(flag).HasDefaultValue(true);
+        }
+    }
+}

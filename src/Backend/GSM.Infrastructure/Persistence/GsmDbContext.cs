@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using GSM.Application.Common.Abstractions;
 using GSM.Domain.Common;
+using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +32,8 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.HasPostgresEnum<UserRole>("identity", "user_role", LowerCaseNameTranslator.Instance);
+        modelBuilder.HasPostgresEnum<GymPlan>("gyms", "gym_plan", LowerCaseNameTranslator.Instance);
+        modelBuilder.HasPostgresEnum<GymStatus>("gyms", "gym_status", LowerCaseNameTranslator.Instance);
 
         // Tablas satélite de Identity → schema y nombres del proyecto.
         modelBuilder.Entity<AppUser>().ToTable("users", "identity");
@@ -64,19 +67,25 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
         return base.SaveChangesAsync(cancellationToken);
     }
 
+    // --- Soporte del Global Query Filter multi-tenant ---
+    // El filtro debe leer estos miembros del CONTEXTO (no del servicio capturado): EF Core
+    // parametriza los accesos a miembros del DbContext y los reevalúa en cada consulta, mientras
+    // que una constante con el servicio se evaluaría una sola vez y "congelaría" el primer gym.
+
+    /// <summary>true si el filtro no debe aplicarse: SuperAdmin o sin gym en contexto (seeds, jobs).</summary>
+    public bool TenantFilterDisabled => _currentUser.IsSuperAdmin || _currentUser.GymId is null;
+
+    /// <summary>Gym del usuario actual (o <see cref="Guid.Empty"/> si no aplica; en ese caso el filtro ya está desactivado).</summary>
+    public Guid TenantFilterGymId => _currentUser.GymId ?? Guid.Empty;
+
     /// <summary>
-    /// Para cada entidad que implemente <see cref="ITenantEntity"/>, restringe las consultas
-    /// al gym actual. Si el usuario es SuperAdmin o no hay gym en contexto (seeds, jobs),
-    /// el filtro se vuelve transparente.
+    /// Para cada entidad que implemente <see cref="ITenantEntity"/>, restringe las consultas al gym actual.
     /// </summary>
     private void ApplyTenantQueryFilters(ModelBuilder modelBuilder)
     {
-        var currentUserConst = Expression.Constant(_currentUser);
-        var bypass = Expression.OrElse(
-            Expression.Property(currentUserConst, nameof(ICurrentUserService.IsSuperAdmin)),
-            Expression.Equal(
-                Expression.Property(currentUserConst, nameof(ICurrentUserService.GymId)),
-                Expression.Constant(null, typeof(Guid?))));
+        var contextConst = Expression.Constant(this, typeof(GsmDbContext));
+        var disabled = Expression.Property(contextConst, nameof(TenantFilterDisabled));
+        var currentGymId = Expression.Property(contextConst, nameof(TenantFilterGymId));
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
@@ -86,14 +95,18 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
             }
 
             var parameter = Expression.Parameter(entityType.ClrType, "e");
-            var entityGymId = Expression.Property(parameter, nameof(ITenantEntity.GymId));
-            var currentGymId = Expression.Property(currentUserConst, nameof(ICurrentUserService.GymId));
+
+            // La mayoría de entidades tienen una columna 'gym_id'. Gym implementa GymId de forma
+            // explícita (=> Id): ahí el tenant es la propia PK, así que se filtra por 'Id'.
+            var tenantMember = entityType.FindProperty(nameof(ITenantEntity.GymId)) is not null
+                ? nameof(ITenantEntity.GymId)
+                : nameof(BaseEntity.Id);
 
             var sameTenant = Expression.Equal(
-                Expression.Convert(entityGymId, typeof(Guid?)),
+                Expression.Property(parameter, tenantMember),
                 currentGymId);
 
-            var body = Expression.OrElse(bypass, sameTenant);
+            var body = Expression.OrElse(disabled, sameTenant);
 
             modelBuilder.Entity(entityType.ClrType)
                 .HasQueryFilter(Expression.Lambda(body, parameter));

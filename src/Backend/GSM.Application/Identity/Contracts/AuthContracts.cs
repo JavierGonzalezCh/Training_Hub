@@ -13,10 +13,23 @@ public sealed record AuthTokensResponse(
     DateTimeOffset ExpiresAtUtc,
     string TokenType = "Bearer");
 
-/// <summary>Perfil del usuario autenticado. Los feature flags se agregan en la etapa 2 (módulo Gyms).</summary>
+/// <summary>Perfil del usuario autenticado. <c>Gym</c> y <c>FeatureFlags</c> vienen solo si el usuario tiene gym.</summary>
 public sealed record MeResponse(
     Guid UserId,
     string FullName,
     string Email,
     string Role,
-    Guid? GymId);
+    Guid? GymId,
+    MeGym? Gym = null,
+    MeFeatureFlags? FeatureFlags = null);
+
+public sealed record MeGym(string Name, string? LogoUrl, string PrimaryColor, string SecondaryColor);
+
+public sealed record MeFeatureFlags(
+    bool ShowRoutines,
+    bool ShowClasses,
+    bool ShowProgress,
+    bool ShowGamification,
+    bool ShowCommunity,
+    bool CheckinQr,
+    bool CommunityComments);
