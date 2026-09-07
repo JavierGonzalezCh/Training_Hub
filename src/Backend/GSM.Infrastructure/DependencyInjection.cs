@@ -1,4 +1,10 @@
+using GSM.Application.Identity;
+using GSM.Application.Identity.Abstractions;
+using GSM.Application.Identity.Public;
+using GSM.Domain.Identity;
+using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,8 +23,32 @@ public static class DependencyInjection
 
         services.AddDbContext<GsmDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql =>
-                    npgsql.MigrationsAssembly(typeof(GsmDbContext).Assembly.FullName))
+                {
+                    npgsql.MigrationsAssembly(typeof(GsmDbContext).Assembly.FullName);
+                    npgsql.MapEnum<UserRole>("user_role", "identity", new LowerCaseNameTranslator());
+                })
                 .UseSnakeCaseNamingConvention());
+
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<IdentitySeedOptions>()
+            .Bind(configuration.GetSection(IdentitySeedOptions.SectionName));
+
+        services.AddIdentityCore<AppUser>(options =>
+            {
+                options.User.RequireUniqueEmail = true;
+                options.Password.RequiredLength = 10;
+                options.Password.RequireNonAlphanumeric = false;
+            })
+            .AddEntityFrameworkStores<GsmDbContext>();
+
+        services.AddScoped<IUserCredentialsService, UserCredentialsService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IIdentityReader, IdentityReader>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
         return services;
     }

@@ -1,4 +1,5 @@
 using System.Text;
+using GSM.Application.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -10,11 +11,6 @@ public static class AuthSetup
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddOptions<JwtOptions>()
-            .Bind(configuration.GetSection(JwtOptions.SectionName))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
         var jwt = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
             ?? throw new InvalidOperationException("Falta la sección de configuración 'Jwt'.");
 
@@ -32,13 +28,25 @@ public static class AuthSetup
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromSeconds(30),
-                    RoleClaimType = GsmClaimTypes.Role,
-                    NameClaimType = GsmClaimTypes.Name,
+                    RoleClaimType = GsmClaims.Role,
+                    NameClaimType = GsmClaims.Name,
                 };
             });
 
-        services.AddAuthorization();
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AuthPolicies.RequireSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin))
+            .AddPolicy(AuthPolicies.RequireOwner, p => p.RequireRole(RoleName.Owner))
+            .AddPolicy(AuthPolicies.RequireStaff, p => p.RequireRole(RoleName.Owner, RoleName.Staff))
+            .AddPolicy(AuthPolicies.RequireMember, p => p.RequireRole(RoleName.Member));
 
         return services;
     }
+}
+
+public static class AuthPolicies
+{
+    public const string RequireSuperAdmin = "RequireSuperAdmin";
+    public const string RequireOwner = "RequireOwner";
+    public const string RequireStaff = "RequireStaff";
+    public const string RequireMember = "RequireMember";
 }

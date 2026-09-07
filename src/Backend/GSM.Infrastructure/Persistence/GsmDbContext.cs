@@ -1,6 +1,10 @@
 using System.Linq.Expressions;
 using GSM.Application.Common.Abstractions;
 using GSM.Domain.Common;
+using GSM.Domain.Identity;
+using GSM.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace GSM.Infrastructure.Persistence;
@@ -16,13 +20,23 @@ namespace GSM.Infrastructure.Persistence;
 /// referencia, pero sus getters leen el contexto de la petición vigente en cada query.
 /// </remarks>
 public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserService currentUser)
-    : DbContext(options)
+    : IdentityUserContext<AppUser, Guid>(options)
 {
     private readonly ICurrentUserService _currentUser = currentUser;
+
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.HasPostgresEnum<UserRole>("identity", "user_role", new LowerCaseNameTranslator());
+
+        // Tablas satélite de Identity → schema y nombres del proyecto.
+        modelBuilder.Entity<AppUser>().ToTable("users", "identity");
+        modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims", "identity");
+        modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins", "identity");
+        modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens", "identity");
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(GsmDbContext).Assembly);
 

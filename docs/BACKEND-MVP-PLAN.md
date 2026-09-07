@@ -13,7 +13,8 @@
 - **Fechas:** `DateTimeOffset` UTC en toda la aplicación; la conversión a `America/Bogota` es del cliente. Excepción: `start_date` / `end_date` de membresías son `DateOnly`.
 - **Dinero:** `decimal(12,2)`, COP.
 - **Errores:** las entidades validan invariantes en constructor/factory y lanzan `DomainException`. Jerarquía en `GSM.Domain/Common/Exceptions/`:
-  - `DomainException` (abstracta) · `ValidationDomainException` → 400 · `NotFoundException` → 404 · `ConflictException` → 409 · `ForbiddenDomainException` → 403
+  - `DomainException` (abstracta) · `ValidationDomainException` → 422 · `UnauthorizedDomainException` → 401 · `NotFoundException` → 404 · `ConflictException` → 409 · `ForbiddenDomainException` → 403
+  - **400 queda reservado para errores de forma del request** (payload malformado, validación de FluentValidation vía filtro de acción). La invariante de dominio violada es 422: request bien formado que el servidor entiende pero no puede procesar.
   - Middleware global mapea por tipo a `ProblemDetails`. Cualquier otra excepción → 500 genérico, detalle solo al log. No se usa `Result<T>`.
 - **Casos de uso:** un archivo por caso de uso en `GSM.Application/{Módulo}/`. Clase con un único método `HandleAsync`, registrada en DI e inyectada directo en el controller. Sin bus de comandos.
 - **Comunicación entre módulos:** lectura síncrona vía `Public/I{Módulo}Reader`; reacción asíncrona vía eventos in-process publicados desde `Events/` con el despachador propio (`IDomainEventPublisher`). **Nunca** referencia directa a entidad, DbContext o repositorio de otro módulo.
@@ -55,9 +56,10 @@
 **Schema:** `identity`
 
 ### Entidades
-- `AppUser : IdentityUser<Guid>` — `GymId` (nullable para superadmin), `FullName`, `IsActive`.
-- `RefreshToken` — id, user_id, token_hash, expires_at, revoked_at.
-- Roles: `superadmin`, `owner`, `staff`, `member`.
+- `AppUser : IdentityUser<Guid>` — `GymId` (nullable para superadmin), `FullName`, `IsActive`, `Role`. **Vive en Infrastructure** (Domain no conoce Identity); Domain solo aporta el enum `UserRole`.
+- `RefreshToken` — id, user_id, token_hash, expires_at, revoked_at. También en Infrastructure.
+- Roles: enum nativo Postgres `identity.user_role` (`superadmin`, `owner`, `staff`, `member`) como **columna en `users`**, un rol por usuario. Sin tablas `AspNetRoles`/`AspNetUserRoles` (se usa `IdentityUserContext`). El claim `role` sale de esa columna.
+- Password: mínimo 10 caracteres, sin símbolo obligatorio. Sin `AddDefaultTokenProviders` todavía (llega en la etapa 8 con Resend).
 
 ### Trabajo
 1. Identity con `Guid` como key. Solo password; sin confirmación de email en MVP (dejar el hook).

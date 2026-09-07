@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Identity;
 using GSM.Domain.Identity;
 
 namespace GSM.API.Auth;
@@ -15,19 +16,13 @@ public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICur
     public bool IsAuthenticated => Principal?.Identity?.IsAuthenticated ?? false;
 
     public Guid? UserId =>
-        Guid.TryParse(Principal?.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? Principal?.FindFirstValue("sub"), out var id)
-            ? id
-            : null;
+        Guid.TryParse(Principal?.FindFirstValue(GsmClaims.Subject), out var id) ? id : null;
 
     public Guid? GymId =>
-        Guid.TryParse(Principal?.FindFirstValue(GsmClaimTypes.GymId), out var id) ? id : null;
+        Guid.TryParse(Principal?.FindFirstValue(GsmClaims.GymId), out var id) ? id : null;
 
     public UserRole? Role =>
-        Enum.TryParse<UserRole>(Principal?.FindFirstValue(ClaimTypes.Role)
-            ?? Principal?.FindFirstValue("role"), ignoreCase: true, out var role)
-            ? role
-            : null;
+        RoleName.TryParse(Principal?.FindFirstValue(GsmClaims.Role), out var role) ? role : null;
 
     public bool IsSuperAdmin => Role == UserRole.SuperAdmin;
 }

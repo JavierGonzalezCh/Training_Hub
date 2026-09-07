@@ -1,3 +1,4 @@
+using GSM.Domain.Identity;
 using GSM.Infrastructure.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -18,7 +19,10 @@ public sealed class GsmDbContextFactory : IDesignTimeDbContextFactory<GsmDbConte
 
         var options = new DbContextOptionsBuilder<GsmDbContext>()
             .UseNpgsql(connectionString, npgsql =>
-                npgsql.MigrationsAssembly(typeof(GsmDbContext).Assembly.FullName))
+            {
+                npgsql.MigrationsAssembly(typeof(GsmDbContext).Assembly.FullName);
+                npgsql.MapEnum<UserRole>("user_role", "identity", new LowerCaseNameTranslator());
+            })
             .UseSnakeCaseNamingConvention()
             .Options;
 

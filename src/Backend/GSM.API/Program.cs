@@ -4,6 +4,7 @@ using GSM.API.Middleware;
 using GSM.Application;
 using GSM.Application.Common.Abstractions;
 using GSM.Infrastructure;
+using GSM.Infrastructure.Identity;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -27,6 +28,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ICurrentUserService, CurrentUser>();
 
 builder.Services.AddGsmAuth(builder.Configuration);
+builder.Services.AddGsmRateLimiting();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -45,10 +47,14 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+
+    await using var scope = app.Services.CreateAsyncScope();
+    await IdentityDataSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 app.UseHttpsRedirection();
 app.UseCors(CorsPolicy);
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

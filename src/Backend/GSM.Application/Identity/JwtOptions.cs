@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace GSM.API.Auth;
+namespace GSM.Application.Identity;
 
 public sealed class JwtOptions
 {
@@ -19,4 +19,7 @@ public sealed class JwtOptions
 
     [Range(1, 1440)]
     public int AccessTokenMinutes { get; init; } = 60;
+
+    [Range(1, 365)]
+    public int RefreshTokenDays { get; init; } = 30;
 }

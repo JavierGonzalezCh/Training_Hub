@@ -65,12 +65,14 @@ Toda tabla de negocio lleva `gym_id`. Global Query Filter en EF Core (`HasQueryF
 Las entidades de Domain validan sus invariantes en el constructor/factory estático, lanzando `DomainException` si se violan (no se usa `Result<T>`). Jerarquía en `GSM.Domain/Common/Exceptions/`:
 
 - `DomainException` (abstracta)
-- `ValidationDomainException` → 400
+- `ValidationDomainException` → 422
 - `NotFoundException` → 404
 - `ConflictException` → 409
 - `ForbiddenDomainException` → 403
 
 Un middleware global en la API mapea por tipo a `ProblemDetails`. Cualquier otra excepción → 500 genérico, con el detalle solo en el log.
+
+**400 queda reservado para errores de forma del request** (payload malformado, tipos que no castean, validación de FluentValidation vía `ValidationActionFilter`, que responde `ValidationProblemDetails` con los errores por campo). Una invariante de dominio violada llega con un request bien formado que el servidor entiende pero no puede procesar: eso es 422. Así el cliente distingue por status “corrige el formulario” de “la operación no procede en este estado”. La frontera con 409: `ValidationDomainException` es para valores que no satisfacen la regla; `ConflictException` para choques de estado (duplicados, carreras).
 
 ## Mapeo entidad → DTO
 
