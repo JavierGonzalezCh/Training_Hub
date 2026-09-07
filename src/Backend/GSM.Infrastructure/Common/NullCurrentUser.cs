@@ -4,10 +4,10 @@ using GSM.Domain.Identity;
 namespace GSM.Infrastructure.Common;
 
 /// <summary>
-/// <see cref="ICurrentUser"/> sin identidad: usado en contextos fuera de una petición HTTP
+/// <see cref="ICurrentUserService"/> sin identidad: usado en contextos fuera de una petición HTTP
 /// (migraciones en tiempo de diseño, seeds, jobs). Con esto el Global Query Filter no restringe nada.
 /// </summary>
-public sealed class NullCurrentUser : ICurrentUser
+public sealed class NullCurrentUser : ICurrentUserService
 {
     public static readonly NullCurrentUser Instance = new();
 

@@ -1,5 +1,7 @@
 using GSM.API.Auth;
+using GSM.API.Filters;
 using GSM.API.Middleware;
+using GSM.Application;
 using GSM.Application.Common.Abstractions;
 using GSM.Infrastructure;
 using Scalar.AspNetCore;
@@ -22,12 +24,13 @@ builder.Services.AddCors(options => options.AddPolicy(CorsPolicy, policy => poli
     .AllowAnyMethod()));
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<ICurrentUser, CurrentUser>();
+builder.Services.AddSingleton<ICurrentUserService, CurrentUser>();
 
 builder.Services.AddGsmAuth(builder.Configuration);
+builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.Add<ValidationActionFilter>());
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddOpenApi();

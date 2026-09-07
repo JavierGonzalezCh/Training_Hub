@@ -8,7 +8,7 @@ namespace GSM.API.Auth;
 /// Lee la identidad de la petición desde los claims del JWT. Registrado como singleton:
 /// <see cref="IHttpContextAccessor"/> resuelve el <c>HttpContext</c> de cada petición.
 /// </summary>
-public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUser
+public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
 {
     private ClaimsPrincipal? Principal => httpContextAccessor.HttpContext?.User;
 

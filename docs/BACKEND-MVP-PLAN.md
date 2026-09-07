@@ -1,304 +1,247 @@
 # Plan de construcción — Backend MVP (GSM)
 
-> Documento de trabajo para Claude Code. Cada etapa es un bloque cerrado: se implementa, se compila, se prueba y se commitea antes de pasar a la siguiente. **No avanzar con una etapa si la anterior no compila y sus endpoints no responden.**
+> Documento de trabajo para Claude Code. Complementa `CLAUDE.md` y `docs/GSM-especificacion-tecnica.md`. **Si algo aquí contradice a esos dos, ellos mandan.**
+>
+> **Ritmo:** una etapa por vez. No empezar la siguiente sin confirmación explícita. Cada etapa termina compilando, con su migración aplicada y sus endpoints respondiendo.
 
-## Contexto fijo
+---
 
-- **Stack:** .NET 10, EF Core 10, PostgreSQL 16, ASP.NET Identity + JWT, FluentValidation.
-- **Namespace raíz:** `GSM`. La marca comercial no aparece en código, solo en datos de tenant y assets.
-- **Capas:** `GSM.Domain` → `GSM.Application` → `GSM.Infrastructure` → `GSM.API`. Las dependencias apuntan hacia adentro. Domain no referencia nada.
-- **Multi-tenancy:** `gym_id` en toda tabla de negocio + Global Query Filter en EF Core.
-- **Pagos:** 100% manuales en v1. Sin pasarela.
-- **Roles:** `superadmin`, `owner`, `staff`, `member`.
+## Convenciones transversales
 
-## Convenciones transversales (aplican a todas las etapas)
+- **IDs:** `Guid` v7 (`Guid.CreateVersion7()`), generados en el dominio, no en la DB.
+- **DB:** un schema de Postgres por módulo. `snake_case`, tablas en plural, PK `id`, FK `{tabla_singular}_id`, índices `ix_{tabla}_{columna}`, constraints `fk_{tabla}_{referenciada}`, enums nativos de Postgres.
+- **Fechas:** `DateTimeOffset` UTC en toda la aplicación; la conversión a `America/Bogota` es del cliente. Excepción: `start_date` / `end_date` de membresías son `DateOnly`.
+- **Dinero:** `decimal(12,2)`, COP.
+- **Errores:** las entidades validan invariantes en constructor/factory y lanzan `DomainException`. Jerarquía en `GSM.Domain/Common/Exceptions/`:
+  - `DomainException` (abstracta) · `ValidationDomainException` → 400 · `NotFoundException` → 404 · `ConflictException` → 409 · `ForbiddenDomainException` → 403
+  - Middleware global mapea por tipo a `ProblemDetails`. Cualquier otra excepción → 500 genérico, detalle solo al log. No se usa `Result<T>`.
+- **Casos de uso:** un archivo por caso de uso en `GSM.Application/{Módulo}/`. Clase con un único método `HandleAsync`, registrada en DI e inyectada directo en el controller. Sin bus de comandos.
+- **Comunicación entre módulos:** lectura síncrona vía `Public/I{Módulo}Reader`; reacción asíncrona vía eventos in-process publicados desde `Events/` con el despachador propio (`IDomainEventPublisher`). **Nunca** referencia directa a entidad, DbContext o repositorio de otro módulo.
+- **Sin FK entre schemas de módulos distintos.** La referencia se valida en el caso de uso contra el `Reader` correspondiente.
+- **Mapeo:** Mapperly, un mapper parcial estático por módulo. Las consultas de lectura pesadas usan proyección explícita con `Select`, no mapeo post-materialización.
+- **DTOs:** `record` inmutables. Nunca exponer entidades de Domain.
+- **Validación:** FluentValidation sobre los requests, vía filtro de acción.
+- **Endpoints:** Controllers (`[ApiController]`), uno por módulo. `[Authorize(Policy = ...)]` a nivel de clase.
+- **Migraciones:** una por etapa, `Etapa0X_{Módulo}`.
+- **Logging:** Serilog structured, un log de entrada/salida por caso de uso, enriquecido con `gym_id` y `user_id`. Nunca passwords ni tokens.
+- **Commits:** Conventional Commits.
 
-- **IDs:** `Guid` (v7 si es posible, `Guid.CreateVersion7()`) generados en el dominio, no en la DB.
-- **Naming en DB:** `snake_case` para tablas y columnas; en C# `PascalCase`. Configurar mapeo con `UseSnakeCaseNamingConvention()`.
-- **Fechas:** `DateTimeOffset` en UTC en toda la aplicación. La conversión a `America/Bogota` es responsabilidad del cliente. Excepción: `start_date` / `end_date` de membresías son `DateOnly`.
-- **Dinero:** `decimal(12,2)`, COP, sin decimales en la UI.
-- **Application:** patrón Command/Query con handlers propios (sin MediatR). Cada caso de uso es una clase con un método `Handle`. Los eventos de dominio in-process se despachan con un despachador mínimo propio cuando haga falta.
-- **DTOs:** `record` inmutables. Nunca exponer entidades de Domain en la API. Mapeo entidad ↔ DTO con **Mapperly** (source generator).
-- **Errores:** las entidades y servicios de dominio lanzan `DomainException` (jerarquía tipada en `GSM.Domain/Common/Exceptions/`); un middleware global la traduce a `ProblemDetails` con el código HTTP correspondiente. No se usa `Result<T>`.
-  - `DomainException` (base, abstracta) · `ValidationDomainException` → 422 · `NotFoundException` → 404 · `ConflictException` → 409 · `ForbiddenDomainException` → 403.
-  - El middleware mapea por tipo. Cualquier otra excepción → 500 con mensaje genérico; el detalle solo va al log.
-- **Endpoints:** Controllers clásicos (`[ApiController]`) agrupados por módulo en `Controllers/`. Validación con FluentValidation.
-- **Validación:** FluentValidation sobre los Commands, ejecutada en un filtro de acción / `ValidationFilter`.
-- **Migraciones:** una migración por etapa, nombrada `Etapa0X_Descripcion`.
-- **Commits:** convencionales (`feat:`, `fix:`, `chore:`), uno por sub-bloque funcional.
+> **Nota sobre endpoints:** los listados de cada etapa son una propuesta. `docs/GSM-especificacion-tecnica.md` define los 15 endpoints reales del MVP — verificar contra esa lista antes de implementar y recortar lo que sobre.
 
 ---
 
 # ETAPA 0 — Fundaciones
 
-**Objetivo:** que la solución levante, conecte a Postgres y responda un health check autenticado.
+**Objetivo:** la solución levanta, conecta a Postgres y responde health check.
 
-### Tareas
+1. Verificar scaffolding: referencias entre capas correctas, `Directory.Build.props` con `<Nullable>enable</Nullable>`, warnings como errores en Domain y Application.
+2. Paquetes: `Npgsql.EntityFrameworkCore.PostgreSQL`, `EFCore.NamingConventions`, `Riok.Mapperly`, `FluentValidation`, `Serilog.AspNetCore`, `Microsoft.AspNetCore.Authentication.JwtBearer`, `Scalar.AspNetCore`.
+3. `Domain/Common/`: `BaseEntity` (Id, CreatedAt, UpdatedAt), `ITenantEntity` (GymId), jerarquía de `DomainException`.
+3b. **Despachador de eventos** en `Application/Common/Events/`: `IDomainEvent`, `IDomainEventHandler<TEvent>`, `IDomainEventPublisher` + implementación que resuelve los handlers del contenedor y los invoca. Registro por assembly scanning. La publicación va **después** del commit del caso de uso, nunca dentro; un handler que falla se loguea y no tumba la operación que publicó el evento. Son ~40 líneas: escribirlas aquí, en la etapa 0, para que las etapas 6 y 7 ya lo tengan.
+4. `Infrastructure/Persistence/GsmDbContext`: snake_case, `ApplyConfigurationsFromAssembly`, schema por configuración de entidad, override de `SaveChangesAsync` para timestamps.
+5. `ICurrentUserService` (UserId, GymId, Role, IsSuperAdmin) leyendo claims del `HttpContext`.
+6. Global Query Filter genérico sobre `ITenantEntity`, desactivado si `Role == SuperAdmin`.
+7. Middleware de excepciones → `ProblemDetails`.
+8. Registro por assembly de los casos de uso, los validators y los event handlers.
+9. `GET /health` y `GET /health/db`.
+10. Docker Compose con Postgres 16 local.
 
-1. Verificar el scaffolding: referencias entre proyectos correctas, `Directory.Build.props` con `<Nullable>enable</Nullable>`, `<TreatWarningsAsErrors>` en Domain y Application.
-2. Paquetes:
-   - API: `Microsoft.AspNetCore.Authentication.JwtBearer`, `FluentValidation.AspNetCore`, `Swashbuckle` o `Scalar.AspNetCore`.
-   - Infrastructure: `Npgsql.EntityFrameworkCore.PostgreSQL`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `EFCore.NamingConventions`.
-3. `Domain/Common/`:
-   - `BaseEntity` (Id, CreatedAt, UpdatedAt).
-   - `ITenantEntity` con `GymId` — la interfaz que activa el filtro global.
-4. `Infrastructure/Persistence/GsmDbContext` vacío pero configurado: snake_case, `ApplyConfigurationsFromAssembly`, override de `SaveChangesAsync` que setea timestamps.
-5. `ICurrentUser` en Application (`UserId`, `GymId`, `Role`, `IsSuperAdmin`) + implementación en API leyendo claims del `HttpContext`.
-6. Global Query Filter genérico: en `OnModelCreating`, para cada entidad que implemente `ITenantEntity`, filtrar por `GymId == currentUser.GymId` salvo si `IsSuperAdmin`.
-7. Configuración: `appsettings.json` + `secrets.json` local. Connection string, JWT (issuer, audience, key, expiración).
-8. Pipeline en `Program.cs`: ProblemDetails middleware, CORS (orígenes de Blazor y MAUI), auth, authorization, OpenAPI.
-9. Endpoint `GET /health` (anónimo) y `GET /health/db` (verifica `CanConnectAsync`).
-10. Docker Compose local con Postgres 16 para desarrollo.
-
-### Criterio de aceptación
-`dotnet run` levanta, `/health/db` devuelve 200, Scalar/Swagger renderiza.
+**Aceptación:** `dotnet run` levanta, `/health/db` responde 200, Scalar renderiza.
 
 ---
 
-# ETAPA 1 — Identidad, tenancy y autenticación
+# ETAPA 1 — Identity
 
-**Objetivo:** un usuario puede autenticarse y su JWT lleva `gym_id` y `role`.
+**Schema:** `identity`
 
 ### Entidades
-- `Gym` (id, name, slug, nit, phone, email, logo_url, primary_color, secondary_color, is_active, created_at)
-- `Location` (id, gym_id, name, address, phone) — multi-sede desde el día 1 aunque la UI del MVP asuma una.
-- `AppUser : IdentityUser<Guid>` con `GymId` (nullable para superadmin), `FullName`, `IsActive`.
-- `GymFeatureFlags` (gym_id PK, show_routines, show_classes, show_progress, show_gamification, show_community, checkin_qr, community_comments — todos default `true`).
+- `AppUser : IdentityUser<Guid>` — `GymId` (nullable para superadmin), `FullName`, `IsActive`.
+- `RefreshToken` — id, user_id, token_hash, expires_at, revoked_at.
+- Roles: `superadmin`, `owner`, `staff`, `member`.
 
-### Tareas
-1. Configurar ASP.NET Identity con `Guid` como key. Solo password, sin confirmación de email en MVP (dejar el hook listo).
-2. Seed de roles: `superadmin`, `owner`, `staff`, `member`.
-3. `JwtTokenService`: genera access token (60 min) con claims `sub`, `gym_id`, `role`, `name`. Refresh token opaco persistido en tabla `refresh_tokens` (id, user_id, token_hash, expires_at, revoked_at).
-4. Endpoints:
-   - `POST /auth/login`
-   - `POST /auth/refresh`
-   - `POST /auth/logout` (revoca refresh token)
-   - `GET /auth/me` → perfil + rol + gym + feature flags
-5. Policies de autorización: `RequireOwner`, `RequireStaff` (owner o staff), `RequireMember`, `RequireSuperAdmin`.
-6. `POST /gyms` (solo superadmin): crea gym + owner inicial + feature flags por defecto + sede principal, todo en una transacción.
-7. Seed de desarrollo: 1 superadmin, 1 gym demo con owner y staff.
+### Trabajo
+1. Identity con `Guid` como key. Solo password; sin confirmación de email en MVP (dejar el hook).
+2. `JwtTokenService`: access token 60 min con claims `sub`, `gym_id`, `role`, `name`. Refresh token opaco, hash en DB.
+3. Policies: `RequireSuperAdmin`, `RequireOwner`, `RequireStaff` (owner ∪ staff), `RequireMember`.
+4. Rate limiting en login.
 
-### Criterio de aceptación
-Login devuelve token válido; un endpoint protegido rechaza sin token; el claim `gym_id` aparece en el token.
+### Public
+`IIdentityReader`: `GetUserAsync(userId)` → id, nombre, rol, gymId. Es lo único que otros módulos pueden pedir de aquí.
+
+### Endpoints propuestos
+`POST /auth/login` · `POST /auth/refresh` · `POST /auth/logout` · `GET /auth/me`
+
+**Aceptación:** login devuelve token con `gym_id` y `role`; endpoint protegido rechaza sin token.
+
+---
+
+# ETAPA 2 — Gyms
+
+**Schema:** `gyms`
+
+### Entidades
+- `Gym` — id, name, slug, nit, phone, email, logo_url, primary_color, secondary_color, is_active, created_at.
+- `GymFeatureFlags` — gym_id PK, `show_routines`, `show_classes`, `show_progress`, `show_gamification`, `show_community`, `checkin_qr`, `community_comments`. Todos default `true`.
+
+> Los flags de módulos aún no construidos se crean igual: la app móvil los lee desde ya y así no hay migración de datos cuando lleguen.
+
+### Trabajo
+1. Alta de gym (solo superadmin): crea gym + owner inicial + feature flags por defecto, en una transacción.
+2. Actualización de datos e identidad visual del gym.
+3. Seed de desarrollo: 1 superadmin + 1 gym demo con owner y staff.
+
+### Public
+`IGymReader`: `ExistsAsync(gymId)`, `GetFeatureFlagsAsync(gymId)`, `GetBrandingAsync(gymId)`.
+
+### Events
+`GymCreated` — lo consumirá Achievements (etapa 7) para sembrar los logros por defecto.
+
+### Endpoints propuestos
+`POST /gyms` · `GET /gym` · `PUT /gym` · `GET|PUT /gym/feature-flags`
 
 ### Prueba crítica de tenancy
-Crear dos gyms con datos, autenticarse como owner del gym A y verificar que una consulta directa no devuelve nada del gym B. **Esta prueba debe existir como test automatizado, no manual.**
+Dos gyms con datos; autenticado como owner del gym A, ninguna consulta devuelve nada del gym B. **Test automatizado, no manual.** Se escribe aquí y se re-corre en cada etapa siguiente.
 
 ---
 
-# ETAPA 2 — Miembros y membresías
+# ETAPA 3 — Members
 
-**Objetivo:** el núcleo del negocio: quién es miembro y hasta cuándo está vigente.
-
-### Entidades
-- `Member` (id, gym_id, user_id nullable, first_name, last_name, document_number, phone, email, birth_date, photo_url, emergency_contact, status enum `active|inactive`, qr_code, joined_at)
-- `MembershipPlan` (id, gym_id, name, description, price, duration_days, is_active)
-- `Membership` (id, member_id, plan_id, status enum `active|expired|paused`, start_date, end_date)
-
-### Reglas de negocio
-- `qr_code`: string único e irrepetible por miembro, generado al crear. No es la PK.
-- Un miembro puede tener varias membresías históricas pero **solo una activa**. Renovar = crear una nueva; si la anterior aún no vence, la nueva arranca al día siguiente del `end_date` vigente.
-- El estado `expired` no se persiste con un job: se calcula por `end_date < today` en las queries y se materializa solo cuando se consulta. Evita depender de un scheduler en el MVP.
-- Un miembro puede existir sin `user_id` (registrado en recepción, todavía sin app). El vínculo se crea después con un código de invitación.
-
-### Endpoints
-- `GET /members` (paginado, filtros: búsqueda por nombre/documento, estado, vigencia)
-- `GET /members/{id}` (perfil con membresía vigente, últimos pagos, últimas asistencias)
-- `POST /members`, `PUT /members/{id}`, `DELETE /members/{id}` (soft delete → `inactive`)
-- `POST /members/{id}/invite` → genera código para que el miembro se registre en la app
-- `POST /members/register` (anónimo) → el miembro canjea el código y crea su `AppUser`
-- CRUD de `/membership-plans`
-- `POST /members/{id}/memberships` → asignar/renovar plan
-- `GET /members/expiring?days=7` → próximos a vencer
-
-### Criterio de aceptación
-Alta de miembro, asignación de plan, renovación correcta de fechas y listado paginado funcionando.
-
----
-
-# ETAPA 3 — Pagos y caja
-
-**Objetivo:** trazabilidad completa del dinero, con registro manual.
+**Schema:** `members`
 
 ### Entidad
-- `Payment` (id, gym_id, member_id nullable, membership_id nullable, amount, method enum `cash|transfer|card|other`, concept, notes, registered_by FK→users, paid_at)
+`Member` — id, gym_id, user_id (nullable), first_name, last_name, document_number, phone, email, birth_date, photo_url, emergency_contact, status (`active|inactive`), qr_code, joined_at.
 
 ### Reglas
-- `member_id` nullable porque puede haber ingresos sin miembro (venta de producto, clase suelta a un visitante).
-- `registered_by` se toma **siempre del `ICurrentUser`**, nunca del body. Es el campo de auditoría.
-- Al registrar un pago con `membership_id`, la membresía asociada queda marcada como pagada. Un pago no crea membresías por sí solo: son operaciones separadas que la UI encadena.
-- Los pagos **no se editan ni se borran**. Corrección = registro de ajuste con monto negativo y concepto explícito.
+- `qr_code` único por gym, generado al crear. No es la PK.
+- Un miembro puede existir sin `user_id`: se registra en recepción y luego canjea un código de invitación que crea su `AppUser`. El vínculo con Identity se coordina por evento, no por FK cruzada entre schemas.
+- `document_number` único dentro del gym.
+- Baja = soft delete a `inactive`.
 
-### Endpoints
-- `POST /payments`, `GET /payments` (filtros: rango de fechas, método, miembro)
-- `GET /payments/{id}`
-- `GET /members/{id}/payments`
-- `GET /cash-register/daily?date=` → cierre de caja: total del día desglosado por método, cantidad de transacciones, lista completa
+### Public
+`IMemberReader`: `GetAsync(memberId)`, `ExistsAsync(memberId)`, `ResolveByQrAsync(qrCode)`, `GetActiveCountAsync(gymId)`.
 
-### Criterio de aceptación
-Registrar pagos de distintos métodos y obtener un cierre de caja cuadrado.
+### Events
+`MemberCreated`, `MemberDeactivated`.
+
+### Endpoints propuestos
+`GET /members` (paginado; filtros por nombre, documento, estado) · `GET /members/{id}` · `POST /members` · `PUT /members/{id}` · `DELETE /members/{id}` · `POST /members/{id}/invite` · `POST /members/register` (anónimo, canjea código)
 
 ---
 
-# ETAPA 4 — Asistencia y check-in
+# ETAPA 4 — Memberships
 
-**Objetivo:** registrar entradas y calcular rachas.
+**Schema:** `memberships`
+
+### Entidades
+- `MembershipPlan` — id, gym_id, name, description, price, duration_days, is_active.
+- `Membership` — id, gym_id, member_id, plan_id, status (`active|expired|paused`), start_date, end_date.
+
+### Reglas
+- Solo una membresía activa por miembro. Renovar = crear otra; si la vigente no ha vencido, la nueva arranca al día siguiente de su `end_date`.
+- `expired` **no se persiste con un job**: se deriva de `end_date < today` en las consultas. Sin scheduler en el MVP.
+- `member_id` se valida contra `IMemberReader`, no con FK al schema de otro módulo.
+
+### Public
+`IMembershipReader`: `GetActiveAsync(memberId)`, `IsActiveAsync(memberId)`, `GetExpiringAsync(gymId, days)`.
+
+### Events
+`MembershipCreated`, `MembershipRenewed`.
+
+### Endpoints propuestos
+CRUD `/membership-plans` · `POST /members/{id}/memberships` · `GET /members/{id}/memberships` · `GET /memberships/expiring?days=7`
+
+**Aceptación:** renovación encadenada calcula fechas correctas; un miembro nunca queda con dos activas.
+
+---
+
+# ETAPA 5 — Payments
+
+**Schema:** `payments`
 
 ### Entidad
-- `Attendance` (id, gym_id, member_id, location_id, checked_in_at, method enum `qr|manual`)
+`Payment` — id, gym_id, member_id (nullable), membership_id (nullable), amount, method (`cash|transfer|card|other`), concept, notes, registered_by, paid_at.
 
 ### Reglas
-- **Un check-in por miembro por día.** Un segundo intento el mismo día devuelve el registro existente, no error.
-- El check-in valida membresía vigente. Si está vencida: se permite el registro pero la respuesta incluye una bandera `membership_expired: true` para que recepción cobre. No bloquear — un gym real no rechaza a alguien en la puerta por software.
-- **Racha (streak):** días consecutivos con asistencia, con tolerancia configurable de 1 día de descanso. Calcular en un `StreakService` a partir de las asistencias, sin tabla propia. Cachear el resultado por miembro con expiración corta si el cálculo pesa.
+- Pagos 100% manuales. Sin pasarela.
+- `member_id` nullable: hay ingresos sin miembro (producto, visitante).
+- `registered_by` se toma **siempre** de `ICurrentUserService`, nunca del body.
+- **Los pagos no se editan ni se borran.** Corrección = asiento de ajuste con monto negativo y concepto explícito. Es lo correcto para trazabilidad de caja.
+- Registrar un pago con `membership_id` no crea la membresía: son operaciones separadas que la UI encadena.
 
-### Endpoints
-- `POST /attendance/checkin` (body: `qr_code` o `member_id`)
-- `GET /attendance` (filtros: fecha, miembro)
-- `GET /members/{id}/attendance` + `GET /members/{id}/streak`
-- `GET /attendance/peak-hours?from=&to=` → conteo agrupado por hora del día
-- `GET /members/inactive?days=15` → miembros activos sin asistencia reciente
+### Public
+`IPaymentReader`: `GetMonthlyRevenueAsync(gymId, month)`, `GetByMemberAsync(memberId)`.
 
-### Criterio de aceptación
-Check-in por QR y manual funcionan, el duplicado diario es idempotente, la racha se calcula bien en un escenario con huecos.
+### Endpoints propuestos
+`POST /payments` · `GET /payments` (filtros: rango, método, miembro) · `GET /payments/{id}` · `GET /members/{id}/payments` · `GET /cash-register/daily?date=`
+
+**Aceptación:** cierre de caja diario cuadra por método y por total.
 
 ---
 
-# ETAPA 5 — Rutinas y ejercicios
+# ETAPA 6 — Attendance
 
-**Objetivo:** el entrenador arma rutinas y las asigna; el miembro las consume.
+**Schema:** `attendance`
+
+### Entidad
+`Attendance` — id, gym_id, member_id, checked_in_at, method (`qr|manual`).
+
+> Sin `location_id`: Locations es fase futura. Agregarlo después es una migración trivial.
+
+### Reglas
+- **Un check-in por miembro por día.** El segundo intento devuelve el registro existente, no un 409.
+- Valida membresía vigente vía `IMembershipReader`. Si está vencida **no bloquea**: registra y devuelve `membership_expired: true` para que recepción cobre. Un gym real no rechaza a nadie en la puerta por software.
+- **Racha:** días consecutivos con tolerancia de 1 día de descanso. `StreakService` la calcula desde las asistencias, sin tabla propia.
+- Índice obligatorio: `ix_attendances_gym_id_checked_in_at`.
+
+### Public
+`IAttendanceReader`: `GetVisitCountAsync(memberId)`, `GetStreakAsync(memberId)`, `GetTodayCountAsync(gymId)`.
+
+### Events
+`CheckInRegistered` — lo consume Achievements.
+
+### Endpoints propuestos
+`POST /attendance/checkin` (por `qr_code` o `member_id`) · `GET /attendance` · `GET /members/{id}/attendance` · `GET /members/{id}/streak` · `GET /attendance/peak-hours?from=&to=`
+
+**Aceptación:** duplicado diario idempotente; racha correcta en escenario con huecos.
+
+---
+
+# ETAPA 7 — Achievements
+
+**Schema:** `achievements`
 
 ### Entidades
-- `Exercise` (id, gym_id nullable, name, description, muscle_group, image_url, video_url, is_global) — `gym_id` null + `is_global` true = biblioteca base compartida por todos los gyms. El filtro global debe permitir estos registros.
-- `Routine` (id, gym_id, name, description, days_per_week, is_template, created_by, created_at)
-- `RoutineDay` (id, routine_id, day_number, name)
-- `RoutineExercise` (id, routine_day_id, exercise_id, order, sets, reps, rest_seconds, notes)
-- `MemberRoutine` (id, member_id, routine_id, assigned_at, assigned_by, is_active)
+- `Achievement` — id, gym_id, name, description, icon_url, condition_type (`visits|streak`), condition_value, is_active.
+- `MemberAchievement` — id, gym_id, member_id, achievement_id, unlocked_at.
+
+> `condition_type` sin `classes`: el módulo Classes es fase futura. Se agrega al enum cuando exista.
 
 ### Reglas
-- Asignar una plantilla a un miembro **copia** la rutina, no la referencia. Así el entrenador puede ajustar la rutina de un miembro sin afectar la plantilla ni a los demás.
-- Un miembro tiene una sola rutina activa; asignar una nueva desactiva la anterior.
-- Seed inicial de ~40 ejercicios globales por grupo muscular.
+- Handler de `CheckInRegistered` evalúa los logros pendientes de ese miembro leyendo `IAttendanceReader`. Idempotente: doble evaluación nunca duplica.
+- Handler de `GymCreated` siembra los logros por defecto: primera visita, 10 visitas, 50 visitas, racha de 7 días, racha de 30 días.
+- **Decisión pendiente:** el desbloqueo llega por evento, así que la respuesta del check-in puede no incluirlo. Dos opciones: (a) la app consulta `/me/achievements` después del check-in; (b) el despachador invoca los handlers de forma síncrona dentro del request y el caso de uso de check-in recoge los desbloqueos para devolverlos en la misma respuesta. (b) da mejor UX y con un despachador propio es fácil de implementar, pero acopla el timing de los dos módulos. **Resolver antes de implementar.**
 
-### Endpoints
-- CRUD `/exercises` (listado combina globales + propios del gym)
-- CRUD `/routines` con días y ejercicios anidados
-- `POST /routines/{id}/assign` (uno o varios miembros)
-- `GET /members/{id}/routine` → rutina activa completa
-- `GET /me/routine` → para la app del miembro
-
-### Criterio de aceptación
-Crear plantilla, asignarla a dos miembros, modificar la de uno y verificar que la del otro y la plantilla no cambiaron.
+### Endpoints propuestos
+`GET /achievements` · `GET /members/{id}/achievements` (obtenidos + pendientes con progreso) · `GET /me/achievements`
 
 ---
 
-# ETAPA 6 — Clases grupales
+# ETAPA 8 — Cierre e infraestructura
 
-**Objetivo:** calendario, cupos e inscripciones.
+1. **Cloudflare R2:** `IFileStorage` en Application, implementación S3-compatible en Infrastructure. Logos de gym, fotos de miembros, íconos de logros. Validar MIME y tamaño (máx. 5 MB), renombrar con GUID.
+2. **Resend:** `IEmailSender`. Plantillas: invitación a la app, recuperación de contraseña.
+3. **Dashboard:** un solo endpoint, un solo response — miembros activos, check-ins de hoy, ingresos del mes, membresías vencidas y por vencer. Se arma componiendo los `Public/I{Módulo}Reader`, sin consultas cruzadas. Agregaciones con proyección explícita, nunca cargando entidades. Índices: `payments(gym_id, paid_at)`, `memberships(member_id, end_date)`.
+4. **Deploy:** Railway. Dockerfile multi-stage. Migraciones automáticas solo en desarrollo; en producción, comando explícito.
 
-### Entidades
-- `GroupClass` (id, gym_id, location_id, name, description, instructor_name, capacity, day_of_week, start_time, duration_minutes, is_active) — plantilla recurrente semanal.
-- `ClassSession` (id, class_id, scheduled_at, capacity_override nullable, status enum `scheduled|cancelled`) — instancia concreta.
-- `ClassBooking` (id, session_id, member_id, status enum `booked|attended|cancelled|no_show`, booked_at)
-
-### Reglas
-- Las sesiones se **materializan bajo demanda**: al consultar el calendario de un rango, generar las sesiones faltantes de las clases recurrentes. Sin job programado.
-- Cupo: contar bookings con estado `booked`. Si está lleno, rechazar con 409 y mensaje claro. Sin lista de espera en MVP.
-- Cancelar con menos de X horas de anticipación (configurable por gym, default 2) marca `no_show`. Anotarlo, no penalizar automáticamente.
-- Reservar requiere membresía vigente.
-
-### Endpoints
-- CRUD `/classes`
-- `GET /classes/calendar?from=&to=` → sesiones del rango
-- `POST /sessions/{id}/book`, `DELETE /sessions/{id}/book`
-- `GET /sessions/{id}/attendees`
-- `POST /sessions/{id}/attendance` → marcar asistentes
-- `GET /me/bookings`
-
-### Criterio de aceptación
-Calendario semanal correcto, cupo respetado bajo reservas concurrentes.
+> FCM/push queda fuera del MVP: sus disparadores naturales (logros, comunidad, vencimientos) o son de fase futura o se resuelven bien con pull desde la app.
 
 ---
 
-# ETAPA 7 — Gamificación
+## Fuera del MVP
 
-**Objetivo:** logros que se desbloquean solos.
+Módulos: Routines, Classes, Community, Reports, Locations, SuperAdmin.
+Features: pasarela de pagos, facturación electrónica, chat entre miembros, lista de espera, reportes exportables, impersonación, métricas SaaS.
 
-### Entidades
-- `Achievement` (id, gym_id, name, description, icon_url, condition_type enum `visits|streak|classes`, condition_value, is_active)
-- `MemberAchievement` (id, member_id, achievement_id, unlocked_at)
+## Punto de corte comercial
 
-### Reglas
-- `AchievementService.EvaluateAsync(memberId)` se invoca después de cada check-in y de cada asistencia a clase.
-- Evalúa solo los logros aún no obtenidos por ese miembro. Idempotente: doble evaluación nunca duplica.
-- Devuelve la lista de logros recién desbloqueados para que el endpoint que la disparó los incluya en su respuesta (así la app puede mostrar la animación sin un segundo request).
-- Seed de logros por defecto al crear un gym: primera visita, 10 visitas, 50 visitas, racha de 7 días, racha de 30 días, 10 clases.
-
-### Endpoints
-- CRUD `/achievements`
-- `GET /members/{id}/achievements` → obtenidos + pendientes con progreso
-- `GET /me/achievements`
-
-### Criterio de aceptación
-Un check-in que cruza un umbral devuelve el logro desbloqueado en la misma respuesta.
-
----
-
-# ETAPA 8 — Comunidad
-
-**Objetivo:** feed privado por gym.
-
-### Entidades
-- `Post` (id, gym_id, author_user_id, content, image_url, type enum `announcement|achievement|general`, is_pinned, created_at)
-- `PostLike` (post_id, member_id, created_at) — PK compuesta
-- `PostComment` (id, post_id, member_id, content, created_at, deleted_at)
-
-### Reglas
-- Publicar como anuncio: solo owner/staff. Los miembros solo publican logros compartidos.
-- Comentarios respetan el feature flag `community_comments`.
-- Borrado de comentarios: soft delete, y solo por el autor o por staff.
-- Feed paginado por cursor (`created_at` + id), no por offset.
-
-### Endpoints
-- `GET /community/feed` (cursor), `POST /community/posts`, `DELETE /community/posts/{id}`
-- `POST|DELETE /community/posts/{id}/like`
-- `GET|POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`
-
----
-
-# ETAPA 9 — Dashboard, reportes y feature flags
-
-**Objetivo:** cerrar el panel del dueño.
-
-### Endpoints
-- `GET /dashboard` → miembros activos, check-ins de hoy, ingresos del mes, membresías vencidas, próximas a vencer, comparativo con el mes anterior. **Una sola llamada, un solo response.**
-- `GET /reports/revenue?from=&to=&groupBy=day|month`
-- `GET /reports/attendance?from=&to=`
-- `GET /reports/memberships` → altas, bajas, retención
-- `GET|PUT /gym/feature-flags`
-- `GET|PUT /gym/settings` (datos, logo, colores)
-- `POST /gym/logo` → subida a R2
-
-### Nota de rendimiento
-El dashboard es el endpoint más consultado. Escribir las agregaciones como SQL crudo o proyecciones EF explícitas, nunca cargando entidades completas. Índices requeridos: `attendances(gym_id, checked_in_at)`, `payments(gym_id, paid_at)`, `memberships(member_id, end_date)`.
-
----
-
-# ETAPA 10 — Infraestructura externa y cierre
-
-1. **Cloudflare R2:** `IFileStorage` en Application, implementación S3-compatible en Infrastructure. Subida de logos, banners, fotos de miembros e íconos de logros. Validar tipo MIME y tamaño (máx. 5 MB), renombrar con GUID.
-2. **Resend:** `IEmailSender`. Plantillas: bienvenida, invitación a la app, recuperación de contraseña.
-3. **Push (FCM):** `INotificationSender` + tabla `device_tokens` (user_id, token, platform, registered_at). Disparadores: logro desbloqueado, membresía por vencer, nuevo anuncio de la comunidad.
-4. **Logging:** Serilog estructurado, con `gym_id` y `user_id` enriquecidos en cada log.
-5. **Rate limiting** en `/auth/login` (built-in de ASP.NET Core).
-6. **Deploy:** Railway. Dockerfile multi-stage, migraciones aplicadas al arrancar solo en entorno de desarrollo; en producción, comando explícito.
-
----
-
-## Orden de trabajo recomendado
-
-Etapas 0 → 4 son el **backend mínimo vendible**: con eso un gym ya gestiona miembros, cobra y controla asistencia. Si aparece un piloto real antes de terminar todo, se puede pausar en la etapa 4 y empezar el panel Blazor sobre esos endpoints. Las etapas 5 a 8 son las que sostienen la app del miembro y los diferenciadores del producto.
-
-## Qué NO construir en el MVP
-
-Pasarela de pagos, facturación electrónica, entrenamiento personal como módulo aparte, chat entre miembros, lista de espera en clases, reportes exportables a PDF, impersonación de superadmin, panel de métricas SaaS. Todo eso es v2.
+Etapas 0 → 6 son el backend mínimo vendible: gestionar miembros, cobrar y controlar asistencia. Si aparece un piloto real antes de terminar, se puede pausar ahí y empezar el panel Blazor sobre esos endpoints.

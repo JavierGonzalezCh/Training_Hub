@@ -46,7 +46,7 @@ public sealed class DomainExceptionHandler(
 
     private static (int Status, string Title) Map(DomainException exception) => exception switch
     {
-        ValidationDomainException => (StatusCodes.Status422UnprocessableEntity, "Invariante de negocio violada"),
+        ValidationDomainException => (StatusCodes.Status400BadRequest, "Invariante de negocio violada"),
         NotFoundException => (StatusCodes.Status404NotFound, "Recurso no encontrado"),
         ConflictException => (StatusCodes.Status409Conflict, "Conflicto de estado"),
         ForbiddenDomainException => (StatusCodes.Status403Forbidden, "Operación no permitida"),
