@@ -1,0 +1,16 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Las capas internas no toleran warnings: cualquier warning es un error. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'GSM.Domain' Or '$(MSBuildProjectName)' == 'GSM.Application'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

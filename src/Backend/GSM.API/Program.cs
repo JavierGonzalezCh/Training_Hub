@@ -1,0 +1,56 @@
+using GSM.API.Auth;
+using GSM.API.Middleware;
+using GSM.Application.Common.Abstractions;
+using GSM.Infrastructure;
+using Scalar.AspNetCore;
+using Serilog;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
+
+const string CorsPolicy = "gsm-clients";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? [];
+
+builder.Services.AddCors(options => options.AddPolicy(CorsPolicy, policy => policy
+    .WithOrigins(allowedOrigins)
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<ICurrentUser, CurrentUser>();
+
+builder.Services.AddGsmAuth(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+builder.Services.AddOpenApi();
+
+var app = builder.Build();
+
+app.UseSerilogRequestLogging();
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+
+app.UseHttpsRedirection();
+app.UseCors(CorsPolicy);
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+
+public partial class Program;
