@@ -33,6 +33,17 @@ public sealed record ListMembersQuery
 
 public sealed record CreateMemberResponse(Guid Id, string QrCode);
 
+public sealed record InviteMemberResponse(string Code, DateTimeOffset ExpiresAt);
+
+/// <summary>Canje anónimo de la invitación: el miembro crea su cuenta de la app.</summary>
+public sealed record RegisterMemberRequest(
+    string Code,
+    string DocumentNumber,
+    string Email,
+    string Password);
+
+public sealed record RegisterMemberResponse(Guid MemberId, Guid UserId);
+
 public sealed record MemberListItem(
     Guid Id,
     string FirstName,

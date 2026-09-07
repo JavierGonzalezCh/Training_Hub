@@ -52,4 +52,22 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
         => Members.AnyAsync(m => m.QrCode == qrCode, cancellationToken);
 
     public void Add(Member member) => Members.Add(member);
+
+    // --- Invitaciones ---
+
+    private DbSet<MemberInvitation> Invitations => dbContext.Set<MemberInvitation>();
+
+    public void Add(MemberInvitation invitation) => Invitations.Add(invitation);
+
+    public Task<MemberInvitation?> GetInvitationByCodeAsync(
+        string code, CancellationToken cancellationToken = default)
+        => Invitations.FirstOrDefaultAsync(i => i.Code == code, cancellationToken);
+
+    public Task<bool> InvitationCodeExistsAsync(string code, CancellationToken cancellationToken = default)
+        => Invitations.AnyAsync(i => i.Code == code, cancellationToken);
+
+    public Task RemovePendingInvitationsAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => Invitations
+            .Where(i => i.MemberId == memberId && i.RedeemedAt == null)
+            .ExecuteDeleteAsync(cancellationToken);
 }

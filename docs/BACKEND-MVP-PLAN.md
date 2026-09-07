@@ -135,8 +135,11 @@ Dos gyms con datos; autenticado como owner del gym A, ninguna consulta devuelve 
 ### Endpoints (etapa 3)
 `GET /api/members` (paginado `page`/`pageSize`; filtros `search` sobre nombre/apellido/documento, `status`) · `GET /api/members/{id}` (staff o el propio miembro) · `POST /api/members` [staff] · `PUT /api/members/{id}` [staff] · `DELETE /api/members/{id}` [staff]
 
-### Sub-etapa 3b (después)
-`POST /api/members/{id}/invite` (genera código) · `POST /api/members/register` (anónimo, canjea código, crea `AppUser` vía `IUserProvisioning`, vincula con `Member.LinkUser`). El método de dominio `LinkUser` ya existe.
+### Sub-etapa 3b — hecha
+- Entidad `MemberInvitation` (id, member_id, gym_id, code único, expires_at, redeemed_at, redeemed_by_user_id) en el schema `members`. Código de 8 caracteres sin ambiguos (`ABCDEFGHJKMNPQRSTUVWXYZ23456789`), vigencia 7 días.
+- `POST /api/members/{id}/invite` [staff] → `{ code, expiresAt }`. Reinvitar borra las invitaciones pendientes del miembro. Falla si el miembro está inactivo o ya vinculado.
+- `POST /api/members/register` [anónimo, rate-limited] — body `{ code, documentNumber, email, password }`. Valida código vigente + documento coincidente; crea el `AppUser` (rol member) vía `IUserProvisioning`, `Member.LinkUser`, marca la invitación — todo en una transacción. Devuelve `{ memberId, userId }` (**no** tokens: el cliente hace login después). Publica `MemberRegistered`.
+- Con esto el self-check de `GetMemberHandler` ya es real (un `member` solo ve su ficha).
 
 ### Piezas transversales añadidas aquí
 `PagedResult<T>` en `GSM.Application/Common/` · `ICurrentUserService.RequireGymId()` (reemplaza el helper local de Gyms).

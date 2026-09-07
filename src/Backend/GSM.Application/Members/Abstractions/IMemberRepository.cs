@@ -19,4 +19,15 @@ public interface IMemberRepository
     Task<bool> QrExistsAsync(string qrCode, CancellationToken cancellationToken = default);
 
     void Add(Member member);
+
+    // --- Invitaciones ---
+
+    void Add(MemberInvitation invitation);
+
+    Task<MemberInvitation?> GetInvitationByCodeAsync(string code, CancellationToken cancellationToken = default);
+
+    Task<bool> InvitationCodeExistsAsync(string code, CancellationToken cancellationToken = default);
+
+    /// <summary>Borra las invitaciones sin canjear de un miembro (al reinvitar).</summary>
+    Task RemovePendingInvitationsAsync(Guid memberId, CancellationToken cancellationToken = default);
 }

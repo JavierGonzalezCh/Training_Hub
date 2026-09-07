@@ -4,6 +4,7 @@ using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace GSM.API.Controllers;
 
@@ -57,5 +58,30 @@ public sealed class MembersController : ControllerBase
     {
         await handler.HandleAsync(id, cancellationToken);
         return NoContent();
+    }
+
+    /// <summary>Genera un código para que el miembro cree su cuenta de la app.</summary>
+    [HttpPost("{id:guid}/invite")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<InviteMemberResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<InviteMemberResponse>> Invite(
+        Guid id, [FromServices] InviteMemberHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>Canje anónimo del código: crea la cuenta del miembro y lo vincula.</summary>
+    [HttpPost("register")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType<RegisterMemberResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<RegisterMemberResponse>> Register(
+        RegisterMemberRequest request,
+        [FromServices] RegisterMemberHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = result.MemberId }, result);
     }
 }

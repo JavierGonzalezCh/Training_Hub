@@ -21,6 +21,17 @@ public sealed class CreateMemberRequestValidator : AbstractValidator<CreateMembe
         => date is null || date < DateOnly.FromDateTime(DateTime.UtcNow);
 }
 
+public sealed class RegisterMemberRequestValidator : AbstractValidator<RegisterMemberRequest>
+{
+    public RegisterMemberRequestValidator()
+    {
+        RuleFor(x => x.Code).NotEmpty().Length(6, 16);
+        RuleFor(x => x.DocumentNumber).NotEmpty().MaximumLength(30);
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(10).MaximumLength(256);
+    }
+}
+
 public sealed class UpdateMemberRequestValidator : AbstractValidator<UpdateMemberRequest>
 {
     public UpdateMemberRequestValidator()
