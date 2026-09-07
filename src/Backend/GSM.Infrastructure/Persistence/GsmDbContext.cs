@@ -30,7 +30,7 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.HasPostgresEnum<UserRole>("identity", "user_role", new LowerCaseNameTranslator());
+        modelBuilder.HasPostgresEnum<UserRole>("identity", "user_role", LowerCaseNameTranslator.Instance);
 
         // Tablas satélite de Identity → schema y nombres del proyecto.
         modelBuilder.Entity<AppUser>().ToTable("users", "identity");

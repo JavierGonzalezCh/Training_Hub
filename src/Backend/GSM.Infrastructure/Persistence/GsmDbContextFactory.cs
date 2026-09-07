@@ -21,7 +21,7 @@ public sealed class GsmDbContextFactory : IDesignTimeDbContextFactory<GsmDbConte
             .UseNpgsql(connectionString, npgsql =>
             {
                 npgsql.MigrationsAssembly(typeof(GsmDbContext).Assembly.FullName);
-                npgsql.MapEnum<UserRole>("user_role", "identity", new LowerCaseNameTranslator());
+                npgsql.MapEnum<UserRole>("user_role", "identity", LowerCaseNameTranslator.Instance);
             })
             .UseSnakeCaseNamingConvention()
             .Options;
