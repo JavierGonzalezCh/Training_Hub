@@ -20,4 +20,6 @@ public sealed class MutableClock(SystemClock inner) : IClock
 
     public (DateTimeOffset Start, DateTimeOffset End) BusinessDayRange(DateOnly businessDay)
         => inner.BusinessDayRange(businessDay);
+
+    public DateTime ToBusinessLocal(DateTimeOffset instant) => inner.ToBusinessLocal(instant);
 }

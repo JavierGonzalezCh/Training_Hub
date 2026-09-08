@@ -44,4 +44,7 @@ public sealed class SystemClock : IClock
         var start = new DateTimeOffset(localMidnight, offset).ToUniversalTime();
         return (start, start.AddDays(1));
     }
+
+    public DateTime ToBusinessLocal(DateTimeOffset instant)
+        => TimeZoneInfo.ConvertTime(instant, _timeZone).DateTime;
 }

@@ -3,6 +3,8 @@ using GSM.Application.Common.Abstractions;
 using GSM.Domain.Common;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
+using GSM.Domain.Achievements;
+using GSM.Domain.Attendance;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
 using GSM.Domain.Payments;
@@ -40,6 +42,8 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
         modelBuilder.HasPostgresEnum<MemberStatus>("members", "member_status", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<MembershipStatus>("memberships", "membership_status", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<PaymentMethod>("payments", "payment_method", LowerCaseNameTranslator.Instance);
+        modelBuilder.HasPostgresEnum<AttendanceMethod>("attendance", "attendance_method", LowerCaseNameTranslator.Instance);
+        modelBuilder.HasPostgresEnum<AchievementConditionType>("achievements", "condition_type", LowerCaseNameTranslator.Instance);
 
         // Tablas satélite de Identity → schema y nombres del proyecto.
         modelBuilder.Entity<AppUser>().ToTable("users", "identity");

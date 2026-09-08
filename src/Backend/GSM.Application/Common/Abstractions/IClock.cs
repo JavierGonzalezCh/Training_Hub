@@ -26,4 +26,7 @@ public interface IClock
     /// Para agrupar por día instantes almacenados en UTC (cierre de caja, filtros por fecha).
     /// </summary>
     (DateTimeOffset Start, DateTimeOffset End) BusinessDayRange(DateOnly businessDay);
+
+    /// <summary>El instante <paramref name="instant"/> como hora de pared en la zona del gimnasio (para agrupar por hora).</summary>
+    DateTime ToBusinessLocal(DateTimeOffset instant);
 }

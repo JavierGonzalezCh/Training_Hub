@@ -12,6 +12,9 @@ public interface IMemberReader
     /// <summary>Resuelve un miembro por su QR dentro del gym en contexto. <c>null</c> si no existe o es de otro gym.</summary>
     Task<MemberInfo?> ResolveByQrAsync(string qrCode, CancellationToken cancellationToken = default);
 
+    /// <summary>Miembro vinculado a esa cuenta de Identity. <c>null</c> si el usuario no es un miembro.</summary>
+    Task<MemberInfo?> ResolveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+
     Task<int> GetActiveCountAsync(Guid gymId, CancellationToken cancellationToken = default);
 }
 

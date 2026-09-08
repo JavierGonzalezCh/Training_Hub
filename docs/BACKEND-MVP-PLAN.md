@@ -208,26 +208,28 @@ Además: `GET /api/members/{id}` incluye `recentPayments` (últimos 5, compuesto
 **Schema:** `attendance`
 
 ### Entidad
-`Attendance` — id, gym_id, member_id, checked_in_at, method (`qr|manual`).
+`Attendance` — id, gym_id, member_id, checked_in_at (instante UTC), **attendance_date** (`DateOnly`, día de negocio — clave de la unicidad), method (enum nativo `attendance.attendance_method` = qr/manual).
 
-> Sin `location_id`: Locations es fase futura. Agregarlo después es una migración trivial.
+> Sin `location_id`: Locations es fase futura.
 
 ### Reglas
-- **Un check-in por miembro por día.** El segundo intento devuelve el registro existente, no un 409.
-- Valida membresía vigente vía `IMembershipReader`. Si está vencida **no bloquea**: registra y devuelve `membership_expired: true` para que recepción cobre. Un gym real no rechaza a nadie en la puerta por software.
-- **Racha:** días consecutivos con tolerancia de 1 día de descanso. `StreakService` la calcula desde las asistencias, sin tabla propia.
+- **Un check-in por miembro por día de negocio** (índice único `(member_id, attendance_date)`). El segundo intento del día devuelve el registro existente con `alreadyCheckedInToday: true` y **200** (no 201, no 409).
+- Valida membresía vigente vía `IMembershipReader`. Si está vencida **no bloquea**: registra y devuelve `membershipExpired: true`.
+- **Actor:** staff pasa `qrCode` o `memberId`; un usuario con rol `member` se registra a sí mismo (forzado a su propio memberId, método `qr`).
+- **Racha** (`StreakCalculator`, función pura en Application, sin tabla): días de asistencia en la corrida más reciente, con **1 día de descanso de tolerancia** = dos días de asistencia siguen en la misma corrida si están a ≤ 2 días de calendario; la corrida está viva hoy si la última asistencia fue hace ≤ 2 días, si no la racha es 0.
+- `peak-hours` agrupa por **hora local del gym** (`IClock.ToBusinessLocal`).
 - Índice obligatorio: `ix_attendances_gym_id_checked_in_at`.
 
 ### Public
-`IAttendanceReader`: `GetVisitCountAsync(memberId)`, `GetStreakAsync(memberId)`, `GetTodayCountAsync(gymId)`.
+`IAttendanceReader`: `GetVisitCountAsync`, `GetStreakAsync`, `GetTodayCountAsync(gymId)`, `GetLastVisitAsync`.
 
 ### Events
-`CheckInRegistered` — lo consume Achievements.
+`CheckInRegistered` — publicado siempre (Etapa 8 lo usará para push). El desbloqueo de logros NO va por este evento (ver Etapa 7).
 
-### Endpoints propuestos
-`POST /attendance/checkin` (por `qr_code` o `member_id`) · `GET /attendance` · `GET /members/{id}/attendance` · `GET /members/{id}/streak` · `GET /attendance/peak-hours?from=&to=`
+### Endpoints
+`POST /api/attendance/checkin` (staff o miembro) · `GET /api/attendance` [staff] (paginado; `memberId`/`from`/`to`) · `GET /api/members/{id}/attendance` (staff o el propio miembro) · `GET /api/members/{id}/streak` (íd.) · `GET /api/attendance/peak-hours?from=&to=` [staff].
 
-**Aceptación:** duplicado diario idempotente; racha correcta en escenario con huecos.
+**Aceptación:** ✅ duplicado diario idempotente (200); racha correcta con huecos (`StreakCalculatorTests`, 6 casos).
 
 ---
 
@@ -241,13 +243,18 @@ Además: `GET /api/members/{id}` incluye `recentPayments` (últimos 5, compuesto
 
 > `condition_type` sin `classes`: el módulo Classes es fase futura. Se agrega al enum cuando exista.
 
-### Reglas
-- Handler de `CheckInRegistered` evalúa los logros pendientes de ese miembro leyendo `IAttendanceReader`. Idempotente: doble evaluación nunca duplica.
-- Handler de `GymCreated` siembra los logros por defecto: primera visita, 10 visitas, 50 visitas, racha de 7 días, racha de 30 días.
-- **Decisión pendiente:** el desbloqueo llega por evento, así que la respuesta del check-in puede no incluirlo. Dos opciones: (a) la app consulta `/me/achievements` después del check-in; (b) el despachador invoca los handlers de forma síncrona dentro del request y el caso de uso de check-in recoge los desbloqueos para devolverlos en la misma respuesta. (b) da mejor UX y con un despachador propio es fácil de implementar, pero acopla el timing de los dos módulos. **Resolver antes de implementar.**
+### Entidades (detalle)
+- `Achievement` — id, gym_id, name (único por gym), description, icon_url, condition_type (enum nativo `achievements.condition_type` = visits/streak), condition_value (>0), is_active. Baja = soft delete.
+- `MemberAchievement` — id, gym_id, member_id, achievement_id, unlocked_at. Único `(member_id, achievement_id)`.
 
-### Endpoints propuestos
-`GET /achievements` · `GET /members/{id}/achievements` (obtenidos + pendientes con progreso) · `GET /me/achievements`
+### Reglas
+- **Decisión resuelta → opción (b).** Achievements expone `IAchievementService.EvaluateForMemberAsync(memberId)` en `Public/` (una **escritura** publicada, como `IUserProvisioning`). El handler de check-in la llama de forma síncrona tras guardar la asistencia y devuelve los logros recién desbloqueados en `unlockedAchievements`. Es el **único** camino de desbloqueo (no hay handler de `CheckInRegistered` en Achievements → sin doble evaluación). Idempotente: solo mira los pendientes.
+- `SeedDefaultAchievementsHandler : IDomainEventHandler<GymCreated>` siembra los 5 por defecto: primera visita, 10 visitas, 50 visitas, racha de 7 días, racha de 30 días.
+- Achievements publica `AchievementUnlockedEvent` por cada desbloqueo (Etapa 8 → push).
+- El evaluador lee `IAttendanceReader` (visitas + racha). Dependencia permitida (Attendance ← Achievements).
+
+### Endpoints
+`GET /api/achievements` [staff] · `POST|PUT|DELETE /api/achievements[/{id}]` [owner] · `GET /api/achievements/member/{id}` (staff o el propio miembro; obtenidos + pendientes con progreso) · `GET /api/me/achievements` [member].
 
 ---
 

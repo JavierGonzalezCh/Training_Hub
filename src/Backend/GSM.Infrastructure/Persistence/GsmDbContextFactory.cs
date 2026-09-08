@@ -1,5 +1,7 @@
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
+using GSM.Domain.Achievements;
+using GSM.Domain.Attendance;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
 using GSM.Domain.Payments;
@@ -31,6 +33,8 @@ public sealed class GsmDbContextFactory : IDesignTimeDbContextFactory<GsmDbConte
                 npgsql.MapEnum<MemberStatus>("member_status", "members", LowerCaseNameTranslator.Instance);
                 npgsql.MapEnum<MembershipStatus>("membership_status", "memberships", LowerCaseNameTranslator.Instance);
                 npgsql.MapEnum<PaymentMethod>("payment_method", "payments", LowerCaseNameTranslator.Instance);
+                npgsql.MapEnum<AttendanceMethod>("attendance_method", "attendance", LowerCaseNameTranslator.Instance);
+                npgsql.MapEnum<AchievementConditionType>("condition_type", "achievements", LowerCaseNameTranslator.Instance);
             })
             .UseSnakeCaseNamingConvention()
             .Options;

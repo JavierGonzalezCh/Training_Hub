@@ -22,6 +22,10 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
     public Task<MemberInfo?> ResolveByQrAsync(string qrCode, CancellationToken cancellationToken = default)
         => Project(Members.Where(m => m.QrCode == qrCode)).FirstOrDefaultAsync(cancellationToken);
 
+    public Task<MemberInfo?> ResolveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+        => Project(Members.IgnoreQueryFilters().Where(m => m.UserId == userId))
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<int> GetActiveCountAsync(Guid gymId, CancellationToken cancellationToken = default)
         => Members.CountAsync(m => m.GymId == gymId && m.Status == MemberStatus.Active, cancellationToken);
 

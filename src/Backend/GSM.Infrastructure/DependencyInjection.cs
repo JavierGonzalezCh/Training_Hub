@@ -10,11 +10,19 @@ using GSM.Application.Memberships.Abstractions;
 using GSM.Application.Memberships.Public;
 using GSM.Application.Payments.Abstractions;
 using GSM.Application.Payments.Public;
+using GSM.Application.Attendance.Abstractions;
+using GSM.Application.Attendance.Public;
+using GSM.Application.Achievements.Abstractions;
+using GSM.Application.Achievements.Public;
+using GSM.Domain.Achievements;
+using GSM.Domain.Attendance;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
 using GSM.Domain.Payments;
+using GSM.Infrastructure.Achievements;
+using GSM.Infrastructure.Attendance;
 using GSM.Infrastructure.Common;
 using GSM.Infrastructure.Gyms;
 using GSM.Infrastructure.Identity;
@@ -49,6 +57,8 @@ public static class DependencyInjection
                     npgsql.MapEnum<MemberStatus>("member_status", "members", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<MembershipStatus>("membership_status", "memberships", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<PaymentMethod>("payment_method", "payments", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<AttendanceMethod>("attendance_method", "attendance", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<AchievementConditionType>("condition_type", "achievements", LowerCaseNameTranslator.Instance);
                 })
                 .UseSnakeCaseNamingConvention());
 
@@ -90,6 +100,13 @@ public static class DependencyInjection
 
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IPaymentReader, PaymentReader>();
+
+        services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+        services.AddScoped<IAttendanceReader, AttendanceReader>();
+
+        services.AddScoped<IAchievementRepository, AchievementRepository>();
+        services.AddScoped<IAchievementReader, AchievementReader>();
+        services.AddScoped<IAchievementService, AchievementService>();
 
         return services;
     }
