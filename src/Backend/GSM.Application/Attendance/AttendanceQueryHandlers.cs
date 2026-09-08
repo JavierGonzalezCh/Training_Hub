@@ -90,10 +90,19 @@ public sealed class GetMemberStreakHandler(
 public sealed class GetPeakHoursHandler(
     ICurrentUserService currentUser, IClock clock, IAttendanceRepository attendance)
 {
+    /// <summary>Ventana por defecto cuando el cliente no acota el rango.</summary>
+    private const int DefaultWindowDays = 30;
+
     public async Task<IReadOnlyList<PeakHourBucket>> HandleAsync(
-        DateOnly from, DateOnly to, CancellationToken cancellationToken)
+        DateOnly? fromDate, DateOnly? toDate, CancellationToken cancellationToken)
     {
         _ = currentUser.RequireGymId();
+
+        // Sin rango, los últimos 30 días hasta hoy. Antes eran DateOnly no anulables: al omitirlos
+        // valían 0001-01-01 y la respuesta era un histograma de ceros con 200, indistinguible de
+        // "no hubo asistencias".
+        var to = toDate ?? clock.Today;
+        var from = fromDate ?? to.AddDays(-(DefaultWindowDays - 1));
 
         if (to < from)
         {

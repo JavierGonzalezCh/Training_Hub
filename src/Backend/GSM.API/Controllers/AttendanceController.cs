@@ -36,8 +36,8 @@ public sealed class AttendanceController : ControllerBase
     [Authorize(Policy = AuthPolicies.RequireStaff)]
     [ProducesResponseType<IReadOnlyList<PeakHourBucket>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<PeakHourBucket>>> PeakHours(
-        [FromQuery] DateOnly from,
-        [FromQuery] DateOnly to,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
         [FromServices] GetPeakHoursHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
