@@ -36,4 +36,12 @@ public sealed class SystemClock : IClock
     public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
 
     public DateOnly Today => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(UtcNow, _timeZone).DateTime);
+
+    public (DateTimeOffset Start, DateTimeOffset End) BusinessDayRange(DateOnly businessDay)
+    {
+        var localMidnight = businessDay.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        var offset = _timeZone.GetUtcOffset(localMidnight);
+        var start = new DateTimeOffset(localMidnight, offset).ToUniversalTime();
+        return (start, start.AddDays(1));
+    }
 }

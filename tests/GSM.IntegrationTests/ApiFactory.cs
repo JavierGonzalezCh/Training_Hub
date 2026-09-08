@@ -1,4 +1,5 @@
 using GSM.Application.Common.Abstractions;
+using GSM.Infrastructure.Common;
 using GSM.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -34,6 +35,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<ICurrentUserService>();
             services.AddSingleton<MutableCurrentUser>();
             services.AddSingleton<ICurrentUserService>(sp => sp.GetRequiredService<MutableCurrentUser>());
+
+            services.RemoveAll<IClock>();
+            services.AddSingleton<SystemClock>();
+            services.AddSingleton<MutableClock>();
+            services.AddSingleton<IClock>(sp => sp.GetRequiredService<MutableClock>());
         });
     }
 

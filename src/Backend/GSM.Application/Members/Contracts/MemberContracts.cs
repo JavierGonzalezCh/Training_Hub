@@ -73,6 +73,9 @@ public sealed record MemberDetail(
 {
     /// <summary>Membresía vigente hoy. La rellena el controller vía IMembershipReader; <c>null</c> si no hay.</summary>
     public MemberCurrentMembership? CurrentMembership { get; init; }
+
+    /// <summary>Últimos pagos del miembro. Los rellena el controller vía IPaymentReader.</summary>
+    public IReadOnlyList<MemberRecentPayment> RecentPayments { get; init; } = [];
 }
 
 public sealed record MemberCurrentMembership(
@@ -81,3 +84,10 @@ public sealed record MemberCurrentMembership(
     string PlanName,
     DateOnly StartDate,
     DateOnly EndDate);
+
+public sealed record MemberRecentPayment(
+    Guid Id,
+    decimal Amount,
+    string Method,
+    string Concept,
+    DateTimeOffset PaidAt);

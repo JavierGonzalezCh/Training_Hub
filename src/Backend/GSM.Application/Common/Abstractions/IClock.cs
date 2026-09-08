@@ -12,7 +12,7 @@ namespace GSM.Application.Common.Abstractions;
 /// </remarks>
 public interface IClock
 {
-    /// <summary>Instante actual en UTC. Para timestamps (<c>created_at</c>, expiraciones de token).</summary>
+    /// <summary>Instante actual en UTC. Para timestamps (<c>created_at</c>, <c>paid_at</c>, expiraciones de token).</summary>
     DateTimeOffset UtcNow { get; }
 
     /// <summary>
@@ -20,4 +20,10 @@ public interface IClock
     /// reconoce como "hoy": vigencias de membresía, alta de miembro, asistencia.
     /// </summary>
     DateOnly Today { get; }
+
+    /// <summary>
+    /// Ventana <c>[Start, End)</c> en UTC que cubre un día de negocio en la zona del gimnasio.
+    /// Para agrupar por día instantes almacenados en UTC (cierre de caja, filtros por fecha).
+    /// </summary>
+    (DateTimeOffset Start, DateTimeOffset End) BusinessDayRange(DateOnly businessDay);
 }

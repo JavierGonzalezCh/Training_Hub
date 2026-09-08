@@ -3,6 +3,7 @@ using GSM.Application.Common;
 using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
 using GSM.Application.Memberships.Public;
+using GSM.Application.Payments.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -30,18 +31,25 @@ public sealed class MembersController : ControllerBase
         Guid id,
         [FromServices] GetMemberHandler handler,
         [FromServices] IMembershipReader memberships,
+        [FromServices] IPaymentReader payments,
         CancellationToken cancellationToken)
     {
         var member = await handler.HandleAsync(id, cancellationToken);
 
         var active = await memberships.GetActiveAsync(id, cancellationToken);
-        return Ok(active is null
-            ? member
-            : member with
-            {
-                CurrentMembership = new MemberCurrentMembership(
+        var recent = await payments.GetRecentByMemberAsync(id, limit: 5, cancellationToken);
+
+        return Ok(member with
+        {
+            CurrentMembership = active is null
+                ? null
+                : new MemberCurrentMembership(
                     active.MembershipId, active.PlanId, active.PlanName, active.StartDate, active.EndDate),
-            });
+            RecentPayments = recent
+                .Select(p => new MemberRecentPayment(
+                    p.Id, p.Amount, p.Method.ToString(), p.Concept, p.PaidAt))
+                .ToList(),
+        });
     }
 
     [HttpPost]

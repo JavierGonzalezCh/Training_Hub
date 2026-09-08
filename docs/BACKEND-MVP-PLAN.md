@@ -180,22 +180,26 @@ Además: `GET /api/members/{id}` ahora incluye `currentMembership` (compuesto en
 **Schema:** `payments`
 
 ### Entidad
-`Payment` — id, gym_id, member_id (nullable), membership_id (nullable), amount, method (`cash|transfer|card|other`), concept, notes, registered_by, paid_at.
+`Payment` — id, gym_id, member_id (nullable), membership_id (nullable), amount `decimal(12,2)`, method (enum nativo `payments.payment_method` = cash/transfer/card/other), concept (≤200), notes (≤1000), registered_by, paid_at. Inmutable (sin métodos de mutación).
 
 ### Reglas
 - Pagos 100% manuales. Sin pasarela.
 - `member_id` nullable: hay ingresos sin miembro (producto, visitante).
 - `registered_by` se toma **siempre** de `ICurrentUserService`, nunca del body.
-- **Los pagos no se editan ni se borran.** Corrección = asiento de ajuste con monto negativo y concepto explícito. Es lo correcto para trazabilidad de caja.
-- Registrar un pago con `membership_id` no crea la membresía: son operaciones separadas que la UI encadena.
+- `amount` puede ser negativo (asiento de ajuste); **nunca cero**.
+- **Los pagos no se editan ni se borran.** Corrección = asiento de ajuste con monto negativo y concepto explícito.
+- `membership_id` es solo un **vínculo** para trazabilidad; no tiene efecto sobre la membresía (se valida que exista y sea de ese miembro). Contradice a `CLAUDE.md` ("queda marcada como pagada") — gana el plan: pago y membresía son operaciones separadas.
+- **`paid_at` = fecha de registro** (`IClock.UtcNow`, inmutable, no viene del body). NO es la "fecha valor" (cuándo entró el dinero); si esa distinción hace falta, va en `notes` en el MVP, o un campo `value_date` aparte después. Así el cierre de caja de un día pasado no se altera al registrar un pago hoy.
+- El "día" del cierre de caja y los filtros por fecha son días de negocio (`IClock.BusinessDayRange`), no ventanas UTC.
 
 ### Public
-`IPaymentReader`: `GetMonthlyRevenueAsync(gymId, month)`, `GetByMemberAsync(memberId)`.
+`IPaymentReader`: `GetMonthlyRevenueAsync(gymId, year, month)`, `GetRecentByMemberAsync(memberId, limit)`.
 
-### Endpoints propuestos
-`POST /payments` · `GET /payments` (filtros: rango, método, miembro) · `GET /payments/{id}` · `GET /members/{id}/payments` · `GET /cash-register/daily?date=`
+### Endpoints
+`POST /api/payments` [staff] · `GET /api/payments` (paginado; filtros `from`/`to`/`method`/`memberId`) · `GET /api/payments/{id}` · `GET /api/members/{id}/payments` (paginado) · `GET /api/cash-register/daily?date=` (por defecto hoy).
+Además: `GET /api/members/{id}` incluye `recentPayments` (últimos 5, compuesto en el controller vía `IPaymentReader`).
 
-**Aceptación:** cierre de caja diario cuadra por método y por total.
+**Aceptación:** ✅ cierre de caja cuadra por método y por total; un cierre pasado no cambia al registrar pagos después (test `CashRegisterTests`).
 
 ---
 

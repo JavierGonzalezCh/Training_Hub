@@ -5,6 +5,7 @@ using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
+using GSM.Domain.Payments;
 using GSM.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -38,6 +39,7 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
         modelBuilder.HasPostgresEnum<GymStatus>("gyms", "gym_status", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<MemberStatus>("members", "member_status", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<MembershipStatus>("memberships", "membership_status", LowerCaseNameTranslator.Instance);
+        modelBuilder.HasPostgresEnum<PaymentMethod>("payments", "payment_method", LowerCaseNameTranslator.Instance);
 
         // Tablas satélite de Identity → schema y nombres del proyecto.
         modelBuilder.Entity<AppUser>().ToTable("users", "identity");

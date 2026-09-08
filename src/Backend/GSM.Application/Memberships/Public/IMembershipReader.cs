@@ -10,6 +10,10 @@ public interface IMembershipReader
 
     Task<IReadOnlyList<ExpiringMembershipView>> GetExpiringAsync(
         Guid gymId, int withinDays, CancellationToken cancellationToken = default);
+
+    /// <summary>¿La membresía existe y pertenece a ese miembro? (validación al registrar un pago).</summary>
+    Task<bool> BelongsToMemberAsync(
+        Guid membershipId, Guid memberId, CancellationToken cancellationToken = default);
 }
 
 public sealed record ActiveMembershipView(

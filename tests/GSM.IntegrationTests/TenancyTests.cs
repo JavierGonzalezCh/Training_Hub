@@ -3,6 +3,7 @@ using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
+using GSM.Domain.Payments;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,7 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         var visibleMemberGyms = await db.Set<Member>().Select(m => m.GymId).Distinct().ToListAsync();
         var visiblePlanGyms = await db.Set<MembershipPlan>().Select(p => p.GymId).Distinct().ToListAsync();
         var visibleMembershipGyms = await db.Set<Membership>().Select(m => m.GymId).Distinct().ToListAsync();
+        var visiblePaymentGyms = await db.Set<Payment>().Select(p => p.GymId).Distinct().ToListAsync();
         var canReachB = await db.Set<Gym>().AnyAsync(g => g.Id == gymB);
 
         Assert.Equal([gymA], visibleGyms);
@@ -42,6 +44,7 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         Assert.Equal([gymA], visibleMemberGyms);
         Assert.Equal([gymA], visiblePlanGyms);
         Assert.Equal([gymA], visibleMembershipGyms);
+        Assert.Equal([gymA], visiblePaymentGyms);
         Assert.False(canReachB);
     }
 
@@ -69,7 +72,7 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
 
         await db.Database.ExecuteSqlRawAsync(
-            "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, memberships.membership_plans, memberships.memberships restart identity cascade;");
+            "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, memberships.membership_plans, memberships.memberships, payments.payments restart identity cascade;");
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var (gymA, ownerA) = await CreateGymAsync(db, clock, $"gym-a-{suffix}", "Gym A");
@@ -109,6 +112,9 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         db.Add(plan);
         db.Add(Membership.Create(
             gym.Id, member.Id, plan.Id, clock.Today, 30));
+        db.Add(Payment.Create(
+            gym.Id, member.Id, null, 50000m, PaymentMethod.Cash, "Mensualidad", null,
+            owner.Id, clock.UtcNow));
 
         await Task.CompletedTask;
         return (gym.Id, owner.Id);

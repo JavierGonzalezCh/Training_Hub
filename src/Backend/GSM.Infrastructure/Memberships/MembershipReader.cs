@@ -28,6 +28,10 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public Task<bool> BelongsToMemberAsync(
+        Guid membershipId, Guid memberId, CancellationToken cancellationToken = default)
+        => Memberships.AnyAsync(m => m.Id == membershipId && m.MemberId == memberId, cancellationToken);
+
     public Task<bool> IsActiveAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
         var today = clock.Today;
