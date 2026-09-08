@@ -99,6 +99,9 @@ public sealed class Member : BaseEntity, ITenantEntity
 
     public void Reactivate() => Status = MemberStatus.Active;
 
+    /// <summary>Fija solo la foto (subida de archivo).</summary>
+    public void SetPhoto(string? photoUrl) => PhotoUrl = Clean(photoUrl);
+
     /// <summary>Vincula la cuenta de Identity. Solo una vez (etapa 3b, canje de invitación).</summary>
     public void LinkUser(Guid userId)
     {

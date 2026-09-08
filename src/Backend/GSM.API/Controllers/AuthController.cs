@@ -40,6 +40,33 @@ public sealed class AuthController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<IActionResult> ForgotPassword(
+        ForgotPasswordRequest request,
+        [FromServices] ForgotPasswordHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(request, cancellationToken);
+        return Accepted();
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ResetPassword(
+        ResetPasswordRequest request,
+        [FromServices] ResetPasswordHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(request, cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType<MeResponse>(StatusCodes.Status200OK)]

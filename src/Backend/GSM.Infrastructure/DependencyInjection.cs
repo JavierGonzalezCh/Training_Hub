@@ -24,16 +24,19 @@ using GSM.Domain.Payments;
 using GSM.Infrastructure.Achievements;
 using GSM.Infrastructure.Attendance;
 using GSM.Infrastructure.Common;
+using GSM.Infrastructure.Email;
 using GSM.Infrastructure.Gyms;
 using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Members;
 using GSM.Infrastructure.Memberships;
 using GSM.Infrastructure.Payments;
 using GSM.Infrastructure.Persistence;
+using GSM.Infrastructure.Storage;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace GSM.Infrastructure;
 
@@ -81,13 +84,18 @@ public static class DependencyInjection
                 options.Password.RequiredLength = 10;
                 options.Password.RequireNonAlphanumeric = false;
             })
-            .AddEntityFrameworkStores<GsmDbContext>();
+            .AddEntityFrameworkStores<GsmDbContext>()
+            .AddDefaultTokenProviders();
 
         services.AddScoped<IUserCredentialsService, UserCredentialsService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IIdentityReader, IdentityReader>();
         services.AddScoped<IUserProvisioning, UserProvisioning>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
+        AddFileStorage(services, configuration);
+        AddEmail(services, configuration);
 
         services.AddScoped<IGymRepository, GymRepository>();
         services.AddScoped<IGymReader, GymReader>();
@@ -109,5 +117,35 @@ public static class DependencyInjection
         services.AddScoped<IAchievementService, AchievementService>();
 
         return services;
+    }
+
+    private static void AddFileStorage(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<R2Options>().Bind(configuration.GetSection(R2Options.SectionName));
+
+        var r2 = configuration.GetSection(R2Options.SectionName).Get<R2Options>() ?? new R2Options();
+        if (r2.IsConfigured)
+        {
+            services.AddSingleton<IFileStorage, R2FileStorage>();
+        }
+        else
+        {
+            services.AddSingleton<IFileStorage, DisabledFileStorage>();
+        }
+    }
+
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<ResendOptions>().Bind(configuration.GetSection(ResendOptions.SectionName));
+
+        var resend = configuration.GetSection(ResendOptions.SectionName).Get<ResendOptions>() ?? new ResendOptions();
+        if (resend.IsConfigured)
+        {
+            services.AddHttpClient<IEmailSender, ResendEmailSender>();
+        }
+        else
+        {
+            services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        }
     }
 }

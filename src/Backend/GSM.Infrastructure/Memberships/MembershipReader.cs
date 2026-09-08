@@ -59,4 +59,24 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
                 x.Id, x.MemberId, x.Name, x.EndDate, x.EndDate.DayNumber - today.DayNumber))
             .ToListAsync(cancellationToken);
     }
+
+    public Task<int> GetExpiredCountAsync(Guid gymId, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        return Memberships.CountAsync(
+            m => m.GymId == gymId && m.Status == MembershipStatus.Active && m.EndDate < today,
+            cancellationToken);
+    }
+
+    public Task<int> GetExpiringCountAsync(
+        Guid gymId, int withinDays, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        var limit = today.AddDays(withinDays);
+        return Memberships.CountAsync(
+            m => m.GymId == gymId
+                && m.Status == MembershipStatus.Active
+                && m.EndDate >= today && m.EndDate <= limit,
+            cancellationToken);
+    }
 }

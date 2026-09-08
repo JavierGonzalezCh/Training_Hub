@@ -72,7 +72,11 @@ public sealed class RegisterMemberHandler(
         }, cancellationToken);
 
         logger.LogInformation("Miembro {MemberId} registró la cuenta {UserId}", member.Id, userId);
-        await events.PublishAsync(new MemberRegistered(member.Id, userId, member.GymId), cancellationToken);
+        await events.PublishAsync(
+            new MemberRegistered(
+                member.Id, userId, member.GymId, request.Email.Trim(),
+                $"{member.FirstName} {member.LastName}"),
+            cancellationToken);
 
         return new RegisterMemberResponse(member.Id, userId);
     }

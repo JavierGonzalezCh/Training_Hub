@@ -1,4 +1,5 @@
 using GSM.API.Auth;
+using GSM.API.Uploads;
 using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -59,4 +60,15 @@ public sealed class AchievementsController : ControllerBase
         [FromServices] GetMemberAchievementsHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(memberId, cancellationToken));
+
+    [HttpPost("{id:guid}/icon")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType<AchievementResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<AchievementResponse>> UploadIcon(
+        Guid id,
+        IFormFile file,
+        [FromServices] UploadAchievementIconHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
 }

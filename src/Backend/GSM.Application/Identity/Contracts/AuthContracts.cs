@@ -6,6 +6,10 @@ public sealed record RefreshRequest(string RefreshToken);
 
 public sealed record LogoutRequest(string RefreshToken);
 
+public sealed record ForgotPasswordRequest(string Email);
+
+public sealed record ResetPasswordRequest(string Email, string Token, string NewPassword);
+
 /// <summary>Par de tokens que devuelven login y refresh.</summary>
 public sealed record AuthTokensResponse(
     string AccessToken,

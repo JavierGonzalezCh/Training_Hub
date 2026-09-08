@@ -40,6 +40,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<SystemClock>();
             services.AddSingleton<MutableClock>();
             services.AddSingleton<IClock>(sp => sp.GetRequiredService<MutableClock>());
+
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<CapturingEmailSender>();
+            services.AddSingleton<IEmailSender>(sp => sp.GetRequiredService<CapturingEmailSender>());
         });
     }
 

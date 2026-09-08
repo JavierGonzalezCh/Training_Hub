@@ -98,6 +98,9 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
         SecondaryColor = NormalizeColor(secondaryColor, DefaultSecondaryColor, allowFallback: false);
     }
 
+    /// <summary>Fija solo el logo (subida de archivo), sin tocar los colores.</summary>
+    public void SetLogo(string? logoUrl) => LogoUrl = Trim(logoUrl);
+
     public void Activate() => IsActive = true;
 
     public void Deactivate() => IsActive = false;

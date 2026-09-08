@@ -1,6 +1,8 @@
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Events;
 using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
+using GSM.Application.Members.Events;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Members;
 using Microsoft.Extensions.Logging;
@@ -10,8 +12,10 @@ namespace GSM.Application.Members;
 /// <summary>Emite un código de invitación para que el miembro cree su cuenta de la app.</summary>
 public sealed class InviteMemberHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IMemberRepository members,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<InviteMemberHandler> logger)
 {
     private static readonly TimeSpan Lifetime = TimeSpan.FromDays(7);
@@ -42,11 +46,18 @@ public sealed class InviteMemberHandler(
         }
         while (await members.InvitationCodeExistsAsync(code, cancellationToken));
 
-        var expiresAt = DateTimeOffset.UtcNow.Add(Lifetime);
+        var expiresAt = clock.UtcNow.Add(Lifetime);
         members.Add(MemberInvitation.Issue(memberId, gymId, code, expiresAt));
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Invitación emitida para el miembro {MemberId}", memberId);
+
+        if (!string.IsNullOrWhiteSpace(member.Email))
+        {
+            await events.PublishAsync(
+                new MemberInvited(memberId, gymId, member.Email, code), cancellationToken);
+        }
+
         return new InviteMemberResponse(code, expiresAt);
     }
 }

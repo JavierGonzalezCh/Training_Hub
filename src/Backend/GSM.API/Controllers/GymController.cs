@@ -1,4 +1,5 @@
 using GSM.API.Auth;
+using GSM.API.Uploads;
 using GSM.Application.Gyms;
 using GSM.Application.Gyms.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -39,4 +40,12 @@ public sealed class GymController : ControllerBase
         [FromServices] UpdateFeatureFlagsHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    [HttpPost("logo")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType<GymResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<GymResponse>> UploadLogo(
+        IFormFile file, [FromServices] UploadGymLogoHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(file.ToFileToStore(), cancellationToken));
 }

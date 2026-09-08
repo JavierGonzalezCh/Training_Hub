@@ -60,6 +60,9 @@ public sealed class Achievement : BaseEntity, ITenantEntity
 
     public void Activate() => IsActive = true;
 
+    /// <summary>Fija solo el ícono (subida de archivo).</summary>
+    public void SetIcon(string? iconUrl) => IconUrl = Clean(iconUrl);
+
     /// <summary>¿El progreso del miembro alcanza la condición?</summary>
     public bool IsMetBy(int visitCount, int currentStreak) => ConditionType switch
     {

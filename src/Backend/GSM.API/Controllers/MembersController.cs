@@ -1,4 +1,5 @@
 using GSM.API.Auth;
+using GSM.API.Uploads;
 using GSM.Application.Common;
 using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
@@ -82,6 +83,17 @@ public sealed class MembersController : ControllerBase
         await handler.HandleAsync(id, cancellationToken);
         return NoContent();
     }
+
+    [HttpPost("{id:guid}/photo")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType<MemberDetail>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MemberDetail>> UploadPhoto(
+        Guid id,
+        IFormFile file,
+        [FromServices] UploadMemberPhotoHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
 
     /// <summary>Genera un código para que el miembro cree su cuenta de la app.</summary>
     [HttpPost("{id:guid}/invite")]

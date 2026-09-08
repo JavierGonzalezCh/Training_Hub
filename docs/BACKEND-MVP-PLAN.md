@@ -260,12 +260,12 @@ Además: `GET /api/members/{id}` incluye `recentPayments` (últimos 5, compuesto
 
 # ETAPA 8 — Cierre e infraestructura
 
-1. **Cloudflare R2:** `IFileStorage` en Application, implementación S3-compatible en Infrastructure. Logos de gym, fotos de miembros, íconos de logros. Validar MIME y tamaño (máx. 5 MB), renombrar con GUID.
-2. **Resend:** `IEmailSender`. Plantillas: invitación a la app, recuperación de contraseña.
-3. **Dashboard:** un solo endpoint, un solo response — miembros activos, check-ins de hoy, ingresos del mes, membresías vencidas y por vencer. Se arma componiendo los `Public/I{Módulo}Reader`, sin consultas cruzadas. Agregaciones con proyección explícita, nunca cargando entidades. Índices: `payments(gym_id, paid_at)`, `memberships(member_id, end_date)`.
-4. **Deploy:** Railway. Dockerfile multi-stage. Migraciones automáticas solo en desarrollo; en producción, comando explícito.
+1. **Cloudflare R2 — hecho.** `IFileStorage` (Application) + `ImageUploadRules` (MIME jpeg/png/webp, máx. 5 MB, rename con GUID v7). Infra: `R2FileStorage` (AWSSDK.S3 contra el endpoint de R2, `Storage:R2`) + `DisabledFileStorage` (fallback cuando no hay config; la subida falla con mensaje claro → 500). Endpoints: `POST /api/gym/logo` [owner], `POST /api/members/{id}/photo` [staff], `POST /api/achievements/{id}/icon` [owner] (multipart). Cada uno borra el archivo anterior. **Sin credenciales R2 aún → los endpoints devuelven 500 hasta configurarlas.**
+2. **Resend — hecho.** `IEmailSender` (Application) + `EmailTemplates` (invitación, bienvenida, recuperación). Infra: `LoggingEmailSender` (dev, default) y `ResendEmailSender` (HTTP, se activa con `Email:Resend`; un fallo se loguea, no propaga). Password reset: `AddDefaultTokenProviders` + `IPasswordResetService` + `POST /api/auth/forgot-password` (siempre 202) y `POST /api/auth/reset-password` (204 / 422). Email de invitación vía evento `MemberInvited` (si el miembro tiene email); bienvenida vía `MemberRegistered`.
+3. **Dashboard — hecho.** `GET /api/dashboard` [staff]: `activeMembers`, `checkInsToday`, `revenueThisMonth`/`revenueLastMonth`, `expiredMemberships`, `expiringSoon` + lista, compuesto de los `Public/I{Módulo}Reader` (nuevos: `IMembershipReader.GetExpired/ExpiringCountAsync`). Sin queries cruzadas.
+4. **Deploy — pendiente.** Dockerfile multi-stage + config de Railway no se hicieron en esta etapa; se harán al desplegar.
 
-> FCM/push queda fuera del MVP: sus disparadores naturales (logros, comunidad, vencimientos) o son de fase futura o se resuelven bien con pull desde la app.
+> FCM/push queda fuera del MVP. Los eventos `CheckInRegistered`, `AchievementUnlockedEvent`, `MemberInvited`, `MemberRegistered` ya se publican y quedan listos para engancharles handlers de push/email cuando toque.
 
 ---
 
