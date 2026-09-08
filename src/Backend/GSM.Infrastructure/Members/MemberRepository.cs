@@ -59,12 +59,15 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
 
     public void Add(MemberInvitation invitation) => Invitations.Add(invitation);
 
+    // El código de invitación es un identificador único GLOBAL (así lo exige el índice de la BD):
+    // estas consultas ignoran el query filter de tenant a propósito — si no, una colisión con otro
+    // gym escaparía a la comprobación y reventaría como 500 en vez de reintentar / resolverse.
     public Task<MemberInvitation?> GetInvitationByCodeAsync(
         string code, CancellationToken cancellationToken = default)
-        => Invitations.FirstOrDefaultAsync(i => i.Code == code, cancellationToken);
+        => Invitations.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Code == code, cancellationToken);
 
     public Task<bool> InvitationCodeExistsAsync(string code, CancellationToken cancellationToken = default)
-        => Invitations.AnyAsync(i => i.Code == code, cancellationToken);
+        => Invitations.IgnoreQueryFilters().AnyAsync(i => i.Code == code, cancellationToken);
 
     public Task RemovePendingInvitationsAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Invitations

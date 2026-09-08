@@ -7,6 +7,11 @@ namespace GSM.Domain.Members;
 /// Código de un solo uso para que un miembro registrado en recepción cree su cuenta en la app
 /// y quede vinculado (<see cref="Member.LinkUser"/>). Expira; al canjearlo queda marcado.
 /// </summary>
+/// <remarks>
+/// A diferencia de los refresh tokens, el <see cref="Code"/> se guarda en claro. Asimetría
+/// deliberada: vive 7 días, es de un solo uso y el canje exige además el documento como
+/// segundo factor. Si el modelo de amenaza cambia (p. ej. envío por canal inseguro), hashearlo.
+/// </remarks>
 public sealed class MemberInvitation : BaseEntity, ITenantEntity
 {
     private MemberInvitation()
