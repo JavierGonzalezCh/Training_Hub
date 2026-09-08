@@ -1,3 +1,4 @@
+using GSM.Application.Common.Abstractions;
 using GSM.Application.Memberships.Public;
 using GSM.Domain.Memberships;
 using GSM.Infrastructure.Persistence;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GSM.Infrastructure.Memberships;
 
 /// <summary>Lectura para otros módulos. Respeta el Global Query Filter (datos de tenant).</summary>
-public sealed class MembershipReader(GsmDbContext dbContext) : IMembershipReader
+public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMembershipReader
 {
     private IQueryable<Membership> Memberships => dbContext.Set<Membership>();
 
@@ -15,7 +16,7 @@ public sealed class MembershipReader(GsmDbContext dbContext) : IMembershipReader
     public Task<ActiveMembershipView?> GetActiveAsync(
         Guid memberId, CancellationToken cancellationToken = default)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = clock.Today;
 
         return Memberships
             .Where(m => m.MemberId == memberId
@@ -29,7 +30,7 @@ public sealed class MembershipReader(GsmDbContext dbContext) : IMembershipReader
 
     public Task<bool> IsActiveAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = clock.Today;
         return Memberships.AnyAsync(
             m => m.MemberId == memberId
                 && m.Status == MembershipStatus.Active
@@ -40,7 +41,7 @@ public sealed class MembershipReader(GsmDbContext dbContext) : IMembershipReader
     public async Task<IReadOnlyList<ExpiringMembershipView>> GetExpiringAsync(
         Guid gymId, int withinDays, CancellationToken cancellationToken = default)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = clock.Today;
         var limit = today.AddDays(withinDays);
 
         return await Memberships

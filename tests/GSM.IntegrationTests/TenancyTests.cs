@@ -1,3 +1,4 @@
+using GSM.Application.Common.Abstractions;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
@@ -65,20 +66,21 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         using var scope = _factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var clock = scope.ServiceProvider.GetRequiredService<IClock>();
 
         await db.Database.ExecuteSqlRawAsync(
             "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, memberships.membership_plans, memberships.memberships restart identity cascade;");
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
-        var (gymA, ownerA) = await CreateGymAsync(db, $"gym-a-{suffix}", "Gym A");
-        var (gymB, _) = await CreateGymAsync(db, $"gym-b-{suffix}", "Gym B");
+        var (gymA, ownerA) = await CreateGymAsync(db, clock, $"gym-a-{suffix}", "Gym A");
+        var (gymB, _) = await CreateGymAsync(db, clock, $"gym-b-{suffix}", "Gym B");
 
         await db.SaveChangesAsync();
         return (gymA, ownerA, gymB);
     }
 
     private static async Task<(Guid GymId, Guid OwnerId)> CreateGymAsync(
-        GsmDbContext db, string slug, string name)
+        GsmDbContext db, IClock clock, string slug, string name)
     {
         var gym = Gym.Create(name, slug);
         var owner = new GSM.Infrastructure.Identity.AppUser
@@ -101,12 +103,12 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         db.Add(owner);
 
         var member = Member.Create(
-            gym.Id, "Test", "Member", $"doc-{slug}", DateOnly.FromDateTime(DateTime.UtcNow));
+            gym.Id, "Test", "Member", $"doc-{slug}", clock.Today);
         var plan = MembershipPlan.Create(gym.Id, "Plan", null, 50000m, 30);
         db.Add(member);
         db.Add(plan);
         db.Add(Membership.Create(
-            gym.Id, member.Id, plan.Id, DateOnly.FromDateTime(DateTime.UtcNow), 30));
+            gym.Id, member.Id, plan.Id, clock.Today, 30));
 
         await Task.CompletedTask;
         return (gym.Id, owner.Id);

@@ -1,3 +1,4 @@
+using GSM.Application.Common.Abstractions;
 using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -46,6 +47,7 @@ public sealed class MemberInvitationTests(ApiFactory factory) : IClassFixture<Ap
         {
             scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var clock = scope.ServiceProvider.GetRequiredService<IClock>();
             var member = await db.Set<Member>().SingleAsync(m => m.Id == target);
             var user = await db.Users.SingleAsync(u => u.Id == userId);
 
@@ -78,7 +80,7 @@ public sealed class MemberInvitationTests(ApiFactory factory) : IClassFixture<Ap
         await db.Database.ExecuteSqlRawAsync(
             "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, members.member_invitations restart identity cascade;");
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = scope.ServiceProvider.GetRequiredService<IClock>().Today;
         var gym = Gym.Create("Invite Gym", $"invite-{Guid.NewGuid():N}"[..20]);
         var staff = new GSM.Infrastructure.Identity.AppUser
         {

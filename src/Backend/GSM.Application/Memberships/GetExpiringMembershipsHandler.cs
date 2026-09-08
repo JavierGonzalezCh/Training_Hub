@@ -8,6 +8,7 @@ namespace GSM.Application.Memberships;
 /// <summary>Membresías del gym que vencen dentro de <c>days</c> días (para que recepción llame a renovar).</summary>
 public sealed class GetExpiringMembershipsHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IMemberReader members,
     IMembershipRepository memberships)
 {
@@ -15,7 +16,7 @@ public sealed class GetExpiringMembershipsHandler(
         int withinDays, CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = clock.Today;
         var days = Math.Clamp(withinDays, 1, 90);
 
         var rows = await memberships.GetExpiringAsync(gymId, today, days, cancellationToken);

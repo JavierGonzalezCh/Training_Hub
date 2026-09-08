@@ -1,3 +1,4 @@
+using GSM.Application.Common.Abstractions;
 using GSM.Application.Memberships;
 using GSM.Application.Memberships.Abstractions;
 using GSM.Application.Memberships.Contracts;
@@ -18,7 +19,14 @@ public sealed class MembershipRenewalTests(ApiFactory factory) : IClassFixture<A
     public async Task Chained_renewal_computes_dates_and_never_leaves_two_covering_today()
     {
         var (gymId, staffId, memberId) = await SeedAsync();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        // El día de negocio sale del reloj de la app (zona del gym), no de UTC: entre las 19:00
+        // y medianoche en Colombia la fecha UTC ya es la de mañana.
+        DateOnly today;
+        using (var clockScope = factory.CreateScopeWithMigration())
+        {
+            today = clockScope.ServiceProvider.GetRequiredService<IClock>().Today;
+        }
 
         Guid planId;
         MembershipResponse first;
@@ -74,6 +82,7 @@ public sealed class MembershipRenewalTests(ApiFactory factory) : IClassFixture<A
         using var scope = factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var clock = scope.ServiceProvider.GetRequiredService<IClock>();
 
         await db.Database.ExecuteSqlRawAsync(
             "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, members.member_invitations, memberships.membership_plans, memberships.memberships restart identity cascade;");
@@ -94,7 +103,7 @@ public sealed class MembershipRenewalTests(ApiFactory factory) : IClassFixture<A
         };
         gym.AssignOwner(staff.Id);
         var member = Member.Create(
-            gym.Id, "Renew", "Member", "doc-renew", DateOnly.FromDateTime(DateTime.UtcNow));
+            gym.Id, "Renew", "Member", "doc-renew", clock.Today);
 
         db.Add(gym);
         db.Add(GymFeatureFlags.Default(gym.Id));

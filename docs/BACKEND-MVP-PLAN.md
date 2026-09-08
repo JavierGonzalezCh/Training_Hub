@@ -10,7 +10,7 @@
 
 - **IDs:** `Guid` v7 (`Guid.CreateVersion7()`), generados en el dominio, no en la DB.
 - **DB:** un schema de Postgres por módulo. `snake_case`, tablas en plural, PK `id`, FK `{tabla_singular}_id`, índices `ix_{tabla}_{columna}`, constraints `fk_{tabla}_{referenciada}`, enums nativos de Postgres.
-- **Fechas:** `DateTimeOffset` UTC en toda la aplicación; la conversión a `America/Bogota` es del cliente. Excepción: `start_date` / `end_date` de membresías son `DateOnly`.
+- **Fechas:** instantes en `DateTimeOffset` UTC. El "día de negocio" (`DateOnly`: vigencias, alta, asistencia) sale de `IClock.Today` en la zona del gym, **nunca** de UTC. Toda lectura de tiempo pasa por `IClock` (`UtcNow` / `Today`), inyectable en tests.
 - **Dinero:** `decimal(12,2)`, COP.
 - **Errores:** las entidades validan invariantes en constructor/factory y lanzan `DomainException`. Jerarquía en `GSM.Domain/Common/Exceptions/`:
   - `DomainException` (abstracta) · `ValidationDomainException` → 422 · `UnauthorizedDomainException` → 401 · `NotFoundException` → 404 · `ConflictException` → 409 · `ForbiddenDomainException` → 403
@@ -159,7 +159,7 @@ Dos gyms con datos; autenticado como owner del gym A, ninguna consulta devuelve 
 - `expired` **no se persiste**: en almacenamiento el status solo es `active` o `paused`; `expired` se deriva de `end_date < today` al leer (`EffectiveStatusOn`). El label existe en el enum de Postgres para correcciones manuales.
 - **`paused` sin endpoints** (diferido): el valor está en el enum; `GetActiveAsync`/`IsActiveAsync` ya lo tratan como no-vigente.
 - `member_id` se valida contra `IMemberReader`, no con FK cruzada.
-- "Hoy" se calcula en UTC (imprecisión de ~5 h en el borde de medianoche; aceptable para el MVP).
+- "Hoy" es el **día de negocio** en la zona del gym (`IClock.Today`, `America/Bogota`), nunca derivado de UTC. `IClock.UtcNow` para timestamps/instantes.
 
 ### Public
 `IMembershipReader`: `GetActiveAsync(memberId)` (la que cubre hoy), `IsActiveAsync(memberId)`, `GetExpiringAsync(gymId, withinDays)`.

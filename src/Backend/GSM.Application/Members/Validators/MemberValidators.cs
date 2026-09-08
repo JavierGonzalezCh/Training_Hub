@@ -1,11 +1,12 @@
 using FluentValidation;
+using GSM.Application.Common.Abstractions;
 using GSM.Application.Members.Contracts;
 
 namespace GSM.Application.Members.Validators;
 
 public sealed class CreateMemberRequestValidator : AbstractValidator<CreateMemberRequest>
 {
-    public CreateMemberRequestValidator()
+    public CreateMemberRequestValidator(IClock clock)
     {
         RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
@@ -14,11 +15,10 @@ public sealed class CreateMemberRequestValidator : AbstractValidator<CreateMembe
         RuleFor(x => x.Email).EmailAddress().MaximumLength(256).When(x => !string.IsNullOrWhiteSpace(x.Email));
         RuleFor(x => x.EmergencyContact).MaximumLength(200);
         RuleFor(x => x.PhotoUrl).MaximumLength(2048);
-        RuleFor(x => x.BirthDate).Must(BeInThePast).WithMessage("La fecha de nacimiento debe ser pasada.");
+        RuleFor(x => x.BirthDate)
+            .Must(d => d is null || d < clock.Today)
+            .WithMessage("La fecha de nacimiento debe ser pasada.");
     }
-
-    private static bool BeInThePast(DateOnly? date)
-        => date is null || date < DateOnly.FromDateTime(DateTime.UtcNow);
 }
 
 public sealed class RegisterMemberRequestValidator : AbstractValidator<RegisterMemberRequest>
@@ -34,7 +34,7 @@ public sealed class RegisterMemberRequestValidator : AbstractValidator<RegisterM
 
 public sealed class UpdateMemberRequestValidator : AbstractValidator<UpdateMemberRequest>
 {
-    public UpdateMemberRequestValidator()
+    public UpdateMemberRequestValidator(IClock clock)
     {
         RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
@@ -44,7 +44,7 @@ public sealed class UpdateMemberRequestValidator : AbstractValidator<UpdateMembe
         RuleFor(x => x.EmergencyContact).MaximumLength(200);
         RuleFor(x => x.PhotoUrl).MaximumLength(2048);
         RuleFor(x => x.BirthDate)
-            .Must(d => d is null || d < DateOnly.FromDateTime(DateTime.UtcNow))
+            .Must(d => d is null || d < clock.Today)
             .WithMessage("La fecha de nacimiento debe ser pasada.");
     }
 }

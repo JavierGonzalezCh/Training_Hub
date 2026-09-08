@@ -18,6 +18,7 @@ namespace GSM.Application.Memberships;
 /// </summary>
 public sealed class AssignMembershipHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IMemberReader members,
     IMembershipRepository memberships,
     IUnitOfWork unitOfWork,
@@ -28,7 +29,7 @@ public sealed class AssignMembershipHandler(
         Guid memberId, AssignMembershipRequest request, CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = clock.Today;
 
         var member = await members.GetAsync(memberId, cancellationToken)
             ?? throw new NotFoundException("Miembro no encontrado.");

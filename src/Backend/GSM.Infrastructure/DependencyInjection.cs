@@ -12,6 +12,7 @@ using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
+using GSM.Infrastructure.Common;
 using GSM.Infrastructure.Gyms;
 using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Members;
@@ -45,6 +46,9 @@ public static class DependencyInjection
                     npgsql.MapEnum<MembershipStatus>("membership_status", "memberships", LowerCaseNameTranslator.Instance);
                 })
                 .UseSnakeCaseNamingConvention());
+
+        services.AddOptions<ClockOptions>().Bind(configuration.GetSection(ClockOptions.SectionName));
+        services.AddSingleton<IClock, SystemClock>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

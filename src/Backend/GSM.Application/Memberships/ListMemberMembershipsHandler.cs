@@ -8,6 +8,7 @@ namespace GSM.Application.Memberships;
 
 public sealed class ListMemberMembershipsHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IMemberReader members,
     IMembershipRepository memberships)
 {
@@ -21,7 +22,7 @@ public sealed class ListMemberMembershipsHandler(
             throw new NotFoundException("Miembro no encontrado.");
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = clock.Today;
         var history = await memberships.GetHistoryAsync(memberId, cancellationToken);
         var planNames = await memberships.GetPlanNamesAsync(
             history.Select(m => m.PlanId).Distinct().ToList(), cancellationToken);

@@ -11,6 +11,7 @@ namespace GSM.Application.Members;
 
 public sealed class CreateMemberHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IMemberRepository members,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
@@ -32,7 +33,7 @@ public sealed class CreateMemberHandler(
             request.FirstName,
             request.LastName,
             documentNumber,
-            DateOnly.FromDateTime(DateTime.UtcNow),
+            clock.Today,
             request.Phone,
             request.Email,
             request.BirthDate,
