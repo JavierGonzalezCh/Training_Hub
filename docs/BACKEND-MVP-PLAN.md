@@ -151,24 +151,27 @@ Dos gyms con datos; autenticado como owner del gym A, ninguna consulta devuelve 
 **Schema:** `memberships`
 
 ### Entidades
-- `MembershipPlan` — id, gym_id, name, description, price, duration_days, is_active.
-- `Membership` — id, gym_id, member_id, plan_id, status (`active|expired|paused`), start_date, end_date.
+- `MembershipPlan` — id, gym_id, name (único por gym), description, price `decimal(12,2)`, duration_days (≥1), is_active. Baja = soft delete a `is_active=false`.
+- `Membership` — id, gym_id, member_id, plan_id, status (enum nativo `memberships.membership_status`), start_date, end_date. **`end_date` es el último día cubierto (inclusive)**: `end_date = start_date + duration_days - 1`.
 
 ### Reglas
-- Solo una membresía activa por miembro. Renovar = crear otra; si la vigente no ha vencido, la nueva arranca al día siguiente de su `end_date`.
-- `expired` **no se persiste con un job**: se deriva de `end_date < today` en las consultas. Sin scheduler en el MVP.
-- `member_id` se valida contra `IMemberReader`, no con FK al schema de otro módulo.
+- Solo una membresía cubre una fecha dada. Renovar = crear otra; si hay una Active con `end_date >= today`, la nueva arranca en `end_date + 1` (ignora el `startDate` del request). Si no, arranca en `startDate` pedido o hoy.
+- `expired` **no se persiste**: en almacenamiento el status solo es `active` o `paused`; `expired` se deriva de `end_date < today` al leer (`EffectiveStatusOn`). El label existe en el enum de Postgres para correcciones manuales.
+- **`paused` sin endpoints** (diferido): el valor está en el enum; `GetActiveAsync`/`IsActiveAsync` ya lo tratan como no-vigente.
+- `member_id` se valida contra `IMemberReader`, no con FK cruzada.
+- "Hoy" se calcula en UTC (imprecisión de ~5 h en el borde de medianoche; aceptable para el MVP).
 
 ### Public
-`IMembershipReader`: `GetActiveAsync(memberId)`, `IsActiveAsync(memberId)`, `GetExpiringAsync(gymId, days)`.
+`IMembershipReader`: `GetActiveAsync(memberId)` (la que cubre hoy), `IsActiveAsync(memberId)`, `GetExpiringAsync(gymId, withinDays)`.
 
 ### Events
-`MembershipCreated`, `MembershipRenewed`.
+`MembershipCreated` (sin membresía previa) · `MembershipRenewed` (encadenada tras otra vigente).
 
-### Endpoints propuestos
-CRUD `/membership-plans` · `POST /members/{id}/memberships` · `GET /members/{id}/memberships` · `GET /memberships/expiring?days=7`
+### Endpoints
+`GET|POST /api/membership-plans` · `GET|PUT|DELETE /api/membership-plans/{id}` (POST/PUT/DELETE [owner], lecturas [staff]) · `POST /api/members/{id}/memberships` [staff] (asignar/renovar) · `GET /api/members/{id}/memberships` [staff] · `GET /api/memberships/expiring?days=7` [staff].
+Además: `GET /api/members/{id}` ahora incluye `currentMembership` (compuesto en el controller vía `IMembershipReader`).
 
-**Aceptación:** renovación encadenada calcula fechas correctas; un miembro nunca queda con dos activas.
+**Aceptación:** ✅ renovación encadenada calcula fechas correctas; un miembro nunca queda con dos cubriendo la misma fecha (test `MembershipRenewalTests`).
 
 ---
 

@@ -2,6 +2,7 @@ using GSM.API.Auth;
 using GSM.Application.Common;
 using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
+using GSM.Application.Memberships.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -26,8 +27,22 @@ public sealed class MembersController : ControllerBase
     [ProducesResponseType<MemberDetail>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<MemberDetail>> Get(
-        Guid id, [FromServices] GetMemberHandler handler, CancellationToken cancellationToken)
-        => Ok(await handler.HandleAsync(id, cancellationToken));
+        Guid id,
+        [FromServices] GetMemberHandler handler,
+        [FromServices] IMembershipReader memberships,
+        CancellationToken cancellationToken)
+    {
+        var member = await handler.HandleAsync(id, cancellationToken);
+
+        var active = await memberships.GetActiveAsync(id, cancellationToken);
+        return Ok(active is null
+            ? member
+            : member with
+            {
+                CurrentMembership = new MemberCurrentMembership(
+                    active.MembershipId, active.PlanId, active.PlanName, active.StartDate, active.EndDate),
+            });
+    }
 
     [HttpPost]
     [Authorize(Policy = AuthPolicies.RequireStaff)]

@@ -69,4 +69,15 @@ public sealed record MemberDetail(
     string Status,
     string QrCode,
     DateOnly JoinedAt,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt)
+{
+    /// <summary>Membresía vigente hoy. La rellena el controller vía IMembershipReader; <c>null</c> si no hay.</summary>
+    public MemberCurrentMembership? CurrentMembership { get; init; }
+}
+
+public sealed record MemberCurrentMembership(
+    Guid MembershipId,
+    Guid PlanId,
+    string PlanName,
+    DateOnly StartDate,
+    DateOnly EndDate);

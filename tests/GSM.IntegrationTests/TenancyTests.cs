@@ -1,6 +1,7 @@
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
+using GSM.Domain.Memberships;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,11 +32,15 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         var visibleGyms = await db.Set<Gym>().Select(g => g.Id).ToListAsync();
         var visibleFlags = await db.Set<GymFeatureFlags>().Select(f => f.GymId).ToListAsync();
         var visibleMemberGyms = await db.Set<Member>().Select(m => m.GymId).Distinct().ToListAsync();
+        var visiblePlanGyms = await db.Set<MembershipPlan>().Select(p => p.GymId).Distinct().ToListAsync();
+        var visibleMembershipGyms = await db.Set<Membership>().Select(m => m.GymId).Distinct().ToListAsync();
         var canReachB = await db.Set<Gym>().AnyAsync(g => g.Id == gymB);
 
         Assert.Equal([gymA], visibleGyms);
         Assert.Equal([gymA], visibleFlags);
         Assert.Equal([gymA], visibleMemberGyms);
+        Assert.Equal([gymA], visiblePlanGyms);
+        Assert.Equal([gymA], visibleMembershipGyms);
         Assert.False(canReachB);
     }
 
@@ -62,7 +67,7 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
 
         await db.Database.ExecuteSqlRawAsync(
-            "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members restart identity cascade;");
+            "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, memberships.membership_plans, memberships.memberships restart identity cascade;");
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var (gymA, ownerA) = await CreateGymAsync(db, $"gym-a-{suffix}", "Gym A");
@@ -94,8 +99,14 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
         db.Add(gym);
         db.Add(GymFeatureFlags.Default(gym.Id));
         db.Add(owner);
-        db.Add(Member.Create(
-            gym.Id, "Test", "Member", $"doc-{slug}", DateOnly.FromDateTime(DateTime.UtcNow)));
+
+        var member = Member.Create(
+            gym.Id, "Test", "Member", $"doc-{slug}", DateOnly.FromDateTime(DateTime.UtcNow));
+        var plan = MembershipPlan.Create(gym.Id, "Plan", null, 50000m, 30);
+        db.Add(member);
+        db.Add(plan);
+        db.Add(Membership.Create(
+            gym.Id, member.Id, plan.Id, DateOnly.FromDateTime(DateTime.UtcNow), 30));
 
         await Task.CompletedTask;
         return (gym.Id, owner.Id);
