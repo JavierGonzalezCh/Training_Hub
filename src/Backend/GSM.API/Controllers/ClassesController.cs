@@ -30,6 +30,30 @@ public sealed class ClassesController : ControllerBase
         Guid id, [FromServices] GetClassHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
 
+    /// <summary>Horario proyectado del rango: ocurrencias calculadas de la recurrencia + sesiones ya materializadas.</summary>
+    [HttpGet("schedule")]
+    [ProducesResponseType<ScheduleResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<ScheduleResponse>> Schedule(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromServices] GetScheduleHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(from, to, cancellationToken));
+
+    /// <summary>Cancela una ocurrencia puntual; materializa la sesión con <c>status = cancelled</c>.</summary>
+    [HttpPost("{id:guid}/sessions/{date}/cancel")]
+    [ProducesResponseType<ScheduleEntry>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<ScheduleEntry>> CancelSession(
+        Guid id,
+        DateOnly date,
+        CancelSessionRequest? request,
+        [FromServices] CancelSessionHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, date, request?.Reason, cancellationToken));
+
     [HttpPost]
     [ProducesResponseType<ClassResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]

@@ -48,6 +48,7 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
         modelBuilder.HasPostgresEnum<Muscle>("routines", "muscle", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<Equipment>("routines", "equipment", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassDayOfWeek>("classes", "day_of_week", LowerCaseNameTranslator.Instance);
+        modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassSessionStatus>("classes", "class_session_status", LowerCaseNameTranslator.Instance);
 
         // Tablas satélite de Identity → schema y nombres del proyecto.
         modelBuilder.Entity<AppUser>().ToTable("users", "identity");

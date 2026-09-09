@@ -69,6 +69,7 @@ public static class DependencyInjection
                     npgsql.MapEnum<Muscle>("muscle", "routines", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<GSM.Domain.Classes.ClassDayOfWeek>("day_of_week", "classes", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<GSM.Domain.Classes.ClassSessionStatus>("class_session_status", "classes", LowerCaseNameTranslator.Instance);
                 })
                 .UseSnakeCaseNamingConvention());
 
@@ -129,6 +130,7 @@ public static class DependencyInjection
         services.AddScoped<IRoutineReader, RoutineReader>();
 
         services.AddScoped<GSM.Application.Classes.Abstractions.IClassRepository, GSM.Infrastructure.Classes.ClassRepository>();
+        services.AddScoped<GSM.Application.Classes.Abstractions.IClassSessionRepository, GSM.Infrastructure.Classes.ClassSessionRepository>();
 
         return services;
     }

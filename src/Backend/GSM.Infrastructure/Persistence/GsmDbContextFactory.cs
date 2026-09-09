@@ -39,6 +39,7 @@ public sealed class GsmDbContextFactory : IDesignTimeDbContextFactory<GsmDbConte
                 npgsql.MapEnum<Muscle>("muscle", "routines", LowerCaseNameTranslator.Instance);
                 npgsql.MapEnum<Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance);
                 npgsql.MapEnum<GSM.Domain.Classes.ClassDayOfWeek>("day_of_week", "classes", LowerCaseNameTranslator.Instance);
+                npgsql.MapEnum<GSM.Domain.Classes.ClassSessionStatus>("class_session_status", "classes", LowerCaseNameTranslator.Instance);
             })
             .UseSnakeCaseNamingConvention()
             .Options;

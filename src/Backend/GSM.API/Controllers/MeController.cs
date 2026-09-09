@@ -1,6 +1,8 @@
 using GSM.API.Auth;
 using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
+using GSM.Application.Classes;
+using GSM.Application.Classes.Contracts;
 using GSM.Application.MemberStreak;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
@@ -49,6 +51,17 @@ public sealed class MeController : ControllerBase
         [FromQuery] DateOnly from,
         [FromQuery] DateOnly to,
         [FromServices] GetMyRoutineHistoryHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(from, to, cancellationToken));
+
+    /// <summary>Horario de clases del gym para la app del socio. 403 si <c>show_classes = false</c>.</summary>
+    [HttpGet("classes")]
+    [ProducesResponseType<ScheduleResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ScheduleResponse>> Classes(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromServices] GetMyClassesHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
 

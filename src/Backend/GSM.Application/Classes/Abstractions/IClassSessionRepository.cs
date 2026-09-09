@@ -1,0 +1,16 @@
+using GSM.Domain.Classes;
+
+namespace GSM.Application.Classes.Abstractions;
+
+/// <summary>Acceso a <see cref="ClassSession"/>. El Global Query Filter restringe al gym actual. Sin <c>SaveChanges</c>.</summary>
+public interface IClassSessionRepository
+{
+    /// <summary>Sesión materializada de esa ocurrencia, o <c>null</c> si nadie la ha tocado todavía.</summary>
+    Task<ClassSession?> GetAsync(Guid classId, DateOnly sessionDate, CancellationToken cancellationToken = default);
+
+    /// <summary>Sesiones materializadas de un rango de fechas (para proyectar el horario).</summary>
+    Task<IReadOnlyList<ClassSession>> ListInRangeAsync(
+        DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
+
+    void Add(ClassSession session);
+}

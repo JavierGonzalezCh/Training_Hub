@@ -1,0 +1,26 @@
+namespace GSM.Application.Classes.Contracts;
+
+/// <summary>
+/// Una ocurrencia en el horario proyectado: puede venir de una sesión ya materializada
+/// (<see cref="IsMaterialized"/> = true, y entonces manda) o del cálculo de la recurrencia.
+/// </summary>
+public sealed record ScheduleEntry(
+    Guid ClassId,
+    string ClassName,
+    string? Description,
+    string? InstructorName,
+    int? Capacity,
+    DateOnly SessionDate,
+    TimeOnly StartTime,
+    int DurationMinutes,
+    string Status,
+    string? CancellationReason,
+    bool IsMaterialized,
+    Guid? SessionId);
+
+public sealed record ScheduleResponse(
+    DateOnly From,
+    DateOnly To,
+    IReadOnlyList<ScheduleEntry> Entries);
+
+public sealed record CancelSessionRequest(string? Reason);
