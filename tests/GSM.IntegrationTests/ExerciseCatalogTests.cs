@@ -77,11 +77,13 @@ public sealed class ExerciseCatalogTests(ApiFactory factory) : IClassFixture<Api
         using (var scope = System())
         {
             systemExerciseId = await scope.ServiceProvider.GetRequiredService<GsmDbContext>()
-                .Set<Exercise>().Where(e => e.GymId == null).Select(e => e.Id).FirstAsync();
+                .Set<Exercise>().Where(e => e.GymId == null)
+                .OrderBy(e => e.Name).Select(e => e.Id).FirstAsync();
         }
 
+        var newName = $"Editado {Guid.NewGuid():N}"[..20];
         var edit = new UpdateExerciseRequest(
-            "Nombre cambiado", "desc", Muscle.Chest, null, null, null, null);
+            newName, "desc", Muscle.Chest, null, null, null, null);
 
         using (var scope = Staff(gymA, staffA))
         {
@@ -94,7 +96,7 @@ public sealed class ExerciseCatalogTests(ApiFactory factory) : IClassFixture<Api
         {
             var updated = await scope.ServiceProvider.GetRequiredService<UpdateExerciseHandler>()
                 .HandleAsync(systemExerciseId, edit, default);
-            Assert.Equal("Nombre cambiado", updated.Name);
+            Assert.Equal(newName, updated.Name);
             Assert.True(updated.IsSystem);
         }
     }

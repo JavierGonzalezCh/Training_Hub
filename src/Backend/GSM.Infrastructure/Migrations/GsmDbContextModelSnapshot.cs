@@ -754,6 +754,179 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("exercises", "routines");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Routines.Routine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AssignedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_by");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly?>("DeactivatedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("deactivated_on");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notes");
+
+                    b.Property<bool>("SelfAssigned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("self_assigned");
+
+                    b.Property<DateOnly>("StartsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("starts_on");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_routines");
+
+                    b.HasIndex("GymId", "MemberId", "IsActive")
+                        .HasDatabaseName("ix_routines_gym_id_member_id_is_active");
+
+                    b.ToTable("routines", "routines");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<bool>("IsRest")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_rest");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<Guid>("RoutineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("routine_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_routine_days");
+
+                    b.HasIndex("RoutineId", "Position")
+                        .IsUnique()
+                        .HasDatabaseName("ix_routine_days_routine_id_position");
+
+                    b.ToTable("routine_days", "routines");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineExercise", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("exercise_id");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("notes");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("order");
+
+                    b.Property<int?>("RestSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("rest_seconds");
+
+                    b.Property<Guid>("RoutineDayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("routine_day_id");
+
+                    b.Property<string>("TargetReps")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("target_reps");
+
+                    b.Property<int>("TargetSets")
+                        .HasColumnType("integer")
+                        .HasColumnName("target_sets");
+
+                    b.Property<decimal?>("TargetWeightKg")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("target_weight_kg");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_routine_exercises");
+
+                    b.HasIndex("RoutineDayId", "Order")
+                        .HasDatabaseName("ix_routine_exercises_routine_day_id_order");
+
+                    b.ToTable("routine_exercises", "routines");
+                });
+
             modelBuilder.Entity("GSM.Infrastructure.Identity.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1015,6 +1188,26 @@ namespace GSM.Infrastructure.Migrations
                         .HasConstraintName("fk_member_invitations_members_member_id");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineDay", b =>
+                {
+                    b.HasOne("GSM.Domain.Routines.Routine", null)
+                        .WithMany("Days")
+                        .HasForeignKey("RoutineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_routine_days_routines_routine_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineExercise", b =>
+                {
+                    b.HasOne("GSM.Domain.Routines.RoutineDay", null)
+                        .WithMany("Exercises")
+                        .HasForeignKey("RoutineDayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_routine_exercises_routine_days_routine_day_id");
+                });
+
             modelBuilder.Entity("GSM.Infrastructure.Identity.RefreshToken", b =>
                 {
                     b.HasOne("GSM.Infrastructure.Identity.AppUser", null)
@@ -1053,6 +1246,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.Routine", b =>
+                {
+                    b.Navigation("Days");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineDay", b =>
+                {
+                    b.Navigation("Exercises");
                 });
 
             modelBuilder.Entity("GSM.Infrastructure.Identity.AppUser", b =>

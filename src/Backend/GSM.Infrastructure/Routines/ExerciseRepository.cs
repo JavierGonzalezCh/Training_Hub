@@ -81,5 +81,18 @@ public sealed class ExerciseRepository(GsmDbContext dbContext, ICurrentUserServi
         return found.ToHashSet();
     }
 
+    public async Task<IReadOnlyDictionary<Guid, string>> GetVisibleNamesAsync(
+        IReadOnlyCollection<Guid> exerciseIds, CancellationToken cancellationToken = default)
+    {
+        if (exerciseIds.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        return await VisibleToCurrentGym()
+            .Where(e => exerciseIds.Contains(e.Id))
+            .ToDictionaryAsync(e => e.Id, e => e.Name, cancellationToken);
+    }
+
     public void Add(Exercise exercise) => Exercises.Add(exercise);
 }

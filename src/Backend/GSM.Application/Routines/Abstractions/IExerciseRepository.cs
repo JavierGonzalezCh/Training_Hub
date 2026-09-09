@@ -28,5 +28,9 @@ public interface IExerciseRepository
     Task<IReadOnlySet<Guid>> FilterVisibleIdsAsync(
         IReadOnlyCollection<Guid> exerciseIds, CancellationToken cancellationToken = default);
 
+    /// <summary>Nombre de cada ejercicio visible pedido; los no visibles no aparecen en el diccionario.</summary>
+    Task<IReadOnlyDictionary<Guid, string>> GetVisibleNamesAsync(
+        IReadOnlyCollection<Guid> exerciseIds, CancellationToken cancellationToken = default);
+
     void Add(Exercise exercise);
 }

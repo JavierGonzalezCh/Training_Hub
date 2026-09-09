@@ -1,0 +1,68 @@
+using GSM.API.Auth;
+using GSM.Application.Routines;
+using GSM.Application.Routines.Contracts;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace GSM.API.Controllers;
+
+/// <summary>Gestión de rutinas por el staff. Los endpoints del socio viven en <c>MeController</c>.</summary>
+[ApiController]
+[Route("api/routines")]
+[Authorize(Policy = AuthPolicies.RequireStaff)]
+public sealed class RoutinesController : ControllerBase
+{
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<RoutineResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<RoutineResponse>> Get(
+        Guid id, [FromServices] GetRoutineHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType<RoutineResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RoutineResponse>> Update(
+        Guid id,
+        SaveRoutineRequest request,
+        [FromServices] UpdateRoutineHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Deactivate(
+        Guid id, [FromServices] DeactivateRoutineHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, cancellationToken);
+        return NoContent();
+    }
+}
+
+/// <summary>Rutinas de un socio concreto (listar y asignar).</summary>
+[ApiController]
+[Route("api/members/{memberId:guid}/routines")]
+[Authorize(Policy = AuthPolicies.RequireStaff)]
+public sealed class MemberRoutinesController : ControllerBase
+{
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<RoutineListItem>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<RoutineListItem>>> List(
+        Guid memberId,
+        [FromServices] ListMemberRoutinesHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, cancellationToken));
+
+    [HttpPost]
+    [ProducesResponseType<RoutineResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<RoutineResponse>> Assign(
+        Guid memberId,
+        SaveRoutineRequest request,
+        [FromServices] AssignRoutineHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var routine = await handler.HandleAsync(memberId, request, cancellationToken);
+        return CreatedAtAction(nameof(RoutinesController.Get), "Routines", new { id = routine.Id }, routine);
+    }
+}
