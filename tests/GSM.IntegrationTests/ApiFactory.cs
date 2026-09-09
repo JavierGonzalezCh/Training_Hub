@@ -44,6 +44,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<CapturingEmailSender>();
             services.AddSingleton<IEmailSender>(sp => sp.GetRequiredService<CapturingEmailSender>());
+
+            services.AddSingleton<RoutineEventRecorder>();
+            services.AddScoped<GSM.Application.Common.Events.IDomainEventHandler<
+                GSM.Application.Routines.Events.RoutineSessionLogged>>(
+                sp => sp.GetRequiredService<RoutineEventRecorder>());
         });
     }
 

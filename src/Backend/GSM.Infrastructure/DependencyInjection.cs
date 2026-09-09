@@ -123,6 +123,7 @@ public static class DependencyInjection
 
         services.AddScoped<IExerciseRepository, ExerciseRepository>();
         services.AddScoped<IRoutineRepository, RoutineRepository>();
+        services.AddScoped<IRoutineLogRepository, RoutineLogRepository>();
 
         return services;
     }

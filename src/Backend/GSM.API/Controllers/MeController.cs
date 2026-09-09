@@ -27,4 +27,14 @@ public sealed class MeController : ControllerBase
     public async Task<ActionResult<MyRoutineResponse>> Routines(
         [FromServices] GetMyRoutineHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
+
+    [HttpGet("routines/history")]
+    [ProducesResponseType<IReadOnlyList<RoutineHistoryItem>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<RoutineHistoryItem>>> RoutineHistory(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromServices] GetMyRoutineHistoryHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(from, to, cancellationToken));
 }
