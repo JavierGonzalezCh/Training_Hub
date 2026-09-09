@@ -37,6 +37,7 @@ public static class AuthSetup
             .AddPolicy(AuthPolicies.RequireSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin))
             .AddPolicy(AuthPolicies.RequireOwner, p => p.RequireRole(RoleName.Owner))
             .AddPolicy(AuthPolicies.RequireStaff, p => p.RequireRole(RoleName.Owner, RoleName.Staff))
+            .AddPolicy(AuthPolicies.RequireStaffOrSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin, RoleName.Owner, RoleName.Staff))
             .AddPolicy(AuthPolicies.RequireMember, p => p.RequireRole(RoleName.Member));
 
         return services;
@@ -48,5 +49,6 @@ public static class AuthPolicies
     public const string RequireSuperAdmin = "RequireSuperAdmin";
     public const string RequireOwner = "RequireOwner";
     public const string RequireStaff = "RequireStaff";
+    public const string RequireStaffOrSuperAdmin = "RequireStaffOrSuperAdmin";
     public const string RequireMember = "RequireMember";
 }

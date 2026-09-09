@@ -4,11 +4,19 @@ GSM (Gym System Management) es el codename técnico interno de un sistema de ges
 
 **Especificación técnica completa:** `docs/GSM-especificacion-tecnica.md`. Léela antes de generar entidades, casos de uso o endpoints — este archivo es solo el resumen que debes tener presente siempre.
 
-**Plan de construcción por etapas:** `docs/BACKEND-MVP-PLAN.md`.
+**Plan de construcción por etapas:** `docs/BACKEND-MVP-PLAN.md` (etapas 0–8, MVP).
+
+**Fase 2, módulo Routines:** especificación en `docs/GSM-modulo-routines.md`, plan de construcción en `docs/ROUTINES-BUILD-PLAN.md`.
 
 ## Estado actual
 
-Fase: **MVP, backend desde cero.** Aún no existe código. Trabajamos incremental: scaffold → Domain → Infrastructure/DbContext+migración → Application → API. No implementes más de una etapa sin confirmación.
+Fase: **MVP terminado, arrancando Fase 2.**
+
+Los 7 módulos del MVP (etapas 0–7) están implementados y validados end-to-end, con 17 tests de integración contra Postgres. De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de Railway. R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
+
+En construcción: **etapa 9 — Routines** (Fase 2), por sub-etapas 9.1 a 9.6.
+
+Trabajamos incremental: Domain → Infrastructure/DbContext+migración → Application → API. **No implementes más de una etapa (ni sub-etapa) sin confirmación.**
 
 ## Stack
 
@@ -62,8 +70,11 @@ En `GSM.Application/Common/Events/`:
 
 Los handlers se registran por assembly scanning. La publicación ocurre **después** de que la transacción del caso de uso commitea, nunca dentro. Un handler que falla se loguea y no tumba la operación que publicó el evento.
 
-Módulos MVP, en orden de implementación: **Identity → Gyms → Members → Memberships → Payments → Attendance → Achievements.**
-Módulos de fases futuras (no implementar aún): Routines, Classes, Community, Reports, Locations, SuperAdmin.
+Módulos MVP, ya implementados: **Identity → Gyms → Members → Memberships → Payments → Attendance → Achievements.**
+
+Fase 2, en construcción: **Routines** (ver `docs/GSM-modulo-routines.md`). Después: Classes y SuperAdmin, en ese orden, aún sin especificar.
+
+Módulos sin planificar todavía (no implementar): Community, Reports, Locations.
 
 ## Multi-tenancy
 
@@ -103,6 +114,16 @@ No hay FK entre schemas de módulos distintos: la referencia se valida en el cas
 - Logging con Serilog, structured, un log de entrada/salida por caso de uso. Nunca loguear passwords ni tokens.
 - Conventional Commits (`feat:`, `fix:`, `refactor:`).
 
-## Alcance MVP
+## Alcance
 
-7 módulos (Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements), sus entidades, casos de uso y 15 endpoints — todo detallado en `docs/GSM-especificacion-tecnica.md`. No construyas Routines, Classes, Community, Locations ni SuperAdmin todavía.
+**MVP (hecho):** 7 módulos — Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements — detallados en `docs/GSM-especificacion-tecnica.md`.
+
+**Fase 2 (en curso):** Routines. Especificación en `docs/GSM-modulo-routines.md`, construcción en `docs/ROUTINES-BUILD-PLAN.md`. Luego Classes y SuperAdmin, pendientes de especificar.
+
+No construyas Community, Reports ni Locations todavía.
+
+### Notas de Routines que afectan a módulos ya cerrados
+
+- **`Exercise` no implementa `ITenantEntity`.** Es la primera entidad con `gym_id` nullable (`null` = catálogo del sistema). Su filtrado va explícito en `ExerciseRepository`, no en el Global Query Filter — esa pieza no se toca.
+- **La racha pasa a medirse contra el calendario de la rutina** (el descanso planificado no la rompe). `StreakCalculator` acepta un calendario opcional y **sin él se comporta igual que hoy**; el cálculo lo compone un handler, porque Attendance (6) no puede depender de Routines (9).
+- **El congelador de racha vive en `achievements`**, no en Routines: aplica también a socios sin rutina.

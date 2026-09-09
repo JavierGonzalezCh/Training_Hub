@@ -21,7 +21,10 @@ using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
 using GSM.Domain.Payments;
+using GSM.Domain.Routines;
+using GSM.Application.Routines.Abstractions;
 using GSM.Infrastructure.Achievements;
+using GSM.Infrastructure.Routines;
 using GSM.Infrastructure.Attendance;
 using GSM.Infrastructure.Common;
 using GSM.Infrastructure.Email;
@@ -62,6 +65,8 @@ public static class DependencyInjection
                     npgsql.MapEnum<PaymentMethod>("payment_method", "payments", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<AttendanceMethod>("attendance_method", "attendance", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<AchievementConditionType>("condition_type", "achievements", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<Muscle>("muscle", "routines", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance);
                 })
                 .UseSnakeCaseNamingConvention());
 
@@ -115,6 +120,8 @@ public static class DependencyInjection
         services.AddScoped<IAchievementRepository, AchievementRepository>();
         services.AddScoped<IAchievementReader, AchievementReader>();
         services.AddScoped<IAchievementService, AchievementService>();
+
+        services.AddScoped<IExerciseRepository, ExerciseRepository>();
 
         return services;
     }
