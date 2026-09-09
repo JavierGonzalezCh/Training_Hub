@@ -5,6 +5,8 @@ using GSM.Application.Attendance.Public;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Domain.Achievements;
+using GSM.Domain.Common.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace GSM.Infrastructure.Achievements;
@@ -15,12 +17,17 @@ namespace GSM.Infrastructure.Achievements;
 /// </summary>
 public sealed class AchievementService(
     IClock clock,
+    ICurrentUserService currentUser,
     IAchievementRepository achievements,
     IAttendanceReader attendance,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<AchievementService> logger) : IAchievementService
 {
+    private const int MaxAvailableFreezes = 2;
+    private const int GrantIntervalDays = 15;
+
+
     public async Task<IReadOnlyList<UnlockedAchievement>> EvaluateForMemberAsync(
         Guid memberId, CancellationToken cancellationToken = default)
     {
@@ -61,5 +68,63 @@ public sealed class AchievementService(
         return newlyUnlocked
             .Select(x => new UnlockedAchievement(x.Achievement.Id, x.Achievement.Name, x.Achievement.IconUrl, now))
             .ToList();
+    }
+
+    public async Task<StreakFreezeState> GetOrGrantStreakFreezesAsync(
+        Guid memberId, DateOnly today, CancellationToken cancellationToken = default)
+    {
+        var freezes = await achievements.ListStreakFreezesAsync(memberId, cancellationToken);
+        var available = freezes.Count(f => f.IsAvailable);
+        var spent = freezes.Where(f => f.UsedOn is not null).Select(f => f.UsedOn!.Value).ToHashSet();
+
+        if (available < MaxAvailableFreezes)
+        {
+            var lastGranted = freezes.Count == 0 ? (DateOnly?)null : freezes.Max(f => f.GrantedOn);
+            if (lastGranted is null || today.DayNumber - lastGranted.Value.DayNumber >= GrantIntervalDays)
+            {
+                var gymId = currentUser.RequireGymId();
+                achievements.AddStreakFreeze(StreakFreeze.Grant(gymId, memberId, today));
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                available++;
+                logger.LogInformation("Congelador de racha otorgado al socio {MemberId}", memberId);
+            }
+        }
+
+        return new StreakFreezeState(available, spent);
+    }
+
+    public async Task<int> ConsumeStreakFreezesAsync(
+        Guid memberId, IReadOnlyCollection<DateOnly> failedDates, CancellationToken cancellationToken = default)
+    {
+        var freezes = await achievements.ListStreakFreezesAsync(memberId, cancellationToken);
+
+        if (failedDates.Count > 0)
+        {
+            var spent = freezes.Where(f => f.UsedOn is not null).Select(f => f.UsedOn!.Value).ToHashSet();
+            var queue = new Queue<StreakFreeze>(freezes.Where(f => f.IsAvailable).OrderBy(f => f.GrantedOn));
+
+            foreach (var date in failedDates.Distinct())
+            {
+                if (spent.Contains(date) || queue.Count == 0)
+                {
+                    continue;
+                }
+
+                queue.Dequeue().Use(date);
+                spent.Add(date);
+            }
+
+            try
+            {
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                // Carrera: otra consulta concurrente ya marcó un congelador para esa fecha.
+                logger.LogWarning(ex, "Consumo de congelador en conflicto para el socio {MemberId}", memberId);
+            }
+        }
+
+        return (await achievements.ListStreakFreezesAsync(memberId, cancellationToken)).Count(f => f.IsAvailable);
     }
 }

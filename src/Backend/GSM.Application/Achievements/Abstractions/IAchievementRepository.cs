@@ -22,4 +22,9 @@ public interface IAchievementRepository
         Guid memberId, CancellationToken cancellationToken = default);
 
     void AddUnlock(MemberAchievement unlock);
+
+    Task<IReadOnlyList<StreakFreeze>> ListStreakFreezesAsync(
+        Guid memberId, CancellationToken cancellationToken = default);
+
+    void AddStreakFreeze(StreakFreeze freeze);
 }

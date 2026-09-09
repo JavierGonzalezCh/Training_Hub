@@ -1,6 +1,7 @@
 using GSM.API.Auth;
 using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
+using GSM.Application.MemberStreak;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -37,4 +38,11 @@ public sealed class MeController : ControllerBase
         [FromServices] GetMyRoutineHistoryHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
+
+    /// <summary>Racha del socio + congeladores disponibles.</summary>
+    [HttpGet("streak")]
+    [ProducesResponseType<MemberStreakResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MemberStreakResponse>> Streak(
+        [FromServices] GetMyStreakHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
 }

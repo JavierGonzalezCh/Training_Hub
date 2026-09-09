@@ -144,6 +144,51 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("member_achievements", "achievements");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Achievements.StreakFreeze", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("GrantedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("granted_on");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<DateOnly?>("UsedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("used_on");
+
+                    b.HasKey("Id")
+                        .HasName("pk_streak_freezes");
+
+                    b.HasIndex("MemberId", "GrantedOn")
+                        .HasDatabaseName("ix_streak_freezes_member_id_granted_on");
+
+                    b.HasIndex("MemberId", "UsedOn")
+                        .IsUnique()
+                        .HasDatabaseName("ix_streak_freezes_member_id_used_on_spent")
+                        .HasFilter("used_on IS NOT NULL");
+
+                    b.ToTable("streak_freezes", "achievements");
+                });
+
             modelBuilder.Entity("GSM.Domain.Attendance.Attendance", b =>
                 {
                     b.Property<Guid>("Id")

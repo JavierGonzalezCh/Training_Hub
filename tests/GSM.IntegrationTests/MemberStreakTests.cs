@@ -32,13 +32,14 @@ public sealed class MemberStreakTests(ApiFactory factory) : IClassFixture<ApiFac
     }
 
     [Fact]
-    public async Task Missing_a_training_day_cuts_the_streak()
+    public async Task Missing_two_training_days_cuts_the_streak_once_the_single_freeze_runs_out()
     {
         var w = await SeedWithRoutineAsync();
-        await AddAttendanceAsync(w, [0, 1, 2, 4, 6]); // falta el offset 5 (D2 de la 2a vuelta)
+        await AddAttendanceAsync(w, [0, 1, 2, 4]); // faltan offsets 5 y 6
 
+        // El congelador (concesión perezosa) absorbe el fallo más reciente; el segundo corta.
         var streak = await StreakAsync(w, Monday.AddDays(7));
-        Assert.Equal(2, streak); // descanso(7) + D3(6); se corta en el D2(5) fallado
+        Assert.Equal(1, streak); // solo el descanso de hoy
     }
 
     [Fact]
