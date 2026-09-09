@@ -86,4 +86,25 @@ public sealed class ClassesController : ControllerBase
         await handler.HandleAsync(id, cancellationToken);
         return NoContent();
     }
+
+    /// <summary>Reservas y asistencia de una sesión concreta.</summary>
+    [HttpGet("{id:guid}/sessions/{date}/roster")]
+    [ProducesResponseType<RosterResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<RosterResponse>> Roster(
+        Guid id, DateOnly date, [FromServices] GetRosterHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, date, cancellationToken));
+
+    /// <summary>Marca asistentes y ausentes de una sesión. Registra el check-in del día de cada asistente.</summary>
+    [HttpPost("{id:guid}/sessions/{date}/attendance")]
+    [ProducesResponseType<RosterResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<RosterResponse>> MarkAttendance(
+        Guid id,
+        DateOnly date,
+        MarkAttendanceRequest request,
+        [FromServices] MarkAttendanceHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, date, request, cancellationToken));
 }

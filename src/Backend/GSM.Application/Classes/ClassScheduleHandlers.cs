@@ -54,7 +54,8 @@ public sealed class GetMyClassesHandler(
     IGymReader gyms,
     IMemberReader members,
     IClassRepository classes,
-    IClassSessionRepository sessions)
+    IClassSessionRepository sessions,
+    IClassBookingRepository bookings)
 {
     public async Task<ScheduleResponse> HandleAsync(
         DateOnly from, DateOnly to, CancellationToken cancellationToken)
@@ -63,26 +64,38 @@ public sealed class GetMyClassesHandler(
         await ClassFeatureGate.EnsureMemberModuleEnabledAsync(gyms, gymId, cancellationToken);
         ScheduleWindow.Validate(from, to);
 
-        _ = await members.ResolveByUserIdAsync(currentUser.UserId ?? Guid.Empty, cancellationToken)
+        var self = await members.ResolveByUserIdAsync(currentUser.UserId ?? Guid.Empty, cancellationToken)
             ?? throw new ForbiddenDomainException("Tu cuenta no está vinculada a un miembro.");
 
         var defs = await classes.ListAsync(new ClassFilter(IncludeInactive: true), cancellationToken);
         var mat = await sessions.ListInRangeAsync(from, to, cancellationToken);
+        var entries = ClassSchedule.Project(defs, mat, from, to);
 
-        // El estado de las reservas del socio se añade en la sub-etapa 10.3.
-        return new ScheduleResponse(from, to, ClassSchedule.Project(defs, mat, from, to));
+        var myBookings = await bookings.ListForMemberAsync(self.Id, from, to, cancellationToken);
+        var byOccurrence = myBookings.ToDictionary(
+            b => (b.Class.Id, b.Session.SessionDate), b => b.Booking.Status.ToString());
+
+        var enriched = entries
+            .Select(e => byOccurrence.TryGetValue((e.ClassId, e.SessionDate), out var status)
+                ? e with { MyBookingStatus = status }
+                : e)
+            .ToList();
+
+        return new ScheduleResponse(from, to, enriched);
     }
 }
 
 /// <summary>
 /// Cancela una ocurrencia puntual (festivo, instructor enfermo): materializa la sesión con
-/// <c>status = cancelled</c> sin tocar el resto de la serie. Las reservas afectadas pasan a
-/// <c>cancelled</c> en la sub-etapa 10.3.
+/// <c>status = cancelled</c> sin tocar el resto de la serie, y pasa a <c>cancelled</c> las reservas
+/// que tenía.
 /// </summary>
 public sealed class CancelSessionHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IClassRepository classes,
     IClassSessionRepository sessions,
+    IClassBookingRepository bookings,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<CancelSessionHandler> logger)
@@ -106,16 +119,29 @@ public sealed class CancelSessionHandler(
         var session = existing
             ?? await ClassSessionMaterializer.GetOrCreateAsync(sessions, unitOfWork, gymClass, date, cancellationToken);
 
+        var affected = new List<Guid>();
+
         if (!session.IsCancelled)
         {
             session.Cancel(reason);
+
+            foreach (var booking in await bookings.ListForSessionAsync(session.Id, cancellationToken))
+            {
+                if (booking.IsActive)
+                {
+                    booking.CancelBySessionCancellation(clock.UtcNow);
+                    affected.Add(booking.MemberId);
+                }
+            }
+
             await unitOfWork.SaveChangesAsync(cancellationToken);
             logger.LogInformation(
-                "Sesión de la clase {ClassId} del {Date} cancelada", classId, date);
+                "Sesión de la clase {ClassId} del {Date} cancelada ({Affected} reservas)",
+                classId, date, affected.Count);
         }
 
         await events.PublishAsync(
-            new ClassSessionCancelled(classId, gymId, date, AffectedMemberIds: []), cancellationToken);
+            new ClassSessionCancelled(classId, gymId, date, affected), cancellationToken);
 
         return new ScheduleEntry(
             gymClass.Id, gymClass.Name, gymClass.Description, session.InstructorName, session.Capacity,

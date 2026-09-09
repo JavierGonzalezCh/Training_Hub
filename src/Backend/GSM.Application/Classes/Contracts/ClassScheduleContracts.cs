@@ -16,7 +16,9 @@ public sealed record ScheduleEntry(
     string Status,
     string? CancellationReason,
     bool IsMaterialized,
-    Guid? SessionId);
+    Guid? SessionId,
+    /// <summary>Estado de la reserva del socio que consulta (solo en el horario del socio); null si no ha reservado o es vista de staff.</summary>
+    string? MyBookingStatus = null);
 
 public sealed record ScheduleResponse(
     DateOnly From,

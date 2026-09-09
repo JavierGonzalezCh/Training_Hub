@@ -65,6 +65,14 @@ public sealed class MeController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
 
+    /// <summary>Histórico de clases del socio: todas sus reservas y asistencias.</summary>
+    [HttpGet("classes/history")]
+    [ProducesResponseType<IReadOnlyList<ClassHistoryItem>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<ClassHistoryItem>>> ClassHistory(
+        [FromServices] GetMyClassHistoryHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     /// <summary>Racha del socio + congeladores disponibles.</summary>
     [HttpGet("streak")]
     [ProducesResponseType<MemberStreakResponse>(StatusCodes.Status200OK)]
