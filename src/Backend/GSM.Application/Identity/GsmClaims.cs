@@ -7,4 +7,10 @@ public static class GsmClaims
     public const string GymId = "gym_id";
     public const string Role = "role";
     public const string Name = "name";
+
+    /// <summary>Presente y "true" solo en tokens de impersonación (soporte de solo lectura).</summary>
+    public const string Impersonating = "impersonating";
+
+    /// <summary>Id de la sesión de auditoría de impersonación.</summary>
+    public const string ImpersonationSession = "impersonation_session";
 }

@@ -16,12 +16,18 @@ public sealed class MutableCurrentUser : ICurrentUserService
 
     public bool IsSuperAdmin => Role == UserRole.SuperAdmin;
 
+    public bool IsImpersonating { get; private set; }
+
+    public Guid? ImpersonationSessionId { get; private set; }
+
     public void ActAsSystem()
     {
         IsAuthenticated = false;
         UserId = null;
         GymId = null;
         Role = null;
+        IsImpersonating = false;
+        ImpersonationSessionId = null;
     }
 
     public void ActAs(Guid userId, Guid? gymId, UserRole role)
@@ -30,5 +36,18 @@ public sealed class MutableCurrentUser : ICurrentUserService
         UserId = userId;
         GymId = gymId;
         Role = role;
+        IsImpersonating = false;
+        ImpersonationSessionId = null;
+    }
+
+    /// <summary>Simula un token de impersonación: superadmin real, acotado a <paramref name="gymId"/>.</summary>
+    public void ActAsImpersonator(Guid superAdminUserId, Guid gymId, Guid sessionId)
+    {
+        IsAuthenticated = true;
+        UserId = superAdminUserId;
+        GymId = gymId;
+        Role = UserRole.SuperAdmin;
+        IsImpersonating = true;
+        ImpersonationSessionId = sessionId;
     }
 }

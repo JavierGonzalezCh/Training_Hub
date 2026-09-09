@@ -20,4 +20,14 @@ public interface ICurrentUserService
     UserRole? Role { get; }
 
     bool IsSuperAdmin { get; }
+
+    /// <summary>
+    /// <c>true</c> si la petición viaja con un token de impersonación: la identidad real es de un
+    /// superadmin (<see cref="IsSuperAdmin"/> sigue siendo <c>true</c>) pero opera dentro de
+    /// <see cref="GymId"/> y en modo solo lectura.
+    /// </summary>
+    bool IsImpersonating { get; }
+
+    /// <summary>Id de la sesión de auditoría de impersonación, cuando <see cref="IsImpersonating"/>.</summary>
+    Guid? ImpersonationSessionId { get; }
 }

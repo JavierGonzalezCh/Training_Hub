@@ -127,3 +127,23 @@ public sealed record PlatformTotals(
     int GymCount,
     int ActiveMembers,
     int CheckInsThisMonth);
+
+// --- Impersonación ------------------------------------------------------------------------
+
+public sealed record OpenImpersonationRequest(string Reason);
+
+public sealed record ImpersonationTokenResponse(
+    string Token,
+    DateTimeOffset ExpiresAtUtc,
+    Guid SessionId,
+    Guid GymId,
+    string TokenType = "Bearer");
+
+public sealed record ImpersonationItem(
+    Guid Id,
+    Guid SuperAdminUserId,
+    Guid GymId,
+    string GymName,
+    string Reason,
+    DateTimeOffset StartedAt,
+    DateTimeOffset? EndedAt);

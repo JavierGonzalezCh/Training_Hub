@@ -138,6 +138,7 @@ public static class DependencyInjection
         services.AddScoped<IGymAdministration, GymAdministration>();
         services.AddScoped<GSM.Application.SuperAdmin.Abstractions.IGymSubscriptionRepository, GSM.Infrastructure.SuperAdmin.GymSubscriptionRepository>();
         services.AddScoped<GSM.Application.SuperAdmin.Abstractions.ISubscriptionPaymentRepository, GSM.Infrastructure.SuperAdmin.SubscriptionPaymentRepository>();
+        services.AddScoped<GSM.Application.SuperAdmin.Abstractions.IImpersonationSessionRepository, GSM.Infrastructure.SuperAdmin.ImpersonationSessionRepository>();
         services.AddScoped<GSM.Application.SuperAdmin.Public.ISubscriptionReader, GSM.Infrastructure.SuperAdmin.SubscriptionReader>();
 
         return services;

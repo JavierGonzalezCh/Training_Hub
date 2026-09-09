@@ -88,8 +88,13 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
     // parametriza los accesos a miembros del DbContext y los reevalúa en cada consulta, mientras
     // que una constante con el servicio se evaluaría una sola vez y "congelaría" el primer gym.
 
-    /// <summary>true si el filtro no debe aplicarse: SuperAdmin o sin gym en contexto (seeds, jobs).</summary>
-    public bool TenantFilterDisabled => _currentUser.IsSuperAdmin || _currentUser.GymId is null;
+    /// <summary>
+    /// true si el filtro no debe aplicarse: SuperAdmin (no impersonando) o sin gym en contexto
+    /// (seeds, jobs). Durante una impersonación el superadmin queda acotado al gym visitado,
+    /// así que el filtro SÍ se aplica.
+    /// </summary>
+    public bool TenantFilterDisabled =>
+        (_currentUser.IsSuperAdmin && !_currentUser.IsImpersonating) || _currentUser.GymId is null;
 
     /// <summary>Gym del usuario actual (o <see cref="Guid.Empty"/> si no aplica; en ese caso el filtro ya está desactivado).</summary>
     public Guid TenantFilterGymId => _currentUser.GymId ?? Guid.Empty;

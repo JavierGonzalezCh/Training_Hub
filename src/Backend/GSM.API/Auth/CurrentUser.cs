@@ -25,4 +25,10 @@ public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICur
         RoleName.TryParse(Principal?.FindFirstValue(GsmClaims.Role), out var role) ? role : null;
 
     public bool IsSuperAdmin => Role == UserRole.SuperAdmin;
+
+    public bool IsImpersonating =>
+        string.Equals(Principal?.FindFirstValue(GsmClaims.Impersonating), "true", StringComparison.OrdinalIgnoreCase);
+
+    public Guid? ImpersonationSessionId =>
+        Guid.TryParse(Principal?.FindFirstValue(GsmClaims.ImpersonationSession), out var id) ? id : null;
 }

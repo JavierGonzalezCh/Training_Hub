@@ -20,4 +20,8 @@ public sealed class NullCurrentUser : ICurrentUserService
     public UserRole? Role => null;
 
     public bool IsSuperAdmin => false;
+
+    public bool IsImpersonating => false;
+
+    public Guid? ImpersonationSessionId => null;
 }

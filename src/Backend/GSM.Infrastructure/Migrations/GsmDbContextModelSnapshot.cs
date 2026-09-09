@@ -1311,6 +1311,55 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("gym_subscriptions", "superadmin");
                 });
 
+            modelBuilder.Entity("GSM.Domain.SuperAdmin.ImpersonationSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<Guid>("SuperAdminUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("super_admin_user_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_impersonation_sessions");
+
+                    b.HasIndex("GymId", "StartedAt")
+                        .HasDatabaseName("ix_impersonation_sessions_gym_id_started_at");
+
+                    b.HasIndex("SuperAdminUserId", "StartedAt")
+                        .HasDatabaseName("ix_impersonation_sessions_super_admin_user_id_started_at");
+
+                    b.ToTable("impersonation_sessions", "superadmin");
+                });
+
             modelBuilder.Entity("GSM.Domain.SuperAdmin.SubscriptionPayment", b =>
                 {
                     b.Property<Guid>("Id")

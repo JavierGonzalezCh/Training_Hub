@@ -24,6 +24,11 @@ public sealed class SubscriptionGateTests(ApiFactory factory) : IClassFixture<Ap
 
     // --- Decisión pura -----------------------------------------------------------------------
 
+    private static SubscriptionGate.Decision Eval(
+        EffectiveSubscriptionStatus? status, bool isRead,
+        bool isSuperAdmin = false, bool isImpersonating = false, bool hasGym = true, bool isExempt = false)
+        => SubscriptionGate.Evaluate(status, isSuperAdmin, isImpersonating, hasGym, isRead, isExempt);
+
     [Theory]
     [InlineData(null, false)]                                        // sin suscripción → pasa (incluso escritura)
     [InlineData(EffectiveSubscriptionStatus.Active, false)]
@@ -32,47 +37,42 @@ public sealed class SubscriptionGateTests(ApiFactory factory) : IClassFixture<Ap
     [InlineData(EffectiveSubscriptionStatus.Overdue, true)]
     [InlineData(EffectiveSubscriptionStatus.Disabled, true)]         // disabled + lectura → pasa
     public void Allowed_cases(EffectiveSubscriptionStatus? status, bool isRead)
-        => Assert.Equal(
-            SubscriptionGate.Decision.Allow,
-            SubscriptionGate.Evaluate(status, isSuperAdmin: false, hasGym: true, isRead, isExempt: false));
+        => Assert.Equal(SubscriptionGate.Decision.Allow, Eval(status, isRead));
 
     [Fact]
     public void Disabled_blocks_writes_only()
     {
-        Assert.Equal(
-            SubscriptionGate.Decision.BlockedDisabled,
-            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Disabled, false, true, isReadMethod: false, false));
-        Assert.Equal(
-            SubscriptionGate.Decision.Allow,
-            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Disabled, false, true, isReadMethod: true, false));
+        Assert.Equal(SubscriptionGate.Decision.BlockedDisabled, Eval(EffectiveSubscriptionStatus.Disabled, isRead: false));
+        Assert.Equal(SubscriptionGate.Decision.Allow, Eval(EffectiveSubscriptionStatus.Disabled, isRead: true));
     }
 
     [Fact]
     public void Suspended_blocks_everything_including_reads()
-    {
-        Assert.Equal(
-            SubscriptionGate.Decision.BlockedSuspended,
-            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Suspended, false, true, isReadMethod: true, false));
-    }
+        => Assert.Equal(SubscriptionGate.Decision.BlockedSuspended, Eval(EffectiveSubscriptionStatus.Suspended, isRead: true));
 
     [Fact]
     public void SuperAdmin_and_exempt_endpoints_are_never_blocked()
     {
-        Assert.Equal(
-            SubscriptionGate.Decision.Allow,
-            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Suspended, isSuperAdmin: true, true, false, false));
-        Assert.Equal(
-            SubscriptionGate.Decision.Allow,
-            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Suspended, false, true, false, isExempt: true));
+        Assert.Equal(SubscriptionGate.Decision.Allow, Eval(EffectiveSubscriptionStatus.Suspended, isRead: false, isSuperAdmin: true));
+        Assert.Equal(SubscriptionGate.Decision.Allow, Eval(EffectiveSubscriptionStatus.Suspended, isRead: false, isExempt: true));
     }
 
     [Fact]
     public void Request_without_gym_context_is_not_evaluated()
+        => Assert.Equal(SubscriptionGate.Decision.Allow, Eval(EffectiveSubscriptionStatus.Disabled, isRead: false, hasGym: false));
+
+    [Fact]
+    public void Impersonation_is_read_only_even_for_a_superadmin()
     {
-        Assert.Equal(
-            SubscriptionGate.Decision.Allow,
-            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Disabled, false, hasGym: false, false, false));
+        Assert.Equal(SubscriptionGate.Decision.Allow, Eval(EffectiveSubscriptionStatus.Active, isRead: true, isSuperAdmin: true, isImpersonating: true));
+        Assert.Equal(SubscriptionGate.Decision.BlockedImpersonation, Eval(EffectiveSubscriptionStatus.Active, isRead: false, isSuperAdmin: true, isImpersonating: true));
     }
+
+    [Fact]
+    public void Exempt_endpoints_stay_reachable_while_impersonating()
+        => Assert.Equal(
+            SubscriptionGate.Decision.Allow,
+            Eval(EffectiveSubscriptionStatus.Active, isRead: false, isSuperAdmin: true, isImpersonating: true, isExempt: true));
 
     // --- Login: un gym suspendido no deja entrar ni a sus usuarios --------------------------
 
