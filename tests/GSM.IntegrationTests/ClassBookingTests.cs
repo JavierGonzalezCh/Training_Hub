@@ -1,5 +1,6 @@
 using GSM.Application.Classes;
 using GSM.Application.Classes.Contracts;
+using GSM.Domain.Achievements;
 using GSM.Domain.Attendance;
 using GSM.Domain.Classes;
 using GSM.Domain.Common.Exceptions;
@@ -169,6 +170,34 @@ public sealed class ClassBookingTests(ApiFactory factory) : IClassFixture<ApiFac
         }
     }
 
+    [Fact]
+    public async Task Attending_a_class_unlocks_a_classes_achievement()
+    {
+        var world = await SeedAsync(members: 1);
+        var classId = await CreateClassAsync(world, capacity: 10);
+
+        using (var scope = Staff(world))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+            db.Add(Achievement.Create(
+                world.GymId, "Primera clase", null, null, AchievementConditionType.Classes, 1));
+            await db.SaveChangesAsync();
+        }
+
+        using (var scope = Staff(world))
+        {
+            await scope.ServiceProvider.GetRequiredService<MarkAttendanceHandler>()
+                .HandleAsync(classId, Monday, new MarkAttendanceRequest([world.MemberIds[0]], null), default);
+        }
+
+        using (var scope = Staff(world))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+            Assert.Equal(1, await db.Set<MemberAchievement>()
+                .CountAsync(m => m.MemberId == world.MemberIds[0]));
+        }
+    }
+
     private async Task<Guid> CreateClassAsync(World world, int? capacity)
     {
         using var scope = Staff(world);
@@ -211,7 +240,7 @@ public sealed class ClassBookingTests(ApiFactory factory) : IClassFixture<ApiFac
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
 
         await db.Database.ExecuteSqlRawAsync(
-            "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, attendance.attendances restart identity cascade;");
+            "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, attendance.attendances, achievements.achievements, achievements.member_achievements restart identity cascade;");
         await db.Database.ExecuteSqlRawAsync("delete from classes.gym_classes;");
 
         var suffix = Guid.NewGuid().ToString("N")[..8];

@@ -21,6 +21,7 @@ public sealed class AchievementService(
     IAchievementRepository achievements,
     IAttendanceReader attendance,
     GSM.Application.Routines.Public.IRoutineReader routines,
+    GSM.Application.Classes.Public.IClassReader classes,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<AchievementService> logger) : IAchievementService
@@ -38,12 +39,12 @@ public sealed class AchievementService(
             return [];
         }
 
-        var (visits, streak, sessions) = await AchievementMetrics.ComputeAsync(
-            memberId, clock.Today, attendance, routines, cancellationToken);
+        var (visits, streak, sessions, classAttendance) = await AchievementMetrics.ComputeAsync(
+            memberId, clock.Today, attendance, routines, classes, cancellationToken);
         var now = clock.UtcNow;
 
         var newlyUnlocked = new List<(MemberAchievement Row, Achievement Achievement)>();
-        foreach (var achievement in pending.Where(a => a.IsMetBy(visits, streak, sessions)))
+        foreach (var achievement in pending.Where(a => a.IsMetBy(visits, streak, sessions, classAttendance)))
         {
             var row = MemberAchievement.Unlock(achievement.GymId, memberId, achievement.Id, now);
             achievements.AddUnlock(row);

@@ -1,5 +1,6 @@
 using GSM.Application.Attendance;
 using GSM.Application.Attendance.Public;
+using GSM.Application.Classes.Public;
 using GSM.Application.Routines.Public;
 
 namespace GSM.Infrastructure.Achievements;
@@ -11,15 +12,17 @@ namespace GSM.Infrastructure.Achievements;
 /// </summary>
 internal static class AchievementMetrics
 {
-    public static async Task<(int Visits, int Streak, int RoutineSessions)> ComputeAsync(
+    public static async Task<(int Visits, int Streak, int RoutineSessions, int ClassAttendance)> ComputeAsync(
         Guid memberId,
         DateOnly today,
         IAttendanceReader attendance,
         IRoutineReader routines,
+        IClassReader classes,
         CancellationToken cancellationToken)
     {
         var visits = await attendance.GetVisitCountAsync(memberId, cancellationToken);
         var sessions = await routines.GetCompletedSessionCountAsync(memberId, onlyAssigned: true, cancellationToken);
+        var classAttendance = await classes.GetAttendedCountAsync(memberId, cancellationToken);
 
         int streak;
         var start = await routines.GetActiveRoutineStartAsync(memberId, onlyAssigned: true, cancellationToken);
@@ -36,6 +39,6 @@ internal static class AchievementMetrics
             streak = await attendance.GetStreakAsync(memberId, cancellationToken);
         }
 
-        return (visits, streak, sessions);
+        return (visits, streak, sessions, classAttendance);
     }
 }
