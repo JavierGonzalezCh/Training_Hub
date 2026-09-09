@@ -54,8 +54,12 @@ public sealed class LogRoutineExerciseHandler(
         var now = clock.UtcNow;
 
         var existing = await logs.GetAsync(routineExerciseId, today, cancellationToken);
+
+        // "Primero del día" se mide dentro del mismo tipo de rutina: las auto-asignadas no
+        // puntúan, así que no deben consumir el evento de las asignadas (ni al revés).
         var firstOfDay = existing is null
-            && !await logs.MemberHasLogsOnAsync(memberId, today, cancellationToken);
+            && !await logs.MemberHasLogsOnAsync(
+                memberId, today, reference.SelfAssigned, cancellationToken);
 
         RoutineExerciseLog log;
         if (existing is not null)

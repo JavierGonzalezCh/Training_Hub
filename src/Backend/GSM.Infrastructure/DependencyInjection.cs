@@ -65,7 +65,7 @@ public static class DependencyInjection
                     npgsql.MapEnum<MembershipStatus>("membership_status", "memberships", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<PaymentMethod>("payment_method", "payments", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<AttendanceMethod>("attendance_method", "attendance", LowerCaseNameTranslator.Instance);
-                    npgsql.MapEnum<AchievementConditionType>("condition_type", "achievements", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<AchievementConditionType>("condition_type", "achievements", SnakeCaseNameTranslator.Instance);
                     npgsql.MapEnum<Muscle>("muscle", "routines", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance);
                 })

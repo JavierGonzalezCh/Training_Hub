@@ -24,9 +24,18 @@ public interface IRoutineLogRepository
     Task<RoutineExerciseLog?> GetAsync(
         Guid routineExerciseId, DateOnly performedOn, CancellationToken cancellationToken = default);
 
-    /// <summary>¿El socio ya tenía algún registro ese día (antes de este)?</summary>
+    /// <summary>
+    /// ¿El socio ya tenía ese día algún registro de una rutina del mismo tipo
+    /// (<paramref name="selfAssigned"/>)?
+    /// </summary>
+    /// <remarks>
+    /// La distinción importa porque las sesiones auto-asignadas no puntúan: si se mirasen todos
+    /// los registros del día sin distinguir, un primer registro en la rutina propia consumiría el
+    /// "primero del día" y el registro posterior en la rutina asignada ya no publicaría evento,
+    /// dejando los logros de esa jornada sin evaluar.
+    /// </remarks>
     Task<bool> MemberHasLogsOnAsync(
-        Guid memberId, DateOnly performedOn, CancellationToken cancellationToken = default);
+        Guid memberId, DateOnly performedOn, bool selfAssigned, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<RoutineHistoryRow>> GetHistoryAsync(
         Guid memberId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);

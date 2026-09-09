@@ -68,7 +68,7 @@ public sealed class Achievement : BaseEntity, ITenantEntity
     {
         AchievementConditionType.Visits => visitCount >= ConditionValue,
         AchievementConditionType.Streak => currentStreak >= ConditionValue,
-        AchievementConditionType.Routine_sessions => routineSessions >= ConditionValue,
+        AchievementConditionType.RoutineSessions => routineSessions >= ConditionValue,
         _ => false,
     };
 
@@ -76,7 +76,7 @@ public sealed class Achievement : BaseEntity, ITenantEntity
     {
         AchievementConditionType.Visits => Math.Min(visitCount, ConditionValue),
         AchievementConditionType.Streak => Math.Min(currentStreak, ConditionValue),
-        AchievementConditionType.Routine_sessions => Math.Min(routineSessions, ConditionValue),
+        AchievementConditionType.RoutineSessions => Math.Min(routineSessions, ConditionValue),
         _ => 0,
     };
 

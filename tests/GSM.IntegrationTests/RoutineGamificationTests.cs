@@ -157,7 +157,7 @@ public sealed class RoutineGamificationTests(ApiFactory factory) : IClassFixture
         }
 
         db.AddRange(gym, flags, staff, memberUser, member,
-            Achievement.Create(gym.Id, "2 sesiones de rutina", null, null, AchievementConditionType.Routine_sessions, 2));
+            Achievement.Create(gym.Id, "2 sesiones de rutina", null, null, AchievementConditionType.RoutineSessions, 2));
         await db.SaveChangesAsync();
 
         var exerciseId = await db.Set<Exercise>().Where(e => e.GymId == null).Select(e => e.Id).FirstAsync();

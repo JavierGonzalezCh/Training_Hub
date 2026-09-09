@@ -44,7 +44,7 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
         modelBuilder.HasPostgresEnum<MembershipStatus>("memberships", "membership_status", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<PaymentMethod>("payments", "payment_method", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<AttendanceMethod>("attendance", "attendance_method", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<AchievementConditionType>("achievements", "condition_type", LowerCaseNameTranslator.Instance);
+        modelBuilder.HasPostgresEnum<AchievementConditionType>("achievements", "condition_type", SnakeCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<Muscle>("routines", "muscle", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<Equipment>("routines", "equipment", LowerCaseNameTranslator.Instance);
 

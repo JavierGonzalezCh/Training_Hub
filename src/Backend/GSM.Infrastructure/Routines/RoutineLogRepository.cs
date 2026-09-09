@@ -24,8 +24,15 @@ public sealed class RoutineLogRepository(GsmDbContext dbContext) : IRoutineLogRe
             l => l.RoutineExerciseId == routineExerciseId && l.PerformedOn == performedOn, cancellationToken);
 
     public Task<bool> MemberHasLogsOnAsync(
-        Guid memberId, DateOnly performedOn, CancellationToken cancellationToken = default)
-        => Logs.AnyAsync(l => l.MemberId == memberId && l.PerformedOn == performedOn, cancellationToken);
+        Guid memberId, DateOnly performedOn, bool selfAssigned, CancellationToken cancellationToken = default)
+        => (from log in Logs
+            where log.MemberId == memberId && log.PerformedOn == performedOn
+            join ex in dbContext.Set<RoutineExercise>() on log.RoutineExerciseId equals ex.Id
+            join day in dbContext.Set<RoutineDay>() on ex.RoutineDayId equals day.Id
+            join routine in dbContext.Set<Routine>() on day.RoutineId equals routine.Id
+            where routine.SelfAssigned == selfAssigned
+            select log.Id)
+            .AnyAsync(cancellationToken);
 
     public async Task<IReadOnlyList<RoutineHistoryRow>> GetHistoryAsync(
         Guid memberId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
