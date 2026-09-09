@@ -28,4 +28,10 @@ public sealed class GymReader(GsmDbContext dbContext) : IGymReader
                 f.ShowRoutines, f.ShowClasses, f.ShowProgress, f.ShowGamification,
                 f.ShowCommunity, f.CheckinQr, f.CommunityComments, f.MembersCanCreateRoutines))
             .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<GymAdminView?> GetAdminViewAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<Gym>().IgnoreQueryFilters()
+            .Where(g => g.Id == gymId)
+            .Select(g => new GymAdminView(g.Id, g.Name, g.Slug, g.Nit, g.Phone, g.Email, g.Status))
+            .FirstOrDefaultAsync(cancellationToken);
 }

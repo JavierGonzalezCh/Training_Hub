@@ -1,7 +1,9 @@
 using GSM.API.Auth;
+using GSM.API.Filters;
 using GSM.Application.Identity;
 using GSM.Application.Identity.Contracts;
 using GSM.Application.Gyms.Public;
+using GSM.Application.SuperAdmin.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -23,6 +25,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("refresh")]
     [AllowAnonymous]
+    [SubscriptionGateExempt]
     [EnableRateLimiting(RateLimitPolicies.Login)]
     [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -74,6 +77,7 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<MeResponse>> Me(
         [FromServices] GetMeHandler handler,
         [FromServices] IGymReader gyms,
+        [FromServices] ISubscriptionReader subscriptions,
         CancellationToken cancellationToken)
     {
         var me = await handler.HandleAsync(cancellationToken);
@@ -85,9 +89,12 @@ public sealed class AuthController : ControllerBase
 
         var branding = await gyms.GetBrandingAsync(gymId, cancellationToken);
         var flags = await gyms.GetFeatureFlagsAsync(gymId, cancellationToken);
+        var subscription = SubscriptionInfo.From(
+            await subscriptions.GetStatusViewAsync(gymId, cancellationToken));
 
         return Ok(me with
         {
+            Subscription = subscription,
             Gym = branding is null
                 ? null
                 : new MeGym(branding.Name, branding.LogoUrl, branding.PrimaryColor, branding.SecondaryColor),

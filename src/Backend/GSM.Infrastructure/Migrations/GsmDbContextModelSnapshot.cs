@@ -30,8 +30,9 @@ namespace GSM.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_booking_status", new[] { "booked", "cancelled", "attended", "noshow" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_session_status", new[] { "scheduled", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
@@ -238,6 +239,62 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_attendances_member_id_attendance_date");
 
                     b.ToTable("attendances", "attendance");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Classes.ClassBooking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AttendedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("attended_at");
+
+                    b.Property<DateTimeOffset?>("BookedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("booked_at");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<ClassBookingStatus>("Status")
+                        .HasColumnType("classes.class_booking_status")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_class_bookings");
+
+                    b.HasIndex("MemberId")
+                        .HasDatabaseName("ix_class_bookings_member_id");
+
+                    b.HasIndex("SessionId", "MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_class_bookings_session_id_member_id");
+
+                    b.ToTable("class_bookings", "classes");
                 });
 
             modelBuilder.Entity("GSM.Domain.Classes.ClassSession", b =>
@@ -1197,6 +1254,128 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("routine_exercise_logs", "routines");
                 });
 
+            modelBuilder.Entity("GSM.Domain.SuperAdmin.GymSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<decimal>("MonthlyPrice")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("monthly_price");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notes");
+
+                    b.Property<DateOnly>("PaidThrough")
+                        .HasColumnType("date")
+                        .HasColumnName("paid_through");
+
+                    b.Property<GymPlan>("Plan")
+                        .HasColumnType("gyms.gym_plan")
+                        .HasColumnName("plan");
+
+                    b.Property<DateOnly>("StartedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("started_on");
+
+                    b.Property<DateOnly?>("TrialEndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("trial_ends_on");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_gym_subscriptions");
+
+                    b.HasIndex("GymId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_gym_subscriptions_gym_id");
+
+                    b.HasIndex("PaidThrough")
+                        .HasDatabaseName("ix_gym_subscriptions_paid_through");
+
+                    b.ToTable("gym_subscriptions", "superadmin");
+                });
+
+            modelBuilder.Entity("GSM.Domain.SuperAdmin.SubscriptionPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateOnly>("CoversFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("covers_from");
+
+                    b.Property<DateOnly>("CoversThrough")
+                        .HasColumnType("date")
+                        .HasColumnName("covers_through");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<PaymentMethod>("Method")
+                        .HasColumnType("payments.payment_method")
+                        .HasColumnName("method");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notes");
+
+                    b.Property<DateTimeOffset>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("reference");
+
+                    b.Property<Guid>("RegisteredBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("registered_by");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_subscription_payments");
+
+                    b.HasIndex("PaidAt")
+                        .HasDatabaseName("ix_subscription_payments_paid_at");
+
+                    b.HasIndex("GymId", "PaidAt")
+                        .HasDatabaseName("ix_subscription_payments_gym_id_paid_at");
+
+                    b.ToTable("subscription_payments", "superadmin");
+                });
+
             modelBuilder.Entity("GSM.Infrastructure.Identity.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1436,6 +1615,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_member_achievements_achievements_achievement_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Classes.ClassBooking", b =>
+                {
+                    b.HasOne("GSM.Domain.Classes.ClassSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_class_bookings_class_session_session_id");
                 });
 
             modelBuilder.Entity("GSM.Domain.Classes.ClassSession", b =>

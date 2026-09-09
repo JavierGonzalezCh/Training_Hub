@@ -6,15 +6,21 @@ GSM (Gym System Management) es el codename técnico interno de un sistema de ges
 
 **Plan de construcción por etapas:** `docs/BACKEND-MVP-PLAN.md` (etapas 0–8, MVP).
 
-**Fase 2, módulo Routines:** especificación en `docs/GSM-modulo-routines.md`, plan de construcción en `docs/ROUTINES-BUILD-PLAN.md`.
+**Módulos posteriores al MVP**, cada uno con su especificación y su plan de construcción:
+
+| Módulo | Especificación | Plan |
+|---|---|---|
+| Routines (etapa 9) | `docs/GSM-modulo-routines.md` | `docs/ROUTINES-BUILD-PLAN.md` |
+| Classes (etapa 10) | `docs/GSM-modulo-classes.md` | pendiente |
+| SuperAdmin (etapa 11) | `docs/GSM-modulo-superadmin.md` | `docs/SUPERADMIN-BUILD-PLAN.md` |
 
 ## Estado actual
 
 Fase: **MVP terminado, arrancando Fase 2.**
 
-Los 7 módulos del MVP (etapas 0–7) están implementados y validados end-to-end, con 17 tests de integración contra Postgres. De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de Railway. R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
+Los 7 módulos del MVP (etapas 0–7) y **Routines (etapa 9)** están implementados y validados end-to-end, con **48 tests** de integración contra Postgres. De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de Railway. R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
 
-En construcción: **etapa 9 — Routines** (Fase 2), por sub-etapas 9.1 a 9.6.
+En construcción: **etapa 10 — Classes**. Después, **etapa 11 — SuperAdmin**, por sub-etapas 11.1 a 11.5 (ver su plan): es el módulo que permite cobrar a los gimnasios y cortar el servicio a quien no paga.
 
 Trabajamos incremental: Domain → Infrastructure/DbContext+migración → Application → API. **No implementes más de una etapa (ni sub-etapa) sin confirmación.**
 
@@ -72,7 +78,7 @@ Los handlers se registran por assembly scanning. La publicación ocurre **despu�
 
 Módulos MVP, ya implementados: **Identity → Gyms → Members → Memberships → Payments → Attendance → Achievements.**
 
-Fase 2, en construcción: **Routines** (ver `docs/GSM-modulo-routines.md`). Después: Classes y SuperAdmin, en ese orden, aún sin especificar.
+Fase 2/3: **Routines** (construido), **Classes** (en construcción) y **SuperAdmin** (especificado, pendiente).
 
 Módulos sin planificar todavía (no implementar): Community, Reports, Locations.
 
@@ -100,7 +106,7 @@ Mapperly (source generator), un mapper parcial estático por módulo. Las consul
 
 ## Base de datos
 
-Un schema de PostgreSQL por módulo (`identity`, `gyms`, `members`, `memberships`, `payments`, `attendance`, `achievements`). Convenciones: `snake_case`, tablas en plural, PK siempre `id` (uuid), FK `{tabla_singular}_id`, índices `ix_{tabla}_{columna}`, constraints `fk_{tabla}_{tabla_referenciada}`, enums nativos de Postgres.
+Un schema de PostgreSQL por módulo (`identity`, `gyms`, `members`, `memberships`, `payments`, `attendance`, `achievements`, `routines`; `superadmin` y `classes` al construirse). Convenciones: `snake_case`, tablas en plural, PK siempre `id` (uuid), FK `{tabla_singular}_id`, índices `ix_{tabla}_{columna}`, constraints `fk_{tabla}_{tabla_referenciada}`, enums nativos de Postgres.
 
 No hay FK entre schemas de módulos distintos: la referencia se valida en el caso de uso contra el `I{Módulo}Reader` correspondiente.
 
@@ -109,7 +115,8 @@ No hay FK entre schemas de módulos distintos: la referencia se valida en el cas
 - Inglés en código (clases, propiedades, métodos). Español permitido solo en contenido de datos.
 - PascalCase (clases/métodos), camelCase (variables/parámetros), prefijo `I` en interfaces.
 - IDs `Guid` v7 (`Guid.CreateVersion7()`), generados en el dominio.
-- `DateTimeOffset` UTC en toda la aplicación; la conversión a `America/Bogota` es del cliente. Excepción: fechas de vigencia de membresías son `DateOnly`.
+- **Instantes** en `DateTimeOffset` UTC (`created_at`, `paid_at`, expiraciones). **Días de negocio** en `DateOnly`, y salen de `IClock.Today` en la zona del gym — **nunca** de `DateTime.UtcNow`: Colombia es UTC-5 y derivarlos de UTC adelanta el día entre las 19:00 y medianoche. Toda lectura de tiempo pasa por `IClock` (`UtcNow` / `Today` / `BusinessDayRange` / `ToBusinessLocal`), que es inyectable en tests.
+- **Agrupar por día o por mes** (cierres de caja, ingresos, horas pico) usa `IClock.BusinessDayRange`, no un rango UTC. Es un defecto que ya apareció dos veces en el proyecto.
 - Dinero: `decimal(12,2)`, COP.
 - Logging con Serilog, structured, un log de entrada/salida por caso de uso. Nunca loguear passwords ni tokens.
 - Conventional Commits (`feat:`, `fix:`, `refactor:`).
@@ -118,7 +125,7 @@ No hay FK entre schemas de módulos distintos: la referencia se valida en el cas
 
 **MVP (hecho):** 7 módulos — Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements — detallados en `docs/GSM-especificacion-tecnica.md`.
 
-**Fase 2 (en curso):** Routines. Especificación en `docs/GSM-modulo-routines.md`, construcción en `docs/ROUTINES-BUILD-PLAN.md`. Luego Classes y SuperAdmin, pendientes de especificar.
+**Fase 2/3:** Routines (hecho), Classes (en construcción) y SuperAdmin (especificado, pendiente) — ver la tabla de documentos arriba.
 
 No construyas Community, Reports ni Locations todavía.
 
@@ -127,3 +134,9 @@ No construyas Community, Reports ni Locations todavía.
 - **`Exercise` no implementa `ITenantEntity`.** Es la primera entidad con `gym_id` nullable (`null` = catálogo del sistema). Su filtrado va explícito en `ExerciseRepository`, no en el Global Query Filter — esa pieza no se toca.
 - **La racha pasa a medirse contra el calendario de la rutina** (el descanso planificado no la rompe). `StreakCalculator` acepta un calendario opcional y **sin él se comporta igual que hoy**; el cálculo lo compone un handler, porque Attendance (6) no puede depender de Routines (9).
 - **El congelador de racha vive en `achievements`**, no en Routines: aplica también a socios sin rutina.
+
+### Notas de SuperAdmin (etapa 11), antes de construirlo
+
+- **`Gym.Status` y `Gym.Plan` existen desde la etapa 2 y hoy no hacen nada.** SuperAdmin les da sentido sin migrarlos: `gym_status` pasa a significar *estado comercial manual* (`trial`/`active`/`suspended`) y los estados `overdue` y `disabled` se **derivan** de `paid_through`, nunca se persisten — mismo criterio que las membresías `expired` de la etapa 4.
+- **El bloqueo por impago va en un filtro global de la API**, no repartido por casos de uso: es transversal como el multi-tenancy. Un gym **sin suscripción no se bloquea** — ante un dato faltante se deja pasar, porque dejar tirado a un cliente es peor error que no cortarle a un moroso.
+- **Los pagos del SaaS no se mezclan con los del gym.** Se comparte el enum `payment_method` y nada más: son bolsillos distintos y no pueden acabar en el mismo cierre de caja.

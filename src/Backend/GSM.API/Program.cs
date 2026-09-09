@@ -33,7 +33,11 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services
-    .AddControllers(options => options.Filters.Add<ValidationActionFilter>())
+    .AddControllers(options =>
+    {
+        options.Filters.Add<SubscriptionGateFilter>();
+        options.Filters.Add<ValidationActionFilter>();
+    })
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(
             new System.Text.Json.Serialization.JsonStringEnumConverter()));

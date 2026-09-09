@@ -8,7 +8,19 @@ public interface IGymReader
     Task<GymBranding?> GetBrandingAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     Task<GymFeatureFlagsView?> GetFeatureFlagsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>Ficha del gym para SuperAdmin, incluido su estado comercial manual. <c>null</c> si no existe.</summary>
+    Task<GymAdminView?> GetAdminViewAsync(Guid gymId, CancellationToken cancellationToken = default);
 }
+
+public sealed record GymAdminView(
+    Guid Id,
+    string Name,
+    string Slug,
+    string? Nit,
+    string? Phone,
+    string? Email,
+    GSM.Domain.Gyms.GymStatus ManualStatus);
 
 public sealed record GymBranding(
     string Name,

@@ -1,3 +1,4 @@
+using GSM.API.Filters;
 using GSM.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +8,7 @@ namespace GSM.API.Controllers;
 [ApiController]
 [Route("health")]
 [AllowAnonymous]
+[SubscriptionGateExempt]
 public sealed class HealthController(GsmDbContext dbContext) : ControllerBase
 {
     /// <summary>Liveness: el proceso responde.</summary>

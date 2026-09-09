@@ -101,6 +101,13 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
     /// <summary>Fija solo el logo (subida de archivo), sin tocar los colores.</summary>
     public void SetLogo(string? logoUrl) => LogoUrl = Trim(logoUrl);
 
+    /// <summary>
+    /// Fija el estado comercial manual (<c>trial</c>/<c>active</c>/<c>suspended</c>). Lo escribe
+    /// SuperAdmin al suspender o reactivar un gym, vía <c>Gyms.Public.IGymAdministration</c>.
+    /// Los estados <c>overdue</c> y <c>disabled</c> no viven aquí: se derivan de la suscripción.
+    /// </summary>
+    public void SetCommercialStatus(GymStatus status) => Status = status;
+
     public void Activate() => IsActive = true;
 
     public void Deactivate() => IsActive = false;

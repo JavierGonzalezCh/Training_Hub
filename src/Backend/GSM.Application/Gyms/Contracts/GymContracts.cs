@@ -1,3 +1,4 @@
+using GSM.Application.SuperAdmin.Public;
 using GSM.Domain.Gyms;
 
 namespace GSM.Application.Gyms.Contracts;
@@ -48,7 +49,8 @@ public sealed record GymResponse(
     string Plan,
     string Status,
     Guid OwnerId,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    SubscriptionInfo? Subscription = null);
 
 public sealed record GymFeatureFlagsResponse(
     bool ShowRoutines,

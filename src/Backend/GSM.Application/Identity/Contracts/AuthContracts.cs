@@ -1,3 +1,5 @@
+using GSM.Application.SuperAdmin.Public;
+
 namespace GSM.Application.Identity.Contracts;
 
 public sealed record LoginRequest(string Email, string Password);
@@ -25,7 +27,8 @@ public sealed record MeResponse(
     string Role,
     Guid? GymId,
     MeGym? Gym = null,
-    MeFeatureFlags? FeatureFlags = null);
+    MeFeatureFlags? FeatureFlags = null,
+    SubscriptionInfo? Subscription = null);
 
 public sealed record MeGym(string Name, string? LogoUrl, string PrimaryColor, string SecondaryColor);
 

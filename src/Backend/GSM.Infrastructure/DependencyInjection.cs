@@ -70,6 +70,7 @@ public static class DependencyInjection
                     npgsql.MapEnum<Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<GSM.Domain.Classes.ClassDayOfWeek>("day_of_week", "classes", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<GSM.Domain.Classes.ClassSessionStatus>("class_session_status", "classes", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<GSM.Domain.Classes.ClassBookingStatus>("class_booking_status", "classes", LowerCaseNameTranslator.Instance);
                 })
                 .UseSnakeCaseNamingConvention());
 
@@ -131,6 +132,13 @@ public static class DependencyInjection
 
         services.AddScoped<GSM.Application.Classes.Abstractions.IClassRepository, GSM.Infrastructure.Classes.ClassRepository>();
         services.AddScoped<GSM.Application.Classes.Abstractions.IClassSessionRepository, GSM.Infrastructure.Classes.ClassSessionRepository>();
+        services.AddScoped<GSM.Application.Classes.Abstractions.IClassBookingRepository, GSM.Infrastructure.Classes.ClassBookingRepository>();
+        services.AddScoped<GSM.Application.Classes.Public.IClassReader, GSM.Infrastructure.Classes.ClassReader>();
+
+        services.AddScoped<IGymAdministration, GymAdministration>();
+        services.AddScoped<GSM.Application.SuperAdmin.Abstractions.IGymSubscriptionRepository, GSM.Infrastructure.SuperAdmin.GymSubscriptionRepository>();
+        services.AddScoped<GSM.Application.SuperAdmin.Abstractions.ISubscriptionPaymentRepository, GSM.Infrastructure.SuperAdmin.SubscriptionPaymentRepository>();
+        services.AddScoped<GSM.Application.SuperAdmin.Public.ISubscriptionReader, GSM.Infrastructure.SuperAdmin.SubscriptionReader>();
 
         return services;
     }

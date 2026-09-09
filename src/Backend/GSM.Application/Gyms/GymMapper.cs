@@ -9,6 +9,7 @@ namespace GSM.Application.Gyms;
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public static partial class GymMapper
 {
+    [MapperIgnoreTarget(nameof(GymResponse.Subscription))]
     public static partial GymResponse ToResponse(Gym gym);
 
     public static partial GymFeatureFlagsResponse ToResponse(GymFeatureFlags flags);
