@@ -26,6 +26,6 @@ public sealed class GymReader(GsmDbContext dbContext) : IGymReader
             .Where(f => f.GymId == gymId)
             .Select(f => new GymFeatureFlagsView(
                 f.ShowRoutines, f.ShowClasses, f.ShowProgress, f.ShowGamification,
-                f.ShowCommunity, f.CheckinQr, f.CommunityComments))
+                f.ShowCommunity, f.CheckinQr, f.CommunityComments, f.MembersCanCreateRoutines))
             .FirstOrDefaultAsync(cancellationToken);
 }

@@ -31,7 +31,8 @@ public sealed record UpdateFeatureFlagsRequest(
     bool ShowGamification,
     bool ShowCommunity,
     bool CheckinQr,
-    bool CommunityComments);
+    bool CommunityComments,
+    bool MembersCanCreateRoutines);
 
 public sealed record GymResponse(
     Guid Id,
@@ -56,4 +57,5 @@ public sealed record GymFeatureFlagsResponse(
     bool ShowGamification,
     bool ShowCommunity,
     bool CheckinQr,
-    bool CommunityComments);
+    bool CommunityComments,
+    bool MembersCanCreateRoutines);

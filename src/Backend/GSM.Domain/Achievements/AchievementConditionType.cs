@@ -5,4 +5,7 @@ public enum AchievementConditionType
 {
     Visits,
     Streak,
+
+    /// <summary>Días distintos con al menos un ejercicio de rutina registrado (etapa 9.6).</summary>
+    Routine_sessions,
 }

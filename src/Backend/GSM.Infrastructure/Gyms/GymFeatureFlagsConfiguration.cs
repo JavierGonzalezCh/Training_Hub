@@ -27,5 +27,8 @@ public sealed class GymFeatureFlagsConfiguration : IEntityTypeConfiguration<GymF
         {
             builder.Property(flag).HasDefaultValue(true);
         }
+
+        // El auto-servicio arranca apagado: cada gym lo enciende a propósito.
+        builder.Property(f => f.MembersCanCreateRoutines).HasDefaultValue(false);
     }
 }

@@ -13,9 +13,18 @@ public interface IRoutineReader
 {
     Task<int> GetActiveRoutineCountAsync(Guid memberId, CancellationToken cancellationToken = default);
 
-    /// <summary><c>starts_on</c> de la rutina activa del socio, o <c>null</c> si no tiene.</summary>
-    Task<DateOnly?> GetActiveRoutineStartAsync(Guid memberId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// <c>starts_on</c> de la rutina activa del socio, o <c>null</c> si no tiene.
+    /// Con <paramref name="onlyAssigned"/> ignora las que el socio se asignó a sí mismo.
+    /// </summary>
+    Task<DateOnly?> GetActiveRoutineStartAsync(
+        Guid memberId, bool onlyAssigned = false, CancellationToken cancellationToken = default);
 
     Task<RoutineTrainingCalendar> GetTrainingCalendarAsync(
-        Guid memberId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
+        Guid memberId, DateOnly from, DateOnly to,
+        bool onlyAssigned = false, CancellationToken cancellationToken = default);
+
+    /// <summary>Días distintos con al menos un ejercicio registrado. <paramref name="onlyAssigned"/> excluye las auto-asignadas.</summary>
+    Task<int> GetCompletedSessionCountAsync(
+        Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default);
 }

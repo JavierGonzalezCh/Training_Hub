@@ -30,6 +30,9 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
 
     public bool CommunityComments { get; private set; } = true;
 
+    /// <summary>El socio puede armarse rutinas él mismo (etapa 9.6). Arranca en <c>false</c>.</summary>
+    public bool MembersCanCreateRoutines { get; private set; }
+
     public static GymFeatureFlags Default(Guid gymId) => new() { GymId = gymId };
 
     public void Update(
@@ -39,7 +42,8 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         bool showGamification,
         bool showCommunity,
         bool checkinQr,
-        bool communityComments)
+        bool communityComments,
+        bool membersCanCreateRoutines)
     {
         ShowRoutines = showRoutines;
         ShowClasses = showClasses;
@@ -48,5 +52,6 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         ShowCommunity = showCommunity;
         CheckinQr = checkinQr;
         CommunityComments = communityComments;
+        MembersCanCreateRoutines = membersCanCreateRoutines;
     }
 }

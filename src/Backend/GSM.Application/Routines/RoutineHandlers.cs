@@ -104,6 +104,51 @@ public sealed class AssignRoutineHandler(
     }
 }
 
+/// <summary>Auto-servicio: el socio se arma su propia rutina (<c>self_assigned = true</c>). 403 si el flag está apagado.</summary>
+public sealed class SelfAssignRoutineHandler(
+    ICurrentUserService currentUser,
+    IClock clock,
+    IGymReader gyms,
+    IMemberReader members,
+    IExerciseRepository exercises,
+    IRoutineRepository routines,
+    IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
+    ILogger<SelfAssignRoutineHandler> logger)
+{
+    public async Task<RoutineResponse> HandleAsync(SaveRoutineRequest request, CancellationToken cancellationToken)
+    {
+        var gymId = currentUser.RequireGymId();
+        await RoutineFeatureGate.EnsureMemberModuleEnabledAsync(gyms, gymId, cancellationToken);
+        await RoutineFeatureGate.EnsureSelfServiceEnabledAsync(gyms, gymId, cancellationToken);
+
+        var self = await members.ResolveByUserIdAsync(currentUser.UserId ?? Guid.Empty, cancellationToken)
+            ?? throw new ForbiddenDomainException("Tu cuenta no está vinculada a un miembro.");
+
+        await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
+
+        var draft = RoutineDrafting.ToDraft(request, currentUser.UserId ?? Guid.Empty, selfAssigned: true);
+        var routine = Routine.Assign(gymId, self.Id, clock.Today, draft);
+
+        await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
+        {
+            foreach (var active in await routines.GetActiveForMemberAsync(self.Id, innerToken))
+            {
+                active.Deactivate(clock.Today);
+            }
+
+            routines.Add(routine);
+            await unitOfWork.SaveChangesAsync(innerToken);
+        }, cancellationToken);
+
+        logger.LogInformation("Socio {MemberId} se auto-asignó la rutina {RoutineId}", self.Id, routine.Id);
+        await events.PublishAsync(
+            new RoutineAssigned(routine.Id, self.Id, gymId, SelfAssigned: true), cancellationToken);
+
+        return await RoutineDrafting.BuildResponseAsync(exercises, routine, cancellationToken);
+    }
+}
+
 public sealed class UpdateRoutineHandler(
     ICurrentUserService currentUser,
     IExerciseRepository exercises,

@@ -23,4 +23,5 @@ public sealed record GymFeatureFlagsView(
     bool ShowGamification,
     bool ShowCommunity,
     bool CheckinQr,
-    bool CommunityComments);
+    bool CommunityComments,
+    bool MembersCanCreateRoutines);

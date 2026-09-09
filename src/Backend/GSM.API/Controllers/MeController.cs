@@ -29,6 +29,19 @@ public sealed class MeController : ControllerBase
         [FromServices] GetMyRoutineHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>Auto-servicio: el socio se arma su propia rutina. 403 si <c>members_can_create_routines = false</c>.</summary>
+    [HttpPost("routines")]
+    [ProducesResponseType<MyRoutineResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<RoutineResponse>> CreateRoutine(
+        SaveRoutineRequest request,
+        [FromServices] SelfAssignRoutineHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var routine = await handler.HandleAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(Routines), routine);
+    }
+
     [HttpGet("routines/history")]
     [ProducesResponseType<IReadOnlyList<RoutineHistoryItem>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

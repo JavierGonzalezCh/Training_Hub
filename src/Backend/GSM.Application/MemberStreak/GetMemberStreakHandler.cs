@@ -62,7 +62,8 @@ public sealed class GetMemberStreakHandler(
     private async Task<(int Streak, int FreezesAvailable)> ComputeStreakAsync(
         Guid memberId, DateOnly today, StreakFreezeState freezeState, CancellationToken cancellationToken)
     {
-        var routineStart = await routines.GetActiveRoutineStartAsync(memberId, cancellationToken);
+        var routineStart = await routines.GetActiveRoutineStartAsync(
+            memberId, onlyAssigned: false, cancellationToken);
 
         if (routineStart is not { } start || start > today)
         {
@@ -71,7 +72,8 @@ public sealed class GetMemberStreakHandler(
             return (StreakCalculator.Compute(allDates, today), freezeState.Available);
         }
 
-        var calendar = await routines.GetTrainingCalendarAsync(memberId, start, today, cancellationToken);
+        var calendar = await routines.GetTrainingCalendarAsync(
+            memberId, start, today, onlyAssigned: false, cancellationToken);
         var attended = (await attendance.GetAttendanceDatesAsync(memberId, start, cancellationToken)).ToHashSet();
 
         var spent = new HashSet<DateOnly>(freezeState.SpentOn);

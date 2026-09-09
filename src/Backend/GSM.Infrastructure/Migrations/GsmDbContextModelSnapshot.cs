@@ -29,7 +29,7 @@ namespace GSM.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
@@ -351,6 +351,12 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
                         .HasColumnName("gym_id");
+
+                    b.Property<bool>("MembersCanCreateRoutines")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("members_can_create_routines");
 
                     b.Property<bool>("ShowClasses")
                         .ValueGeneratedOnAdd()

@@ -64,17 +64,19 @@ public sealed class Achievement : BaseEntity, ITenantEntity
     public void SetIcon(string? iconUrl) => IconUrl = Clean(iconUrl);
 
     /// <summary>¿El progreso del miembro alcanza la condición?</summary>
-    public bool IsMetBy(int visitCount, int currentStreak) => ConditionType switch
+    public bool IsMetBy(int visitCount, int currentStreak, int routineSessions) => ConditionType switch
     {
         AchievementConditionType.Visits => visitCount >= ConditionValue,
         AchievementConditionType.Streak => currentStreak >= ConditionValue,
+        AchievementConditionType.Routine_sessions => routineSessions >= ConditionValue,
         _ => false,
     };
 
-    public int ProgressOf(int visitCount, int currentStreak) => ConditionType switch
+    public int ProgressOf(int visitCount, int currentStreak, int routineSessions) => ConditionType switch
     {
         AchievementConditionType.Visits => Math.Min(visitCount, ConditionValue),
         AchievementConditionType.Streak => Math.Min(currentStreak, ConditionValue),
+        AchievementConditionType.Routine_sessions => Math.Min(routineSessions, ConditionValue),
         _ => 0,
     };
 
