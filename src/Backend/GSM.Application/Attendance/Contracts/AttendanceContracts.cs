@@ -24,12 +24,6 @@ public sealed record AttendanceListItem(
     DateOnly AttendanceDate,
     string Method);
 
-public sealed record MemberStreakResponse(
-    Guid MemberId,
-    int CurrentStreak,
-    int TotalVisits,
-    DateOnly? LastVisit);
-
 public sealed record PeakHourBucket(int Hour, int Count);
 
 public sealed record ListAttendanceQuery

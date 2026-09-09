@@ -23,6 +23,7 @@ using GSM.Domain.Memberships;
 using GSM.Domain.Payments;
 using GSM.Domain.Routines;
 using GSM.Application.Routines.Abstractions;
+using GSM.Application.Routines.Public;
 using GSM.Infrastructure.Achievements;
 using GSM.Infrastructure.Routines;
 using GSM.Infrastructure.Attendance;
@@ -124,6 +125,7 @@ public static class DependencyInjection
         services.AddScoped<IExerciseRepository, ExerciseRepository>();
         services.AddScoped<IRoutineRepository, RoutineRepository>();
         services.AddScoped<IRoutineLogRepository, RoutineLogRepository>();
+        services.AddScoped<IRoutineReader, RoutineReader>();
 
         return services;
     }

@@ -36,4 +36,69 @@ public static class StreakCalculator
 
         return streak;
     }
+
+    /// <summary>
+    /// Racha contra el calendario de una rutina: cuenta **días de calendario cumplidos** hacia atrás
+    /// desde hoy. Un descanso planificado suma igual que un entrenamiento asistido; un día de
+    /// entrenamiento sin asistencia corta (salvo que <paramref name="freezeOn"/> lo cubra).
+    /// El día en curso nunca penaliza. El recorrido se detiene en el primer día no cubierto por
+    /// una rutina (típicamente <c>starts_on</c> de la más antigua).
+    /// </summary>
+    /// <param name="attendanceDates">Días con asistencia.</param>
+    /// <param name="trainingDays">Días en que tocaba entrenar.</param>
+    /// <param name="restDays">Días de descanso planificado.</param>
+    /// <param name="today">Día de negocio actual.</param>
+    /// <param name="freezeOn">
+    /// Dado un día de entrenamiento fallado, devuelve <c>true</c> si un congelador lo cubre (y lo
+    /// consume). Por defecto nunca congela.
+    /// </param>
+    public static int ComputeAgainstCalendar(
+        IReadOnlySet<DateOnly> attendanceDates,
+        IReadOnlySet<DateOnly> trainingDays,
+        IReadOnlySet<DateOnly> restDays,
+        DateOnly today,
+        Func<DateOnly, bool>? freezeOn = null)
+    {
+        freezeOn ??= static _ => false;
+
+        // El día en curso nunca penaliza: si hoy toca entrenar y aún no hay asistencia, arranca ayer.
+        var cursor = today;
+        if (trainingDays.Contains(today) && !attendanceDates.Contains(today))
+        {
+            cursor = today.AddDays(-1);
+        }
+
+        var streak = 0;
+        while (true)
+        {
+            if (restDays.Contains(cursor))
+            {
+                streak++;
+            }
+            else if (trainingDays.Contains(cursor))
+            {
+                if (attendanceDates.Contains(cursor))
+                {
+                    streak++;
+                }
+                else if (freezeOn(cursor))
+                {
+                    // Congelador consumido: el día no suma pero tampoco corta.
+                }
+                else
+                {
+                    break;
+                }
+            }
+            else
+            {
+                // Fuera de toda rutina vigente: fin del recorrido.
+                break;
+            }
+
+            cursor = cursor.AddDays(-1);
+        }
+
+        return streak;
+    }
 }

@@ -25,6 +25,14 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
         return StreakCalculator.Compute(dates, clock.Today);
     }
 
+    public async Task<IReadOnlyList<DateOnly>> GetAttendanceDatesAsync(
+        Guid memberId, DateOnly? from = null, CancellationToken cancellationToken = default)
+        => await Attendances
+            .Where(a => a.MemberId == memberId && (from == null || a.AttendanceDate >= from))
+            .Select(a => a.AttendanceDate)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
     public Task<int> GetTodayCountAsync(Guid gymId, CancellationToken cancellationToken = default)
         => Attendances.CountAsync(
             a => a.GymId == gymId && a.AttendanceDate == clock.Today, cancellationToken);

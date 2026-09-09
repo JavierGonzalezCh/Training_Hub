@@ -70,23 +70,6 @@ public sealed class GetMemberAttendanceHandler(
     }
 }
 
-public sealed class GetMemberStreakHandler(
-    ICurrentUserService currentUser,
-    IMemberReader members,
-    IAttendanceReader attendanceReader)
-{
-    public async Task<MemberStreakResponse> HandleAsync(Guid memberId, CancellationToken cancellationToken)
-    {
-        await MemberSelfAccess.EnsureAsync(currentUser, members, memberId, cancellationToken);
-
-        return new MemberStreakResponse(
-            memberId,
-            await attendanceReader.GetStreakAsync(memberId, cancellationToken),
-            await attendanceReader.GetVisitCountAsync(memberId, cancellationToken),
-            await attendanceReader.GetLastVisitAsync(memberId, cancellationToken));
-    }
-}
-
 public sealed class GetPeakHoursHandler(
     ICurrentUserService currentUser, IClock clock, IAttendanceRepository attendance)
 {

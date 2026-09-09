@@ -1,6 +1,7 @@
 using GSM.Application.Attendance;
 using GSM.Application.Attendance.Contracts;
 using GSM.Application.Common;
+using GSM.Application.MemberStreak;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
