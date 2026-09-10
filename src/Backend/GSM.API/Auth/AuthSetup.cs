@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using GSM.Application.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -36,12 +37,24 @@ public static class AuthSetup
         services.AddAuthorizationBuilder()
             .AddPolicy(AuthPolicies.RequireSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin))
             .AddPolicy(AuthPolicies.RequireOwner, p => p.RequireRole(RoleName.Owner))
-            .AddPolicy(AuthPolicies.RequireStaff, p => p.RequireRole(RoleName.Owner, RoleName.Staff))
+            .AddPolicy(AuthPolicies.RequireStaff, p => p.RequireAssertion(ctx =>
+                ctx.User.IsInRole(RoleName.Owner) || ctx.User.IsInRole(RoleName.Staff) || IsImpersonating(ctx.User)))
             .AddPolicy(AuthPolicies.RequireStaffOrSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin, RoleName.Owner, RoleName.Staff))
             .AddPolicy(AuthPolicies.RequireMember, p => p.RequireRole(RoleName.Member));
 
         return services;
     }
+
+    /// <summary>
+    /// Superadmin con token de impersonación: entra en los endpoints del gym visitado como si fuera
+    /// staff, porque su token lleva el rol real (<c>superadmin</c>) y sin esto recibiría 403 en todo el
+    /// gym. Solo lectura: <c>SubscriptionGateFilter</c> corta cualquier método distinto de GET con ese
+    /// token, así que abrir la política no abre escrituras. <c>RequireOwner</c> no se abre: no protege
+    /// ningún GET.
+    /// </summary>
+    private static bool IsImpersonating(ClaimsPrincipal user)
+        => user.IsInRole(RoleName.SuperAdmin)
+           && string.Equals(user.FindFirst(GsmClaims.Impersonating)?.Value, "true", StringComparison.OrdinalIgnoreCase);
 }
 
 public static class AuthPolicies

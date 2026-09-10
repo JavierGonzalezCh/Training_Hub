@@ -4,11 +4,13 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using GSM.API.Auth;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Identity;
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Contracts;
 using GSM.Application.Identity.Public;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
+using GSM.Domain.Members;
 using GSM.Domain.SuperAdmin;
 using GSM.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
@@ -87,21 +89,44 @@ public sealed class SubscriptionGateHttpTests(ApiFactory factory) : IClassFixtur
     }
 
     [Fact]
-    public async Task Impersonation_token_reads_but_every_write_gets_403()
+    public async Task Impersonation_token_reads_the_visited_gym_but_every_write_gets_403()
     {
         var w = await SeedAsync(GymStatus.Active, paidThroughDaysAgo: -20);
+        var (memberHere, memberElsewhere) = await SeedMembersAsync(w.GymId);
         await using var host = RealIdentityHost();
+        var client = ImpersonatingClient(host, w.GymId);
 
-        var token = host.Services.GetRequiredService<IJwtTokenService>().CreateImpersonationToken(
-            new ImpersonationTokenRequest(Guid.CreateVersion7(), "Soporte", w.GymId, Guid.CreateVersion7()));
+        // Lee lo del gym visitado como lo vería su staff...
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/gym")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/members/{memberHere}")).StatusCode);
+
+        // ...y nada de otro gym: el Global Query Filter vuelve a aplicar con el gym del token.
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/members/{memberElsewhere}")).StatusCode);
+
+        // Cualquier escritura la corta el filtro, en el gym y en el panel, antes incluso de validar el cuerpo.
+        var writes = new[]
+        {
+            await client.PostAsJsonAsync("/api/members", new { }),
+            await client.PostAsJsonAsync($"/api/admin/gyms/{w.GymId}/renew", new { }),
+        };
+        foreach (var write in writes)
+        {
+            Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+            Assert.Contains("solo lectura", (await write.Content.ReadFromJsonAsync<ProblemDetails>())!.Detail);
+        }
+    }
+
+    [Fact]
+    public async Task A_superadmin_without_impersonation_cannot_read_gym_endpoints()
+    {
+        await using var host = RealIdentityHost();
+        var token = host.Services.GetRequiredService<IJwtTokenService>().CreateAccessToken(
+            new AuthenticatedUser(Guid.CreateVersion7(), "sa@test.local", "Superadmin", UserRole.SuperAdmin, null));
         var client = host.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Value);
 
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/admin/gyms")).StatusCode);
-
-        var write = await client.PostAsJsonAsync($"/api/admin/gyms/{w.GymId}/renew", new { });
-        Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
-        Assert.Contains("solo lectura", (await write.Content.ReadFromJsonAsync<ProblemDetails>())!.Detail);
+        // La política solo se abre con el claim de impersonación, no para cualquier superadmin.
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/gym")).StatusCode);
     }
 
     /// <summary>
@@ -124,6 +149,32 @@ public sealed class SubscriptionGateHttpTests(ApiFactory factory) : IClassFixtur
         var tokens = await login.Content.ReadFromJsonAsync<AuthTokensResponse>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
         return client;
+    }
+
+    private static HttpClient ImpersonatingClient(WebApplicationFactory<Program> host, Guid gymId)
+    {
+        var token = host.Services.GetRequiredService<IJwtTokenService>().CreateImpersonationToken(
+            new ImpersonationTokenRequest(Guid.CreateVersion7(), "Soporte", gymId, Guid.CreateVersion7()));
+        var client = host.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Value);
+        return client;
+    }
+
+    /// <summary>Un socio en el gym dado y otro en un gym distinto, para comprobar el aislamiento.</summary>
+    private async Task<(Guid Here, Guid Elsewhere)> SeedMembersAsync(Guid gymId)
+    {
+        using var scope = factory.CreateScopeWithMigration();
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var today = scope.ServiceProvider.GetRequiredService<MutableClock>().Today;
+
+        var other = Gym.Create("Otro Gym", $"otro-{Guid.NewGuid():N}"[..13]);
+        var here = Member.Create(gymId, "Ana", "Visitada", $"doc-{Guid.NewGuid():N}"[..12], today);
+        var elsewhere = Member.Create(other.Id, "Beto", "Ajeno", $"doc-{Guid.NewGuid():N}"[..12], today);
+        db.AddRange(other, GymFeatureFlags.Default(other.Id), here, elsewhere);
+        await db.SaveChangesAsync();
+
+        return (here.Id, elsewhere.Id);
     }
 
     private static async Task<JsonElement> GetGymAsync(HttpClient client)
