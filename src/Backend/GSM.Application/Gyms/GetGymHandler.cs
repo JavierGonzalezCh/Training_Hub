@@ -1,15 +1,17 @@
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Gyms.Abstractions;
 using GSM.Application.Gyms.Contracts;
-using GSM.Application.SuperAdmin.Public;
 using GSM.Domain.Common.Exceptions;
 
 namespace GSM.Application.Gyms;
 
+/// <summary>
+/// Datos del gym del usuario. El bloque <c>subscription</c> lo añade el controller desde SuperAdmin:
+/// así Gyms no depende de ese módulo (§4.5 de la especificación técnica).
+/// </summary>
 public sealed class GetGymHandler(
     ICurrentUserService currentUser,
-    IGymRepository gyms,
-    ISubscriptionReader subscriptions)
+    IGymRepository gyms)
 {
     public async Task<GymResponse> HandleAsync(CancellationToken cancellationToken)
     {
@@ -17,9 +19,6 @@ public sealed class GetGymHandler(
         var gym = await gyms.GetByIdAsync(gymId, cancellationToken)
             ?? throw new NotFoundException("El gym del usuario no existe.");
 
-        var subscription = SubscriptionInfo.From(
-            await subscriptions.GetStatusViewAsync(gymId, cancellationToken));
-
-        return GymMapper.ToResponse(gym) with { Subscription = subscription };
+        return GymMapper.ToResponse(gym);
     }
 }

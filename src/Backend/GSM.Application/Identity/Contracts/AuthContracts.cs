@@ -1,4 +1,4 @@
-using GSM.Application.SuperAdmin.Public;
+using GSM.Application.Common;
 
 namespace GSM.Application.Identity.Contracts;
 

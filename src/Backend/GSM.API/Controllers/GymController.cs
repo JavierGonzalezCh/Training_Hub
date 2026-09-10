@@ -2,6 +2,7 @@ using GSM.API.Auth;
 using GSM.API.Uploads;
 using GSM.Application.Gyms;
 using GSM.Application.Gyms.Contracts;
+using GSM.Application.SuperAdmin.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +14,21 @@ namespace GSM.API.Controllers;
 [Authorize(Policy = AuthPolicies.RequireStaff)]
 public sealed class GymController : ControllerBase
 {
+    /// <summary>
+    /// Datos del gym más el bloque <c>subscription</c>, que se compone aquí y no en el caso de uso
+    /// para que Gyms no dependa de SuperAdmin (mismo patrón que <c>GET /api/auth/me</c>).
+    /// </summary>
     [HttpGet]
     [ProducesResponseType<GymResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<GymResponse>> Get(
-        [FromServices] GetGymHandler handler, CancellationToken cancellationToken)
-        => Ok(await handler.HandleAsync(cancellationToken));
+        [FromServices] GetGymHandler handler,
+        [FromServices] ISubscriptionReader subscriptions,
+        CancellationToken cancellationToken)
+    {
+        var gym = await handler.HandleAsync(cancellationToken);
+        var view = await subscriptions.GetStatusViewAsync(gym.Id, cancellationToken);
+        return Ok(gym with { Subscription = view?.ToInfo() });
+    }
 
     [HttpPut]
     [Authorize(Policy = AuthPolicies.RequireOwner)]

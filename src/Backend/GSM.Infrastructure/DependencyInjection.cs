@@ -1,4 +1,4 @@
-using GSM.Application.Common.Abstractions;
+﻿using GSM.Application.Common.Abstractions;
 using GSM.Application.Gyms.Abstractions;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Identity;
@@ -140,6 +140,7 @@ public static class DependencyInjection
         services.AddScoped<GSM.Application.SuperAdmin.Abstractions.ISubscriptionPaymentRepository, GSM.Infrastructure.SuperAdmin.SubscriptionPaymentRepository>();
         services.AddScoped<GSM.Application.SuperAdmin.Abstractions.IImpersonationSessionRepository, GSM.Infrastructure.SuperAdmin.ImpersonationSessionRepository>();
         services.AddScoped<GSM.Application.SuperAdmin.Public.ISubscriptionReader, GSM.Infrastructure.SuperAdmin.SubscriptionReader>();
+        services.AddScoped<GSM.Application.Identity.Abstractions.IGymLoginGate, GSM.Infrastructure.SuperAdmin.SubscriptionLoginGate>();
 
         return services;
     }

@@ -1,8 +1,6 @@
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Contracts;
-using GSM.Application.SuperAdmin.Public;
 using GSM.Domain.Common.Exceptions;
-using GSM.Domain.SuperAdmin;
 using Microsoft.Extensions.Logging;
 
 namespace GSM.Application.Identity;
@@ -11,7 +9,7 @@ public sealed class LoginHandler(
     IUserCredentialsService credentials,
     IJwtTokenService jwtTokens,
     IRefreshTokenService refreshTokens,
-    ISubscriptionReader subscriptions,
+    IGymLoginGate loginGate,
     ILogger<LoginHandler> logger)
 {
     public async Task<AuthTokensResponse> HandleAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -23,9 +21,7 @@ public sealed class LoginHandler(
 
         // El bloqueo por estado vive en un filtro de la API, pero el login es anónimo y el filtro
         // no puede cubrirlo: un gym `suspended` no deja entrar ni a sus usuarios.
-        if (user.GymId is { } gymId
-            && await subscriptions.GetEffectiveStatusAsync(gymId, cancellationToken)
-                == EffectiveSubscriptionStatus.Suspended)
+        if (user.GymId is { } gymId && await loginGate.IsSuspendedAsync(gymId, cancellationToken))
         {
             logger.LogWarning("Login rechazado para {UserId}: gym {GymId} suspendido", user.Id, gymId);
             throw new ForbiddenDomainException("La cuenta del gimnasio está suspendida. Contacta con soporte.");

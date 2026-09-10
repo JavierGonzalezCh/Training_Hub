@@ -1,4 +1,4 @@
-using GSM.Application.SuperAdmin.Public;
+using GSM.Application.Common;
 using GSM.Domain.Gyms;
 
 namespace GSM.Application.Gyms.Contracts;

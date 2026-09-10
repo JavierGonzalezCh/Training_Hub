@@ -89,8 +89,7 @@ public sealed class AuthController : ControllerBase
 
         var branding = await gyms.GetBrandingAsync(gymId, cancellationToken);
         var flags = await gyms.GetFeatureFlagsAsync(gymId, cancellationToken);
-        var subscription = SubscriptionInfo.From(
-            await subscriptions.GetStatusViewAsync(gymId, cancellationToken));
+        var subscription = (await subscriptions.GetStatusViewAsync(gymId, cancellationToken))?.ToInfo();
 
         return Ok(me with
         {

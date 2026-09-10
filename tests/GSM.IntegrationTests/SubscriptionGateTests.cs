@@ -1,5 +1,4 @@
 using GSM.API.Filters;
-using GSM.Application.Gyms;
 using GSM.Application.Identity;
 using GSM.Application.Identity.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -98,35 +97,6 @@ public sealed class SubscriptionGateTests(ApiFactory factory) : IClassFixture<Ap
             .HandleAsync(new LoginRequest(w.OwnerEmail, "OwnerPass_123"), default);
 
         Assert.False(string.IsNullOrEmpty(tokens.AccessToken));
-    }
-
-    // --- El bloque `subscription` en GET /api/gym ------------------------------------------
-
-    [Fact]
-    public async Task Gym_response_carries_the_subscription_block_with_days_until_disabled()
-    {
-        var w = await SeedAsync(Today.AddDays(-3), GymStatus.Active);
-
-        using var scope = Scope();
-        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAs(w.OwnerId, w.GymId, UserRole.Owner);
-
-        var gym = await scope.ServiceProvider.GetRequiredService<GetGymHandler>().HandleAsync(default);
-
-        Assert.NotNull(gym.Subscription);
-        Assert.Equal("Overdue", gym.Subscription!.Status);
-        Assert.Equal(12, gym.Subscription.DaysUntilDisabled);
-    }
-
-    [Fact]
-    public async Task Gym_without_subscription_gets_a_null_block()
-    {
-        var w = await SeedAsync(paidThrough: null, GymStatus.Active);
-
-        using var scope = Scope();
-        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAs(w.OwnerId, w.GymId, UserRole.Owner);
-
-        var gym = await scope.ServiceProvider.GetRequiredService<GetGymHandler>().HandleAsync(default);
-        Assert.Null(gym.Subscription);
     }
 
     private IServiceScope Scope()

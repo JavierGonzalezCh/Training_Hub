@@ -1,3 +1,4 @@
+using GSM.Application.Common;
 using GSM.Domain.SuperAdmin;
 
 namespace GSM.Application.SuperAdmin.Public;
@@ -27,16 +28,8 @@ public interface ISubscriptionReader
 public sealed record SubscriptionStatusView(
     EffectiveSubscriptionStatus Status,
     DateOnly PaidThrough,
-    int? DaysUntilDisabled);
-
-/// <summary>
-/// Bloque <c>subscription</c> para las respuestas de la API (<c>GET /api/gym</c>, <c>/api/auth/me</c>).
-/// El estado va como texto, igual que el resto de enums de la API.
-/// </summary>
-public sealed record SubscriptionInfo(string Status, DateOnly PaidThrough, int? DaysUntilDisabled)
+    int? DaysUntilDisabled)
 {
-    public static SubscriptionInfo? From(SubscriptionStatusView? view)
-        => view is null
-            ? null
-            : new SubscriptionInfo(view.Status.ToString(), view.PaidThrough, view.DaysUntilDisabled);
+    /// <summary>Bloque <c>subscription</c> para las respuestas de la API.</summary>
+    public SubscriptionInfo ToInfo() => new(Status.ToString(), PaidThrough, DaysUntilDisabled);
 }
