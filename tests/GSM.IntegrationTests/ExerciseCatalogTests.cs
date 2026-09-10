@@ -73,31 +73,45 @@ public sealed class ExerciseCatalogTests(ApiFactory factory) : IClassFixture<Api
     {
         var (gymA, staffA, _, _) = await SeedTwoGymsAsync();
 
+        // Se edita un ejercicio de sistema desechable, nunca uno del catálogo de la migración:
+        // gsm_test no se trunca entre ejecuciones, así que cada edición quedaba para siempre y,
+        // ejecución tras ejecución, acabó dejando un músculo entero sin ejercicios.
         Guid systemExerciseId;
-        using (var scope = System())
-        {
-            systemExerciseId = await scope.ServiceProvider.GetRequiredService<GsmDbContext>()
-                .Set<Exercise>().Where(e => e.GymId == null)
-                .OrderBy(e => e.Name).Select(e => e.Id).FirstAsync();
-        }
-
-        var newName = $"Editado {Guid.NewGuid():N}"[..20];
-        var edit = new UpdateExerciseRequest(
-            newName, "desc", Muscle.Chest, null, null, null, null);
-
-        using (var scope = Staff(gymA, staffA))
-        {
-            await Assert.ThrowsAsync<ForbiddenDomainException>(() =>
-                scope.ServiceProvider.GetRequiredService<UpdateExerciseHandler>()
-                    .HandleAsync(systemExerciseId, edit, default));
-        }
-
         using (var scope = SuperAdmin())
         {
-            var updated = await scope.ServiceProvider.GetRequiredService<UpdateExerciseHandler>()
-                .HandleAsync(systemExerciseId, edit, default);
-            Assert.Equal(newName, updated.Name);
-            Assert.True(updated.IsSystem);
+            var created = await scope.ServiceProvider.GetRequiredService<CreateExerciseHandler>()
+                .HandleAsync(new CreateExerciseRequest(
+                    $"Desechable {Guid.NewGuid():N}"[..22], null, Muscle.Chest, null, null, null, null), default);
+            Assert.True(created.IsSystem);
+            systemExerciseId = created.Id;
+        }
+
+        try
+        {
+            var newName = $"Editado {Guid.NewGuid():N}"[..20];
+            var edit = new UpdateExerciseRequest(
+                newName, "desc", Muscle.Chest, null, null, null, null);
+
+            using (var scope = Staff(gymA, staffA))
+            {
+                await Assert.ThrowsAsync<ForbiddenDomainException>(() =>
+                    scope.ServiceProvider.GetRequiredService<UpdateExerciseHandler>()
+                        .HandleAsync(systemExerciseId, edit, default));
+            }
+
+            using (var scope = SuperAdmin())
+            {
+                var updated = await scope.ServiceProvider.GetRequiredService<UpdateExerciseHandler>()
+                    .HandleAsync(systemExerciseId, edit, default);
+                Assert.Equal(newName, updated.Name);
+                Assert.True(updated.IsSystem);
+            }
+        }
+        finally
+        {
+            using var scope = System();
+            await scope.ServiceProvider.GetRequiredService<GsmDbContext>()
+                .Set<Exercise>().Where(e => e.Id == systemExerciseId).ExecuteDeleteAsync();
         }
     }
 
