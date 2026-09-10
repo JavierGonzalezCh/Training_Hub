@@ -1,4 +1,4 @@
-using GSM.Application.Common.Abstractions;
+﻿using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Application.Identity.Public;
 using GSM.Application.Members.Abstractions;
@@ -16,6 +16,7 @@ namespace GSM.Application.Members;
 /// vincula el miembro y marca la invitación como usada — todo en una transacción.
 /// </summary>
 public sealed class RegisterMemberHandler(
+    IClock clock,
     IMemberRepository members,
     IUserProvisioning userProvisioning,
     IUnitOfWork unitOfWork,
@@ -29,7 +30,7 @@ public sealed class RegisterMemberHandler(
         var invitation = await members.GetInvitationByCodeAsync(code, cancellationToken)
             ?? throw new NotFoundException("Código de invitación no encontrado.");
 
-        var now = DateTimeOffset.UtcNow;
+        var now = clock.UtcNow;
         if (!invitation.IsPendingAt(now))
         {
             throw new ConflictException("La invitación ya se usó o expiró.");

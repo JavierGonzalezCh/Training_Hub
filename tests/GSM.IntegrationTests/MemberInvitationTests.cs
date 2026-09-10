@@ -1,4 +1,4 @@
-using GSM.Application.Common.Abstractions;
+﻿using GSM.Application.Common.Abstractions;
 using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -68,6 +68,46 @@ public sealed class MemberInvitationTests(ApiFactory factory) : IClassFixture<Ap
 
             await Assert.ThrowsAsync<ForbiddenDomainException>(
                 () => get.HandleAsync(other, CancellationToken.None));
+        }
+    }
+
+    [Fact]
+    public async Task Redeeming_after_seven_days_is_rejected_by_the_business_clock()
+    {
+        var (gymId, staffId, target, _) = await SeedAsync();
+
+        // Se emite "ahora" y se canjea 8 dias despues segun IClock, no segun el reloj del sistema:
+        // si el handler leyera DateTimeOffset.UtcNow, la invitacion seguiria vigente y el canje pasaria.
+        var issuedAt = DateTimeOffset.UtcNow;
+        var clock = factory.Services.GetRequiredService<MutableClock>();
+
+        try
+        {
+            string code;
+            clock.PinTo(issuedAt, DateOnly.FromDateTime(issuedAt.UtcDateTime));
+            using (var scope = factory.CreateScopeWithMigration())
+            {
+                scope.ServiceProvider.GetRequiredService<MutableCurrentUser>()
+                    .ActAs(staffId, gymId, UserRole.Staff);
+                code = (await scope.ServiceProvider.GetRequiredService<InviteMemberHandler>()
+                    .HandleAsync(target, CancellationToken.None)).Code;
+            }
+
+            var redeemAt = issuedAt.AddDays(8);
+            clock.PinTo(redeemAt, DateOnly.FromDateTime(redeemAt.UtcDateTime));
+            using (var scope = factory.CreateScopeWithMigration())
+            {
+                scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+                var register = scope.ServiceProvider.GetRequiredService<RegisterMemberHandler>();
+
+                await Assert.ThrowsAsync<ConflictException>(() => register.HandleAsync(
+                    new RegisterMemberRequest(code, "doc-target", "target@member.local", "MemberPass_123"),
+                    CancellationToken.None));
+            }
+        }
+        finally
+        {
+            clock.Unpin();
         }
     }
 
