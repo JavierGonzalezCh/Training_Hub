@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using GSM.Application.Common.Abstractions;
 using GSM.Domain.Common;
 using GSM.Domain.Gyms;
@@ -49,7 +49,7 @@ public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserSe
         modelBuilder.HasPostgresEnum<Equipment>("routines", "equipment", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassDayOfWeek>("classes", "day_of_week", LowerCaseNameTranslator.Instance);
         modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassSessionStatus>("classes", "class_session_status", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassBookingStatus>("classes", "class_booking_status", LowerCaseNameTranslator.Instance);
+        modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassBookingStatus>("classes", "class_booking_status", SnakeCaseNameTranslator.Instance);
 
         // Tablas satélite de Identity → schema y nombres del proyecto.
         modelBuilder.Entity<AppUser>().ToTable("users", "identity");

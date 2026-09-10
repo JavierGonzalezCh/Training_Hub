@@ -1,4 +1,4 @@
-using GSM.Domain.Gyms;
+﻿using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Achievements;
 using GSM.Domain.Attendance;
@@ -40,7 +40,7 @@ public sealed class GsmDbContextFactory : IDesignTimeDbContextFactory<GsmDbConte
                 npgsql.MapEnum<Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance);
                 npgsql.MapEnum<GSM.Domain.Classes.ClassDayOfWeek>("day_of_week", "classes", LowerCaseNameTranslator.Instance);
                 npgsql.MapEnum<GSM.Domain.Classes.ClassSessionStatus>("class_session_status", "classes", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Classes.ClassBookingStatus>("class_booking_status", "classes", LowerCaseNameTranslator.Instance);
+                npgsql.MapEnum<GSM.Domain.Classes.ClassBookingStatus>("class_booking_status", "classes", SnakeCaseNameTranslator.Instance);
             })
             .UseSnakeCaseNamingConvention()
             .Options;

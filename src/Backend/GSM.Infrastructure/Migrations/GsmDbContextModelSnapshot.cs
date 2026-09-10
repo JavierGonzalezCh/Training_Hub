@@ -32,7 +32,7 @@ namespace GSM.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_booking_status", new[] { "booked", "cancelled", "attended", "noshow" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_booking_status", new[] { "booked", "cancelled", "attended", "no_show" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_session_status", new[] { "scheduled", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
