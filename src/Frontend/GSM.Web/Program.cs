@@ -1,0 +1,20 @@
+using GSM.Client;
+using GSM.Client.Http;
+using GSM.Web;
+using GSM.Web.Platform;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using MudBlazor.Services;
+
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
+
+var apiBaseUrl = builder.Configuration["Api:ApiBaseUrl"]
+    ?? throw new InvalidOperationException("Falta 'Api:ApiBaseUrl' en wwwroot/appsettings.json.");
+
+builder.Services.AddMudServices();
+builder.Services.AddScoped<ITokenStore, LocalStorageTokenStore>();
+builder.Services.AddGsmClient(apiBaseUrl);
+
+await builder.Build().RunAsync();

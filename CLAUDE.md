@@ -14,6 +14,8 @@ GSM (Gym System Management) es el codename técnico interno de un sistema de ges
 | Classes (etapa 10) | `docs/GSM-modulo-classes.md` | `docs/CLASSES-BUILD-PLAN.md` |
 | SuperAdmin (etapa 11) | `docs/GSM-modulo-superadmin.md` | `docs/SUPERADMIN-BUILD-PLAN.md` |
 
+**Frontend** (etapas F0–F8): `docs/FRONTEND-BUILD-PLAN.md`. Blazor WASM (panel del gym, SuperAdmin y app del socio en `/app`) + MAUI Blazor Hybrid, que comparten las pantallas del socio en `GSM.Member.UI`; cliente generado desde OpenAPI. Vive en `src/Frontend/`.
+
 ## Estado actual
 
 Fase: **Fase 2 y 3 construidas; falta desplegar.**
@@ -22,7 +24,7 @@ Las etapas 0–7 (MVP), **9 (Routines)**, **10 (Classes)** y **11 (SuperAdmin, s
 
 De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de Railway. R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
 
-Ningún módulo nuevo está en construcción. Lo siguiente es el despliegue; los módulos sin planificar (Community, Reports, Locations) siguen sin empezar.
+Ningún módulo nuevo de backend está en construcción. **Del frontend está hecha la etapa F0** (`docs/FRONTEND-BUILD-PLAN.md`): `src/Frontend/GSM.Frontend.slnx` con `GSM.Client` (cliente NSwag generado + `AuthenticatedHttpHandler`, `ApiError`, `ITokenStore`), `GSM.UI.Shared`, `GSM.Web` (Blazor WASM + MudBlazor, en `7220`/`5220`) y `tests/GSM.Web.Tests` (bUnit). El cliente se regenera con `scripts/generate-client.ps1`. **La siguiente etapa es F1** (auth y shell del panel). Siguen pendientes el despliegue y los módulos sin planificar (Community, Reports, Locations).
 
 **Cómo levantar el entorno local está en `README.md`** — Postgres 18 nativo, bases `gsm` y `gsm_test`, migraciones a mano (la API no migra al arrancar).
 
