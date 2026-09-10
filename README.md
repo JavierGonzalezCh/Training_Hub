@@ -50,8 +50,15 @@ CREATE DATABASE gsm_test OWNER gsm;
 
 ```bash
 cd src/Backend
-dotnet ef database update --project GSM.Infrastructure --startup-project GSM.API
+dotnet ef database update --project GSM.Infrastructure
 ```
+
+`GSM.Infrastructure` es a la vez proyecto de migraciones y de arranque para `dotnet ef`: ahí están el
+paquete `Microsoft.EntityFrameworkCore.Design` y la fábrica de diseño `GsmDbContextFactory`. **No uses
+`--startup-project GSM.API`**: la API no referencia ese paquete y el comando falla.
+
+Por defecto migra la base `gsm`. Para apuntar a otra —la de producción, por ejemplo— define
+`GSM_MIGRATIONS_CONNECTION` con su cadena de conexión antes de ejecutarlo.
 
 Para comprobar en qué punto está una base:
 
@@ -90,6 +97,14 @@ dotnet test GSM.sln
 
 Son tests de integración **contra Postgres de verdad**, no en memoria: necesitan el servidor
 arriba y la base `gsm_test` creada. La suite la migra y la limpia por sí sola.
+
+Si alguna vez queda en mal estado —una ejecución cortada a medias, por ejemplo— se recrea sin
+miedo: es desechable y la siguiente ejecución la vuelve a migrar.
+
+```sql
+DROP DATABASE gsm_test WITH (FORCE);
+CREATE DATABASE gsm_test OWNER gsm;
+```
 
 ## Pendiente de configurar
 

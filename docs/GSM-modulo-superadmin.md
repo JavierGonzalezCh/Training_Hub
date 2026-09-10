@@ -153,6 +153,8 @@ El superadmin pide entrar a un gym indicando un motivo. Recibe un **token distin
 
 **El mismo filtro que aplica el bloqueo rechaza con `403` cualquier método que no sea `GET`** cuando el token trae `impersonating`. La restricción es de infraestructura, no de buena voluntad de cada endpoint.
 
+Para que la lectura funcione, la política de los endpoints del gym (`RequireStaff`: owner o staff) admite también a un superadmin cuyo token trae `impersonating: true`. El token lleva el rol real, `superadmin`, y sin esa excepción recibiría `403` en todo el gym. La escritura sigue cortada por el filtro, y `RequireOwner` no se abre porque no protege ningún `GET`.
+
 Toda petición con ese token se registra en el log con el id de la sesión, así que queda rastro de qué se miró, no solo de que se entró.
 
 > **Por qué la identidad real no se suplanta:** si el token dijera que es el owner del gym, cualquier dato creado o modificado durante la sesión aparecería firmado por él. Con solo lectura no debería pasar nada, pero un fallo en el filtro dejaría rastros falsos en datos de un cliente. Manteniendo `sub`, un error se ve enseguida.

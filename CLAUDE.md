@@ -18,7 +18,7 @@ GSM (Gym System Management) es el codename técnico interno de un sistema de ges
 
 Fase: **Fase 2 y 3 construidas; falta desplegar.**
 
-Las etapas 0–7 (MVP), **9 (Routines)**, **10 (Classes)** y **11 (SuperAdmin, sub-etapas 11.1 a 11.5)** están implementadas y validadas end-to-end, con **106 tests** de integración contra Postgres.
+Las etapas 0–7 (MVP), **9 (Routines)**, **10 (Classes)** y **11 (SuperAdmin, sub-etapas 11.1 a 11.5)** están implementadas y validadas end-to-end, con **111 tests** de integración contra Postgres.
 
 De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de Railway. R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
 
@@ -129,6 +129,8 @@ No hay FK entre schemas de módulos distintos: la referencia se valida en el cas
 - Dinero: `decimal(12,2)`, COP.
 - Logging con Serilog, structured, un log de entrada/salida por caso de uso. Nunca loguear passwords ni tokens.
 - Conventional Commits (`feat:`, `fix:`, `refactor:`).
+- **Los tests no modifican datos sembrados por migraciones** (el catálogo de ejercicios del sistema): `gsm_test` no se trunca entre ejecuciones y cualquier cambio queda para siempre. Si un test necesita editar algo de sistema, crea su propio registro desechable y lo borra en un `finally`.
+- **Para probar por HTTP con la identidad real**, el patrón es `SubscriptionGateHttpTests`: `WithWebHostBuilder` quitando `MutableCurrentUser`, login por `/api/auth/login` y el JWT de verdad.
 
 ## Alcance
 
@@ -148,7 +150,7 @@ No construyas Community, Reports ni Locations todavía.
 
 - **Las sesiones no se generan por adelantado: el horario es una proyección.** Una ocurrencia solo se materializa cuando hay algo que guardar (reserva, asistencia, cancelación puntual), y el índice único `(class_id, session_date)` la hace idempotente. Mismo patrón perezoso que el congelador de racha, y por el mismo motivo: **no hay scheduler en el sistema.**
 - **Asistir a una clase registra el check-in del día por evento**, no por escritura cruzada: `ClassAttendanceRegistered` lo consume un handler de Attendance, que ya era idempotente por día desde la etapa 6.
-- **`class_booking_status` persiste `noshow`, no `no_show`** (se registró con `LowerCaseNameTranslator` donde tocaba `SnakeCaseNameTranslator`). La especificación dice `no_show`; corregirlo exige migración del enum, así que de momento manda lo que hay en la base.
+- **`class_booking_status` persiste `no_show`** desde la migración `Etapa10_5_BookingStatusNoShow`; antes guardaba `noshow` por registrarse con `LowerCaseNameTranslator`. Un enum con valores de varias palabras va con `SnakeCaseNameTranslator`, nunca con guion bajo en el nombre del miembro C#: ese atajo (el de `Equipment`) saca `Smith_machine` en el JSON de la API.
 
 ### Notas de SuperAdmin (etapa 11)
 
@@ -157,4 +159,5 @@ No construyas Community, Reports ni Locations todavía.
 - **La suscripción se da de alta al crear el gym**, por un handler de `GymCreated` (30 días de prueba, precio 0). Si ese handler fallara, el gym queda sin suscripción y opera con normalidad; `PUT /api/admin/gyms/{id}/subscription` la repone, creándola si no existe.
 - **El bloqueo por impago va en un filtro global de la API**, no repartido por casos de uso: es transversal como el multi-tenancy. Un gym **sin suscripción no se bloquea** — ante un dato faltante se deja pasar, porque dejar tirado a un cliente es peor error que no cortarle a un moroso.
 - **Los pagos del SaaS no se mezclan con los del gym.** Se comparte el enum `payment_method` y nada más: son bolsillos distintos y no pueden acabar en el mismo cierre de caja.
-- **La impersonación es de solo lectura y la impone el mismo filtro**: token de 15 minutos que conserva la identidad real del superadmin en `sub` y solo admite `GET`.
+- **Ni Gyms ni Identity dependen de SuperAdmin.** El bloque `subscription` (`SubscriptionInfo`, en `Application/Common`) lo componen los controllers, y el login consulta la suspensión por `IGymLoginGate`: un puerto que declara Identity e implementa SuperAdmin en Infrastructure. Así el único ciclo entre módulos es el deliberado `Attendance ↔ Achievements`.
+- **La impersonación es de solo lectura y la impone el mismo filtro**: token de 15 minutos que conserva la identidad real del superadmin en `sub` y solo admite `GET`. Para que pueda leer, `RequireStaff` admite a un superadmin cuyo token trae `impersonating=true` (el token lleva el rol real, y sin esa excepción recibía 403 en todo el gym); `RequireOwner` no se abre porque no protege ningún GET.

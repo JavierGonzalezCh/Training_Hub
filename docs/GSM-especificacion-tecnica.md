@@ -122,7 +122,7 @@ GSM.API/Controllers/{Módulo}Controller.cs
 
 
 
-Si el producto crece lo suficiente para justificarlo, esta disciplina permite migrar a monolito modular con proyectos separados sin reescritura — solo formalización de fronteras que ya existen en la práctica. Salvedad: hoy hay dependencias circulares entre módulos (§4.5) que habría que romper antes de separarlos.
+Si el producto crece lo suficiente para justificarlo, esta disciplina permite migrar a monolito modular con proyectos separados sin reescritura — solo formalización de fronteras que ya existen en la práctica. Salvedad: queda un ciclo deliberado, `Attendance ↔ Achievements` (§4.5), que habría que romper antes de separar esos dos módulos.
 
 
 
@@ -260,7 +260,7 @@ Dos vías y una excepción: \*\*lecturas\*\* síncronas por `Public/I{Módulo}Re
 
 | Achievements | `IAchievementReader` | `GetForMemberAsync` |
 
-| Attendance | `IAttendanceReader` | `GetVisitCountAsync`, `GetStreakAsync`, `GetAttendanceDatesAsync`, `GetTodayCountAsync`, `GetMonthlyCountAsync`, `GetLastAttendanceDateAsync`, `GetLastVisitAsync` |
+| Attendance | `IAttendanceReader` | `GetVisitCountAsync`, `GetStreakAsync`, `GetAttendanceDatesAsync`, `GetTodayCountAsync`, `GetMonthlyCountsByGymAsync`, `GetLastAttendanceDateByGymAsync`, `GetLastVisitAsync` |
 
 | Classes | `IClassReader` | `GetAttendedCountAsync`, `GetUpcomingBookingsAsync`, `GetTodaySessionCountAsync` |
 
@@ -268,11 +268,11 @@ Dos vías y una excepción: \*\*lecturas\*\* síncronas por `Public/I{Módulo}Re
 
 | Identity | `IIdentityReader` | `GetUserAsync` |
 
-| Members | `IMemberReader` | `GetAsync`, `ExistsAsync`, `ResolveByQrAsync`, `ResolveByUserIdAsync`, `GetActiveCountAsync` |
+| Members | `IMemberReader` | `GetAsync`, `ExistsAsync`, `ResolveByQrAsync`, `ResolveByUserIdAsync`, `GetActiveCountAsync`, `GetActiveCountsByGymAsync` |
 
 | Memberships | `IMembershipReader` | `GetActiveAsync`, `IsActiveAsync`, `GetExpiringAsync`, `GetExpiredCountAsync`, `GetExpiringCountAsync`, `BelongsToMemberAsync` |
 
-| Payments | `IPaymentReader` | `GetMonthlyRevenueAsync`, `GetRecentByMemberAsync` |
+| Payments | `IPaymentReader` | `GetMonthlyRevenueAsync`, `GetMonthlyRevenueByGymAsync`, `GetRecentByMemberAsync` |
 
 | Routines | `IRoutineReader` | `GetActiveRoutineCountAsync`, `GetActiveRoutineStartAsync`, `GetTrainingCalendarAsync`, `GetCompletedSessionCountAsync` |
 
@@ -368,27 +368,24 @@ Attendance   ← Achievements, Dashboard, MemberStreak, SuperAdmin
 Achievements ← Attendance, MemberStreak
 Routines     ← Achievements, MemberStreak
 Classes      ← Achievements
-SuperAdmin   ← API, Gyms, Identity
+SuperAdmin   ← API
 
 Escrituras síncronas (§4.2):
 IAchievementService (Achievements) ← Attendance, MemberStreak
-IGymAdministration  (Gyms)         ← SuperAdmin
-IUserProvisioning   (Identity)     ← API, Gyms, Members
+IGymAdministration  (Gyms) ← SuperAdmin
+IUserProvisioning   (Identity) ← API, Gyms, Members
+
+Puertos invertidos (los declara quien los usa; los implementa el dueño del dato):
+IGymLoginGate (Identity) ← implementado por SuperAdmin
 ```
 
 
 
-\*\*Hay dependencias circulares, y el diseño original no las preveía.\*\* Nacen de dos sitios:
+\*\*Un solo ciclo, y es deliberado: `Attendance ↔ Achievements`.\*\* El check-in llama a `IAchievementService` para devolver los logros en su propia respuesta, y Achievements lee `IAttendanceReader` para evaluarlos. Es la excepción de §4.2, acotada a esos dos módulos.
 
 
 
-\- \*\*`Attendance ↔ Achievements`\*\* (etapa 7). El check-in llama a `IAchievementService` para devolver los logros en su propia respuesta, y Achievements lee `IAttendanceReader` para evaluarlos. Es la excepción de §4.2: deliberada y acotada a esos dos módulos.
-
-\- \*\*`ISubscriptionReader`\*\* (etapa 11.2). `LoginHandler` (Identity) lo consulta para cerrar el paso a un gym suspendido, y `GetGymHandler` (Gyms) para devolver el bloque `subscription`. Como SuperAdmin a su vez lee Gyms, Members, Attendance y Payments para su panel, esas dos lecturas cierran `Identity → SuperAdmin → Gyms → Identity` y dejan a los diez módulos en una sola componente. Sin ellas, el único ciclo sería `Attendance ↔ Achievements`.
-
-
-
-No causan fallos en ejecución: son lecturas entre interfaces de Application resueltas por DI, y la suite completa las ejercita. El coste es otro: \*\*el orden de §3 ya no es una jerarquía estricta\*\*, y separar los módulos en proyectos (§2.2) exigiría romper antes estos ciclos. Para los de SuperAdmin hay un camino conocido, el mismo que usó el MVP con `currentMembership`: componer el dato en el controller en vez de en el caso de uso.
+\*\*Cómo se rompieron los demás (septiembre de 2026).\*\* `LoginHandler` (Identity) y `GetGymHandler` (Gyms) leían `ISubscriptionReader`, y como SuperAdmin lee a casi todos para su panel, esas dos lecturas dejaban a los diez módulos en una sola componente. Ahora el bloque `subscription` lo componen los controllers (`SubscriptionInfo` vive en `Application/Common`, solo con primitivos) y el login consulta la suspensión por `IGymLoginGate`, un puerto que declara Identity y que SuperAdmin implementa en Infrastructure. La dependencia quedó invertida: SuperAdmin → Identity.
 
 
 
