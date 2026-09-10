@@ -37,6 +37,12 @@ public sealed class GetAdminDashboardHandler(
 
         var rows = await subscriptions.GetPortfolioAsync(cancellationToken);
 
+        // Cuatro consultas agrupadas por gym para toda la cartera, no cuatro por cada gym (N+1).
+        var activeByGym = await members.GetActiveCountsByGymAsync(cancellationToken);
+        var checkInsByGym = await attendance.GetMonthlyCountsByGymAsync(today.Year, today.Month, cancellationToken);
+        var revenueByGym = await memberPayments.GetMonthlyRevenueByGymAsync(today.Year, today.Month, cancellationToken);
+        var lastCheckInByGym = await attendance.GetLastAttendanceDateByGymAsync(cancellationToken);
+
         var countByStatus = new Dictionary<string, int>();
         var contracted = 0m;
         var expiring = 0;
@@ -64,11 +70,10 @@ public sealed class GetAdminDashboardHandler(
                 expiring++;
             }
 
-            var activeMembers = await members.GetActiveCountAsync(row.GymId, cancellationToken);
-            var checkIns = await attendance.GetMonthlyCountAsync(row.GymId, today.Year, today.Month, cancellationToken);
-            var memberRevenue = await memberPayments.GetMonthlyRevenueAsync(
-                row.GymId, today.Year, today.Month, cancellationToken);
-            var lastCheckIn = await attendance.GetLastAttendanceDateAsync(row.GymId, cancellationToken);
+            var activeMembers = activeByGym.GetValueOrDefault(row.GymId);
+            var checkIns = checkInsByGym.GetValueOrDefault(row.GymId);
+            var memberRevenue = revenueByGym.GetValueOrDefault(row.GymId);
+            DateOnly? lastCheckIn = lastCheckInByGym.TryGetValue(row.GymId, out var last) ? last : null;
 
             usage.Add(new GymUsageRow(
                 row.GymId, row.GymName, key, activeMembers, checkIns, memberRevenue, lastCheckIn));

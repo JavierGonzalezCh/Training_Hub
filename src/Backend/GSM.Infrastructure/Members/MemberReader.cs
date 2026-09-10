@@ -29,6 +29,14 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
     public Task<int> GetActiveCountAsync(Guid gymId, CancellationToken cancellationToken = default)
         => Members.CountAsync(m => m.GymId == gymId && m.Status == MemberStatus.Active, cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, int>> GetActiveCountsByGymAsync(
+        CancellationToken cancellationToken = default)
+        => await Members
+            .Where(m => m.Status == MemberStatus.Active)
+            .GroupBy(m => m.GymId)
+            .Select(g => new { GymId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.GymId, x => x.Count, cancellationToken);
+
     private static IQueryable<MemberInfo> Project(IQueryable<Member> source)
         => source.Select(m => new MemberInfo(
             m.Id, m.GymId, m.UserId, m.FirstName, m.LastName, m.Status, m.QrCode));

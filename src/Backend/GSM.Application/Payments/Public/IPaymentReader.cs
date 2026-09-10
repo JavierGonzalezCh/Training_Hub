@@ -9,6 +9,10 @@ public interface IPaymentReader
     Task<decimal> GetMonthlyRevenueAsync(
         Guid gymId, int year, int month, CancellationToken cancellationToken = default);
 
+    /// <summary>Suma de montos por gym en un mes de negocio, en una sola consulta (panel de SuperAdmin).</summary>
+    Task<IReadOnlyDictionary<Guid, decimal>> GetMonthlyRevenueByGymAsync(
+        int year, int month, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<MemberPaymentView>> GetRecentByMemberAsync(
         Guid memberId, int limit, CancellationToken cancellationToken = default);
 }

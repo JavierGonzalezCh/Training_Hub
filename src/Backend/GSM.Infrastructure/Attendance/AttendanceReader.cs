@@ -37,25 +37,26 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
         => Attendances.CountAsync(
             a => a.GymId == gymId && a.AttendanceDate == clock.Today, cancellationToken);
 
-    public Task<int> GetMonthlyCountAsync(
-        Guid gymId, int year, int month, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<Guid, int>> GetMonthlyCountsByGymAsync(
+        int year, int month, CancellationToken cancellationToken = default)
     {
         // AttendanceDate ya es un día de negocio (DateOnly): el mes se acota por fecha, sin rango UTC.
         var firstDay = new DateOnly(year, month, 1);
         var firstOfNext = firstDay.AddMonths(1);
 
-        return Attendances.CountAsync(
-            a => a.GymId == gymId && a.AttendanceDate >= firstDay && a.AttendanceDate < firstOfNext,
-            cancellationToken);
+        return await Attendances
+            .Where(a => a.AttendanceDate >= firstDay && a.AttendanceDate < firstOfNext)
+            .GroupBy(a => a.GymId)
+            .Select(g => new { GymId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.GymId, x => x.Count, cancellationToken);
     }
 
-    public async Task<DateOnly?> GetLastAttendanceDateAsync(
-        Guid gymId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<Guid, DateOnly>> GetLastAttendanceDateByGymAsync(
+        CancellationToken cancellationToken = default)
         => await Attendances
-            .Where(a => a.GymId == gymId)
-            .OrderByDescending(a => a.AttendanceDate)
-            .Select(a => (DateOnly?)a.AttendanceDate)
-            .FirstOrDefaultAsync(cancellationToken);
+            .GroupBy(a => a.GymId)
+            .Select(g => new { GymId = g.Key, Last = g.Max(a => a.AttendanceDate) })
+            .ToDictionaryAsync(x => x.GymId, x => x.Last, cancellationToken);
 
     public async Task<DateOnly?> GetLastVisitAsync(Guid memberId, CancellationToken cancellationToken = default)
     {

@@ -83,9 +83,23 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
         var active = dash.GymUsage.Single(u => u.GymId == w.ActiveGym);
         Assert.Equal(1, active.ActiveMembers);
         Assert.Equal(1, active.CheckInsThisMonth);
+        Assert.Equal(50_000m, active.MemberRevenueThisMonth);   // el de las 22:00 del 30-sep sí; el de la 01:00 del 1-oct, no
         Assert.Equal(new DateOnly(2026, 9, 20), active.LastCheckIn);
-        Assert.Equal(1, dash.Platform.ActiveMembers);
-        Assert.Equal(1, dash.Platform.CheckInsThisMonth);
+
+        var disabled = dash.GymUsage.Single(u => u.GymId == w.DisabledGym);
+        Assert.Equal(2, disabled.ActiveMembers);                // la baja no cuenta
+        Assert.Equal(3, disabled.CheckInsThisMonth);            // el de agosto no cuenta
+        Assert.Equal(20_000m, disabled.MemberRevenueThisMonth);
+        Assert.Equal(new DateOnly(2026, 9, 11), disabled.LastCheckIn);
+
+        var suspended = dash.GymUsage.Single(u => u.GymId == w.SuspendedGym);
+        Assert.Equal(0, suspended.ActiveMembers);
+        Assert.Equal(0, suspended.CheckInsThisMonth);
+        Assert.Equal(0m, suspended.MemberRevenueThisMonth);
+        Assert.Null(suspended.LastCheckIn);
+
+        Assert.Equal(3, dash.Platform.ActiveMembers);
+        Assert.Equal(4, dash.Platform.CheckInsThisMonth);
     }
 
     private IServiceScope Admin()
@@ -106,7 +120,7 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
 
         await db.Database.ExecuteSqlRawAsync(
             "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, " +
-            "attendance.attendances, superadmin.gym_subscriptions, superadmin.subscription_payments restart identity cascade;");
+            "attendance.attendances, payments.payments, superadmin.gym_subscriptions, superadmin.subscription_payments restart identity cascade;");
 
         var active = MakeGym(db, "dash-active", GymStatus.Active, LastDayOfSeptember.AddDays(20), price: 100_000m);
         var disabled = MakeGym(db, "dash-disabled", GymStatus.Active, LastDayOfSeptember.AddDays(-30), price: 300_000m);
@@ -118,6 +132,35 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
         db.Add(AttendanceEntity.Create(
             active, member.Id, AttendanceMethodEnum.Manual,
             new DateTimeOffset(2026, 9, 20, 15, 0, 0, TimeSpan.Zero), new DateOnly(2026, 9, 20)));
+
+        // Cifras distintas en el gym inhabilitado: si la agrupación por gym se cruzara o devolviera el
+        // total de la plataforma, el test lo delataría.
+        var beto = Member.Create(disabled, "Beto", "Uso", $"doc-{Guid.NewGuid():N}"[..12], new DateOnly(2026, 1, 1));
+        var carla = Member.Create(disabled, "Carla", "Uso", $"doc-{Guid.NewGuid():N}"[..12], new DateOnly(2026, 1, 1));
+        var baja = Member.Create(disabled, "Dani", "Baja", $"doc-{Guid.NewGuid():N}"[..12], new DateOnly(2026, 1, 1));
+        baja.Deactivate();
+        db.AddRange(beto, carla, baja);
+        foreach (var (who, day) in new[] { (beto, 10), (beto, 11), (carla, 10) })
+        {
+            db.Add(AttendanceEntity.Create(
+                disabled, who.Id, AttendanceMethodEnum.Manual,
+                new DateTimeOffset(2026, 9, day, 15, 0, 0, TimeSpan.Zero), new DateOnly(2026, 9, day)));
+        }
+
+        // Agosto: fuera del mes del panel.
+        db.Add(AttendanceEntity.Create(
+            disabled, carla.Id, AttendanceMethodEnum.Manual,
+            new DateTimeOffset(2026, 8, 31, 15, 0, 0, TimeSpan.Zero), new DateOnly(2026, 8, 31)));
+
+        // Pagos de socios en el borde del mes de negocio (Colombia, UTC-5): las 22:00 del 30-sep
+        // locales son las 03:00 UTC del 1-oct y cuentan en septiembre; la 01:00 del 1-oct, en octubre.
+        var staff = Guid.CreateVersion7();
+        db.Add(Payment.Create(active, member.Id, null, 50_000m, PaymentMethod.Cash, "Mensualidad", null, staff,
+            new DateTimeOffset(2026, 10, 1, 3, 0, 0, TimeSpan.Zero)));
+        db.Add(Payment.Create(active, member.Id, null, 70_000m, PaymentMethod.Cash, "Mensualidad", null, staff,
+            new DateTimeOffset(2026, 10, 1, 6, 0, 0, TimeSpan.Zero)));
+        db.Add(Payment.Create(disabled, beto.Id, null, 20_000m, PaymentMethod.Transfer, "Mensualidad", null, staff,
+            new DateTimeOffset(2026, 9, 15, 15, 0, 0, TimeSpan.Zero)));
 
         await db.SaveChangesAsync();
         return new World(active, disabled, suspended);

@@ -16,6 +16,12 @@ public interface IMemberReader
     Task<MemberInfo?> ResolveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<int> GetActiveCountAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Socios activos por gym, en una sola consulta (panel de SuperAdmin). Un gym sin socios
+    /// activos no aparece.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, int>> GetActiveCountsByGymAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed record MemberInfo(
