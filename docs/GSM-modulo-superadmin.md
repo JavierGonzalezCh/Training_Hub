@@ -34,11 +34,20 @@ Este es el módulo que gestiona los gimnasios **como clientes del SaaS**. Es el 
 
 ```
 si Gym.Status == suspended        → suspended      (manual, manda siempre)
-si Gym.Status == trial            → trial          (hasta trial_ends_on)
+si Gym.Status == trial            → trial          (solo hasta trial_ends_on)
 si hoy <= paid_through            → active
 si hoy <= paid_through + 15 días  → overdue
 en otro caso                      → disabled
 ```
+
+**`trial_ends_on` nulo no es una prueba indefinida:** sin fecha de fin el gym cae directo en la
+lógica de `paid_through`. Todo gym nace con `gym_status = trial`, así que tratar el nulo como
+"trial para siempre" dejaría a la plataforma entera fuera del bloqueo.
+
+**La suscripción se da de alta al crear el gym**, por un handler de `GymCreated`: plan el del gym,
+precio 0 (aún no negociado) y 30 días de prueba (`trial_ends_on` = `paid_through` = hoy + 30). Si
+ese handler fallara, el gym queda sin suscripción —y por tanto sin bloqueo, según la regla de
+abajo—; `PUT /api/admin/gyms/{id}/subscription` la repone, creándola si no existe.
 
 **`Gym.Status` no cambia.** El enum `gym_status` de la etapa 2 (`trial`/`active`/`suspended`) sigue tal cual y pasa a significar *estado comercial manual*; `overdue` y `disabled` son derivados y viven solo en el cálculo. Así este módulo **no migra nada** de Gyms.
 

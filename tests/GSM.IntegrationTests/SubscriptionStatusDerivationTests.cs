@@ -1,4 +1,4 @@
-using GSM.Domain.Gyms;
+﻿using GSM.Domain.Gyms;
 using GSM.Domain.SuperAdmin;
 using Xunit;
 
@@ -52,6 +52,24 @@ public sealed class SubscriptionStatusDerivationTests
         Assert.Equal(
             EffectiveSubscriptionStatus.Disabled,
             GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(-40), trialEndsOn: Today.AddDays(-1)));
+    }
+
+    [Fact]
+    public void Trial_without_an_end_date_does_not_shield_an_expired_subscription()
+    {
+        // Todo gym nace con `gym_status = trial`. Si el nulo valiera como "prueba indefinida",
+        // ningún cliente llegaría jamás a overdue ni a disabled y el bloqueo no serviría de nada.
+        Assert.Equal(
+            EffectiveSubscriptionStatus.Overdue,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(-1), trialEndsOn: null));
+
+        Assert.Equal(
+            EffectiveSubscriptionStatus.Disabled,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(-16), trialEndsOn: null));
+
+        Assert.Equal(
+            EffectiveSubscriptionStatus.Active,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(5), trialEndsOn: null));
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-using GSM.Domain.Common;
+﻿using GSM.Domain.Common;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Gyms;
 
@@ -137,7 +137,11 @@ public sealed class GymSubscription : BaseEntity
             return EffectiveSubscriptionStatus.Suspended;
         }
 
-        if (manualStatus == GymStatus.Trial && (trialEndsOn is not { } ends || today <= ends))
+        // El trial manda solo mientras dure: sin `trial_ends_on` no hay ventana de prueba que
+        // sostener, y el gym cae en la lógica de `paid_through` como cualquier otro. Tratar el
+        // nulo como "trial indefinido" dejaría fuera del bloqueo a todo gym recién creado, que
+        // nace con `gym_status = trial`.
+        if (manualStatus == GymStatus.Trial && trialEndsOn is { } ends && today <= ends)
         {
             return EffectiveSubscriptionStatus.Trial;
         }

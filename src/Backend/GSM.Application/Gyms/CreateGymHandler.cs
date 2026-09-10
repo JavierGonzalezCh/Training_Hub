@@ -1,4 +1,4 @@
-using GSM.Application.Common.Abstractions;
+﻿using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Application.Gyms.Abstractions;
 using GSM.Application.Gyms.Contracts;
@@ -55,7 +55,7 @@ public sealed class CreateGymHandler(
 
         logger.LogInformation("Gym {GymId} creado con owner {OwnerId}", gym.Id, ownerId);
 
-        await events.PublishAsync(new GymCreated(gym.Id, gym.Name), cancellationToken);
+        await events.PublishAsync(new GymCreated(gym.Id, gym.Name, gym.Plan), cancellationToken);
 
         return new CreateGymResponse(gym.Id, ownerId);
     }

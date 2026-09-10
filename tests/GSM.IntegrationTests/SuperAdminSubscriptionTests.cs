@@ -1,3 +1,5 @@
+﻿using GSM.Application.Gyms;
+using GSM.Application.Gyms.Contracts;
 using GSM.Application.SuperAdmin;
 using GSM.Application.SuperAdmin.Contracts;
 using GSM.Application.SuperAdmin.Public;
@@ -106,6 +108,52 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
                 .HandleAsync(world.ActiveGym, default);
             Assert.Equal("Active", reactivated.EffectiveStatus);
         }
+    }
+
+    [Fact]
+    public async Task Creating_a_gym_provisions_its_trial_subscription()
+    {
+        await SeedAsync();
+
+        Guid gymId;
+        using (var scope = SuperAdmin())
+        {
+            var created = await scope.ServiceProvider.GetRequiredService<CreateGymHandler>()
+                .HandleAsync(new CreateGymRequest(
+                    "Nuevo Gym", $"nuevo-{Guid.NewGuid():N}"[..18], null, null, null, GymPlan.Pro,
+                    new CreateGymOwner($"owner-{Guid.NewGuid():N}@nuevo.local", "Nuevo Owner", "OwnerPass_123")),
+                    default);
+            gymId = created.GymId;
+        }
+
+        using (var scope = SuperAdmin())
+        {
+            var detail = await scope.ServiceProvider.GetRequiredService<GetGymDetailHandler>()
+                .HandleAsync(gymId, default);
+
+            Assert.Equal("Pro", detail.Subscription.Plan);
+            Assert.Equal(Today.AddDays(30), detail.Subscription.TrialEndsOn);
+            Assert.Equal(Today.AddDays(30), detail.Subscription.PaidThrough);
+            Assert.Equal("Trial", detail.Subscription.EffectiveStatus);
+        }
+    }
+
+    [Fact]
+    public async Task Updating_the_subscription_of_a_gym_without_one_creates_it()
+    {
+        var world = await SeedAsync();
+
+        using var scope = SuperAdmin();
+        var detail = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
+            .HandleAsync(world.NoSubscriptionGym, new UpdateSubscriptionRequest(GymPlan.Enterprise, 250_000m), default);
+
+        Assert.Equal("Enterprise", detail.Plan);
+        Assert.Equal(250_000m, detail.MonthlyPrice);
+
+        // Nace sin cobertura por delante: la pone después un pago o una renovación.
+        Assert.Equal(Today, detail.PaidThrough);
+        Assert.NotNull(await scope.ServiceProvider.GetRequiredService<ISubscriptionReader>()
+            .GetEffectiveStatusAsync(world.NoSubscriptionGym, default));
     }
 
     private IServiceScope SuperAdmin()
