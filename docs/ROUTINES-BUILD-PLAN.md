@@ -1,5 +1,7 @@
 # Plan de construcción — Módulo Routines (Etapa 9)
 
+> **Estado: completado.** Todas las sub-etapas de la etapa 9 están construidas y validadas; este documento se conserva como registro de cómo se hizo. El «Punto de partida» describe el proyecto al arrancar esta etapa, no el actual; el estado vigente está en `CLAUDE.md`.
+
 > Documento de trabajo para Claude Code. La **especificación funcional** está en `docs/GSM-modulo-routines.md`; este archivo dice en qué orden se construye. Complementa `CLAUDE.md` y `docs/GSM-especificacion-tecnica.md`: **si algo aquí los contradice, ellos mandan.**
 >
 > **Ritmo:** una sub-etapa por vez, sin empezar la siguiente sin confirmación explícita. Cada una termina compilando, con su migración aplicada, sus endpoints respondiendo y sus tests en verde.

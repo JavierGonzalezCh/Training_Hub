@@ -46,7 +46,7 @@
 7. Middleware de excepciones → `ProblemDetails`.
 8. Registro por assembly de los casos de uso, los validators y los event handlers.
 9. `GET /health` y `GET /health/db`.
-10. Docker Compose con Postgres 16 local.
+10. ~~Docker Compose con Postgres 16 local.~~ **Sustituido:** PostgreSQL 18 nativo, sin contenedor de base de datos. Cómo levantar el entorno, en `README.md`.
 
 **Aceptación:** `dotnet run` levanta, `/health/db` responde 200, Scalar renderiza.
 

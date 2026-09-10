@@ -2,6 +2,10 @@
 
 
 
+> \*\*Estado (septiembre de 2026):\*\* el MVP y los módulos Routines, Classes y SuperAdmin están construidos. Actualizados al código: §1 (stack), §3 (catálogo) y §4 (comunicación entre módulos). El resto —en particular §5 a §7: entidades, casos de uso y contratos de API— conserva el \*\*diseño original del MVP\*\*: lo implementado difiere en detalles (rutas, campos, branding dentro de `Gym` en vez de una tabla de tema aparte). Las fuentes vigentes son `docs/BACKEND-MVP-PLAN.md` por etapa, la especificación de cada módulo (`docs/GSM-modulo-*.md`) y, para las rutas exactas, la referencia Scalar que sirve la API en desarrollo (`/scalar`).
+
+
+
 > \*\*GSM\*\* (Gym System Management) es el codename técnico interno mientras se define el nombre comercial final (candidato actual: LudOS). Usar `GSM` en solución, namespaces, proyectos y schemas de base de datos. El nombre comercial vive solo en datos de tenant (gym\_themes) y marketing — nunca en código.
 
 
@@ -26,7 +30,7 @@ Este documento es la especificación completa para que Claude Code implemente el
 
 | ORM | Entity Framework Core | EF Core 10 |
 
-| Base de datos | PostgreSQL | 16 |
+| Base de datos | PostgreSQL | 18 |
 
 | Auth | JWT + ASP.NET Identity | — |
 
@@ -40,7 +44,7 @@ Este documento es la especificación completa para que Claude Code implemente el
 
 | Mapeo DTO ↔ Entidad | Mapperly | — |
 
-| Eventos in-process | MediatR | — |
+| Eventos in-process | Despachador propio (`IDomainEventPublisher`), sin MediatR | — |
 
 | Logging | Serilog | structured logging |
 
@@ -112,11 +116,13 @@ GSM.API/Controllers/{Módulo}Controller.cs
 
 \- Su `Public/I{Módulo}Reader` (lectura síncrona)
 
-\- Eventos de dominio vía MediatR (reacción asíncrona in-process)
+\- Eventos de dominio vía el despachador propio `IDomainEventPublisher` (reacción asíncrona in-process)
+
+\- Como excepción, las tres interfaces de escritura de §4.2
 
 
 
-Si el producto crece lo suficiente para justificarlo, esta disciplina permite migrar a monolito modular con proyectos separados sin reescritura — solo formalización de fronteras que ya existen en la práctica.
+Si el producto crece lo suficiente para justificarlo, esta disciplina permite migrar a monolito modular con proyectos separados sin reescritura — solo formalización de fronteras que ya existen en la práctica. Salvedad: hoy hay dependencias circulares entre módulos (§4.5) que habría que romper antes de separarlos.
 
 
 
@@ -188,39 +194,39 @@ Las excepciones de dominio (`DomainException`, `NotFoundException`, `ConflictExc
 
 
 
-| # | Módulo | Responsabilidad | Fase |
+| # | Módulo | Responsabilidad | Fase · estado |
 
 |---|--------|------------------|------|
 
-| 1 | Identity | Autenticación, JWT, roles | MVP |
+| 1 | Identity | Autenticación, JWT, roles | MVP · hecho |
 
-| 2 | Gyms | Tenant raíz, theming, feature flags | MVP |
+| 2 | Gyms | Tenant raíz, theming, feature flags | MVP · hecho |
 
-| 3 | Members | Perfil del asistente, QR | MVP |
+| 3 | Members | Perfil del asistente, QR | MVP · hecho |
 
-| 4 | Memberships | Planes y estado de membresía | MVP |
+| 4 | Memberships | Planes y estado de membresía | MVP · hecho |
 
-| 5 | Payments | Registro manual de cobros | MVP |
+| 5 | Payments | Registro manual de cobros | MVP · hecho |
 
-| 6 | Attendance | Check-in QR/manual | MVP |
+| 6 | Attendance | Check-in QR/manual | MVP · hecho |
 
-| 7 | Achievements | Logros y rachas | MVP |
+| 7 | Achievements | Logros y rachas | MVP · hecho |
 
-| 8 | Routines | Rutinas de entrenamiento | Fase 2 |
+| 8 | Routines | Rutinas de entrenamiento | Fase 2 · hecho (etapa 9) |
 
-| 9 | Classes | Clases grupales | Fase 2 |
+| 9 | Classes | Clases grupales | Fase 2 · hecho (etapa 10) |
 
-| 10 | Community | Feed, likes, comentarios | Fase 2 |
+| 10 | Community | Feed, likes, comentarios | Fase 2 · sin planificar |
 
-| 11 | Reports | Agregaciones/KPIs (sin entidades propias, solo lee de otros módulos) | Fase 2 |
+| 11 | Reports | Agregaciones/KPIs (sin entidades propias, solo lee de otros módulos) | Fase 2 · sin planificar |
 
-| 12 | Locations | Multi-sede | Fase 3 |
+| 12 | Locations | Multi-sede | Fase 3 · sin planificar |
 
-| 13 | SuperAdmin | Clientes SaaS, suscripciones, métricas | Fase 3 |
+| 13 | SuperAdmin | Clientes SaaS, suscripciones, métricas | Fase 3 · hecho (etapa 11) |
 
 
 
-Solo los módulos 1–7 (MVP) tienen especificación completa en este documento. Los módulos de Fase 2/3 quedan listados para preservar el catálogo, pero sin detalle de entidades/casos de uso todavía.
+Solo los módulos 1–7 (MVP) tienen especificación completa en este documento. Routines, Classes y SuperAdmin tienen cada uno la suya: `docs/GSM-modulo-routines.md`, `docs/GSM-modulo-classes.md` y `docs/GSM-modulo-superadmin.md`. Community, Reports y Locations siguen solo listados, sin especificar.
 
 
 
@@ -236,7 +242,15 @@ Orden de implementación (respeta dependencias): \*\*Identity → Gyms → Membe
 
 
 
-\### 4.1 Interfaces públicas (lectura síncrona)
+> \*\*Actualizada al código (septiembre de 2026).\*\* El diseño original de esta sección preveía MediatR, escrituras cruzadas solo por evento y que `PaymentRecorded` renovase la membresía. Lo construido difiere en los tres puntos. Las tablas de interfaces y el grafo se generaron a partir del código. Si algo aquí choca con `CLAUDE.md`, manda `CLAUDE.md`.
+
+
+
+Dos vías y una excepción: \*\*lecturas\*\* síncronas por `Public/I{Módulo}Reader`, \*\*reacciones\*\* por eventos in-process, y \*\*tres escrituras síncronas\*\* justificadas por atomicidad o porque su resultado va en la misma respuesta.
+
+
+
+\### 4.1 Interfaces públicas de lectura
 
 
 
@@ -244,27 +258,53 @@ Orden de implementación (respeta dependencias): \*\*Identity → Gyms → Membe
 
 |--------|----------|---------|
 
-| Identity | `IUserReader` | `GetUserById`, `GetUserRole`, `GetGymIdForUser` |
+| Achievements | `IAchievementReader` | `GetForMemberAsync` |
 
-| Gyms | `IGymReader` | `GetGymById`, `GetGymTheme`, `IsFeatureEnabled(gymId, flagKey)` |
+| Attendance | `IAttendanceReader` | `GetVisitCountAsync`, `GetStreakAsync`, `GetAttendanceDatesAsync`, `GetTodayCountAsync`, `GetMonthlyCountAsync`, `GetLastAttendanceDateAsync`, `GetLastVisitAsync` |
 
-| Members | `IMemberReader` | `GetMemberById`, `GetMemberByQrCode`, `MemberExists` |
+| Classes | `IClassReader` | `GetAttendedCountAsync`, `GetUpcomingBookingsAsync`, `GetTodaySessionCountAsync` |
 
-| Memberships | `IMembershipReader` | `HasActiveMembership(memberId)`, `GetActiveMembership(memberId)` |
+| Gyms | `IGymReader` | `ExistsAsync`, `GetBrandingAsync`, `GetFeatureFlagsAsync`, `GetAdminViewAsync` |
 
-| Payments | `IPaymentReader` | `GetPaymentHistory(memberId)` |
+| Identity | `IIdentityReader` | `GetUserAsync` |
 
-| Attendance | `IAttendanceReader` | `GetLastCheckIn(memberId)`, `GetAttendanceHistory(memberId)` |
+| Members | `IMemberReader` | `GetAsync`, `ExistsAsync`, `ResolveByQrAsync`, `ResolveByUserIdAsync`, `GetActiveCountAsync` |
 
-| Achievements | `IAchievementReader` | `GetMemberAchievements(memberId)` |
+| Memberships | `IMembershipReader` | `GetActiveAsync`, `IsActiveAsync`, `GetExpiringAsync`, `GetExpiredCountAsync`, `GetExpiringCountAsync`, `BelongsToMemberAsync` |
+
+| Payments | `IPaymentReader` | `GetMonthlyRevenueAsync`, `GetRecentByMemberAsync` |
+
+| Routines | `IRoutineReader` | `GetActiveRoutineCountAsync`, `GetActiveRoutineStartAsync`, `GetTrainingCalendarAsync`, `GetCompletedSessionCountAsync` |
+
+| SuperAdmin | `ISubscriptionReader` | `GetEffectiveStatusAsync`, `IsWriteAllowedAsync`, `GetStatusViewAsync` |
 
 
 
-Ningún módulo expone escritura a otros vía interfaz — solo lectura. Escrituras cruzadas van por evento.
+\### 4.2 Escrituras cruzadas permitidas
 
 
 
-\### 4.2 Eventos de dominio (MediatR, in-process)
+| Módulo dueño | Interfaz | Métodos | Por qué es síncrona |
+
+|---|---|---|---|
+
+| Achievements | `IAchievementService` | `EvaluateForMemberAsync`, `GetOrGrantStreakFreezesAsync`, `ConsumeStreakFreezesAsync` | El check-in devuelve los logros desbloqueados en su propia respuesta; el compositor de racha consume los congeladores. |
+
+| Gyms | `IGymAdministration` | `SetCommercialStatusAsync` | `suspend` / `reactivate` de SuperAdmin: el cambio de estado comercial es la respuesta misma de la operación. |
+
+| Identity | `IUserProvisioning` | `CreateGymUserAsync` | Alta de gym y canje de invitación crean el `AppUser` en la misma transacción. |
+
+
+
+No se añade una cuarta sin agotar el camino normal (ver `CLAUDE.md`).
+
+
+
+\### 4.3 Eventos de dominio (despachador propio, in-process)
+
+
+
+Despachador propio (`IDomainEventPublisher`), sin MediatR. La publicación ocurre \*\*después\*\* del commit del caso de uso; un handler que falla se loguea y no tumba la operación.
 
 
 
@@ -272,53 +312,87 @@ Ningún módulo expone escritura a otros vía interfaz — solo lectura. Escritu
 
 |--------|---------|---------|--------|
 
-| `PaymentRecorded` | Payments | Memberships | Actualiza `Membership.EndDate` |
+| `GymCreated` | Gyms | Achievements · SuperAdmin | Siembra los 5 logros por defecto · da de alta la suscripción de prueba (30 días) |
 
-| `MemberCheckedIn` | Attendance | Achievements | Evalúa condiciones de logros/rachas |
+| `MemberInvited` | Members | Members | Envía el correo de invitación |
 
-| `AchievementUnlocked` | Achievements | Notifications (infra) | Envía push notification |
+| `MemberRegistered` | Members | Members | Envía el correo de bienvenida |
 
+| `RoutineSessionLogged` | Routines | Achievements | Evalúa los logros de tipo `routine_sessions` |
 
-
-\### 4.3 Dependencia síncrona explícita permitida
-
-
-
-`Attendance.CheckInMember` invoca `IMembershipReader.HasActiveMembership(memberId)` como validación de precondición antes de registrar el check-in.
+| `ClassAttendanceRegistered` | Classes | Attendance · Achievements | Registra el check-in del día (idempotente) · evalúa los logros de tipo `classes` |
 
 
 
-\### 4.4 Servicio transversal (no es módulo de negocio)
+\*\*Publicados sin consumidor todavía\*\* — disparadores reservados para push y correo: `CheckInRegistered`, `AchievementUnlockedEvent`, `MemberCreated`, `MemberDeactivated`, `MembershipCreated`, `MembershipRenewed`, `PaymentRecorded`, `RoutineAssigned`, `ClassSessionCancelled`.
 
 
 
-`INotificationService` (en `Infrastructure/Notifications/`) — cualquier módulo puede invocarlo para push/email. Sin entidades propias.
+\*\*`PaymentRecorded` no renueva la membresía:\*\* pago y membresía son operaciones separadas (etapa 5). Y el desbloqueo de logros por check-in \*\*no\*\* va por evento: es la escritura síncrona de `IAchievementService` (§4.2).
 
 
 
-\### 4.5 Grafo de dependencias
+\### 4.4 Servicios transversales (no son módulos de negocio)
+
+
+
+\- `IClock` — toda lectura de tiempo (`UtcNow`, `Today`, `BusinessDayRange`, `ToBusinessLocal`), en la zona del gym.
+
+\- `IEmailSender` — Resend, con `LoggingEmailSender` de respaldo mientras no haya API key.
+
+\- `IFileStorage` — Cloudflare R2, con `DisabledFileStorage` de respaldo mientras no haya credenciales.
+
+\- `GSM.Application/MemberStreak/` — compositor de la racha (Attendance + Routines + congeladores de Achievements).
+
+
+
+Push (FCM/APNs) no existe todavía. El `INotificationService` del diseño original nunca se construyó.
+
+
+
+\### 4.5 Grafo de dependencias síncronas
+
+
+
+Quién lee (o escribe) a quién, calculado sobre el código sin contar comentarios. `API` son los controllers; `Dashboard` y `MemberStreak` son compositores, no módulos de negocio.
 
 
 
 ```
+Identity     ← API, Gyms, Members
+Gyms         ← API, Classes, Members, Routines, SuperAdmin
+Members      ← Achievements, Attendance, Classes, Dashboard, MemberStreak, Memberships, Payments, Routines, SuperAdmin
+Memberships  ← API, Attendance, Classes, Dashboard, Payments
+Payments     ← API, Dashboard, SuperAdmin
+Attendance   ← Achievements, Dashboard, MemberStreak, SuperAdmin
+Achievements ← Attendance, MemberStreak
+Routines     ← Achievements, MemberStreak
+Classes      ← Achievements
+SuperAdmin   ← API, Gyms, Identity
 
-Identity ← (todos)
-
-Gyms ← (todos)
-
-Members ← Memberships, Payments, Attendance
-
-Memberships ← Attendance (solo lectura)
-
-Payments → evento → Memberships
-
-Attendance → evento → Achievements
-
+Escrituras síncronas (§4.2):
+IAchievementService (Achievements) ← Attendance, MemberStreak
+IGymAdministration  (Gyms)         ← SuperAdmin
+IUserProvisioning   (Identity)     ← API, Gyms, Members
 ```
 
 
 
-Sin ciclos, sin escrituras cruzadas directas.
+\*\*Hay dependencias circulares, y el diseño original no las preveía.\*\* Nacen de dos sitios:
+
+
+
+\- \*\*`Attendance ↔ Achievements`\*\* (etapa 7). El check-in llama a `IAchievementService` para devolver los logros en su propia respuesta, y Achievements lee `IAttendanceReader` para evaluarlos. Es la excepción de §4.2: deliberada y acotada a esos dos módulos.
+
+\- \*\*`ISubscriptionReader`\*\* (etapa 11.2). `LoginHandler` (Identity) lo consulta para cerrar el paso a un gym suspendido, y `GetGymHandler` (Gyms) para devolver el bloque `subscription`. Como SuperAdmin a su vez lee Gyms, Members, Attendance y Payments para su panel, esas dos lecturas cierran `Identity → SuperAdmin → Gyms → Identity` y dejan a los diez módulos en una sola componente. Sin ellas, el único ciclo sería `Attendance ↔ Achievements`.
+
+
+
+No causan fallos en ejecución: son lecturas entre interfaces de Application resueltas por DI, y la suite completa las ejercita. El coste es otro: \*\*el orden de §3 ya no es una jerarquía estricta\*\*, y separar los módulos en proyectos (§2.2) exigiría romper antes estos ciclos. Para los de SuperAdmin hay un camino conocido, el mismo que usó el MVP con `currentMembership`: componer el dato en el controller en vez de en el caso de uso.
+
+
+
+Sin FK entre schemas: toda referencia cruzada se valida en el caso de uso contra el reader del módulo dueño.
 
 
 

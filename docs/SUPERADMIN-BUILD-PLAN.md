@@ -1,5 +1,9 @@
 # Plan de construcción — Módulo SuperAdmin (Etapa 11)
 
+> **Estado: completado.** Las sub-etapas 11.1 a 11.5 están construidas y validadas; este documento se conserva como registro de cómo se hizo. El «Punto de partida» describe el proyecto al arrancar esta etapa, no el actual; el estado vigente está en `CLAUDE.md`.
+>
+> **Corregido después del cierre:** una auditoría encontró dos defectos de 11.1 que los tests de la propia etapa ya delataban. (1) `trial_ends_on` nulo se trataba como prueba indefinida, así que ningún gym llegaba nunca a `overdue` ni a `disabled`. (2) No había forma de crear la suscripción de un gym nuevo. Las reglas vigentes están en `docs/GSM-modulo-superadmin.md`.
+
 > Documento de trabajo para Claude Code. La **especificación funcional** está en `docs/GSM-modulo-superadmin.md`; este archivo dice en qué orden se construye. Complementa `CLAUDE.md`: **si algo aquí lo contradice, él manda.**
 >
 > **Ritmo:** una sub-etapa por vez, sin empezar la siguiente sin confirmación explícita. Cada una termina compilando, con su migración aplicada, sus endpoints respondiendo y **la suite completa en verde**.

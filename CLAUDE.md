@@ -11,22 +11,26 @@ GSM (Gym System Management) es el codename técnico interno de un sistema de ges
 | Módulo | Especificación | Plan |
 |---|---|---|
 | Routines (etapa 9) | `docs/GSM-modulo-routines.md` | `docs/ROUTINES-BUILD-PLAN.md` |
-| Classes (etapa 10) | `docs/GSM-modulo-classes.md` | pendiente |
+| Classes (etapa 10) | `docs/GSM-modulo-classes.md` | `docs/CLASSES-BUILD-PLAN.md` |
 | SuperAdmin (etapa 11) | `docs/GSM-modulo-superadmin.md` | `docs/SUPERADMIN-BUILD-PLAN.md` |
 
 ## Estado actual
 
-Fase: **MVP terminado, arrancando Fase 2.**
+Fase: **Fase 2 y 3 construidas; falta desplegar.**
 
-Los 7 módulos del MVP (etapas 0–7) y **Routines (etapa 9)** están implementados y validados end-to-end, con **48 tests** de integración contra Postgres. De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de Railway. R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
+Las etapas 0–7 (MVP), **9 (Routines)**, **10 (Classes)** y **11 (SuperAdmin, sub-etapas 11.1 a 11.5)** están implementadas y validadas end-to-end, con **106 tests** de integración contra Postgres.
 
-En construcción: **etapa 10 — Classes**. Después, **etapa 11 — SuperAdmin**, por sub-etapas 11.1 a 11.5 (ver su plan): es el módulo que permite cobrar a los gimnasios y cortar el servicio a quien no paga.
+De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de Railway. R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
+
+Ningún módulo nuevo está en construcción. Lo siguiente es el despliegue; los módulos sin planificar (Community, Reports, Locations) siguen sin empezar.
+
+**Cómo levantar el entorno local está en `README.md`** — Postgres 18 nativo, bases `gsm` y `gsm_test`, migraciones a mano (la API no migra al arrancar).
 
 Trabajamos incremental: Domain → Infrastructure/DbContext+migración → Application → API. **No implementes más de una etapa (ni sub-etapa) sin confirmación.**
 
 ## Stack
 
-.NET 10 · ASP.NET Core · EF Core 10 · PostgreSQL 16 · JWT + ASP.NET Identity · FluentValidation · Mapperly · Serilog
+.NET 10 · ASP.NET Core · EF Core 10 · PostgreSQL 18 · JWT + ASP.NET Identity · FluentValidation · Mapperly · Serilog
 
 Sin MediatR: los comandos se invocan directo y los eventos in-process usan un despachador propio (ver abajo).
 
@@ -55,12 +59,13 @@ GSM.Application/{Módulo}/
 
 #### Excepción: escritura cruzada vía `Public/`
 
-Hay dos casos donde un módulo necesita **escribir** en otro de forma síncrona, porque la operación debe ser atómica o su resultado forma parte de la respuesta. Se resuelven con una interfaz de escritura en el `Public/` del módulo dueño, nunca tocando su repositorio ni su entidad:
+Hay tres casos donde un módulo necesita **escribir** en otro de forma síncrona, porque la operación debe ser atómica o su resultado forma parte de la respuesta. Se resuelven con una interfaz de escritura en el `Public/` del módulo dueño, nunca tocando su repositorio ni su entidad:
 
 - `Identity.Public.IUserProvisioning` — alta de gym y canje de invitación crean el `AppUser` dentro de la misma transacción del caso de uso. Un evento dejaría el gym o el miembro sin cuenta si el handler falla.
 - `Achievements.Public.IAchievementService` — el check-in evalúa los logros de forma síncrona para devolver los desbloqueos en su propia respuesta (decisión (b) de la etapa 7: mejor UX que hacer que la app consulte después).
+- `Gyms.Public.IGymAdministration` — `suspend` y `reactivate` de SuperAdmin (etapa 11.1) escriben `Gym.Status`, el estado comercial manual. El gym suspendido **es** la respuesta de la operación, no una reacción a ella; además el bloqueo depende de ese dato y no puede quedar a medias.
 
-**Antes de añadir una tercera, agota el camino normal.** La excepción se justifica solo por atomicidad o porque el resultado va en la misma respuesta; "es más cómodo" no basta. La regla sigue siendo: lecturas por `I{Módulo}Reader`, reacciones por evento.
+**Antes de añadir una cuarta, agota el camino normal.** La excepción se justifica solo por atomicidad o porque el resultado va en la misma respuesta; "es más cómodo" no basta. La regla sigue siendo: lecturas por `I{Módulo}Reader`, reacciones por evento. El alta de suscripción de la etapa 11 es el contraejemplo a imitar: como no forma parte de la respuesta del alta de gym, se resolvió con un handler de `GymCreated`, no con una excepción.
 
 ### Casos de uso
 
@@ -78,7 +83,9 @@ Los handlers se registran por assembly scanning. La publicación ocurre **despu�
 
 Módulos MVP, ya implementados: **Identity → Gyms → Members → Memberships → Payments → Attendance → Achievements.**
 
-Fase 2/3: **Routines** (construido), **Classes** (en construcción) y **SuperAdmin** (especificado, pendiente).
+Fase 2/3, los tres construidos: **Routines** (9), **Classes** (10) y **SuperAdmin** (11).
+
+Fuera de esa cadena vive `GSM.Application/MemberStreak/`, que no es un módulo de negocio sino el compositor de la racha: junta Attendance, Routines y el congelador de Achievements para resolver `GET /api/members/{id}/streak` y `GET /api/me/streak`.
 
 Módulos sin planificar todavía (no implementar): Community, Reports, Locations.
 
@@ -104,9 +111,11 @@ Un middleware global en la API mapea por tipo a `ProblemDetails`. Cualquier otra
 
 Mapperly (source generator), un mapper parcial estático por módulo. Las consultas de lectura pesadas (listados paginados, dashboard) usan proyección explícita con `Select` en la query, no mapeo post-materialización.
 
+Routines y Classes mapean a mano (`RoutineMapper`, `ClassMapper`): sus DTOs son árboles anidados que Mapperly no resuelve sin más configuración de la que ahorra. Es la excepción aceptada, no un descuido.
+
 ## Base de datos
 
-Un schema de PostgreSQL por módulo (`identity`, `gyms`, `members`, `memberships`, `payments`, `attendance`, `achievements`, `routines`; `superadmin` y `classes` al construirse). Convenciones: `snake_case`, tablas en plural, PK siempre `id` (uuid), FK `{tabla_singular}_id`, índices `ix_{tabla}_{columna}`, constraints `fk_{tabla}_{tabla_referenciada}`, enums nativos de Postgres.
+Un schema de PostgreSQL por módulo, los diez ya creados: `identity`, `gyms`, `members`, `memberships`, `payments`, `attendance`, `achievements`, `routines`, `classes`, `superadmin`. Convenciones: `snake_case`, tablas en plural, PK siempre `id` (uuid), FK `{tabla_singular}_id`, índices `ix_{tabla}_{columna}`, constraints `fk_{tabla}_{tabla_referenciada}`, enums nativos de Postgres.
 
 No hay FK entre schemas de módulos distintos: la referencia se valida en el caso de uso contra el `I{Módulo}Reader` correspondiente.
 
@@ -125,7 +134,7 @@ No hay FK entre schemas de módulos distintos: la referencia se valida en el cas
 
 **MVP (hecho):** 7 módulos — Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements — detallados en `docs/GSM-especificacion-tecnica.md`.
 
-**Fase 2/3:** Routines (hecho), Classes (en construcción) y SuperAdmin (especificado, pendiente) — ver la tabla de documentos arriba.
+**Fase 2/3 (hecho):** Routines (9), Classes (10) y SuperAdmin (11) — ver la tabla de documentos arriba.
 
 No construyas Community, Reports ni Locations todavía.
 
@@ -135,8 +144,17 @@ No construyas Community, Reports ni Locations todavía.
 - **La racha pasa a medirse contra el calendario de la rutina** (el descanso planificado no la rompe). `StreakCalculator` acepta un calendario opcional y **sin él se comporta igual que hoy**; el cálculo lo compone un handler, porque Attendance (6) no puede depender de Routines (9).
 - **El congelador de racha vive en `achievements`**, no en Routines: aplica también a socios sin rutina.
 
-### Notas de SuperAdmin (etapa 11), antes de construirlo
+### Notas de Classes que afectan a módulos ya cerrados
 
-- **`Gym.Status` y `Gym.Plan` existen desde la etapa 2 y hoy no hacen nada.** SuperAdmin les da sentido sin migrarlos: `gym_status` pasa a significar *estado comercial manual* (`trial`/`active`/`suspended`) y los estados `overdue` y `disabled` se **derivan** de `paid_through`, nunca se persisten — mismo criterio que las membresías `expired` de la etapa 4.
+- **Las sesiones no se generan por adelantado: el horario es una proyección.** Una ocurrencia solo se materializa cuando hay algo que guardar (reserva, asistencia, cancelación puntual), y el índice único `(class_id, session_date)` la hace idempotente. Mismo patrón perezoso que el congelador de racha, y por el mismo motivo: **no hay scheduler en el sistema.**
+- **Asistir a una clase registra el check-in del día por evento**, no por escritura cruzada: `ClassAttendanceRegistered` lo consume un handler de Attendance, que ya era idempotente por día desde la etapa 6.
+- **`class_booking_status` persiste `noshow`, no `no_show`** (se registró con `LowerCaseNameTranslator` donde tocaba `SnakeCaseNameTranslator`). La especificación dice `no_show`; corregirlo exige migración del enum, así que de momento manda lo que hay en la base.
+
+### Notas de SuperAdmin (etapa 11)
+
+- **`Gym.Status` y `Gym.Plan` vienen de la etapa 2 y SuperAdmin les dio sentido sin migrarlos:** `gym_status` significa *estado comercial manual* (`trial`/`active`/`suspended`) y los estados `overdue` y `disabled` se **derivan** de `paid_through`, nunca se persisten — mismo criterio que las membresías `expired` de la etapa 4.
+- **`trial_ends_on` nulo no es una prueba indefinida.** Todo gym nace con `gym_status = trial`, así que si el nulo valiera como "trial para siempre" ningún cliente llegaría nunca a `overdue` ni a `disabled` y el bloqueo no serviría de nada. Sin fecha de fin, manda `paid_through`.
+- **La suscripción se da de alta al crear el gym**, por un handler de `GymCreated` (30 días de prueba, precio 0). Si ese handler fallara, el gym queda sin suscripción y opera con normalidad; `PUT /api/admin/gyms/{id}/subscription` la repone, creándola si no existe.
 - **El bloqueo por impago va en un filtro global de la API**, no repartido por casos de uso: es transversal como el multi-tenancy. Un gym **sin suscripción no se bloquea** — ante un dato faltante se deja pasar, porque dejar tirado a un cliente es peor error que no cortarle a un moroso.
 - **Los pagos del SaaS no se mezclan con los del gym.** Se comparte el enum `payment_method` y nada más: son bolsillos distintos y no pueden acabar en el mismo cierre de caja.
+- **La impersonación es de solo lectura y la impone el mismo filtro**: token de 15 minutos que conserva la identidad real del superadmin en `sub` y solo admite `GET`.
