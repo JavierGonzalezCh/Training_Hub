@@ -1,5 +1,6 @@
 using GSM.Client;
 using GSM.Client.Http;
+using GSM.UI.Shared;
 using GSM.Web;
 using GSM.Web.Platform;
 using Microsoft.AspNetCore.Components.Web;
@@ -16,5 +17,6 @@ var apiBaseUrl = builder.Configuration["Api:ApiBaseUrl"]
 builder.Services.AddMudServices();
 builder.Services.AddScoped<ITokenStore, LocalStorageTokenStore>();
 builder.Services.AddGsmClient(apiBaseUrl);
+builder.Services.AddGsmUiShared();
 
 await builder.Build().RunAsync();

@@ -1,0 +1,115 @@
+/* Identidad visual GSM v4.0. Anton para marca/marketing; Inter ya lo trae el tema de MudBlazor. */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+    --gsm-base: #0F0E0D;
+    --gsm-panel: #191817;
+    --gsm-border: #282624;
+    --gsm-muted: #4A4844;
+    --gsm-silver: #8A8480;
+    --gsm-cloud: #EEEBE6;
+    --gsm-red: #B50016;
+    --gsm-red-hot: #E8001E;
+    --gsm-cyan: #0AAFCA;
+}
+
+/* Wordmark "GSM": bloque compuesto, segmento final en rojo (imita las barras de peso). */
+.gsm-wordmark {
+    font-family: 'Anton', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    display: inline-flex;
+    align-items: baseline;
+}
+
+.gsm-wordmark .accent {
+    color: var(--gsm-red);
+    border-left: 0.28em solid var(--gsm-red);
+    padding-left: 0.12em;
+    margin-left: 0.06em;
+}
+
+/* Titulares de marketing / hero (login, landing): Anton, mayúsculas. */
+.gsm-display {
+    font-family: 'Anton', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 1.05;
+}
+
+.gsm-mono {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+}
+
+.gsm-kicker {
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.75rem;
+    color: var(--gsm-red);
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+}
+
+.gsm-kicker::before {
+    content: "";
+    display: inline-block;
+    width: 1.5em;
+    height: 2px;
+    background: var(--gsm-red);
+}
+
+/* Fondo de las pantallas de acceso: grid sutil en rojo + dos resplandores radiales. */
+.gsm-auth-backdrop {
+    min-height: 100vh;
+    background-color: var(--gsm-base);
+    background-image:
+        radial-gradient(600px circle at 90% 0%, rgba(181, 0, 22, 0.16), transparent 60%),
+        radial-gradient(600px circle at 5% 100%, rgba(10, 175, 202, 0.12), transparent 60%),
+        linear-gradient(rgba(181, 0, 22, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(181, 0, 22, 0.06) 1px, transparent 1px);
+    background-size: auto, auto, 42px 42px, 42px 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.gsm-auth-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--gsm-panel);
+    border: 1px solid var(--gsm-border);
+    border-radius: 10px;
+    padding: 2.25rem 2rem;
+}
+
+/* Sidebar del panel: ítem activo con fondo rojo translúcido y borde izquierdo. */
+.gsm-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    color: var(--gsm-silver);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+}
+
+.gsm-nav-link:hover {
+    color: var(--gsm-cloud);
+    background: rgba(238, 235, 230, 0.04);
+}
+
+.gsm-nav-link.active {
+    color: var(--gsm-cloud);
+    background: rgba(181, 0, 22, 0.14);
+    border-left-color: var(--gsm-red);
+}
+
+.gsm-status-active { color: var(--gsm-cyan); }
+.gsm-status-overdue { color: var(--gsm-red-hot); }
+.gsm-status-neutral { color: var(--gsm-silver); }

@@ -1,0 +1,8 @@
+@page "/admin"
+@layout PlaceholderLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+
+<PageTitle>SuperAdmin — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">Panel SuperAdmin</MudText>
+<MudText Color="Color.Secondary">Se construye en F8 (docs/FRONTEND-BUILD-PLAN.md).</MudText>

@@ -1,0 +1,16 @@
+@* Oculta contenido que la API rechazaría para el rol actual. Una sola directiva para todo:
+   usa los mismos nombres de rol que la API (ver GsmRoles). *@
+<AuthorizeView Roles="@Roles">
+    <Authorized>
+        @ChildContent
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    /// <summary>Roles separados por coma, p. ej. <c>"owner"</c> o <c>"owner,staff"</c>.</summary>
+    [Parameter, EditorRequired]
+    public string Roles { get; set; } = string.Empty;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

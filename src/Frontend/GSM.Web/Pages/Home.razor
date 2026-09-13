@@ -1,43 +1,37 @@
 @page "/"
-@using GSM.Client.Generated
-@inject IHealthClient Health
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@implements IDisposable
+@inject GymContext GymContext
 
-<PageTitle>GSM</PageTitle>
+<PageTitle>Dashboard — GSM</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">GSM — panel</MudText>
-<MudText Class="mb-4">Esqueleto F0. Comprobación de conectividad con la API.</MudText>
+<MudText Typo="Typo.h4" Class="mb-1">Dashboard</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
+    @(GymContext.Gym?.Name ?? "—") · sesión de @(GymContext.Role ?? "—")
+</MudText>
 
-@if (_state == State.Checking)
-{
-    <MudProgressCircular Indeterminate="true" />
-}
-else if (_state == State.Ok)
-{
-    <MudAlert Severity="Severity.Success">La API responde: @_detail</MudAlert>
-}
-else
-{
-    <MudAlert Severity="Severity.Error">No se ha podido contactar con la API: @_detail</MudAlert>
-}
+<MudGrid>
+    <MudItem xs="12" sm="6" md="3">
+        <StatCard Label="Miembros activos" Value="—" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <StatCard Label="En sala ahora" Value="—" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <StatCard Label="Pagos vencidos" Value="—" Accent="Color.Error" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <StatCard Label="Ingresos del mes" Value="—" Accent="Color.Secondary" />
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mt-8">
+    El panel se construye por etapas (ver <span class="gsm-mono">docs/FRONTEND-BUILD-PLAN.md</span>).
+    Esta pantalla se completa en F5 con datos reales.
+</MudAlert>
 
 @code {
-    private enum State { Checking, Ok, Failed }
+    protected override void OnInitialized() => GymContext.Changed += StateHasChanged;
 
-    private State _state = State.Checking;
-    private string? _detail;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            await Health.HealthAsync();
-            _detail = "/health 200";
-            _state = State.Ok;
-        }
-        catch (Exception ex)
-        {
-            _detail = ex.Message;
-            _state = State.Failed;
-        }
-    }
+    public void Dispose() => GymContext.Changed -= StateHasChanged;
 }

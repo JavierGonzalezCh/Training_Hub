@@ -1,0 +1,15 @@
+<MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+    <MudText Typo="Typo.overline" Color="Color.Secondary">@Label</MudText>
+    <MudText Typo="Typo.h4" Color="@Accent" Class="gsm-mono">@Value</MudText>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public Color Accent { get; set; } = Color.Default;
+}

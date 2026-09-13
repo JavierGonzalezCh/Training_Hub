@@ -1,0 +1,26 @@
+@inject GymContext GymContext
+
+@if (GymContext.SubscriptionState == SubscriptionState.Overdue)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true" Class="gsm-banner" Icon="@Icons.Material.Filled.WarningAmber">
+        Pago pendiente.
+        @if (GymContext.Subscription?.DaysUntilDisabled is { } days)
+        {
+            <span>&nbsp;En @days día@(days == 1 ? "" : "s") el gimnasio pasa a solo lectura.</span>
+        }
+    </MudAlert>
+}
+else if (GymContext.SubscriptionState == SubscriptionState.Disabled)
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="gsm-banner" Icon="@Icons.Material.Filled.Lock">
+        Suscripción vencida — el gimnasio está en <strong>solo lectura</strong>. Contacta con soporte para reactivarla.
+    </MudAlert>
+}
+
+@implements IDisposable
+
+@code {
+    protected override void OnInitialized() => GymContext.Changed += StateHasChanged;
+
+    public void Dispose() => GymContext.Changed -= StateHasChanged;
+}

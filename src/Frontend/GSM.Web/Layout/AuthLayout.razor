@@ -1,0 +1,11 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="@GsmTheme.Build()" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudSnackbarProvider />
+
+<div class="gsm-auth-backdrop">
+    <MudPaper Class="gsm-auth-card" Elevation="0">
+        @Body
+    </MudPaper>
+</div>

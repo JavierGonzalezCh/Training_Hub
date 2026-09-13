@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Frontend\GSM.Client\GSM.Client.csproj" />
+    <ProjectReference Include="..\..\src\Frontend\GSM.UI.Shared\GSM.UI.Shared.csproj" />
     <ProjectReference Include="..\..\src\Frontend\GSM.Web\GSM.Web.csproj" />
   </ItemGroup>
 

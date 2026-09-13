@@ -1,0 +1,8 @@
+@page "/app"
+@layout PlaceholderLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+
+<PageTitle>Mi gimnasio — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">App del socio</MudText>
+<MudText Color="Color.Secondary">Se construye en F7 (docs/FRONTEND-BUILD-PLAN.md).</MudText>

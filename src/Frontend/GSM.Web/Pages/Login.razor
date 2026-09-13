@@ -1,0 +1,76 @@
+@page "/login"
+@layout AuthLayout
+@attribute [AllowAnonymous]
+@inject SessionService Session
+@inject NavigationManager Navigation
+
+<PageTitle>Iniciar sesión — GSM</PageTitle>
+
+<div class="gsm-kicker mb-4">Sistema de gestión · B2B SaaS</div>
+<div class="gsm-wordmark mb-1" style="font-size:2.4rem">GS<span class="accent">M</span></div>
+<MudText Typo="Typo.body2" Class="mb-6" Color="Color.Secondary">Tu operación, bajo control total.</MudText>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+}
+
+<MudForm @ref="_form" Model="_model">
+    <MudTextField T="string" @bind-Value="_model.Email" Label="Email" Required="true"
+                  RequiredError="El email es obligatorio." InputType="InputType.Email" Class="mb-3" />
+    <MudTextField T="string" @bind-Value="_model.Password" Label="Contraseña" Required="true"
+                  RequiredError="La contraseña es obligatoria." InputType="InputType.Password" Class="mb-2" />
+
+    <div class="d-flex justify-end mb-4">
+        <MudLink Href="/forgot-password" Typo="Typo.body2" Color="Color.Secondary">¿Olvidaste tu contraseña?</MudLink>
+    </div>
+
+    <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary"
+               OnClick="SubmitAsync" Disabled="_submitting">
+        @(_submitting ? "Entrando..." : "Entrar")
+    </MudButton>
+</MudForm>
+
+@code {
+    private readonly LoginModel _model = new();
+    private MudForm _form = null!;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var me = await Session.LoginAsync(_model.Email, _model.Password);
+            Navigation.NavigateTo(GsmRoles.HomeFor(me.Role), replace: true);
+        }
+        catch (ApiErrorException ex)
+        {
+            _error = ex.Error switch
+            {
+                { IsUnauthorized: true } => "Credenciales inválidas.",
+                { IsForbidden: true } => ex.Error.DisplayMessage,
+                { IsRateLimited: true } => ex.Error.DisplayMessage,
+                _ => ex.Error.DisplayMessage,
+            };
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private sealed class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

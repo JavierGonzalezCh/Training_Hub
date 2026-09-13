@@ -1,0 +1,16 @@
+<MudNavMenu Class="pt-4 px-2">
+    <NavLink class="gsm-nav-link" href="/" Match="NavLinkMatch.All">
+        <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" Size="Size.Small" Class="mr-3" /> Dashboard
+    </NavLink>
+    <Soon Icon="@Icons.Material.Filled.Groups" Label="Socios" />
+    <Soon Icon="@Icons.Material.Filled.Payments" Label="Pagos y caja" />
+    <Soon Icon="@Icons.Material.Filled.FactCheck" Label="Asistencia" />
+    <Soon Icon="@Icons.Material.Filled.FitnessCenter" Label="Rutinas" />
+    <Soon Icon="@Icons.Material.Filled.CalendarMonth" Label="Clases" />
+    <Soon Icon="@Icons.Material.Filled.BarChart" Label="Reportes" />
+
+    <RequireRole Roles="@GsmRoles.Owner">
+        <MudDivider Class="my-3 mx-2" />
+        <Soon Icon="@Icons.Material.Filled.Settings" Label="Configuración" />
+    </RequireRole>
+</MudNavMenu>

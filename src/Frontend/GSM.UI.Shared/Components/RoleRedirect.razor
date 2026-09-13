@@ -1,0 +1,17 @@
+@* Si el usuario no tiene acceso a la ruta pedida: anónimo → login; autenticado → su propia área. *@
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        var target = user.Identity?.IsAuthenticated == true
+            ? GsmRoles.HomeFor(user.Role())
+            : "/login";
+
+        Navigation.NavigateTo(target, replace: true);
+    }
+}

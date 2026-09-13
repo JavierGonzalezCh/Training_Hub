@@ -1,0 +1,13 @@
+@* Ítem de menú de una sección todavía no construida: visible (así se ve el mapa del panel
+   completo desde F1), pero no navegable. *@
+<div class="gsm-nav-link" style="cursor:default; opacity:0.45" title="Próximamente">
+    <MudIcon Icon="@Icon" Size="Size.Small" Class="mr-3" /> @Label
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Icon { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+}

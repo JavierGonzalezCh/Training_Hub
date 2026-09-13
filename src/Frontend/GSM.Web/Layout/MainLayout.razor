@@ -1,17 +1,100 @@
 @inherits LayoutComponentBase
+@inject GymContext GymContext
+@inject SessionService Session
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
+@implements IDisposable
 
-<MudThemeProvider />
+<MudThemeProvider Theme="@_theme" IsDarkMode="true" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudText Typo="Typo.h6">GSM</MudText>
+    <MudAppBar Elevation="0">
+        <span class="gsm-wordmark" style="font-size:1.4rem">GS<span class="accent">M</span></span>
+        <MudSpacer />
+        @if (GymContext.Gym is { } gym)
+        {
+            <MudText Class="gsm-mono mr-4" Typo="Typo.body2" Color="Color.Default">@gym.Name.ToUpperInvariant()</MudText>
+        }
+        <AuthorizeView>
+            <Authorized>
+                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                    @Initials(context.User.Identity?.Name)
+                </MudAvatar>
+                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" title="Cerrar sesión" />
+            </Authorized>
+        </AuthorizeView>
     </MudAppBar>
+
+    <MudDrawer Open="true" Elevation="0" Variant="DrawerVariant.Persistent">
+        <NavMenu />
+    </MudDrawer>
+
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+        <SubscriptionBanner />
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6 pb-8">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
+
+@code {
+    private MudTheme _theme = GsmTheme.Build();
+
+    protected override async Task OnInitializedAsync()
+    {
+        GymContext.Changed += OnGymContextChanged;
+
+        // El layout envuelve tanto el contenido autorizado como el "acceso denegado" de
+        // AuthorizeRouteView: si aún no hay sesión, no tiene sentido pedir /api/auth/me.
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        if (!GymContext.IsLoaded)
+        {
+            try
+            {
+                await Session.BootstrapAsync();
+            }
+            catch (ApiErrorException ex) when (ex.Error.IsUnauthorized)
+            {
+                Navigation.NavigateTo("/login", replace: true);
+            }
+        }
+    }
+
+    private void OnGymContextChanged()
+    {
+        _theme = GsmTheme.Build(GymContext.Gym);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Session.LogoutAsync();
+        Navigation.NavigateTo("/login", replace: true);
+    }
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "?";
+        }
+
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => "?",
+            1 => parts[0][..1].ToUpperInvariant(),
+            _ => $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant(),
+        };
+    }
+
+    public void Dispose() => GymContext.Changed -= OnGymContextChanged;
+}
