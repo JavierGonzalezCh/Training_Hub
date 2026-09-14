@@ -1,0 +1,65 @@
+@page "/app/rutina/nueva"
+@layout MemberLayout
+@using GSM.UI.Shared.Routines
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject GymContext GymCtx
+@inject IMeClient Me
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Crear mi rutina — GSM</PageTitle>
+
+<MudLink OnClick="@(() => Navigation.NavigateTo("/app/rutina"))" Class="mb-4 d-inline-block">← Volver</MudLink>
+
+@if (GymCtx.FeatureFlags?.MembersCanCreateRoutines != true)
+{
+    <MudAlert Severity="Severity.Normal">Tu gimnasio no permite que los socios creen su propia rutina.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h5" Class="mb-4">Crear mi rutina</MudText>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+    }
+
+    <RoutineForm Draft="_draft" />
+
+    <div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
+            @(_saving ? "Guardando..." : "Guardar rutina")
+        </MudButton>
+    </div>
+}
+
+@code {
+    private readonly RoutineDraft _draft = RoutineDraft.Empty();
+    private bool _saving;
+    private string? _error;
+
+    private async Task SaveAsync()
+    {
+        _error = _draft.Validate();
+        if (_error is not null)
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await Me.RoutinesPOSTAsync(_draft.ToRequest());
+            Snackbar.Add("Rutina creada.", Severity.Success);
+            Navigation.NavigateTo("/app/rutina");
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

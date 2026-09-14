@@ -39,4 +39,5 @@ public sealed record MeFeatureFlags(
     bool ShowGamification,
     bool ShowCommunity,
     bool CheckinQr,
-    bool CommunityComments);
+    bool CommunityComments,
+    bool MembersCanCreateRoutines);

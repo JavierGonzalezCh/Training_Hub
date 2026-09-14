@@ -1,0 +1,80 @@
+@* Formulario de rutina (días y ejercicios). Lo usan el editor del staff y el autoservicio del socio. *@
+@inject IExercisesClient ExercisesApi
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="Draft.Name" Label="Nombre de la rutina" Required="true" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="Draft.Notes" Label="Notas" />
+    </MudItem>
+</MudGrid>
+
+@for (var dayIndex = 0; dayIndex < Draft.Days.Count; dayIndex++)
+{
+    var day = Draft.Days[dayIndex];
+    var index = dayIndex;
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+        <div class="d-flex align-center flex-wrap mb-3" style="gap:0.75rem">
+            <MudText Typo="Typo.overline" Class="gsm-mono" Color="Color.Secondary">DÍA @(index + 1)</MudText>
+            <MudTextField T="string" @bind-Value="day.Name" Placeholder="Nombre del día (p. ej. Pierna)" Style="max-width:260px" />
+            <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Descanso" Color="Color.Primary" />
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => MoveDay(index, -1))" />
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == Draft.Days.Count - 1" OnClick="@(() => MoveDay(index, 1))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Draft.Days.RemoveAt(index))" />
+        </div>
+
+        @if (!day.IsRest)
+        {
+            @foreach (var exercise in day.Exercises)
+            {
+                <MudGrid Class="mb-2">
+                    <MudItem xs="12" sm="3">
+                        <MudAutocomplete T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Exercise = e)"
+                                          SearchFunc="SearchExercisesAsync" ToStringFunc="@(e => e?.Name ?? string.Empty)"
+                                          Placeholder="Ejercicio" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudNumericField T="int" @bind-Value="exercise.TargetSets" Label="Series" Min="1" />
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudTextField T="string" @bind-Value="exercise.TargetReps" Label="Reps (p. ej. 8-12)" />
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudNumericField T="decimal?" @bind-Value="exercise.TargetWeightKg" Label="Kg" />
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudNumericField T="int?" @bind-Value="exercise.RestSeconds" Label="Descanso (s)" />
+                    </MudItem>
+                    <MudItem xs="12" sm="1" Class="d-flex justify-end">
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))" />
+                    </MudItem>
+                </MudGrid>
+            }
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                       OnClick="@(() => day.Exercises.Add(new DraftExercise()))">
+                Añadir ejercicio
+            </MudButton>
+        }
+    </MudPaper>
+}
+
+<MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Class="mb-6" OnClick="@(() => Draft.Days.Add(new DraftDay()))">
+    Añadir día
+</MudButton>
+
+@code {
+    [Parameter, EditorRequired]
+    public RoutineDraft Draft { get; set; } = default!;
+
+    private void MoveDay(int index, int delta)
+    {
+        var target = index + delta;
+        (Draft.Days[index], Draft.Days[target]) = (Draft.Days[target], Draft.Days[index]);
+    }
+
+    private async Task<IEnumerable<ExerciseResponse>> SearchExercisesAsync(string search, CancellationToken cancellationToken)
+        => await ExercisesApi.ExercisesAllAsync(
+            string.IsNullOrWhiteSpace(search) ? null : search, null, null, false, cancellationToken);
+}

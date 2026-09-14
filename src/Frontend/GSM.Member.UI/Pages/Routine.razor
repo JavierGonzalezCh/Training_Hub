@@ -23,6 +23,13 @@ else if (_response?.Routine is null)
     {
         <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">@_createError</MudAlert>
     }
+    else if (GymCtx.FeatureFlags?.MembersCanCreateRoutines == true)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   Href="/app/rutina/nueva">
+            Crear mi rutina
+        </MudButton>
+    }
 }
 else
 {

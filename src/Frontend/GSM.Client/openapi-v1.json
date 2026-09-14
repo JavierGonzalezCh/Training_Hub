@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5000/"
+      "url": "https://localhost:7219/"
     }
   ],
   "paths": {
@@ -3143,17 +3143,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/MyRoutineResponse"
+                  "$ref": "#/components/schemas/RoutineResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MyRoutineResponse"
+                  "$ref": "#/components/schemas/RoutineResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MyRoutineResponse"
+                  "$ref": "#/components/schemas/RoutineResponse"
                 }
               }
             }
@@ -6737,7 +6737,8 @@
           "showGamification",
           "showCommunity",
           "checkinQr",
-          "communityComments"
+          "communityComments",
+          "membersCanCreateRoutines"
         ],
         "type": "object",
         "properties": {
@@ -6760,6 +6761,9 @@
             "type": "boolean"
           },
           "communityComments": {
+            "type": "boolean"
+          },
+          "membersCanCreateRoutines": {
             "type": "boolean"
           }
         }
