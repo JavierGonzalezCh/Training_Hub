@@ -15,10 +15,10 @@ Decisiones tomadas:
 ## Huecos de backend detectados (se deciden en su etapa, no antes)
 | # | Hueco | Etapa | Propuesta |
 |---|---|---|---|
-| H1 | **No hay endpoints para crear, listar ni desactivar usuarios staff.** El owner se crea junto con el gym y nadie más puede dar de alta recepcionistas; `staff@demo.local` existe solo porque lo crea el `DevSeeder`. | F5 | Mini-etapa de backend `api/gym/staff` (GET/POST/DELETE, solo Owner) que use `IUserProvisioning`. Si no se hace, F5 sale sin gestión de staff. |
+| H1 | **No hay endpoints para crear, listar ni desactivar usuarios staff.** El owner se crea junto con el gym y nadie más puede dar de alta recepcionistas; `staff@demo.local` existe solo porque lo crea el `DevSeeder`. | F5 | Mini-etapa de backend `api/gym/staff` (GET/POST/DELETE, solo Owner) que use `IUserProvisioning`. Si no se hace, F5 sale sin gestión de staff. **Resuelto después de F8:** `GET/POST/DELETE api/gym/staff` + `POST api/gym/staff/{id}/reactivate` (solo Owner), vía `IStaffAccountService` dentro de Identity (no hizo falta escritura cruzada). La cuenta nace sin contraseña y el código llega por email para definirla en `/reset-password`. Pestaña "Staff" en Configuración. |
 | H2 | `POST /api/me/routines` declara `MyRoutineResponse` en `ProducesResponseType`, pero en realidad devuelve `RoutineResponse`, así que el cliente generado tendría el tipo equivocado. | F7.4 | Corregir el atributo en `MeController.cs` (una línea). |
 | H3 | `forgot-password` envía el token por correo **sin enlace** (`resetUrl: null`). | F1 | Pantalla donde el usuario pega el código, sin tocar el backend. Cuando haya dominio desplegado, se pasa la URL de la SPA. |
-| H4 | `MeFeatureFlags` no incluye `MembersCanCreateRoutines`. Para saberlo, la app tendría que llamar a `GET /api/gym/feature-flags`, que es solo para staff. | F7.4 | Añadir el flag a `MeFeatureFlags`. La alternativa sin tocar el backend es ocultar "crear rutina" y tratar el 403. |
+| H4 | `MeFeatureFlags` no incluye `MembersCanCreateRoutines`. Para saberlo, la app tendría que llamar a `GET /api/gym/feature-flags`, que es solo para staff. | F7.4 | Añadir el flag a `MeFeatureFlags`. La alternativa sin tocar el backend es ocultar "crear rutina" y tratar el 403. **Resuelto después de F8:** flag añadido; `/app/rutina/nueva` reutiliza el formulario compartido `RoutineForm` de `GSM.UI.Shared`. |
 
 ## Arquitectura
 

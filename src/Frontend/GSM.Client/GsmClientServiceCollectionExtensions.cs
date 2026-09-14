@@ -46,6 +46,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IRoutineExercisesClient, RoutineExercisesClient>(services, baseUri);
         AddApiClient<IRoutinesClient, RoutinesClient>(services, baseUri);
         AddApiClient<IMemberRoutinesClient, MemberRoutinesClient>(services, baseUri);
+        AddApiClient<IStaffClient, StaffClient>(services, baseUri);
 
         return services;
     }

@@ -10,7 +10,7 @@
 # y no se toca al regenerar. Corrige un defecto de la plantilla de NSwag (ReadResponseAsString
 # queda en false, así que GsmApiException.Response llega vacío en el camino feliz y ApiError no
 # puede leer el detail/title de un 409/422/403). Si añades un cliente nuevo al OpenAPI, añade
-# también su partial class ahí.
+# también su partial class ahí y regístralo en GsmClientServiceCollectionExtensions.cs.
 
 param(
     [string]$OpenApiUrl = "https://localhost:7219/openapi/v1.json"

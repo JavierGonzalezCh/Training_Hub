@@ -134,3 +134,8 @@ public partial class MemberRoutinesClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class StaffClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

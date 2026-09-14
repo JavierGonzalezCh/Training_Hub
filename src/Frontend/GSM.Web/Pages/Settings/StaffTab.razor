@@ -1,0 +1,151 @@
+@* Pestaña "Staff" de la configuración: alta, desactivación y reactivación de recepcionistas. Solo Owner. *@
+@inject IStaffClient StaffApi
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" Style="max-width:640px">
+    Al dar de alta a alguien, le llega un email con un código para definir su contraseña en
+    "¿Olvidaste tu contraseña?" → restablecer. Desactivar no borra la cuenta: puedes reactivarla después.
+</MudText>
+
+<MudGrid Class="mb-4" Style="max-width:720px">
+    <MudItem xs="12" sm="5">
+        <MudTextField T="string" @bind-Value="_fullName" Label="Nombre completo" Dense="true" />
+    </MudItem>
+    <MudItem xs="12" sm="5">
+        <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Dense="true" />
+    </MudItem>
+    <MudItem xs="12" sm="2" Class="d-flex align-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" Disabled="_creating" FullWidth="true">
+            @(_creating ? "Creando..." : "Dar de alta")
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_staff.Count == 0)
+{
+    <MudText Color="Color.Secondary">Todavía no hay staff dado de alta.</MudText>
+}
+else
+{
+    <MudTable Items="_staff" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">@context.FullName</MudTd>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @(context.IsActive ? "ACTIVO" : "INACTIVO")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.IsActive)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="@(() => DeactivateAsync(context))">Desactivar</MudButton>
+                }
+                else
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ReactivateAsync(context))">Reactivar</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<StaffResponse> _staff = [];
+    private string _fullName = string.Empty;
+    private string _email = string.Empty;
+    private bool _loading = true;
+    private bool _creating;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _staff = (await StaffApi.StaffAllAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_fullName) || string.IsNullOrWhiteSpace(_email))
+        {
+            Snackbar.Add("Nombre y email son obligatorios.", Severity.Warning);
+            return;
+        }
+
+        _creating = true;
+        try
+        {
+            var created = await StaffApi.StaffPOSTAsync(new CreateStaffRequest { FullName = _fullName, Email = _email });
+            Snackbar.Add($"{created.FullName} dado de alta. Le enviamos el código a {created.Email}.", Severity.Success);
+            _fullName = string.Empty;
+            _email = string.Empty;
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _creating = false;
+        }
+    }
+
+    private async Task DeactivateAsync(StaffResponse staff)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Desactivar staff", $"¿Desactivar a {staff.FullName}? No podrá iniciar sesión.", yesText: "Desactivar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await StaffApi.StaffDELETEAsync(staff.Id);
+            Snackbar.Add($"{staff.FullName} desactivado.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task ReactivateAsync(StaffResponse staff)
+    {
+        try
+        {
+            await StaffApi.Reactivate2Async(staff.Id);
+            Snackbar.Add($"{staff.FullName} reactivado.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

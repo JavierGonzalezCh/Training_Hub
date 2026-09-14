@@ -101,6 +101,7 @@ public static class DependencyInjection
         services.AddScoped<IIdentityReader, IdentityReader>();
         services.AddScoped<IUserProvisioning, UserProvisioning>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
+        services.AddScoped<IStaffAccountService, StaffAccountService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
         AddFileStorage(services, configuration);
