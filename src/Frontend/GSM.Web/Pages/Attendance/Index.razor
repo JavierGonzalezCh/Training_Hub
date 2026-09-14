@@ -1,0 +1,113 @@
+@page "/attendance"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IAttendanceClient Attendance
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Asistencia — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Asistencia</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.QrCodeScanner"
+               OnClick="@(() => Navigation.NavigateTo("/attendance/checkin"))">
+        Recepción
+    </MudButton>
+</div>
+
+<MudPaper Class="pa-4 mb-6" Elevation="0" Style="border:1px solid var(--gsm-border)">
+    <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Horas pico (últimos 7 días)</MudText>
+    @if (_peakHours is null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_peakHours.Sum(b => b.Count) == 0)
+    {
+        <MudText Color="Color.Secondary">Sin check-ins en el rango.</MudText>
+    }
+    else
+    {
+        <MudChart ChartType="ChartType.Bar" ChartSeries="_series" XAxisLabels="_labels" Width="100%" Height="260px" />
+    }
+</MudPaper>
+
+<ServerTable @ref="_table" TItem="AttendanceListItem" Load="LoadAsync">
+    <ToolBarContent>
+        <MudDatePicker Label="Desde" Date="_from" DateChanged="OnFromChangedAsync" Class="mr-4" Style="max-width:180px" />
+        <MudDatePicker Label="Hasta" Date="_to" DateChanged="OnToChangedAsync" Style="max-width:180px" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Socio</MudTh>
+        <MudTh>Fecha</MudTh>
+        <MudTh>Hora</MudTh>
+        <MudTh>Método</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Socio">
+            <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
+                @context.MemberName
+            </MudLink>
+        </MudTd>
+        <MudTd DataLabel="Fecha">@GsmFormat.Day(context.AttendanceDate)</MudTd>
+        <MudTd DataLabel="Hora">@GsmFormat.Instant(context.CheckedInAt)</MudTd>
+        <MudTd DataLabel="Método">@(context.Method == "Qr" ? "QR" : "Manual")</MudTd>
+    </RowTemplate>
+</ServerTable>
+
+@code {
+    private ServerTable<AttendanceListItem> _table = null!;
+    private DateTime? _from;
+    private DateTime? _to;
+    private List<PeakHourBucket>? _peakHours;
+    private List<ChartSeries> _series = [];
+    private string[] _labels = [];
+
+    protected override Task OnInitializedAsync() => LoadPeakHoursAsync();
+
+    private async Task LoadPeakHoursAsync()
+    {
+        try
+        {
+            var from = DateOnly.FromDateTime(DateTime.Today.AddDays(-6));
+            var result = await Attendance.PeakHoursAsync(from, null);
+            _peakHours = result.OrderBy(b => b.Hour).ToList();
+
+            _labels = _peakHours.Select(b => b.Hour.ToString("00")).ToArray();
+            _series = [new ChartSeries { Name = "Check-ins", Data = _peakHours.Select(b => (double)b.Count).ToArray() }];
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task<ServerTablePage<AttendanceListItem>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await Attendance.AttendanceGETAsync(
+                null,
+                _from is { } f ? DateOnly.FromDateTime(f) : null,
+                _to is { } t ? DateOnly.FromDateTime(t) : null,
+                page, pageSize, cancellationToken);
+            return new ServerTablePage<AttendanceListItem>(result.Items.ToList(), result.Total);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            return new ServerTablePage<AttendanceListItem>([], 0);
+        }
+    }
+
+    private async Task OnFromChangedAsync(DateTime? value)
+    {
+        _from = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OnToChangedAsync(DateTime? value)
+    {
+        _to = value;
+        await _table.RefreshAsync();
+    }
+}

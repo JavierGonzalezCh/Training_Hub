@@ -1,0 +1,147 @@
+@page "/attendance/checkin"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IAttendanceClient Attendance
+@inject IMembersClient Members
+@inject ISnackbar Snackbar
+
+<PageTitle>Recepción — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-1">Recepción</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
+    Escanea el QR (o pasa el lector de código de barras) y pulsa Enter. También puedes buscar al socio a mano.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+            <MudTextField @ref="_qrField" T="string" @bind-Value="_qrCode" Label="Código QR / documento"
+                          Immediate="true" Disabled="_submitting" AutoFocus="true"
+                          OnKeyDown="OnQrKeyDownAsync" Class="gsm-mono" Placeholder="Escanea aquí…" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" FullWidth="true"
+                       Disabled="_submitting || string.IsNullOrWhiteSpace(_qrCode)" OnClick="SubmitQrAsync">
+                Registrar entrada
+            </MudButton>
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+            <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Buscar a mano</MudText>
+            <MudAutocomplete T="MemberListItem" Value="null" ValueChanged="OnMemberPickedAsync"
+                              SearchFunc="SearchMembersAsync" Disabled="_submitting"
+                              ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
+                              Placeholder="Nombre o documento" ResetValueOnEmptyText="true" />
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        @if (_result is not null)
+        {
+            <MudPaper Class="pa-6 text-center" Elevation="0"
+                      Style="@ResultStyle()">
+                <MudIcon Icon="@(_result.MembershipExpired ? Icons.Material.Filled.WarningAmber : Icons.Material.Filled.CheckCircle)"
+                         Size="Size.Large" Color="@(_result.MembershipExpired ? Color.Error : Color.Info)" Class="mb-2" />
+                <MudText Typo="Typo.h4">@_result.MemberName</MudText>
+                <MudText Typo="Typo.body1" Class="gsm-mono mt-1">@GsmFormat.Instant(_result.CheckedInAt)</MudText>
+
+                @if (_result.AlreadyCheckedInToday)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">Ya había entrado hoy.</MudAlert>
+                }
+                @if (_result.MembershipExpired)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">Membresía vencida. La entrada quedó registrada igual.</MudAlert>
+                }
+
+                @if (_result.UnlockedAchievements is { Count: > 0 } achievements)
+                {
+                    <MudDivider Class="my-4" />
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">Logros desbloqueados</MudText>
+                    @foreach (var achievement in achievements)
+                    {
+                        <MudChip T="string" Color="Color.Info" Class="ma-1">@achievement.Name</MudChip>
+                    }
+                }
+            </MudPaper>
+        }
+        else
+        {
+            <MudPaper Class="pa-6 text-center" Elevation="0" Style="border:1px dashed var(--gsm-border)">
+                <MudText Color="Color.Secondary">El resultado del check-in aparece aquí.</MudText>
+            </MudPaper>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    private MudTextField<string> _qrField = null!;
+    private string _qrCode = string.Empty;
+    private CheckInResponse? _result;
+    private bool _submitting;
+
+    private Task OnQrKeyDownAsync(KeyboardEventArgs args)
+        => args.Key == "Enter" ? SubmitQrAsync() : Task.CompletedTask;
+
+    private async Task SubmitQrAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_qrCode) || _submitting)
+        {
+            return;
+        }
+
+        await SubmitAsync(new CheckInRequest { QrCode = _qrCode, Method = (int)AttendanceMethodValue.Qr });
+        _qrCode = string.Empty;
+        await _qrField.FocusAsync();
+    }
+
+    private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return [];
+        }
+
+        var result = await Members.MembersGETAsync(search, null, 1, 10, cancellationToken);
+        return result.Items;
+    }
+
+    private async Task OnMemberPickedAsync(MemberListItem? member)
+    {
+        if (member is null)
+        {
+            return;
+        }
+
+        await SubmitAsync(new CheckInRequest { MemberId = member.Id, Method = (int)AttendanceMethodValue.Manual });
+        await _qrField.FocusAsync();
+    }
+
+    private async Task SubmitAsync(CheckInRequest request)
+    {
+        _submitting = true;
+        try
+        {
+            _result = await Attendance.CheckinAsync(request);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private string ResultStyle() => _result switch
+    {
+        { MembershipExpired: true } => "border:1px solid var(--gsm-red-hot)",
+        { AlreadyCheckedInToday: true } => "border:1px solid var(--gsm-border)",
+        _ => "border:1px solid var(--gsm-cyan)",
+    };
+
+    /// <summary>Espejo de <c>AttendanceMethod</c> del backend (Qr=0, Manual=1).</summary>
+    private enum AttendanceMethodValue
+    {
+        Qr = 0,
+        Manual = 1,
+    }
+}
