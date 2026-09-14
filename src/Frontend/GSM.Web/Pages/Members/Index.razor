@@ -1,0 +1,109 @@
+@page "/members"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IMembersClient Members
+@inject NavigationManager Navigation
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Socios — GSM</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h4">Socios</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="OpenCreateAsync">
+        Nuevo socio
+    </MudButton>
+</div>
+
+<ServerTable @ref="_table" TItem="MemberListItem" Load="LoadAsync" Class="gsm-table">
+    <ToolBarContent>
+        <MudTextField T="string" Placeholder="Buscar por nombre o documento" Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" DebounceInterval="400"
+                      ValueChanged="OnSearchChangedAsync" Class="mr-4" Style="max-width:320px" />
+        <MudSelect T="string" Value="_status" ValueChanged="OnStatusChangedAsync" Label="Estado" Style="max-width:180px">
+            <MudSelectItem Value="@("")">Todos</MudSelectItem>
+            <MudSelectItem Value="@("0")">Activo</MudSelectItem>
+            <MudSelectItem Value="@("1")">Inactivo</MudSelectItem>
+        </MudSelect>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Socio</MudTh>
+        <MudTh>Teléfono</MudTh>
+        <MudTh>Estado</MudTh>
+        <MudTh>Ingresó</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Socio">
+            <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.Id}"))" Underline="Underline.None">
+                <MudText Typo="Typo.body1">@context.FirstName @context.LastName</MudText>
+                <MudText Typo="Typo.caption" Class="gsm-mono" Color="Color.Secondary">@context.DocumentNumber</MudText>
+            </MudLink>
+        </MudTd>
+        <MudTd DataLabel="Teléfono">@(context.Phone ?? "—")</MudTd>
+        <MudTd DataLabel="Estado"><StatusChip Status="@context.Status" /></MudTd>
+        <MudTd DataLabel="Ingresó">@GsmFormat.Day(context.JoinedAt)</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" title="Editar" />
+        </MudTd>
+    </RowTemplate>
+</ServerTable>
+
+@code {
+    private ServerTable<MemberListItem> _table = null!;
+    private string _search = string.Empty;
+    private string _status = string.Empty;
+
+    private async Task<ServerTablePage<MemberListItem>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await Members.MembersGETAsync(
+                string.IsNullOrWhiteSpace(_search) ? null : _search,
+                string.IsNullOrEmpty(_status) ? null : int.Parse(_status),
+                page, pageSize, cancellationToken);
+            return new ServerTablePage<MemberListItem>(result.Items.ToList(), result.Total);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            return new ServerTablePage<MemberListItem>([], 0);
+        }
+    }
+
+    private async Task OnSearchChangedAsync(string value)
+    {
+        _search = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OnStatusChangedAsync(string value)
+    {
+        _status = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Nuevo socio");
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Socio creado.", Severity.Success);
+            await _table.RefreshAsync();
+        }
+    }
+
+    private async Task OpenEditAsync(MemberListItem item)
+    {
+        var parameters = new DialogParameters<MemberFormDialog> { { x => x.MemberId, item.Id } };
+        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Editar socio", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Socio actualizado.", Severity.Success);
+            await _table.RefreshAsync();
+        }
+    }
+}

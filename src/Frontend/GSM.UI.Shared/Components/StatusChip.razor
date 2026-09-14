@@ -1,0 +1,10 @@
+@* Insignia de estado con los colores de marca (ver StatusLabels): cian = activo, rojo = vencido,
+   plata = neutro. Úsala para cualquier status que llegue como string desde la API. *@
+<MudChip T="string" Color="@StatusLabels.Color(Status)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+    @StatusLabels.Label(Status).ToUpperInvariant()
+</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Status { get; set; } = string.Empty;
+}

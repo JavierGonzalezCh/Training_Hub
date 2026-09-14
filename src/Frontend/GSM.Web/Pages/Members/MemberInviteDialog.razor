@@ -1,0 +1,40 @@
+@inject IJSRuntime Js
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-3">Código de invitación (válido 7 días). Compártelo con el socio para que cree su cuenta.</MudText>
+        <MudPaper Class="pa-3 d-flex align-center justify-space-between" Elevation="0" Style="border:1px solid var(--gsm-border)">
+            <MudText Typo="Typo.h5" Class="gsm-mono">@Code</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" OnClick="CopyAsync" title="Copiar" />
+        </MudPaper>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">Expira: @GsmFormat.Instant(ExpiresAt)</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="@(() => MudDialog.Close())">Listo</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public string Code { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public DateTimeOffset ExpiresAt { get; set; }
+
+    private async Task CopyAsync()
+    {
+        try
+        {
+            await Js.InvokeVoidAsync("navigator.clipboard.writeText", Code);
+            Snackbar.Add("Código copiado.", Severity.Success);
+        }
+        catch (JSException)
+        {
+            Snackbar.Add("No se pudo copiar. Selecciónalo manualmente.", Severity.Warning);
+        }
+    }
+}

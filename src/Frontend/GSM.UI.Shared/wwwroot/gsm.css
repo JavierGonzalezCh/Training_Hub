@@ -110,6 +110,12 @@
     border-left-color: var(--gsm-red);
 }
 
+.gsm-qr svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
 .gsm-status-active { color: var(--gsm-cyan); }
 .gsm-status-overdue { color: var(--gsm-red-hot); }
 .gsm-status-neutral { color: var(--gsm-silver); }

@@ -1,0 +1,281 @@
+@page "/members/{Id:guid}"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IMembersClient Members
+@inject IMemberAttendanceClient MemberAttendance
+@inject IMemberPaymentsClient MemberPayments
+@inject NavigationManager Navigation
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_member?.FirstName is null ? "Socio" : $"{_member.FirstName} {_member.LastName}") — GSM</PageTitle>
+
+<MudLink OnClick="@(() => Navigation.NavigateTo("/members"))" Class="mb-4 d-inline-block">← Socios</MudLink>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_notFound)
+{
+    <MudAlert Severity="Severity.Error">No se encontró el socio.</MudAlert>
+}
+else if (_member is not null)
+{
+    <div class="d-flex flex-wrap align-start mb-6" style="gap:1.5rem">
+        <div class="d-flex flex-column align-center" style="gap:0.35rem">
+            <MudAvatar Size="Size.Large" Style="width:72px;height:72px">
+                @if (!string.IsNullOrEmpty(_member.PhotoUrl))
+                {
+                    <MudImage Src="@_member.PhotoUrl" />
+                }
+                else
+                {
+                    @($"{_member.FirstName[0]}{_member.LastName[0]}".ToUpperInvariant())
+                }
+            </MudAvatar>
+            <MudFileUpload T="IBrowserFile" FilesChanged="UploadPhotoAsync" Class="ma-0">
+                <ActivatorContent>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_uploadingPhoto">
+                        @(_uploadingPhoto ? "Subiendo..." : "Cambiar foto")
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+        </div>
+        <div style="flex:1; min-width:220px">
+            <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
+                <MudText Typo="Typo.h4">@_member.FirstName @_member.LastName</MudText>
+                <StatusChip Status="@_member.Status" />
+            </div>
+            <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">
+                @_member.DocumentNumber · ingresó @GsmFormat.Day(_member.JoinedAt)
+            </MudText>
+        </div>
+        <div class="d-flex flex-wrap" style="gap:0.5rem">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.QrCode2" OnClick="ShowQrAsync">QR</MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" OnClick="InviteAsync">Invitar</MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync">Editar</MudButton>
+            @if (_member.Status == "Active")
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.PersonOff" OnClick="DeactivateAsync">
+                    Dar de baja
+                </MudButton>
+            }
+        </div>
+    </div>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Membresía vigente</MudText>
+                @if (_member.CurrentMembership is { } membership)
+                {
+                    <MudText Typo="Typo.h6">@membership.PlanName</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Vence @GsmFormat.Day(membership.EndDate)</MudText>
+                }
+                else
+                {
+                    <MudText Color="Color.Secondary">Sin membresía activa.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Racha</MudText>
+                @if (_streak is { } streak)
+                {
+                    <MudText Typo="Typo.h6" Class="gsm-mono">@streak.CurrentStreak días</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @(streak.LastVisit is { } last ? $"Última visita {GsmFormat.Day(last)}" : "Sin visitas todavía")
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Color="Color.Secondary">—</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Últimos pagos</MudText>
+                @if (_member.RecentPayments is { Count: > 0 } payments)
+                {
+                    @foreach (var payment in payments)
+                    {
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">@payment.Concept</MudText>
+                            <MudText Typo="Typo.body2" Class="gsm-mono">@GsmFormat.Money((decimal)payment.Amount)</MudText>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <MudText Color="Color.Secondary">Sin pagos todavía.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudTabs Rounded="true" Color="Color.Primary">
+        <MudTabPanel Text="Pagos">
+            <ServerTable TItem="PaymentResponse" Load="LoadPaymentsAsync" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>Fecha</MudTh>
+                    <MudTh>Concepto</MudTh>
+                    <MudTh>Método</MudTh>
+                    <MudTh>Monto</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.PaidAt)</MudTd>
+                    <MudTd DataLabel="Concepto">@context.Concept</MudTd>
+                    <MudTd DataLabel="Método">@context.Method</MudTd>
+                    <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+                </RowTemplate>
+            </ServerTable>
+        </MudTabPanel>
+        <MudTabPanel Text="Asistencia">
+            <ServerTable TItem="AttendanceListItem" Load="LoadAttendanceAsync" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>Fecha</MudTh>
+                    <MudTh>Hora</MudTh>
+                    <MudTh>Método</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Fecha">@GsmFormat.Day(context.AttendanceDate)</MudTd>
+                    <MudTd DataLabel="Hora">@GsmFormat.Instant(context.CheckedInAt)</MudTd>
+                    <MudTd DataLabel="Método">@context.Method</MudTd>
+                </RowTemplate>
+            </ServerTable>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private MemberDetail? _member;
+    private MemberStreakResponse? _streak;
+    private bool _loading = true;
+    private bool _notFound;
+    private bool _uploadingPhoto;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _notFound = false;
+        try
+        {
+            _member = await Members.MembersGET2Async(Id);
+            _streak = await MemberAttendance.Streak2Async(Id);
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 404)
+        {
+            _notFound = true;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task<ServerTablePage<PaymentResponse>> LoadPaymentsAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var result = await MemberPayments.PaymentsGET2Async(Id, page, pageSize, cancellationToken);
+        return new ServerTablePage<PaymentResponse>(result.Items.ToList(), result.Total);
+    }
+
+    private async Task<ServerTablePage<AttendanceListItem>> LoadAttendanceAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var result = await MemberAttendance.AttendanceGET2Async(Id, page, pageSize, cancellationToken);
+        return new ServerTablePage<AttendanceListItem>(result.Items.ToList(), result.Total);
+    }
+
+    private Task ShowQrAsync()
+    {
+        var parameters = new DialogParameters<MemberQrDialog> { { x => x.QrCode, _member!.QrCode } };
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        return Dialogs.ShowAsync<MemberQrDialog>("Código QR", parameters, options);
+    }
+
+    private async Task InviteAsync()
+    {
+        try
+        {
+            var invite = await Members.InviteAsync(Id);
+            var parameters = new DialogParameters<MemberInviteDialog>
+            {
+                { x => x.Code, invite.Code },
+                { x => x.ExpiresAt, invite.ExpiresAt },
+            };
+            await Dialogs.ShowAsync<MemberInviteDialog>("Invitación", parameters);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task EditAsync()
+    {
+        var parameters = new DialogParameters<MemberFormDialog> { { x => x.MemberId, Id } };
+        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Editar socio", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Socio actualizado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task UploadPhotoAsync(IBrowserFile file)
+    {
+        _uploadingPhoto = true;
+        try
+        {
+            // 5 MB de tope: solo para no mandar archivos absurdos a la API.
+            await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            _member = await Members.PhotoAsync(Id, new FileParameter(stream, file.Name, file.ContentType));
+            Snackbar.Add("Foto actualizada.", Severity.Success);
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500)
+        {
+            // R2 no está configurado todavía (ver CLAUDE.md): la subida falla siempre con 500.
+            Snackbar.Add("Las fotos no están disponibles todavía: falta configurar el almacenamiento.", Severity.Warning);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _uploadingPhoto = false;
+        }
+    }
+
+    private async Task DeactivateAsync()
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Dar de baja", $"¿Dar de baja a {_member!.FirstName} {_member.LastName}?", yesText: "Dar de baja", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await Members.MembersDELETEAsync(Id);
+            Snackbar.Add("Socio dado de baja.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

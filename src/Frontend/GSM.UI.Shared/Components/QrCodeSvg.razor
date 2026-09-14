@@ -1,0 +1,25 @@
+@* QR dibujado en el cliente (sin llamar a la API): mismo componente para la ficha del socio en
+   el panel y para "Mi QR" en la app del socio (F7). *@
+@* Fondo blanco fijo: un QR con poco contraste falla en la cámara del recepcionista, aunque
+   la app sea oscura. *@
+<div class="gsm-qr" style="width:@(SizePx)px; max-width:100%; background:#FFFFFF; padding:12px; border-radius:8px; line-height:0;">
+    @((MarkupString)_svg)
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public int SizePx { get; set; } = 220;
+
+    private string _svg = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        using var generator = new QRCoder.QRCodeGenerator();
+        using var data = generator.CreateQrCode(Value, QRCoder.QRCodeGenerator.ECCLevel.Q);
+        var svg = new QRCoder.SvgQRCode(data);
+        _svg = svg.GetGraphic(20, "#0F0E0D", "#FFFFFF");
+    }
+}

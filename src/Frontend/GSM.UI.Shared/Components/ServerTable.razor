@@ -1,0 +1,71 @@
+@typeparam TItem
+@* Componente único para todos los listados paginados en servidor (ver CLAUDE.md / reglas
+   transversales del cliente). Envuelve MudTable con su ServerData sobre la forma común
+   ServerTablePage&lt;T&gt;. *@
+
+<MudTable T="TItem" @ref="_table" ServerData="ReloadAsync" Hover="true" Dense="Dense" Elevation="0"
+          Loading="_loading" Class="@Class">
+    <ToolBarContent>@ToolBarContent</ToolBarContent>
+    <HeaderContent>@HeaderContent</HeaderContent>
+    <RowTemplate>@RowTemplate(context)</RowTemplate>
+    <NoRecordsContent>
+        @if (NoRecordsContent is not null)
+        {
+            @NoRecordsContent
+        }
+        else
+        {
+            <MudText Color="Color.Secondary">Sin resultados.</MudText>
+        }
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText Color="Color.Secondary">Cargando…</MudText>
+    </LoadingContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 10, 20, 50 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<TItem>? _table;
+    private bool _loading;
+
+    [Parameter, EditorRequired]
+    public Func<int, int, CancellationToken, Task<ServerTablePage<TItem>>> Load { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public RenderFragment HeaderContent { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> RowTemplate { get; set; } = null!;
+
+    [Parameter]
+    public RenderFragment? ToolBarContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? NoRecordsContent { get; set; }
+
+    [Parameter]
+    public bool Dense { get; set; } = true;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>Vuelve a pedir la página actual al servidor (tras cambiar un filtro externo).</summary>
+    public Task RefreshAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private async Task<TableData<TItem>> ReloadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            // MudTable pagina desde 0; la API, desde 1.
+            var page = await Load(state.Page + 1, state.PageSize, cancellationToken);
+            return new TableData<TItem> { Items = page.Items, TotalItems = page.TotalItems };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

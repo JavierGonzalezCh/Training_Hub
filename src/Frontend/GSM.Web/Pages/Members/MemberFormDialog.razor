@@ -1,0 +1,177 @@
+@inject IMembersClient Members
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+            <MudForm @ref="_form" Model="_model">
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudTextField T="string" @bind-Value="_model.FirstName" Label="Nombres" Required="true" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudTextField T="string" @bind-Value="_model.LastName" Label="Apellidos" Required="true" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudTextField T="string" @bind-Value="_model.DocumentNumber" Label="Documento" Required="true"
+                                      Error="@_documentHasError" ErrorText="@_documentError" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudTextField T="string" @bind-Value="_model.Phone" Label="Teléfono" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudTextField T="string" @bind-Value="_model.Email" Label="Email" InputType="InputType.Email" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudDatePicker Label="Fecha de nacimiento" Date="_birthDate" DateChanged="d => _birthDate = d" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField T="string" @bind-Value="_model.EmergencyContact" Label="Contacto de emergencia" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Null = alta; con valor, edición.</summary>
+    [Parameter]
+    public Guid? MemberId { get; set; }
+
+    private readonly FormModel _model = new();
+    private MudForm _form = null!;
+    private DateTime? _birthDate;
+    private bool _loading;
+    private bool _submitting;
+    private string? _error;
+    private Dictionary<string, string[]> _fieldErrors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (MemberId is not { } id)
+        {
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            var member = await Members.MembersGET2Async(id);
+            _model.FirstName = member.FirstName;
+            _model.LastName = member.LastName;
+            _model.DocumentNumber = member.DocumentNumber;
+            _model.Phone = member.Phone;
+            _model.Email = member.Email;
+            _model.EmergencyContact = member.EmergencyContact;
+            _birthDate = member.BirthDate is { } d ? d.ToDateTime(TimeOnly.MinValue) : null;
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private bool _documentHasError => _fieldErrors.ContainsKey("documentNumber");
+    private string? _documentError => _fieldErrors.TryGetValue("documentNumber", out var errors) ? errors.FirstOrDefault() : null;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _fieldErrors = new();
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        var birthDate = _birthDate is { } d ? DateOnly.FromDateTime(d) : (DateOnly?)null;
+        _submitting = true;
+        try
+        {
+            if (MemberId is { } id)
+            {
+                await Members.MembersPUTAsync(id, new UpdateMemberRequest
+                {
+                    FirstName = _model.FirstName,
+                    LastName = _model.LastName,
+                    DocumentNumber = _model.DocumentNumber,
+                    Phone = _model.Phone,
+                    Email = _model.Email,
+                    BirthDate = birthDate,
+                    EmergencyContact = _model.EmergencyContact,
+                });
+            }
+            else
+            {
+                await Members.MembersPOSTAsync(new CreateMemberRequest
+                {
+                    FirstName = _model.FirstName,
+                    LastName = _model.LastName,
+                    DocumentNumber = _model.DocumentNumber,
+                    Phone = _model.Phone,
+                    Email = _model.Email,
+                    BirthDate = birthDate,
+                    EmergencyContact = _model.EmergencyContact,
+                });
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            var error = ApiError.FromException(ex);
+            if (error.IsConflict)
+            {
+                _error = "Ya existe un socio con ese documento.";
+                _fieldErrors["documentNumber"] = [_error];
+            }
+            else if (error.IsValidation)
+            {
+                _fieldErrors = new Dictionary<string, string[]>(error.FieldErrors, StringComparer.OrdinalIgnoreCase);
+                _error = "Revisa los campos marcados.";
+            }
+            else
+            {
+                _error = error.DisplayMessage;
+            }
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed class FormModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string DocumentNumber { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? EmergencyContact { get; set; }
+    }
+}
