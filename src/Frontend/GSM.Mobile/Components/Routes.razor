@@ -1,0 +1,13 @@
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(MauiProgram).Assembly" AdditionalAssemblies="new[] { typeof(GSM.Member.UI.MemberLayout).Assembly }"
+            NotFoundPage="typeof(Pages.NotFound)">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(GSM.Member.UI.MemberLayout)">
+                <NotAuthorized>
+                    <RoleRedirect />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+    </Router>
+</CascadingAuthenticationState>

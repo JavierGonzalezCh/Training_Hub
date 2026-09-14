@@ -1,5 +1,6 @@
 using GSM.Client;
 using GSM.Client.Http;
+using GSM.Member.UI;
 using GSM.UI.Shared;
 using GSM.Web;
 using GSM.Web.Platform;
@@ -18,5 +19,6 @@ builder.Services.AddMudServices();
 builder.Services.AddScoped<ITokenStore, LocalStorageTokenStore>();
 builder.Services.AddGsmClient(apiBaseUrl);
 builder.Services.AddGsmUiShared();
+builder.Services.AddGsmMemberUi();
 
 await builder.Build().RunAsync();

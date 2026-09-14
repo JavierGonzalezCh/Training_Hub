@@ -33,7 +33,7 @@ public sealed class MeController : ControllerBase
 
     /// <summary>Auto-servicio: el socio se arma su propia rutina. 403 si <c>members_can_create_routines = false</c>.</summary>
     [HttpPost("routines")]
-    [ProducesResponseType<MyRoutineResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<RoutineResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RoutineResponse>> CreateRoutine(
         SaveRoutineRequest request,

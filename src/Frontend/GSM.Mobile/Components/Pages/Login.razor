@@ -1,0 +1,47 @@
+@page "/login"
+@layout GSM.Member.UI.MemberAuthLayout
+@attribute [AllowAnonymous]
+@inject SessionService Session
+@inject NavigationManager Navigation
+
+<PageTitle>Iniciar sesión — GSM</PageTitle>
+
+<div class="gsm-wordmark mb-6" style="font-size:2rem">GS<span class="accent">M</span></div>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+}
+
+<MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Class="mb-3" />
+<MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password" Class="mb-4" />
+
+<MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
+    @(_submitting ? "Entrando..." : "Entrar")
+</MudButton>
+
+@code {
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _submitting = true;
+        try
+        {
+            var me = await Session.LoginAsync(_email, _password);
+            Navigation.NavigateTo(GsmRoles.HomeFor(me.Role), replace: true);
+        }
+        catch (ApiErrorException ex)
+        {
+            _error = ex.Error.DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

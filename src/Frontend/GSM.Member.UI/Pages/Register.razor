@@ -1,0 +1,89 @@
+@page "/app/registro"
+@layout MemberAuthLayout
+@attribute [AllowAnonymous]
+@inject IMembersClient Members
+@inject NavigationManager Navigation
+
+<PageTitle>Crear cuenta — GSM</PageTitle>
+
+<div class="gsm-wordmark mb-6" style="font-size:1.6rem">GS<span class="accent">M</span></div>
+
+@if (_done)
+{
+    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-4">
+        Cuenta creada. Ya puedes iniciar sesión.
+    </MudAlert>
+    <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" Href="/login">Iniciar sesión</MudButton>
+}
+else
+{
+    <MudText Typo="Typo.body2" Class="mb-4" Color="Color.Secondary">
+        Pega el código de invitación que te dio el gimnasio y crea tu contraseña.
+    </MudText>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+    }
+
+    <MudTextField T="string" @bind-Value="_code" Label="Código de invitación" Class="mb-3 gsm-mono" />
+    <MudTextField T="string" @bind-Value="_documentNumber" Label="Documento" Class="mb-3" />
+    <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Class="mb-3" />
+    <MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password" Class="mb-4" />
+
+    <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
+        @(_submitting ? "Creando..." : "Crear cuenta")
+    </MudButton>
+}
+
+<div class="d-flex justify-center mt-4">
+    <MudLink Href="/login" Typo="Typo.body2" Color="Color.Secondary">Ya tengo cuenta</MudLink>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "code")]
+    public string? CodeFromQuery { get; set; }
+
+    private string _code = string.Empty;
+    private string _documentNumber = string.Empty;
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private bool _submitting;
+    private bool _done;
+    private string? _error;
+
+    protected override void OnInitialized() => _code = CodeFromQuery ?? string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_documentNumber)
+            || string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Rellena todos los campos.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Members.RegisterAsync(new RegisterMemberRequest
+            {
+                Code = _code,
+                DocumentNumber = _documentNumber,
+                Email = _email,
+                Password = _password,
+            });
+            _done = true;
+        }
+        catch (GsmApiException ex)
+        {
+            // 404: código inválido o caducado. 409: el socio ya tiene cuenta.
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

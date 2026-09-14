@@ -1,6 +1,6 @@
 # GSM — Plan de construcción del frontend
 
-> **Estado (septiembre de 2026):** **F0–F6 hechas — el panel del gym está completo**, el punto natural para un piloto. Siguiente: **F7** (app del socio).
+> **Estado (septiembre de 2026):** **F0–F7 hechas.** El panel del gym está completo (F6) y también la app del socio (F7: web `/app` verificada en navegador y ancho móvil; `GSM.Mobile` en MAUI compila para Android/Windows pero no se ha podido probar en emulador — este entorno no tiene SDK de Android). Siguiente: **F8** (panel SuperAdmin).
 
 ## Contexto
 El backend está completo (etapas 0–7, 9 Routines, 10 Classes, 11 SuperAdmin; 111 tests), pero no hay ningún cliente: hoy el sistema solo se usa desde Scalar. Para vender, el gym tiene que poder operar (socios, cobros, asistencia) y el socio tiene que tener su app. Este documento define **las etapas de frontend F0–F8** con el mismo método que el backend: incremental y **una etapa (o sub-etapa) cada vez, con confirmación entre una y otra**.

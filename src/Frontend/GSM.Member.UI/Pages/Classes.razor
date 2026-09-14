@@ -1,0 +1,130 @@
+@page "/app/clases"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject GymContext GymCtx
+@inject IMeClient Me
+@inject IMemberClassesClient MemberClasses
+@inject ISnackbar Snackbar
+
+<PageTitle>Clases — GSM</PageTitle>
+
+@if (GymCtx.FeatureFlags?.ShowClasses == false)
+{
+    <MudAlert Severity="Severity.Normal">Las clases no están activadas en este gimnasio.</MudAlert>
+}
+else
+{
+    <div class="d-flex align-center mb-4" style="gap:0.5rem">
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" />
+        <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" />
+    </div>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_entries.Count == 0)
+    {
+        <MudText Color="Color.Secondary">Sin clases esta semana.</MudText>
+    }
+    else
+    {
+        @foreach (var entry in _entries.OrderBy(e => e.SessionDate).ThenBy(e => e.StartTime))
+        {
+            <MudPaper Class="pa-3 mb-2" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <div class="d-flex align-center justify-space-between flex-wrap" style="gap:0.5rem">
+                    <div>
+                        <MudText Typo="Typo.body1">@entry.ClassName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="gsm-mono">
+                            @GsmFormat.Day(entry.SessionDate) · @entry.StartTime.ToString("HH:mm")
+                        </MudText>
+                    </div>
+                    @if (entry.Status == "Cancelled")
+                    {
+                        <MudChip T="string" Color="Color.Error" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">CANCELADA</MudChip>
+                    }
+                    else if (entry.MyBookingStatus is "Booked")
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => CancelAsync(entry))">
+                            Cancelar
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => BookAsync(entry))">
+                            Reservar
+                        </MudButton>
+                    }
+                </div>
+            </MudPaper>
+        }
+    }
+}
+
+@code {
+    private DateOnly _weekStart = StartOfWeek(DateOnly.FromDateTime(DateTime.Today));
+    private List<ScheduleEntry> _entries = [];
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => GymCtx.FeatureFlags?.ShowClasses == false ? Task.CompletedTask : LoadAsync();
+
+    private static DateOnly StartOfWeek(DateOnly date)
+    {
+        var diff = ((int)date.DayOfWeek + 6) % 7;
+        return date.AddDays(-diff);
+    }
+
+    private async Task ShiftWeekAsync(int days)
+    {
+        _weekStart = _weekStart.AddDays(days);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Me.ClassesGET2Async(_weekStart, _weekStart.AddDays(6));
+            _entries = result.Entries.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task BookAsync(ScheduleEntry entry)
+    {
+        try
+        {
+            await MemberClasses.BookPOSTAsync(entry.ClassId, entry.SessionDate);
+            Snackbar.Add("Reserva confirmada.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            // 409: cupo lleno. 422: la clase no admite reservas.
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task CancelAsync(ScheduleEntry entry)
+    {
+        try
+        {
+            await MemberClasses.BookDELETEAsync(entry.ClassId, entry.SessionDate);
+            Snackbar.Add("Reserva cancelada.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

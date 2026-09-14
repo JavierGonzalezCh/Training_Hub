@@ -1,0 +1,120 @@
+@page "/app/rutina"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject GymContext GymCtx
+@inject IMeClient Me
+@inject IRoutineExercisesClient RoutineExercises
+@inject ISnackbar Snackbar
+
+<PageTitle>Mi rutina — GSM</PageTitle>
+
+@if (GymCtx.FeatureFlags?.ShowRoutines == false)
+{
+    <MudAlert Severity="Severity.Normal">Las rutinas no están activadas en este gimnasio.</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_response?.Routine is null)
+{
+    <MudText Color="Color.Secondary" Class="mb-4">Todavía no tienes una rutina asignada.</MudText>
+    @if (_createError is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">@_createError</MudAlert>
+    }
+}
+else
+{
+    <MudText Typo="Typo.h5" Class="mb-1">@_response.Routine.Name</MudText>
+    @if (_response.Today is { } today)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            Hoy: @today.DayName @(today.IsRest ? "· descanso" : "")
+        </MudText>
+
+        @if (!today.IsRest)
+        {
+            @foreach (var exercise in today.Exercises)
+            {
+                <MudPaper Class="pa-3 mb-2" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                    <div class="d-flex align-center justify-space-between">
+                        <div>
+                            <MudText Typo="Typo.body1">@exercise.ExerciseName</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="gsm-mono">
+                                @exercise.TargetSets x @exercise.TargetReps
+                                @(exercise.TargetWeightKg is { } w ? $"· {w} kg" : "")
+                            </MudText>
+                        </div>
+                        <MudCheckBox T="bool" Value="_done.Contains(exercise.Id)" ValueChanged="@(v => ToggleAsync(exercise, v))" Color="Color.Primary" />
+                    </div>
+                </MudPaper>
+            }
+        }
+    }
+
+    @if (_response.Routine.Notes is { Length: > 0 } notes)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mt-4">@notes</MudAlert>
+    }
+}
+
+@code {
+    private MyRoutineResponse? _response;
+    private readonly HashSet<Guid> _done = [];
+    private bool _loading = true;
+    private string? _createError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GymCtx.FeatureFlags?.ShowRoutines == false)
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            _response = await Me.RoutinesGETAsync();
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 403)
+        {
+            // Sin rutina asignada y sin permiso de autoservicio: se queda vacío.
+            _createError = "Pide a recepción que te asigne una rutina.";
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ToggleAsync(RoutineExerciseResponse exercise, bool done)
+    {
+        try
+        {
+            if (done)
+            {
+                await RoutineExercises.LogPOSTAsync(exercise.Id, new LogRoutineExerciseRequest
+                {
+                    SetsDone = exercise.TargetSets,
+                    RepsDone = exercise.TargetReps,
+                    WeightKg = exercise.TargetWeightKg is { } w ? (double)w : null,
+                });
+                _done.Add(exercise.Id);
+            }
+            else
+            {
+                await RoutineExercises.LogDELETEAsync(exercise.Id);
+                _done.Remove(exercise.Id);
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

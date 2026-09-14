@@ -1,0 +1,68 @@
+@page "/app/logros"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject GymContext GymCtx
+@inject IMeClient Me
+@inject ISnackbar Snackbar
+
+<PageTitle>Logros — GSM</PageTitle>
+
+@if (GymCtx.FeatureFlags?.ShowGamification == false)
+{
+    <MudAlert Severity="Severity.Normal">La gamificación no está activada en este gimnasio.</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_achievements.Count == 0)
+{
+    <MudText Color="Color.Secondary">Todavía no hay logros configurados.</MudText>
+}
+else
+{
+    <MudGrid>
+        @foreach (var achievement in _achievements)
+        {
+            <MudItem xs="6" sm="4">
+                <MudPaper Class="pa-4 text-center" Elevation="0"
+                          Style="@($"border:1px solid var(--gsm-border); opacity:{(achievement.Unlocked ? "1" : "0.45")}")">
+                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large"
+                              Color="@(achievement.Unlocked ? Color.Info : Color.Default)" Class="mb-2" />
+                    <MudText Typo="Typo.body1">@achievement.Name</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @AchievementConditionLabels.Label(achievement.ConditionType) · @achievement.Progress/@achievement.ConditionValue
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private List<MemberAchievementItem> _achievements = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GymCtx.FeatureFlags?.ShowGamification == false)
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            var result = await Me.AchievementsAll2Async();
+            _achievements = result.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

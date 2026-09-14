@@ -1,0 +1,100 @@
+@inherits LayoutComponentBase
+@inject GymContext GymCtx
+@inject MemberContext MemberCtx
+@inject SessionService Session
+@inject MemberBootstrapService Bootstrap
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<MudThemeProvider Theme="@_theme" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0">
+        <span class="gsm-wordmark" style="font-size:1.3rem">GS<span class="accent">M</span></span>
+        <MudSpacer />
+        @if (GymCtx.Gym is { } gym)
+        {
+            <MudText Class="gsm-mono mr-3" Typo="Typo.body2">@gym.Name.ToUpperInvariant()</MudText>
+        }
+        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" title="Cerrar sesión" />
+    </MudAppBar>
+
+    <MudMainContent>
+        <SubscriptionBanner />
+        <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4 pb-16">
+            @if (_loading)
+            {
+                <div class="d-flex justify-center mt-8">
+                    <MudProgressCircular Indeterminate="true" />
+                </div>
+            }
+            else
+            {
+                @Body
+            }
+        </MudContainer>
+    </MudMainContent>
+
+    <MudPaper Class="pa-0" Elevation="4" Style="position:fixed; bottom:0; left:0; right:0; z-index:10;">
+        <MudBottomNavigation Color="Color.Primary" Style="background:var(--gsm-panel)">
+            <MudBottomNavigationItem Icon="@Icons.Material.Filled.Home" Href="/app" Match="NavLinkMatch.All">Inicio</MudBottomNavigationItem>
+            <MudBottomNavigationItem Icon="@Icons.Material.Filled.EmojiEvents" Href="/app/logros">Logros</MudBottomNavigationItem>
+            <MudBottomNavigationItem Icon="@Icons.Material.Filled.FitnessCenter" Href="/app/rutina">Rutina</MudBottomNavigationItem>
+            <MudBottomNavigationItem Icon="@Icons.Material.Filled.CalendarMonth" Href="/app/clases">Clases</MudBottomNavigationItem>
+        </MudBottomNavigation>
+    </MudPaper>
+</MudLayout>
+
+@code {
+    private MudTheme _theme = GsmTheme.Build();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        GymCtx.Changed += OnChanged;
+        MemberCtx.Changed += OnChanged;
+
+        try
+        {
+            if (!GymCtx.IsLoaded)
+            {
+                await Session.BootstrapAsync();
+            }
+
+            if (!MemberCtx.IsLoaded)
+            {
+                await Bootstrap.LoadAsync();
+            }
+        }
+        catch (ApiErrorException ex) when (ex.Error.IsUnauthorized)
+        {
+            Navigation.NavigateTo("/login", replace: true);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnChanged()
+    {
+        _theme = GsmTheme.Build(GymCtx.Gym);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Session.LogoutAsync();
+        MemberCtx.Clear();
+        Navigation.NavigateTo("/login", replace: true);
+    }
+
+    public void Dispose()
+    {
+        GymCtx.Changed -= OnChanged;
+        MemberCtx.Changed -= OnChanged;
+    }
+}
