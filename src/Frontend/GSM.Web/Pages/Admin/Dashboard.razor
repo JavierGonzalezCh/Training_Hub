@@ -1,0 +1,103 @@
+@page "/admin"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+@inject IAdminDashboardClient DashboardClient
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Panel SuperAdmin — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-6">Panel de plataforma</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_dashboard is { } d)
+{
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Gyms" Value="@d.Platform.GymCount.ToString()" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Socios activos" Value="@d.Platform.ActiveMembers.ToString()" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Check-ins del mes" Value="@d.Platform.CheckInsThisMonth.ToString()" Accent="Color.Info" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Por vencer (15 días)" Value="@d.Portfolio.ExpiringWithin15Days.ToString()" Accent="Color.Error" />
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="4">
+            <StatCard Label="Contratado" Value="@GsmFormat.Money((decimal)d.Revenue.Contracted)" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <StatCard Label="Cobrado este mes" Value="@GsmFormat.Money((decimal)d.Revenue.CollectedThisMonth)" Accent="Color.Info" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <StatCard Label="Cobrado mes anterior" Value="@GsmFormat.Money((decimal)d.Revenue.CollectedLastMonth)" />
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-2">Cartera por estado</MudText>
+    <div class="d-flex flex-wrap mb-6" style="gap:0.5rem">
+        @foreach (var (status, count) in d.Portfolio.CountByStatus)
+        {
+            <MudChip T="string" Color="@SuperAdminLabels.StatusColor(status)" Variant="Variant.Text" Class="gsm-mono">
+                @SuperAdminLabels.StatusLabel(status).ToUpperInvariant(): @count
+            </MudChip>
+        }
+    </div>
+
+    <MudText Typo="Typo.h6" Class="mb-2">Uso por gym</MudText>
+    <MudTable Items="d.GymUsage" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Gym</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Socios activos</MudTh>
+            <MudTh>Check-ins del mes</MudTh>
+            <MudTh>Ingresos del mes</MudTh>
+            <MudTh>Última visita</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Gym">
+                <MudLink OnClick="@(() => Navigation.NavigateTo($"/admin/gyms/{context.GymId}"))" Underline="Underline.None">
+                    @context.Name
+                </MudLink>
+            </MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@SuperAdminLabels.StatusColor(context.EffectiveStatus)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @SuperAdminLabels.StatusLabel(context.EffectiveStatus).ToUpperInvariant()
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Socios activos">@context.ActiveMembers</MudTd>
+            <MudTd DataLabel="Check-ins del mes">@context.CheckInsThisMonth</MudTd>
+            <MudTd DataLabel="Ingresos del mes" Class="gsm-mono">@GsmFormat.Money((decimal)context.MemberRevenueThisMonth)</MudTd>
+            <MudTd DataLabel="Última visita">@(context.LastCheckIn is { } d2 ? GsmFormat.Day(d2) : "—")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private AdminDashboardResponse? _dashboard;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _dashboard = await DashboardClient.DashboardAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

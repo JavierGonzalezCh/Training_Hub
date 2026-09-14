@@ -1,5 +1,5 @@
 @page "/members"
-@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembersClient Members
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs

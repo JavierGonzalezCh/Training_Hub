@@ -36,7 +36,11 @@ Ningún módulo nuevo de backend está en construcción. **Del frontend están h
 
 **Hueco H2 corregido** (una línea, sin cambio de comportamiento): `MeController.CreateRoutine` declaraba `ProducesResponseType<MyRoutineResponse>` cuando en realidad devuelve `RoutineResponse`; ya corregido, cliente sin regenerar (no lo usa ningún flujo actual: F7.4 no ofrece autoservicio de rutina, sigue el hueco H4 sin resolver). **Hueco H4 sin resolver**: `MeFeatureFlags` no trae `MembersCanCreateRoutines`; la pantalla de rutina se limita a mostrar "no tienes rutina asignada" cuando no hay una, sin botón de autoservicio.
 
-**Siguiente etapa: F8** (panel SuperAdmin). Siguen pendientes el despliegue y los módulos sin planificar (Community, Reports, Locations).
+**F8 (panel SuperAdmin) también está hecha: el frontend planeado (F0–F8) está completo.** `/admin` (dashboard de plataforma), `/admin/gyms` (cartera + alta de gym) y `/admin/gyms/{id}` (ficha, editar plan/precio, renovar sin pago, registrar pago, suspender/reactivar, impersonar), `/admin/payments` (cobros del periodo), `/admin/impersonations` (auditoría). La impersonación (F8.4) guarda los tokens propios del superadmin en un segundo slot de `ITokenStore` (`BackupAsync`/`GetBackupAsync`/`ClearBackupAsync`) y entra al panel del gym con una política de autorización nueva en el cliente (`GsmPolicies.RequireStaff` en `GSM.UI.Shared`, espejo de la del backend: admite Owner, Staff o un SuperAdmin impersonando) — sin esa política, las páginas del panel (con `[Authorize(Roles="owner,staff")]`) habrían rechazado al superadmin impersonando pese a que el backend sí lo admite. Terminar la impersonación usa `forceLoad: true` para evitar una condición de carrera entre restaurar tokens y que el router reevalúe la autorización.
+
+**No construido, fuera de alcance por ahora**: el catálogo de ejercicios del sistema reutilizado desde el panel SuperAdmin (mencionado en el plan para F8) — la pantalla de F6 sigue siendo solo-Staff; abrirla a superadmin sin impersonar exigía resolver el contexto de gym para un rol que no tiene uno, y no se hizo por tiempo.
+
+Siguen pendientes el despliegue (Dockerfile/Railway, etapa 8 punto 4 del backend) y los módulos sin planificar (Community, Reports, Locations).
 
 **Cómo levantar el entorno local está en `README.md`** — Postgres 18 nativo, bases `gsm` y `gsm_test`, migraciones a mano (la API no migra al arrancar).
 

@@ -1,0 +1,60 @@
+@inject ImpersonationService Impersonation
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-3">
+            Vas a entrar en el panel de <strong>@GymName</strong> en modo solo lectura, durante 15 minutos.
+            Motivo obligatorio (queda en el historial de auditoría).
+        </MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="StartAsync" Disabled="_submitting">
+            @(_submitting ? "Entrando..." : "Entrar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid GymId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string GymName { get; set; } = string.Empty;
+
+    private string _reason = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task StartAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_reason))
+        {
+            _error = "El motivo es obligatorio.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Impersonation.StartAsync(GymId, _reason);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

@@ -17,12 +17,24 @@ public interface ITokenStore
     ValueTask SetAsync(AuthTokens tokens, CancellationToken cancellationToken = default);
 
     ValueTask ClearAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Guarda aparte los tokens propios del superadmin mientras dura una impersonación (el token
+    /// de impersonación no tiene refresh y dura 15 minutos). <see cref="GetAsync"/>/<see cref="SetAsync"/>
+    /// siguen operando sobre el par "activo" (el de impersonación mientras esté abierta).
+    /// </summary>
+    ValueTask BackupAsync(AuthTokens tokens, CancellationToken cancellationToken = default);
+
+    ValueTask<AuthTokens?> GetBackupAsync(CancellationToken cancellationToken = default);
+
+    ValueTask ClearBackupAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>Almacén en memoria; sirve para tests y como valor por defecto.</summary>
 public sealed class InMemoryTokenStore : ITokenStore
 {
     private AuthTokens? _tokens;
+    private AuthTokens? _backup;
 
     public ValueTask<AuthTokens?> GetAsync(CancellationToken cancellationToken = default) => new(_tokens);
 
@@ -35,6 +47,20 @@ public sealed class InMemoryTokenStore : ITokenStore
     public ValueTask ClearAsync(CancellationToken cancellationToken = default)
     {
         _tokens = null;
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask BackupAsync(AuthTokens tokens, CancellationToken cancellationToken = default)
+    {
+        _backup = tokens;
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask<AuthTokens?> GetBackupAsync(CancellationToken cancellationToken = default) => new(_backup);
+
+    public ValueTask ClearBackupAsync(CancellationToken cancellationToken = default)
+    {
+        _backup = null;
         return ValueTask.CompletedTask;
     }
 }

@@ -1,5 +1,5 @@
 @page "/plans"
-@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembershipPlansClient Plans
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar

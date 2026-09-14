@@ -1,5 +1,5 @@
 @page "/memberships/expiring"
-@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembershipsClient Memberships
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar

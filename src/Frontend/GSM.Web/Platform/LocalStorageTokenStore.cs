@@ -11,10 +11,27 @@ namespace GSM.Web.Platform;
 public sealed class LocalStorageTokenStore(IJSRuntime js) : ITokenStore
 {
     private const string Key = "gsm.tokens";
+    private const string BackupKey = "gsm.tokens.backup";
 
-    public async ValueTask<AuthTokens?> GetAsync(CancellationToken cancellationToken = default)
+    public ValueTask<AuthTokens?> GetAsync(CancellationToken cancellationToken = default) => ReadAsync(Key, cancellationToken);
+
+    public ValueTask SetAsync(AuthTokens tokens, CancellationToken cancellationToken = default)
+        => WriteAsync(Key, tokens, cancellationToken);
+
+    public async ValueTask ClearAsync(CancellationToken cancellationToken = default)
+        => await js.InvokeVoidAsync("localStorage.removeItem", cancellationToken, Key);
+
+    public ValueTask BackupAsync(AuthTokens tokens, CancellationToken cancellationToken = default)
+        => WriteAsync(BackupKey, tokens, cancellationToken);
+
+    public ValueTask<AuthTokens?> GetBackupAsync(CancellationToken cancellationToken = default) => ReadAsync(BackupKey, cancellationToken);
+
+    public async ValueTask ClearBackupAsync(CancellationToken cancellationToken = default)
+        => await js.InvokeVoidAsync("localStorage.removeItem", cancellationToken, BackupKey);
+
+    private async ValueTask<AuthTokens?> ReadAsync(string key, CancellationToken cancellationToken)
     {
-        var raw = await js.InvokeAsync<string?>("localStorage.getItem", cancellationToken, Key);
+        var raw = await js.InvokeAsync<string?>("localStorage.getItem", cancellationToken, key);
         if (string.IsNullOrEmpty(raw))
         {
             return null;
@@ -30,9 +47,6 @@ public sealed class LocalStorageTokenStore(IJSRuntime js) : ITokenStore
         }
     }
 
-    public async ValueTask SetAsync(AuthTokens tokens, CancellationToken cancellationToken = default)
-        => await js.InvokeVoidAsync("localStorage.setItem", cancellationToken, Key, JsonSerializer.Serialize(tokens));
-
-    public async ValueTask ClearAsync(CancellationToken cancellationToken = default)
-        => await js.InvokeVoidAsync("localStorage.removeItem", cancellationToken, Key);
+    private async ValueTask WriteAsync(string key, AuthTokens tokens, CancellationToken cancellationToken)
+        => await js.InvokeVoidAsync("localStorage.setItem", cancellationToken, key, JsonSerializer.Serialize(tokens));
 }

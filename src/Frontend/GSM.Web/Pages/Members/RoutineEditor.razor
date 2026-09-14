@@ -1,6 +1,6 @@
 @page "/members/{MemberId:guid}/routines/new"
 @page "/members/{MemberId:guid}/routines/{RoutineId:guid}"
-@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IRoutinesClient Routines
 @inject IMemberRoutinesClient MemberRoutines
 @inject IExercisesClient ExercisesApi

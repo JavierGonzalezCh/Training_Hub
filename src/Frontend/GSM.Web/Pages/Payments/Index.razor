@@ -1,5 +1,5 @@
 @page "/payments"
-@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IPaymentsClient Payments
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar

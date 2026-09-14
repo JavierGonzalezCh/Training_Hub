@@ -1,0 +1,62 @@
+@page "/admin/impersonations"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+@inject IAdminImpersonationClient AdminImpersonation
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Impersonaciones — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-6">Historial de impersonaciones</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary">Sin registros todavía.</MudText>
+}
+else
+{
+    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Gym</MudTh>
+            <MudTh>Motivo</MudTh>
+            <MudTh>Inicio</MudTh>
+            <MudTh>Fin</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Gym">
+                <MudLink OnClick="@(() => Navigation.NavigateTo($"/admin/gyms/{context.GymId}"))" Underline="Underline.None">
+                    @context.GymName
+                </MudLink>
+            </MudTd>
+            <MudTd DataLabel="Motivo">@context.Reason</MudTd>
+            <MudTd DataLabel="Inicio">@GsmFormat.Instant(context.StartedAt)</MudTd>
+            <MudTd DataLabel="Fin">@(context.EndedAt is { } end ? GsmFormat.Instant(end) : "En curso")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<ImpersonationItem> _items = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await AdminImpersonation.ImpersonationsAsync(null, 100);
+            _items = result.OrderByDescending(i => i.StartedAt).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

@@ -1,0 +1,100 @@
+@page "/admin/gyms"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+@inject IAdminGymsClient AdminGyms
+@inject NavigationManager Navigation
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Cartera — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Cartera</MudText>
+    <MudSpacer />
+    <MudSelect T="string" Value="_status" ValueChanged="OnStatusChangedAsync" Label="Estado" Style="max-width:200px">
+        <MudSelectItem Value="@("")">Todos</MudSelectItem>
+        <MudSelectItem Value="@("Trial")">Prueba</MudSelectItem>
+        <MudSelectItem Value="@("Active")">Activo</MudSelectItem>
+        <MudSelectItem Value="@("Overdue")">Moroso</MudSelectItem>
+        <MudSelectItem Value="@("Disabled")">Deshabilitado</MudSelectItem>
+        <MudSelectItem Value="@("Suspended")">Suspendido</MudSelectItem>
+    </MudSelect>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+        Nuevo gym
+    </MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_portfolio is { } portfolio)
+{
+    <MudTable Items="portfolio.Items" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Gym</MudTh>
+            <MudTh>Plan</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Vence</MudTh>
+            <MudTh>Días</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Gym">
+                <MudLink OnClick="@(() => Navigation.NavigateTo($"/admin/gyms/{context.GymId}"))" Underline="Underline.None">
+                    @context.Name
+                </MudLink>
+                <MudText Typo="Typo.caption" Class="gsm-mono" Color="Color.Secondary">@context.Slug</MudText>
+            </MudTd>
+            <MudTd DataLabel="Plan">@context.Plan</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@SuperAdminLabels.StatusColor(context.EffectiveStatus)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @SuperAdminLabels.StatusLabel(context.EffectiveStatus).ToUpperInvariant()
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Vence">@GsmFormat.Day(context.PaidThrough)</MudTd>
+            <MudTd DataLabel="Días" Class="gsm-mono">@(context.DaysUntilDisabled?.ToString() ?? "—")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private PortfolioResponse? _portfolio;
+    private string _status = string.Empty;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _portfolio = await AdminGyms.GymsGETAsync(string.IsNullOrEmpty(_status) ? null : _status);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnStatusChangedAsync(string value)
+    {
+        _status = value;
+        await LoadAsync();
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<GymFormDialog>("Nuevo gym");
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: Guid gymId })
+        {
+            Snackbar.Add("Gym creado.", Severity.Success);
+            Navigation.NavigateTo($"/admin/gyms/{gymId}");
+        }
+    }
+}

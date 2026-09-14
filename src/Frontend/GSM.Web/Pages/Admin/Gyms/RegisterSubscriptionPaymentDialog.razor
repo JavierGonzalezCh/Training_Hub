@@ -1,0 +1,73 @@
+@inject IAdminGymsClient AdminGyms
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudNumericField T="decimal" @bind-Value="_amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3" />
+        <MudSelect T="int" @bind-Value="_method" Label="Método" Class="mb-3">
+            @foreach (var (value, label) in PaymentMethodLabels.All)
+            {
+                <MudSelectItem Value="value">@label</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="_reference" Label="Referencia" Class="mb-3" />
+        <MudTextField T="string" @bind-Value="_notes" Label="Notas" Lines="2" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+            Sin fechas: el periodo arranca al día siguiente del vencimiento actual y dura un mes.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Guardando..." : "Registrar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid GymId { get; set; }
+
+    private decimal _amount;
+    private int _method;
+    private string? _reference;
+    private string? _notes;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        if (_amount <= 0)
+        {
+            _error = "El monto debe ser mayor que cero.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await AdminGyms.PaymentsPOSTAsync(GymId, new RegisterSubscriptionPaymentRequest
+            {
+                Amount = (double)_amount,
+                Method = _method,
+                Reference = _reference,
+                Notes = _notes,
+            });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

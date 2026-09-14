@@ -1,0 +1,63 @@
+@inject IAdminGymsClient AdminGyms
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudSelect T="int" @bind-Value="_plan" Label="Plan" Class="mb-3">
+            @foreach (var (value, label) in SuperAdminLabels.Plans)
+            {
+                <MudSelectItem Value="value">@label</MudSelectItem>
+            }
+        </MudSelect>
+        <MudNumericField T="decimal" @bind-Value="_price" Label="Precio mensual (COP)" Min="0" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid GymId { get; set; }
+
+    [Parameter, EditorRequired]
+    public SubscriptionDetail Current { get; set; } = null!;
+
+    private int _plan;
+    private decimal _price;
+    private bool _submitting;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        _plan = SuperAdminLabels.Plans.FirstOrDefault(p => p.Label == Current.Plan).Value;
+        _price = (decimal)Current.MonthlyPrice;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _submitting = true;
+        try
+        {
+            await AdminGyms.SubscriptionAsync(GymId, new UpdateSubscriptionRequest { Plan = _plan, MonthlyPrice = (double)_price });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

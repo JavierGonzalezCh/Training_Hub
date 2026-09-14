@@ -1,0 +1,91 @@
+@inject IGymsClient Gyms
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudForm @ref="_form">
+            <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Gym</MudText>
+            <MudTextField T="string" @bind-Value="_name" Label="Nombre" Required="true" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_slug" Label="Slug" Required="true" HelperText="Único, en minúsculas" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_nit" Label="NIT" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_phone" Label="Teléfono" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_email" Label="Email del gym" InputType="InputType.Email" Class="mb-3" />
+            <MudSelect T="int" @bind-Value="_plan" Label="Plan" Class="mb-4">
+                @foreach (var (value, label) in SuperAdminLabels.Plans)
+                {
+                    <MudSelectItem Value="value">@label</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Owner</MudText>
+            <MudTextField T="string" @bind-Value="_ownerName" Label="Nombre del owner" Required="true" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_ownerEmail" Label="Email del owner" InputType="InputType.Email" Required="true" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_ownerPassword" Label="Contraseña inicial" InputType="InputType.Password" Required="true" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Creando..." : "Crear gym")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private string _name = string.Empty;
+    private string _slug = string.Empty;
+    private string? _nit;
+    private string? _phone;
+    private string? _email;
+    private int _plan;
+    private string _ownerName = string.Empty;
+    private string _ownerEmail = string.Empty;
+    private string _ownerPassword = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var result = await Gyms.GymsPOSTAsync(new CreateGymRequest
+            {
+                Name = _name,
+                Slug = _slug,
+                Nit = _nit,
+                Phone = _phone,
+                Email = _email,
+                Plan = _plan,
+                Owner = new CreateGymOwner { Email = _ownerEmail, FullName = _ownerName, Password = _ownerPassword },
+            });
+
+            MudDialog.Close(DialogResult.Ok(result.GymId));
+        }
+        catch (GsmApiException ex)
+        {
+            // 409: el slug ya existe.
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

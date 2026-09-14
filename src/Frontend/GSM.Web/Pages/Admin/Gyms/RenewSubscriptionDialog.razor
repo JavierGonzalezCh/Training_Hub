@@ -1,0 +1,59 @@
+@inject IAdminGymsClient AdminGyms
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudDatePicker Label="Pagado hasta" Date="_paidThrough" DateChanged="d => _paidThrough = d" Class="mb-3" />
+        <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Guardando..." : "Renovar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid GymId { get; set; }
+
+    private DateTime? _paidThrough = DateTime.Today.AddMonths(1);
+    private string _reason = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        if (_paidThrough is null || string.IsNullOrWhiteSpace(_reason))
+        {
+            _error = "Rellena la fecha y el motivo.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await AdminGyms.RenewAsync(GymId, new RenewSubscriptionRequest
+            {
+                PaidThrough = DateOnly.FromDateTime(_paidThrough.Value),
+                Reason = _reason,
+            });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

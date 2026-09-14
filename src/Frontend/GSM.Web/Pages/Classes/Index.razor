@@ -1,5 +1,5 @@
 @page "/classes"
-@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IClassesClient Classes
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs

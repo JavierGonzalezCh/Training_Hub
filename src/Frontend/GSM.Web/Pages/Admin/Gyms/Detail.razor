@@ -1,0 +1,198 @@
+@page "/admin/gyms/{GymId:guid}"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+@inject IAdminGymsClient AdminGyms
+@inject ImpersonationService Impersonation
+@inject NavigationManager Navigation
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_gym?.Name ?? "Gym") — GSM</PageTitle>
+
+<MudLink OnClick="@(() => Navigation.NavigateTo("/admin/gyms"))" Class="mb-4 d-inline-block">← Cartera</MudLink>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_gym is { } gym)
+{
+    <div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
+        <div style="flex:1">
+            <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
+                <MudText Typo="Typo.h4">@gym.Name</MudText>
+                <MudChip T="string" Color="@SuperAdminLabels.StatusColor(gym.Subscription.EffectiveStatus)" Variant="Variant.Text" Class="gsm-mono">
+                    @SuperAdminLabels.StatusLabel(gym.Subscription.EffectiveStatus).ToUpperInvariant()
+                </MudChip>
+            </div>
+            <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">@gym.Slug</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.VisibilityOff" OnClick="OpenImpersonateAsync">
+            Entrar como
+        </MudButton>
+    </div>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Plan</MudText>
+                <MudText Typo="Typo.h6">@gym.Subscription.Plan</MudText>
+                <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">@GsmFormat.Money((decimal)gym.Subscription.MonthlyPrice) / mes</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Pagado hasta</MudText>
+                <MudText Typo="Typo.h6">@GsmFormat.Day(gym.Subscription.PaidThrough)</MudText>
+                @if (gym.Subscription.DaysUntilDisabled is { } days)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Error">@days días para deshabilitar</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Contacto</MudText>
+                <MudText Typo="Typo.body2">@(gym.Email ?? "—")</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@(gym.Phone ?? "—")</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <div class="d-flex flex-wrap mb-6" style="gap:0.5rem">
+        <MudButton Variant="Variant.Outlined" OnClick="OpenSubscriptionAsync">Editar plan/precio</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="OpenRenewAsync">Renovar sin pago</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenPaymentAsync">Registrar pago</MudButton>
+        @if (gym.Subscription.ManualStatus == "Suspended")
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Info" OnClick="ReactivateAsync">Reactivar</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="OpenSuspendAsync">Suspender</MudButton>
+        }
+    </div>
+
+    <MudText Typo="Typo.h6" Class="mb-2">Pagos al SaaS</MudText>
+    @if (_payments is null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_payments.Count == 0)
+    {
+        <MudText Color="Color.Secondary">Sin pagos todavía.</MudText>
+    }
+    else
+    {
+        <MudTable Items="_payments" Hover="true" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Fecha</MudTh>
+                <MudTh>Cubre</MudTh>
+                <MudTh>Método</MudTh>
+                <MudTh>Monto</MudTh>
+                <MudTh>Referencia</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.PaidAt)</MudTd>
+                <MudTd DataLabel="Cubre">@GsmFormat.Day(context.CoversFrom) – @GsmFormat.Day(context.CoversThrough)</MudTd>
+                <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
+                <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+                <MudTd DataLabel="Referencia">@(context.Reference ?? "—")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid GymId { get; set; }
+
+    private GymDetailResponse? _gym;
+    private List<SubscriptionPaymentItem>? _payments;
+    private bool _loading = true;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _gym = await AdminGyms.GymsGET2Async(GymId);
+            var payments = await AdminGyms.PaymentsAllAsync(GymId);
+            _payments = payments.OrderByDescending(p => p.PaidAt).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenSubscriptionAsync()
+    {
+        var parameters = new DialogParameters<SubscriptionFormDialog> { { x => x.GymId, GymId }, { x => x.Current, _gym!.Subscription } };
+        var dialog = await Dialogs.ShowAsync<SubscriptionFormDialog>("Plan y precio", parameters);
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            Snackbar.Add("Suscripción actualizada.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenRenewAsync()
+    {
+        var parameters = new DialogParameters<RenewSubscriptionDialog> { { x => x.GymId, GymId } };
+        var dialog = await Dialogs.ShowAsync<RenewSubscriptionDialog>("Renovar sin pago", parameters);
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            Snackbar.Add("Suscripción renovada.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenSuspendAsync()
+    {
+        var parameters = new DialogParameters<SuspendGymDialog> { { x => x.GymId, GymId } };
+        var dialog = await Dialogs.ShowAsync<SuspendGymDialog>("Suspender gym", parameters);
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            Snackbar.Add("Gym suspendido.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task ReactivateAsync()
+    {
+        try
+        {
+            await AdminGyms.ReactivateAsync(GymId);
+            Snackbar.Add("Gym reactivado.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task OpenPaymentAsync()
+    {
+        var parameters = new DialogParameters<RegisterSubscriptionPaymentDialog> { { x => x.GymId, GymId } };
+        var dialog = await Dialogs.ShowAsync<RegisterSubscriptionPaymentDialog>("Registrar pago", parameters);
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenImpersonateAsync()
+    {
+        var parameters = new DialogParameters<ImpersonateDialog> { { x => x.GymId, GymId }, { x => x.GymName, _gym!.Name } };
+        await Dialogs.ShowAsync<ImpersonateDialog>("Entrar como", parameters);
+    }
+}

@@ -1,0 +1,49 @@
+@inherits LayoutComponentBase
+@inject SessionService Session
+@inject NavigationManager Navigation
+
+<MudThemeProvider Theme="@GsmTheme.Build()" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <ImpersonationBar />
+    <MudAppBar Elevation="0">
+        <span class="gsm-wordmark" style="font-size:1.4rem">GS<span class="accent">M</span></span>
+        <MudText Class="gsm-mono ml-3" Typo="Typo.body2" Color="Color.Secondary">SUPERADMIN</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" title="Cerrar sesión" />
+    </MudAppBar>
+
+    <MudDrawer Open="true" Elevation="0" Variant="DrawerVariant.Persistent">
+        <MudNavMenu Class="pt-4 px-2">
+            <NavLink class="gsm-nav-link" href="/admin" Match="NavLinkMatch.All">
+                <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" Size="Size.Small" Class="mr-3" /> Dashboard
+            </NavLink>
+            <NavLink class="gsm-nav-link" href="/admin/gyms">
+                <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Class="mr-3" /> Cartera
+            </NavLink>
+            <NavLink class="gsm-nav-link" href="/admin/payments">
+                <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" Class="mr-3" /> Cobros
+            </NavLink>
+            <NavLink class="gsm-nav-link" href="/admin/impersonations">
+                <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" Class="mr-3" /> Impersonaciones
+            </NavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6 pb-8">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        await Session.LogoutAsync();
+        Navigation.NavigateTo("/login", replace: true);
+    }
+}

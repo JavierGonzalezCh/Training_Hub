@@ -1,5 +1,5 @@
 @page "/"
-@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @implements IDisposable
 @inject GymContext GymContext
 @inject IDashboardClient Dashboard

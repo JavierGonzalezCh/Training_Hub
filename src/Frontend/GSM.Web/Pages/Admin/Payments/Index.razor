@@ -1,0 +1,84 @@
+@page "/admin/payments"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+@inject IAdminPaymentsClient AdminPayments
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Cobros — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Cobros del periodo</MudText>
+    <MudSpacer />
+    <MudDatePicker Label="Desde" Date="_from" DateChanged="d => _from = d" Style="max-width:180px" />
+    <MudDatePicker Label="Hasta" Date="_to" DateChanged="d => _to = d" Style="max-width:180px" />
+    <MudButton Variant="Variant.Outlined" OnClick="LoadAsync">Filtrar</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_response is { } response)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border); max-width:280px">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">Total del periodo</MudText>
+        <MudText Typo="Typo.h5" Class="gsm-mono" Color="Color.Info">@GsmFormat.Money((decimal)response.Total)</MudText>
+    </MudPaper>
+
+    @if (response.Items.Count == 0)
+    {
+        <MudText Color="Color.Secondary">Sin cobros en el rango.</MudText>
+    }
+    else
+    {
+        <MudTable Items="response.Items" Hover="true" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Gym</MudTh>
+                <MudTh>Fecha</MudTh>
+                <MudTh>Cubre</MudTh>
+                <MudTh>Método</MudTh>
+                <MudTh>Monto</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Gym">
+                    <MudLink OnClick="@(() => Navigation.NavigateTo($"/admin/gyms/{context.GymId}"))" Underline="Underline.None">
+                        @context.GymName
+                    </MudLink>
+                </MudTd>
+                <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.PaidAt)</MudTd>
+                <MudTd DataLabel="Cubre">@GsmFormat.Day(context.CoversFrom) – @GsmFormat.Day(context.CoversThrough)</MudTd>
+                <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
+                <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    private PlatformPaymentsResponse? _response;
+    private DateTime? _from;
+    private DateTime? _to;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _response = await AdminPayments.PaymentsGETAsync(
+                _from is { } f ? DateOnly.FromDateTime(f) : null,
+                _to is { } t ? DateOnly.FromDateTime(t) : null);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

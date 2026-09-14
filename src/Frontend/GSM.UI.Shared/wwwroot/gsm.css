@@ -119,3 +119,30 @@
 .gsm-status-active { color: var(--gsm-cyan); }
 .gsm-status-overdue { color: var(--gsm-red-hot); }
 .gsm-status-neutral { color: var(--gsm-silver); }
+
+.gsm-impersonation-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1300;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--gsm-red);
+    color: var(--gsm-cloud);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+}
+
+/* El appbar y el drawer bajan para dejarle sitio a la barra fija de impersonación. */
+body:has(.gsm-impersonation-bar) .mud-appbar {
+    top: 2rem;
+}
+
+body:has(.gsm-impersonation-bar) .mud-drawer,
+body:has(.gsm-impersonation-bar) .mud-main-content {
+    margin-top: 2rem;
+}
