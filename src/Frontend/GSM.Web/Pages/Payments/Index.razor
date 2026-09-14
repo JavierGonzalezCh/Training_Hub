@@ -1,0 +1,100 @@
+@page "/payments"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IPaymentsClient Payments
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Pagos — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Pagos</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PointOfSale"
+               OnClick="@(() => Navigation.NavigateTo("/cash-register"))">
+        Cierre de caja
+    </MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenRecordAsync">
+        Registrar pago
+    </MudButton>
+</div>
+
+<ServerTable @ref="_table" TItem="PaymentResponse" Load="LoadAsync">
+    <ToolBarContent>
+        <MudDatePicker Label="Desde" Date="_from" DateChanged="OnFromChangedAsync" Class="mr-4" Style="max-width:180px" />
+        <MudDatePicker Label="Hasta" Date="_to" DateChanged="OnToChangedAsync" Class="mr-4" Style="max-width:180px" />
+        <MudSelect T="string" Value="_method" ValueChanged="OnMethodChangedAsync" Label="Método" Style="max-width:180px">
+            <MudSelectItem Value="@("")">Todos</MudSelectItem>
+            @foreach (var (value, label) in PaymentMethodLabels.All)
+            {
+                <MudSelectItem Value="@value.ToString()">@label</MudSelectItem>
+            }
+        </MudSelect>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Fecha</MudTh>
+        <MudTh>Concepto</MudTh>
+        <MudTh>Método</MudTh>
+        <MudTh>Monto</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.PaidAt)</MudTd>
+        <MudTd DataLabel="Concepto">@context.Concept</MudTd>
+        <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
+        <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+    </RowTemplate>
+</ServerTable>
+
+@code {
+    private ServerTable<PaymentResponse> _table = null!;
+    private DateTime? _from;
+    private DateTime? _to;
+    private string _method = string.Empty;
+
+    private async Task<ServerTablePage<PaymentResponse>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await Payments.PaymentsGET3Async(
+                _from is { } f ? DateOnly.FromDateTime(f) : null,
+                _to is { } t ? DateOnly.FromDateTime(t) : null,
+                string.IsNullOrEmpty(_method) ? null : int.Parse(_method),
+                null, page, pageSize, cancellationToken);
+            return new ServerTablePage<PaymentResponse>(result.Items.ToList(), result.Total);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            return new ServerTablePage<PaymentResponse>([], 0);
+        }
+    }
+
+    private async Task OnFromChangedAsync(DateTime? value)
+    {
+        _from = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OnToChangedAsync(DateTime? value)
+    {
+        _to = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OnMethodChangedAsync(string value)
+    {
+        _method = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OpenRecordAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<RecordPaymentDialog>("Registrar pago");
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado.", Severity.Success);
+            await _table.RefreshAsync();
+        }
+    }
+}

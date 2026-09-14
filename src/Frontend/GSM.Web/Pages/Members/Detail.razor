@@ -1,8 +1,10 @@
 @page "/members/{Id:guid}"
 @attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@using GSM.Web.Pages.Payments
 @inject IMembersClient Members
 @inject IMemberAttendanceClient MemberAttendance
 @inject IMemberPaymentsClient MemberPayments
+@inject IMemberMembershipsClient MemberMemberships
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -53,6 +55,12 @@ else if (_member is not null)
         <div class="d-flex flex-wrap" style="gap:0.5rem">
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.QrCode2" OnClick="ShowQrAsync">QR</MudButton>
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" OnClick="InviteAsync">Invitar</MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CardMembership" OnClick="AssignMembershipAsync">
+                Asignar membresía
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
+                Registrar pago
+            </MudButton>
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync">Editar</MudButton>
             @if (_member.Status == "Active")
             {
@@ -116,6 +124,33 @@ else if (_member is not null)
     </MudGrid>
 
     <MudTabs Rounded="true" Color="Color.Primary">
+        <MudTabPanel Text="Membresías">
+            @if (_memberships is null)
+            {
+                <MudProgressCircular Indeterminate="true" Class="mt-4" />
+            }
+            else if (_memberships.Count == 0)
+            {
+                <MudText Color="Color.Secondary" Class="mt-4">Sin membresías todavía.</MudText>
+            }
+            else
+            {
+                <MudTable Items="_memberships" Hover="true" Dense="true" Elevation="0" Class="mt-4">
+                    <HeaderContent>
+                        <MudTh>Plan</MudTh>
+                        <MudTh>Estado</MudTh>
+                        <MudTh>Desde</MudTh>
+                        <MudTh>Hasta</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Plan">@context.PlanName</MudTd>
+                        <MudTd DataLabel="Estado"><StatusChip Status="@context.Status" /></MudTd>
+                        <MudTd DataLabel="Desde">@GsmFormat.Day(context.StartDate)</MudTd>
+                        <MudTd DataLabel="Hasta">@GsmFormat.Day(context.EndDate)</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
         <MudTabPanel Text="Pagos">
             <ServerTable TItem="PaymentResponse" Load="LoadPaymentsAsync" Class="mt-4">
                 <HeaderContent>
@@ -127,7 +162,7 @@ else if (_member is not null)
                 <RowTemplate>
                     <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.PaidAt)</MudTd>
                     <MudTd DataLabel="Concepto">@context.Concept</MudTd>
-                    <MudTd DataLabel="Método">@context.Method</MudTd>
+                    <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
                     <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
                 </RowTemplate>
             </ServerTable>
@@ -155,6 +190,7 @@ else if (_member is not null)
 
     private MemberDetail? _member;
     private MemberStreakResponse? _streak;
+    private List<MembershipResponse>? _memberships;
     private bool _loading = true;
     private bool _notFound;
     private bool _uploadingPhoto;
@@ -169,6 +205,8 @@ else if (_member is not null)
         {
             _member = await Members.MembersGET2Async(Id);
             _streak = await MemberAttendance.Streak2Async(Id);
+            var memberships = await MemberMemberships.MembershipsAllAsync(Id);
+            _memberships = memberships.OrderByDescending(m => m.StartDate).ToList();
         }
         catch (GsmApiException ex) when (ex.StatusCode == 404)
         {
@@ -229,6 +267,30 @@ else if (_member is not null)
         if (result is { Canceled: false })
         {
             Snackbar.Add("Socio actualizado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task AssignMembershipAsync()
+    {
+        var parameters = new DialogParameters<AssignMembershipDialog> { { x => x.MemberId, Id } };
+        var dialog = await Dialogs.ShowAsync<AssignMembershipDialog>("Asignar membresía", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Membresía asignada.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task RecordPaymentAsync()
+    {
+        var parameters = new DialogParameters<RecordPaymentDialog> { { x => x.MemberId, Id } };
+        var dialog = await Dialogs.ShowAsync<RecordPaymentDialog>("Registrar pago", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado.", Severity.Success);
             await LoadAsync();
         }
     }

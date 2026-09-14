@@ -1,0 +1,147 @@
+@page "/plans"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IMembershipPlansClient Plans
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Planes — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Planes</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Schedule"
+               OnClick="@(() => Navigation.NavigateTo("/memberships/expiring"))">
+        Por vencer
+    </MudButton>
+    <MudCheckBox T="bool" Value="_includeInactive" ValueChanged="OnIncludeInactiveChangedAsync" Label="Ver inactivos" />
+    <RequireRole Roles="@GsmRoles.Owner">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+            Nuevo plan
+        </MudButton>
+    </RequireRole>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_plans.Count == 0)
+{
+    <MudText Color="Color.Secondary">No hay planes todavía.</MudText>
+}
+else
+{
+    <MudTable Items="_plans" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Precio</MudTh>
+            <MudTh>Duración</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">
+                <MudText>@context.Name</MudText>
+                @if (!string.IsNullOrEmpty(context.Description))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Precio" Class="gsm-mono">@GsmFormat.Money((decimal)context.Price)</MudTd>
+            <MudTd DataLabel="Duración">@context.DurationDays días</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @(context.IsActive ? "ACTIVO" : "INACTIVO")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <RequireRole Roles="@GsmRoles.Owner">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" title="Editar" />
+                    @if (context.IsActive)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => DeactivateAsync(context))" title="Desactivar" />
+                    }
+                </RequireRole>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<PlanResponse> _plans = [];
+    private bool _loading = true;
+    private bool _includeInactive;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Plans.MembershipPlansAllAsync(_includeInactive);
+            _plans = result.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnIncludeInactiveChangedAsync(bool value)
+    {
+        _includeInactive = value;
+        await LoadAsync();
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<PlanFormDialog>("Nuevo plan");
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Plan creado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenEditAsync(PlanResponse plan)
+    {
+        var parameters = new DialogParameters<PlanFormDialog> { { x => x.PlanId, plan.Id } };
+        var dialog = await Dialogs.ShowAsync<PlanFormDialog>("Editar plan", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Plan actualizado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeactivateAsync(PlanResponse plan)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Desactivar plan", $"¿Desactivar \"{plan.Name}\"? Los socios con este plan no se ven afectados.",
+            yesText: "Desactivar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await Plans.MembershipPlansDELETEAsync(plan.Id);
+            Snackbar.Add("Plan desactivado.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

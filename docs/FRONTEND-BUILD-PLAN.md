@@ -1,6 +1,6 @@
 # GSM — Plan de construcción del frontend
 
-> **Estado (septiembre de 2026):** **F0, F1 y F2 hechas** (esqueleto + cliente NSwag; login/sesión/shell con identidad visual v4.0; módulo de Socios completo: listado, alta/edición, baja, ficha con QR/invitación/foto/pestañas paginadas). Siguiente: **F3**.
+> **Estado (septiembre de 2026):** **F0–F3 hechas** (esqueleto + cliente NSwag; login/sesión/shell con identidad visual v4.0; Socios completo; Planes, membresías y pagos completo). Siguiente: **F4**.
 
 ## Contexto
 El backend está completo (etapas 0–7, 9 Routines, 10 Classes, 11 SuperAdmin; 111 tests), pero no hay ningún cliente: hoy el sistema solo se usa desde Scalar. Para vender, el gym tiene que poder operar (socios, cobros, asistencia) y el socio tiene que tener su app. Este documento define **las etapas de frontend F0–F8** con el mismo método que el backend: incremental y **una etapa (o sub-etapa) cada vez, con confirmación entre una y otra**.

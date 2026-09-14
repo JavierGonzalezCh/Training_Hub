@@ -1,0 +1,125 @@
+@inject IMembershipPlansClient Plans
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+            <MudForm @ref="_form" Model="_model">
+                <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
+                <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Class="mb-3" />
+                <MudNumericField T="decimal" @bind-Value="_model.Price" Label="Precio (COP)" Required="true" Min="0" Class="mb-3" />
+                <MudNumericField T="int" @bind-Value="_model.DurationDays" Label="Duración (días)" Required="true" Min="1" />
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Null = alta; con valor, edición.</summary>
+    [Parameter]
+    public Guid? PlanId { get; set; }
+
+    private readonly FormModel _model = new();
+    private MudForm _form = null!;
+    private bool _loading;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (PlanId is not { } id)
+        {
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            var plan = await Plans.MembershipPlansGETAsync(id);
+            _model.Name = plan.Name;
+            _model.Description = plan.Description;
+            _model.Price = (decimal)plan.Price;
+            _model.DurationDays = plan.DurationDays;
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            if (PlanId is { } id)
+            {
+                await Plans.MembershipPlansPUTAsync(id, new UpdatePlanRequest
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    Price = (double)_model.Price,
+                    DurationDays = _model.DurationDays,
+                });
+            }
+            else
+            {
+                await Plans.MembershipPlansPOSTAsync(new CreatePlanRequest
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    Price = (double)_model.Price,
+                    DurationDays = _model.DurationDays,
+                });
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed class FormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public decimal Price { get; set; }
+        public int DurationDays { get; set; } = 30;
+    }
+}

@@ -1,0 +1,81 @@
+@page "/memberships/expiring"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IMembershipsClient Memberships
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Membresías por vencer — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Membresías por vencer</MudText>
+    <MudSpacer />
+    <MudSelect T="int" Value="_days" ValueChanged="OnDaysChangedAsync" Label="En los próximos" Style="max-width:200px">
+        <MudSelectItem Value="7">7 días</MudSelectItem>
+        <MudSelectItem Value="15">15 días</MudSelectItem>
+        <MudSelectItem Value="30">30 días</MudSelectItem>
+    </MudSelect>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary">Nada por vencer en ese rango.</MudText>
+}
+else
+{
+    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Socio</MudTh>
+            <MudTh>Plan</MudTh>
+            <MudTh>Vence</MudTh>
+            <MudTh>Días</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Socio">
+                <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
+                    @context.MemberName
+                </MudLink>
+            </MudTd>
+            <MudTd DataLabel="Plan">@context.PlanName</MudTd>
+            <MudTd DataLabel="Vence">@GsmFormat.Day(context.EndDate)</MudTd>
+            <MudTd DataLabel="Días" Class="gsm-mono">
+                <MudText Color="@(context.DaysLeft <= 3 ? Color.Error : Color.Default)">@context.DaysLeft</MudText>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<ExpiringMembershipItem> _items = [];
+    private int _days = 7;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task OnDaysChangedAsync(int value)
+    {
+        _days = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Memberships.ExpiringAsync(_days);
+            _items = result.OrderBy(i => i.DaysLeft).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

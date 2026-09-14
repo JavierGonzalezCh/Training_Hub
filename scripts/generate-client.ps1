@@ -5,6 +5,12 @@
 #
 # Requisitos: la API corriendo en Development (dotnet run en src/Backend/GSM.API).
 # Uso: pwsh scripts/generate-client.ps1 [-OpenApiUrl <url>]
+#
+# Nota: GSM.Client/Generated/ReadResponseAsString.cs vive fuera de GsmApiClient.g.cs a propósito
+# y no se toca al regenerar. Corrige un defecto de la plantilla de NSwag (ReadResponseAsString
+# queda en false, así que GsmApiException.Response llega vacío en el camino feliz y ApiError no
+# puede leer el detail/title de un 409/422/403). Si añades un cliente nuevo al OpenAPI, añade
+# también su partial class ahí.
 
 param(
     [string]$OpenApiUrl = "https://localhost:7219/openapi/v1.json"

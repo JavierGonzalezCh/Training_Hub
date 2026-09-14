@@ -1,0 +1,127 @@
+@inject IPaymentsClient Payments
+@inject IMembersClient Members
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudForm @ref="_form" Model="_model">
+            <MudAutocomplete T="MemberListItem" Label="Socio (opcional)" Value="_member" ValueChanged="v => _member = v"
+                              SearchFunc="SearchMembersAsync" ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
+                              Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" />
+            <MudNumericField T="decimal" @bind-Value="_model.Amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3" />
+            <MudSelect T="int" @bind-Value="_model.Method" Label="Método" Required="true" Class="mb-3">
+                @foreach (var (value, label) in PaymentMethodLabels.All)
+                {
+                    <MudSelectItem Value="value">@label</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField T="string" @bind-Value="_model.Concept" Label="Concepto" Required="true" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_model.Notes" Label="Notas" Lines="2" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Guardando..." : "Registrar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Preselecciona el socio cuando el pago se registra desde su ficha.</summary>
+    [Parameter]
+    public Guid? MemberId { get; set; }
+
+    private readonly FormModel _model = new();
+    private MudForm _form = null!;
+    private MemberListItem? _member;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (MemberId is not { } id)
+        {
+            return;
+        }
+
+        try
+        {
+            var member = await Members.MembersGET2Async(id);
+            _member = new MemberListItem
+            {
+                Id = member.Id,
+                FirstName = member.FirstName,
+                LastName = member.LastName,
+                DocumentNumber = member.DocumentNumber,
+                Status = member.Status,
+                QrCode = member.QrCode,
+                JoinedAt = member.JoinedAt,
+            };
+        }
+        catch (GsmApiException)
+        {
+            // Si falla, se deja sin preseleccionar; el usuario puede buscarlo a mano.
+        }
+    }
+
+    private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return [];
+        }
+
+        var result = await Members.MembersGETAsync(search, null, 1, 10, cancellationToken);
+        return result.Items;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Payments.PaymentsPOST2Async(new RecordPaymentRequest
+            {
+                Amount = (double)_model.Amount,
+                Method = _model.Method,
+                Concept = _model.Concept,
+                Notes = _model.Notes,
+                MemberId = _member?.Id,
+            });
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed class FormModel
+    {
+        public decimal Amount { get; set; }
+        public int Method { get; set; }
+        public string Concept { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+}

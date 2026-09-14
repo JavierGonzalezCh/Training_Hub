@@ -1,0 +1,94 @@
+@page "/cash-register"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject ICashRegisterClient CashRegister
+@inject ISnackbar Snackbar
+
+<PageTitle>Cierre de caja — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
+    <MudText Typo="Typo.h4">Cierre de caja</MudText>
+    <MudSpacer />
+    <MudDatePicker Label="Fecha" Date="_date" DateChanged="OnDateChangedAsync" Style="max-width:200px" />
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_daily is { } daily)
+{
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Total del día</MudText>
+                <MudText Typo="Typo.h5" Class="gsm-mono" Color="Color.Secondary">@GsmFormat.Money((decimal)daily.Total)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Transacciones</MudText>
+                <MudText Typo="Typo.h5" Class="gsm-mono">@daily.TransactionCount</MudText>
+            </MudPaper>
+        </MudItem>
+        @foreach (var (method, amount) in daily.TotalsByMethod)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">@PaymentMethodLabels.Label(method)</MudText>
+                    <MudText Typo="Typo.h5" Class="gsm-mono">@GsmFormat.Money((decimal)amount)</MudText>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <MudTable Items="daily.Payments" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Hora</MudTh>
+            <MudTh>Concepto</MudTh>
+            <MudTh>Método</MudTh>
+            <MudTh>Monto</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Hora">@GsmFormat.Instant(context.PaidAt)</MudTd>
+            <MudTd DataLabel="Concepto">@context.Concept</MudTd>
+            <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
+            <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Color="Color.Secondary">Sin pagos ese día.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+}
+
+@code {
+    // Solo el valor inicial del selector: el "hoy" de negocio lo decide el backend (IClock),
+    // nunca el reloj del navegador (ver CLAUDE.md).
+    private DateTime? _date = DateTime.Today;
+    private DailyCashRegisterResponse? _daily;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task OnDateChangedAsync(DateTime? value)
+    {
+        _date = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _daily = await CashRegister.DailyAsync(_date is { } d ? DateOnly.FromDateTime(d) : null);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

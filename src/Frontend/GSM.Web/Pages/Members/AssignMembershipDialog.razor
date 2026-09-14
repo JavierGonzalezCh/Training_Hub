@@ -1,0 +1,104 @@
+@inject IMemberMembershipsClient MemberMemberships
+@inject IMembershipPlansClient Plans
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+            @if (_plans.Count == 0)
+            {
+                <MudText Color="Color.Secondary">No hay planes activos. Crea uno primero en Planes.</MudText>
+            }
+            else
+            {
+                <MudForm @ref="_form">
+                    <MudSelect T="Guid" @bind-Value="_planId" Label="Plan" Required="true" Class="mb-3">
+                        @foreach (var plan in _plans)
+                        {
+                            <MudSelectItem Value="plan.Id">@plan.Name — @GsmFormat.Money((decimal)plan.Price) · @plan.DurationDays días</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudDatePicker Label="Fecha de inicio (opcional, hoy por defecto)" Date="_startDate" DateChanged="d => _startDate = d" />
+                </MudForm>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting || _plans.Count == 0">
+            @(_submitting ? "Asignando..." : "Asignar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private List<PlanResponse> _plans = [];
+    private Guid _planId;
+    private DateTime? _startDate;
+    private MudForm _form = null!;
+    private bool _loading = true;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var plans = await Plans.MembershipPlansAllAsync(includeInactive: false);
+            _plans = plans.ToList();
+            if (_plans.Count > 0)
+            {
+                _planId = _plans[0].Id;
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _submitting = true;
+        try
+        {
+            await MemberMemberships.MembershipsAsync(MemberId, new AssignMembershipRequest
+            {
+                PlanId = _planId,
+                StartDate = _startDate is { } d ? DateOnly.FromDateTime(d) : null,
+            });
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            // 409: ya tiene una membresía vigente que se solapa.
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
