@@ -1,0 +1,376 @@
+@page "/settings"
+@attribute [Authorize(Roles = GsmRoles.Owner)]
+@inject IGymClient Gym
+@inject SessionService Session
+@inject GymContext GymCtx
+@inject ISnackbar Snackbar
+
+<PageTitle>Configuración — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-6">Configuración</MudText>
+
+<MudTabs Rounded="true" Color="Color.Primary">
+    <MudTabPanel Text="Datos del gym">
+        @if (_loadingGym)
+        {
+            <MudProgressCircular Indeterminate="true" Class="mt-4" />
+        }
+        else
+        {
+            <MudGrid Class="mt-2" MaxWidth="MaxWidth.Small">
+                <MudItem xs="12" sm="8">
+                    <MudTextField T="string" @bind-Value="_gymModel.Name" Label="Nombre" Required="true" Class="mb-3" />
+                    <MudTextField T="string" @bind-Value="_gymModel.Nit" Label="NIT" Class="mb-3" />
+                    <MudTextField T="string" @bind-Value="_gymModel.Phone" Label="Teléfono" Class="mb-3" />
+                    <MudTextField T="string" @bind-Value="_gymModel.Email" Label="Email" InputType="InputType.Email" Class="mb-3" />
+                    <div class="d-flex align-center mb-3" style="gap:0.75rem">
+                        <MudTextField T="string" @bind-Value="_gymModel.PrimaryColor" Label="Color primario (hex)"
+                                      Error="@(!IsValidHex(_gymModel.PrimaryColor))" ErrorText="Formato #RRGGBB" />
+                        <div class="gsm-swatch" style="@SwatchStyle(_gymModel.PrimaryColor)"></div>
+                    </div>
+                    <div class="d-flex align-center mb-4" style="gap:0.75rem">
+                        <MudTextField T="string" @bind-Value="_gymModel.SecondaryColor" Label="Color secundario (hex)"
+                                      Error="@(!IsValidHex(_gymModel.SecondaryColor))" ErrorText="Formato #RRGGBB" />
+                        <div class="gsm-swatch" style="@SwatchStyle(_gymModel.SecondaryColor)"></div>
+                    </div>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveGymAsync"
+                               Disabled="_savingGym || !IsValidHex(_gymModel.PrimaryColor) || !IsValidHex(_gymModel.SecondaryColor)">
+                        @(_savingGym ? "Guardando..." : "Guardar cambios")
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Logo</MudText>
+                    <MudAvatar Style="width:96px;height:96px" Square="true" Class="mb-2">
+                        @if (!string.IsNullOrEmpty(GymCtx.Gym?.LogoUrl))
+                        {
+                            <MudImage Src="@GymCtx.Gym!.LogoUrl" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Image" />
+                        }
+                    </MudAvatar>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadLogoAsync">
+                        <ActivatorContent>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_uploadingLogo">
+                                @(_uploadingLogo ? "Subiendo..." : "Cambiar logo")
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Feature flags">
+        @if (_loadingFlags)
+        {
+            <MudProgressCircular Indeterminate="true" Class="mt-4" />
+        }
+        else
+        {
+            <MudList T="string" Class="mt-2" style="max-width:420px">
+                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowRoutines" Label="Rutinas" Color="Color.Primary" Class="mb-2" />
+                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowClasses" Label="Clases" Color="Color.Primary" Class="mb-2" />
+                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowProgress" Label="Progreso" Color="Color.Primary" Class="mb-2" />
+                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowGamification" Label="Gamificación (logros)" Color="Color.Primary" Class="mb-2" />
+                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowCommunity" Label="Comunidad" Color="Color.Primary" Class="mb-2" />
+                <MudSwitch T="bool" @bind-Value="_flagsModel.CheckinQr" Label="Check-in por QR (app del socio)" Color="Color.Primary" Class="mb-2" />
+                <MudSwitch T="bool" @bind-Value="_flagsModel.CommunityComments" Label="Comentarios en comunidad" Color="Color.Primary" Class="mb-2" />
+                <MudSwitch T="bool" @bind-Value="_flagsModel.MembersCanCreateRoutines" Label="Socios pueden crear su propia rutina" Color="Color.Primary" Class="mb-4" />
+            </MudList>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveFlagsAsync" Disabled="_savingFlags">
+                @(_savingFlags ? "Guardando..." : "Guardar cambios")
+            </MudButton>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Logros del gym">
+        <div class="d-flex justify-end mb-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAchievementAsync">
+                Nuevo logro
+            </MudButton>
+        </div>
+        @if (_loadingAchievements)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_achievements.Count == 0)
+        {
+            <MudText Color="Color.Secondary">No hay logros todavía.</MudText>
+        }
+        else
+        {
+            <MudTable Items="_achievements" Hover="true" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Condición</MudTh>
+                    <MudTh>Estado</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Nombre">@context.Name</MudTd>
+                    <MudTd DataLabel="Condición">@AchievementConditionLabels.Label(context.ConditionType) · @context.ConditionValue</MudTd>
+                    <MudTd DataLabel="Estado">
+                        <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                            @(context.IsActive ? "ACTIVO" : "INACTIVO")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAchievementAsync(context))" title="Editar" />
+                        @if (context.IsActive)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => DeactivateAchievementAsync(context))" title="Desactivar" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private readonly GymModel _gymModel = new();
+    private readonly FlagsModel _flagsModel = new();
+    private List<AchievementResponse> _achievements = [];
+
+    private bool _loadingGym = true;
+    private bool _savingGym;
+    private bool _uploadingLogo;
+    private bool _loadingFlags = true;
+    private bool _savingFlags;
+    private bool _loadingAchievements = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGymAsync();
+        await LoadFlagsAsync();
+        await LoadAchievementsAsync();
+    }
+
+    private async Task LoadGymAsync()
+    {
+        _loadingGym = true;
+        try
+        {
+            var gym = await Gym.GymGETAsync();
+            _gymModel.Name = gym.Name;
+            _gymModel.Nit = gym.Nit;
+            _gymModel.Phone = gym.Phone;
+            _gymModel.Email = gym.Email;
+            _gymModel.PrimaryColor = gym.PrimaryColor;
+            _gymModel.SecondaryColor = gym.SecondaryColor;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loadingGym = false;
+        }
+    }
+
+    private async Task SaveGymAsync()
+    {
+        _savingGym = true;
+        try
+        {
+            await Gym.GymPUTAsync(new UpdateGymRequest
+            {
+                Name = _gymModel.Name,
+                Nit = _gymModel.Nit,
+                Phone = _gymModel.Phone,
+                Email = _gymModel.Email,
+                PrimaryColor = _gymModel.PrimaryColor,
+                SecondaryColor = _gymModel.SecondaryColor,
+            });
+            await Session.BootstrapAsync(); // refresca branding/tema en el shell
+            Snackbar.Add("Datos del gym actualizados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _savingGym = false;
+        }
+    }
+
+    private async Task UploadLogoAsync(IBrowserFile file)
+    {
+        _uploadingLogo = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            await Gym.LogoAsync(new FileParameter(stream, file.Name, file.ContentType));
+            await Session.BootstrapAsync();
+            Snackbar.Add("Logo actualizado.", Severity.Success);
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500)
+        {
+            Snackbar.Add("El logo no está disponible todavía: falta configurar el almacenamiento.", Severity.Warning);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _uploadingLogo = false;
+        }
+    }
+
+    private async Task LoadFlagsAsync()
+    {
+        _loadingFlags = true;
+        try
+        {
+            var flags = await Gym.FeatureFlagsGETAsync();
+            _flagsModel.ShowRoutines = flags.ShowRoutines;
+            _flagsModel.ShowClasses = flags.ShowClasses;
+            _flagsModel.ShowProgress = flags.ShowProgress;
+            _flagsModel.ShowGamification = flags.ShowGamification;
+            _flagsModel.ShowCommunity = flags.ShowCommunity;
+            _flagsModel.CheckinQr = flags.CheckinQr;
+            _flagsModel.CommunityComments = flags.CommunityComments;
+            _flagsModel.MembersCanCreateRoutines = flags.MembersCanCreateRoutines;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loadingFlags = false;
+        }
+    }
+
+    private async Task SaveFlagsAsync()
+    {
+        _savingFlags = true;
+        try
+        {
+            await Gym.FeatureFlagsPUTAsync(new UpdateFeatureFlagsRequest
+            {
+                ShowRoutines = _flagsModel.ShowRoutines,
+                ShowClasses = _flagsModel.ShowClasses,
+                ShowProgress = _flagsModel.ShowProgress,
+                ShowGamification = _flagsModel.ShowGamification,
+                ShowCommunity = _flagsModel.ShowCommunity,
+                CheckinQr = _flagsModel.CheckinQr,
+                CommunityComments = _flagsModel.CommunityComments,
+                MembersCanCreateRoutines = _flagsModel.MembersCanCreateRoutines,
+            });
+            await Session.BootstrapAsync();
+            Snackbar.Add("Feature flags actualizados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _savingFlags = false;
+        }
+    }
+
+    private async Task LoadAchievementsAsync()
+    {
+        _loadingAchievements = true;
+        try
+        {
+            var achievements = await AchievementsClient.AchievementsAllAsync(includeInactive: true);
+            _achievements = achievements.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loadingAchievements = false;
+        }
+    }
+
+    [Inject]
+    private IAchievementsClient AchievementsClient { get; set; } = null!;
+
+    [Inject]
+    private IDialogService Dialogs { get; set; } = null!;
+
+    private async Task OpenCreateAchievementAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<AchievementFormDialog>("Nuevo logro");
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Logro creado.", Severity.Success);
+            await LoadAchievementsAsync();
+        }
+    }
+
+    private async Task OpenEditAchievementAsync(AchievementResponse achievement)
+    {
+        var parameters = new DialogParameters<AchievementFormDialog> { { x => x.AchievementId, achievement.Id } };
+        var dialog = await Dialogs.ShowAsync<AchievementFormDialog>("Editar logro", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Logro actualizado.", Severity.Success);
+            await LoadAchievementsAsync();
+        }
+    }
+
+    private async Task DeactivateAchievementAsync(AchievementResponse achievement)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Desactivar logro", $"¿Desactivar \"{achievement.Name}\"?", yesText: "Desactivar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await AchievementsClient.AchievementsDELETEAsync(achievement.Id);
+            Snackbar.Add("Logro desactivado.", Severity.Success);
+            await LoadAchievementsAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private static bool IsValidHex(string? hex)
+        => System.Text.RegularExpressions.Regex.IsMatch(hex ?? "", "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$");
+
+    private static string SwatchStyle(string? hex)
+        => $"width:32px;height:32px;border-radius:6px;border:1px solid var(--gsm-border);flex-shrink:0;background:{(IsValidHex(hex) ? hex : "transparent")}";
+
+    private sealed class GymModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Nit { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string PrimaryColor { get; set; } = "#B50016";
+        public string SecondaryColor { get; set; } = "#0AAFCA";
+    }
+
+    private sealed class FlagsModel
+    {
+        public bool ShowRoutines { get; set; }
+        public bool ShowClasses { get; set; }
+        public bool ShowProgress { get; set; }
+        public bool ShowGamification { get; set; }
+        public bool ShowCommunity { get; set; }
+        public bool CheckinQr { get; set; }
+        public bool CommunityComments { get; set; }
+        public bool MembersCanCreateRoutines { get; set; }
+    }
+}

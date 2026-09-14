@@ -1,6 +1,10 @@
 <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
     <MudText Typo="Typo.overline" Color="Color.Secondary">@Label</MudText>
     <MudText Typo="Typo.h4" Color="@Accent" Class="gsm-mono">@Value</MudText>
+    @if (!string.IsNullOrEmpty(Hint))
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@Hint</MudText>
+    }
 </MudPaper>
 
 @code {
@@ -12,4 +16,7 @@
 
     [Parameter]
     public Color Accent { get; set; } = Color.Default;
+
+    [Parameter]
+    public string? Hint { get; set; }
 }

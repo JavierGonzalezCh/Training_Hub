@@ -20,6 +20,8 @@
 
     <RequireRole Roles="@GsmRoles.Owner">
         <MudDivider Class="my-3 mx-2" />
-        <Soon Icon="@Icons.Material.Filled.Settings" Label="Configuración" />
+        <NavLink class="gsm-nav-link" href="/settings">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Class="mr-3" /> Configuración
+        </NavLink>
     </RequireRole>
 </MudNavMenu>

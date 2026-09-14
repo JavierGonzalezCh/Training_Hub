@@ -1,0 +1,182 @@
+@inject IAchievementsClient Achievements
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+            @if (AchievementId is { } id)
+            {
+                <div class="d-flex align-center mb-4" style="gap:1rem">
+                    <MudAvatar Style="width:56px;height:56px">
+                        @if (!string.IsNullOrEmpty(_iconUrl))
+                        {
+                            <MudImage Src="@_iconUrl" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" />
+                        }
+                    </MudAvatar>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="@(file => UploadIconAsync(id, file))">
+                        <ActivatorContent>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_uploadingIcon">
+                                @(_uploadingIcon ? "Subiendo..." : "Cambiar icono")
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </div>
+            }
+            <MudForm @ref="_form" Model="_model">
+                <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
+                <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Class="mb-3" />
+                <MudSelect T="int" @bind-Value="_model.ConditionType" Label="Condición" Required="true" Class="mb-3">
+                    @foreach (var (value, label) in AchievementConditionLabels.All)
+                    {
+                        <MudSelectItem Value="value">@label</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField T="int" @bind-Value="_model.ConditionValue" Label="Valor (p. ej. nº de visitas)" Required="true" Min="1" />
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Null = alta; con valor, edición (y permite subir icono).</summary>
+    [Parameter]
+    public Guid? AchievementId { get; set; }
+
+    private readonly FormModel _model = new();
+    private MudForm _form = null!;
+    private string? _iconUrl;
+    private bool _loading;
+    private bool _submitting;
+    private bool _uploadingIcon;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AchievementId is not { } id)
+        {
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            var all = await Achievements.AchievementsAllAsync(includeInactive: true);
+            var achievement = all.FirstOrDefault(a => a.Id == id);
+            if (achievement is not null)
+            {
+                _model.Name = achievement.Name;
+                _model.Description = achievement.Description;
+                _model.ConditionType = AchievementConditionLabels.ToValue(achievement.ConditionType);
+                _model.ConditionValue = achievement.ConditionValue;
+                _iconUrl = achievement.IconUrl;
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task UploadIconAsync(Guid id, IBrowserFile file)
+    {
+        _uploadingIcon = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+            var updated = await Achievements.IconAsync(id, new FileParameter(stream, file.Name, file.ContentType));
+            _iconUrl = updated.IconUrl;
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500)
+        {
+            _error = "El icono no está disponible todavía: falta configurar el almacenamiento.";
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _uploadingIcon = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            if (AchievementId is { } id)
+            {
+                await Achievements.AchievementsPUTAsync(id, new UpdateAchievementRequest
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    ConditionType = _model.ConditionType,
+                    ConditionValue = _model.ConditionValue,
+                });
+            }
+            else
+            {
+                await Achievements.AchievementsPOSTAsync(new CreateAchievementRequest
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    ConditionType = _model.ConditionType,
+                    ConditionValue = _model.ConditionValue,
+                });
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed class FormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int ConditionType { get; set; }
+        public int ConditionValue { get; set; } = 1;
+    }
+}

@@ -2,6 +2,9 @@
 @attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
 @implements IDisposable
 @inject GymContext GymContext
+@inject IDashboardClient Dashboard
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <PageTitle>Dashboard — GSM</PageTitle>
 
@@ -10,28 +13,89 @@
     @(GymContext.Gym?.Name ?? "—") · sesión de @(GymContext.Role ?? "—")
 </MudText>
 
-<MudGrid>
-    <MudItem xs="12" sm="6" md="3">
-        <StatCard Label="Miembros activos" Value="—" />
-    </MudItem>
-    <MudItem xs="12" sm="6" md="3">
-        <StatCard Label="En sala ahora" Value="—" />
-    </MudItem>
-    <MudItem xs="12" sm="6" md="3">
-        <StatCard Label="Pagos vencidos" Value="—" Accent="Color.Error" />
-    </MudItem>
-    <MudItem xs="12" sm="6" md="3">
-        <StatCard Label="Ingresos del mes" Value="—" Accent="Color.Secondary" />
-    </MudItem>
-</MudGrid>
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_dashboard is { } dashboard)
+{
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Miembros activos" Value="@dashboard.ActiveMembers.ToString()" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Check-ins hoy" Value="@dashboard.CheckInsToday.ToString()" Accent="Color.Info" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Ingresos del mes" Value="@GsmFormat.Money((decimal)dashboard.RevenueThisMonth)"
+                      Accent="Color.Info" Hint="@RevenueHint(dashboard)" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Vencidas / por vencer" Value="@($"{dashboard.ExpiredMemberships} / {dashboard.ExpiringSoon}")"
+                      Accent="Color.Error" />
+        </MudItem>
+    </MudGrid>
 
-<MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mt-8">
-    El panel se construye por etapas (ver <span class="gsm-mono">docs/FRONTEND-BUILD-PLAN.md</span>).
-    Esta pantalla se completa en F5 con datos reales.
-</MudAlert>
+    <MudText Typo="Typo.h6" Class="mb-3">Membresías por vencer</MudText>
+    @if (dashboard.ExpiringMemberships.Count == 0)
+    {
+        <MudText Color="Color.Secondary">Nada por vencer en los próximos días.</MudText>
+    }
+    else
+    {
+        <MudTable Items="dashboard.ExpiringMemberships" Hover="true" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Plan</MudTh>
+                <MudTh>Vence</MudTh>
+                <MudTh>Días</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Plan">
+                    <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
+                        @context.PlanName
+                    </MudLink>
+                </MudTd>
+                <MudTd DataLabel="Vence">@GsmFormat.Day(context.EndDate)</MudTd>
+                <MudTd DataLabel="Días" Class="gsm-mono">
+                    <MudText Color="@(context.DaysLeft <= 3 ? Color.Error : Color.Default)">@context.DaysLeft</MudText>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
 
 @code {
-    protected override void OnInitialized() => GymContext.Changed += StateHasChanged;
+    private DashboardResponse? _dashboard;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        GymContext.Changed += StateHasChanged;
+        try
+        {
+            _dashboard = await Dashboard.Dashboard2Async();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string RevenueHint(DashboardResponse dashboard)
+    {
+        if (dashboard.RevenueLastMonth <= 0)
+        {
+            return "Sin datos del mes anterior";
+        }
+
+        var change = (dashboard.RevenueThisMonth - dashboard.RevenueLastMonth) / dashboard.RevenueLastMonth * 100;
+        var sign = change >= 0 ? "+" : "";
+        return $"{sign}{change:0}% vs mes anterior";
+    }
 
     public void Dispose() => GymContext.Changed -= StateHasChanged;
 }
