@@ -71,6 +71,14 @@ public sealed class ApiError
             using var document = JsonDocument.Parse(body);
             var root = document.RootElement;
 
+            // Un cuerpo que no es un objeto (un array, un escalar) no es ProblemDetails — pasa a
+            // GsmApiException tal cual en algún camino de error del cliente generado. TryGetProperty
+            // exige Object: en cualquier otro ValueKind lanza, así que no hay título/detail que leer.
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                return new ApiError { Status = status };
+            }
+
             var fieldErrors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Object)
             {

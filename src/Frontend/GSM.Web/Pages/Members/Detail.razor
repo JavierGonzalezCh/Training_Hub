@@ -5,6 +5,7 @@
 @inject IMemberAttendanceClient MemberAttendance
 @inject IMemberPaymentsClient MemberPayments
 @inject IMemberMembershipsClient MemberMemberships
+@inject IMemberRoutinesClient MemberRoutinesClient
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -151,6 +152,48 @@ else if (_member is not null)
                 </MudTable>
             }
         </MudTabPanel>
+        <MudTabPanel Text="Rutina">
+            <div class="d-flex justify-end mb-3 mt-4">
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => Navigation.NavigateTo($"/members/{Id}/routines/new"))">
+                    Nueva rutina
+                </MudButton>
+            </div>
+            @if (_routines is null)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+            else if (_routines.Count == 0)
+            {
+                <MudText Color="Color.Secondary">Sin rutinas todavía.</MudText>
+            }
+            else
+            {
+                <MudTable Items="_routines" Hover="true" Dense="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Nombre</MudTh>
+                        <MudTh>Desde</MudTh>
+                        <MudTh>Ciclo</MudTh>
+                        <MudTh>Estado</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Nombre">@context.Name</MudTd>
+                        <MudTd DataLabel="Desde">@GsmFormat.Day(context.StartsOn)</MudTd>
+                        <MudTd DataLabel="Ciclo">@context.CycleLength días</MudTd>
+                        <MudTd DataLabel="Estado">
+                            <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                                @(context.IsActive ? "ACTIVA" : "INACTIVA")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           OnClick="@(() => Navigation.NavigateTo($"/members/{Id}/routines/{context.Id}"))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
         <MudTabPanel Text="Pagos">
             <ServerTable TItem="PaymentResponse" Load="LoadPaymentsAsync" Class="mt-4">
                 <HeaderContent>
@@ -191,6 +234,7 @@ else if (_member is not null)
     private MemberDetail? _member;
     private MemberStreakResponse? _streak;
     private List<MembershipResponse>? _memberships;
+    private List<RoutineListItem>? _routines;
     private bool _loading = true;
     private bool _notFound;
     private bool _uploadingPhoto;
@@ -207,6 +251,8 @@ else if (_member is not null)
             _streak = await MemberAttendance.Streak2Async(Id);
             var memberships = await MemberMemberships.MembershipsAllAsync(Id);
             _memberships = memberships.OrderByDescending(m => m.StartDate).ToList();
+            var routines = await MemberRoutinesClient.RoutinesAllAsync(Id);
+            _routines = routines.OrderByDescending(r => r.StartsOn).ToList();
         }
         catch (GsmApiException ex) when (ex.StatusCode == 404)
         {

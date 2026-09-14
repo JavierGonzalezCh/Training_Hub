@@ -1,0 +1,169 @@
+@inject IExercisesClient Exercises
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+            <MudForm @ref="_form" Model="_model">
+                <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
+                <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Lines="2" Class="mb-3" />
+                <MudSelect T="int" @bind-Value="_model.PrimaryMuscle" Label="Músculo principal" Required="true" Class="mb-3">
+                    @foreach (var (value, label) in RoutineLabels.Muscles)
+                    {
+                        <MudSelectItem Value="value">@label</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_secondaryMuscles" Label="Músculos secundarios" Class="mb-3">
+                    @foreach (var (value, label) in RoutineLabels.Muscles)
+                    {
+                        <MudSelectItem Value="value">@label</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_equipment" Label="Equipo" Class="mb-3">
+                    @foreach (var (value, label) in RoutineLabels.Equipment)
+                    {
+                        <MudSelectItem Value="value">@label</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string" @bind-Value="_model.VideoUrl" Label="Video (URL)" Class="mb-3" />
+                <MudTextField T="string" @bind-Value="_model.ImageUrl" Label="Imagen (URL)" />
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? ExerciseId { get; set; }
+
+    private readonly FormModel _model = new();
+    private IEnumerable<int> _secondaryMuscles = [];
+    private IEnumerable<int> _equipment = [];
+    private MudForm _form = null!;
+    private bool _loading;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ExerciseId is not { } id)
+        {
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            var exercise = await Exercises.ExercisesGETAsync(id);
+            _model.Name = exercise.Name;
+            _model.Description = exercise.Description;
+            _model.PrimaryMuscle = RoutineLabels.Muscles.First(m => m.Label == RoutineLabels.MuscleLabel(exercise.PrimaryMuscle)).Value;
+            _secondaryMuscles = exercise.SecondaryMuscles.Select(ToMuscleValue).ToList();
+            _equipment = exercise.Equipment.Select(ToEquipmentValue).ToList();
+            _model.VideoUrl = exercise.VideoUrl;
+            _model.ImageUrl = exercise.ImageUrl;
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static int ToMuscleValue(string name) => name switch
+    {
+        "Chest" => 0, "Back" => 1, "Shoulders" => 2, "Biceps" => 3, "Triceps" => 4, "Forearms" => 5,
+        "Quadriceps" => 6, "Hamstrings" => 7, "Glutes" => 8, "Calves" => 9, "Abs" => 10,
+        "Lower_back" => 11, "Neck" => 12, "Full_body" => 13, "Cardio" => 14, _ => 0,
+    };
+
+    private static int ToEquipmentValue(string name) => name switch
+    {
+        "Barbell" => 0, "Dumbbell" => 1, "Kettlebell" => 2, "Machine" => 3, "Cable" => 4,
+        "Smith_machine" => 5, "Bench" => 6, "Rack" => 7, "Resistance_band" => 8, "Trx" => 9,
+        "Medicine_ball" => 10, "Mat" => 11, "Box" => 12, "Jump_rope" => 13, "Bodyweight" => 14,
+        "Cardio_machine" => 15, _ => 0,
+    };
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            if (ExerciseId is { } id)
+            {
+                await Exercises.ExercisesPUTAsync(id, new UpdateExerciseRequest
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    PrimaryMuscle = _model.PrimaryMuscle,
+                    SecondaryMuscles = _secondaryMuscles.ToList(),
+                    Equipment = _equipment.ToList(),
+                    VideoUrl = _model.VideoUrl,
+                    ImageUrl = _model.ImageUrl,
+                });
+            }
+            else
+            {
+                await Exercises.ExercisesPOSTAsync(new CreateExerciseRequest
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    PrimaryMuscle = _model.PrimaryMuscle,
+                    SecondaryMuscles = _secondaryMuscles.ToList(),
+                    Equipment = _equipment.ToList(),
+                    VideoUrl = _model.VideoUrl,
+                    ImageUrl = _model.ImageUrl,
+                });
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed class FormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int PrimaryMuscle { get; set; }
+        public string? VideoUrl { get; set; }
+        public string? ImageUrl { get; set; }
+    }
+}

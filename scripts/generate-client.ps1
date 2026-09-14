@@ -35,4 +35,25 @@ finally {
     Pop-Location
 }
 
+# Defecto de NSwag: para una colección de enum en el CUERPO de una respuesta (no un enum suelto),
+# el generador infiere "integer" aunque en runtime viaje como string (JsonStringEnumConverter
+# global). Rompe la deserialización con un JsonException que ApiError no puede leer con claridad.
+# Hoy solo afecta a ClassListItem/ClassResponse.DaysOfWeek — si el diff de esta regeneración trae
+# otra ICollection<int> nueva en una respuesta (no en un request), sospecha lo mismo.
+$genFile = Join-Path $clientDir "Generated/GsmApiClient.g.cs"
+$content = Get-Content $genFile -Raw
+$before = '        [System.Text.Json.Serialization.JsonPropertyName("daysOfWeek")]
+        public System.Collections.Generic.ICollection<int> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<int>();'
+$after = '        [System.Text.Json.Serialization.JsonPropertyName("daysOfWeek")]
+        public System.Collections.Generic.ICollection<string> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<string>();'
+$occurrences = ([regex]::Matches($content, [regex]::Escape($before))).Count
+if ($occurrences -gt 0) {
+    Write-Host "Aplicando el parche de DaysOfWeek ($occurrences ocurrencia(s)) ..."
+    $content = $content.Replace($before, $after)
+    Set-Content -Path $genFile -Value $content -NoNewline
+}
+else {
+    Write-Warning "El parche de DaysOfWeek no encontró nada que reemplazar: revisa a mano si ClassListItem/ClassResponse siguen usando ICollection<int>."
+}
+
 Write-Host "Listo. Revisa el diff de src/Frontend/GSM.Client/Generated/."

@@ -1,0 +1,145 @@
+@page "/exercises"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IExercisesClient Exercises
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Ejercicios — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Catálogo de ejercicios</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+        Nuevo ejercicio
+    </MudButton>
+</div>
+
+<div class="d-flex flex-wrap mb-4" style="gap:1rem">
+    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Placeholder="Buscar"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                  DebounceInterval="400" Style="max-width:260px" />
+    <MudSelect T="string" Value="_muscle" ValueChanged="OnMuscleChangedAsync" Label="Músculo" Style="max-width:200px">
+        <MudSelectItem Value="@("")">Todos</MudSelectItem>
+        @foreach (var (value, label) in RoutineLabels.Muscles)
+        {
+            <MudSelectItem Value="@value.ToString()">@label</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect T="string" Value="_equipment" ValueChanged="OnEquipmentChangedAsync" Label="Equipo" Style="max-width:200px">
+        <MudSelectItem Value="@("")">Todos</MudSelectItem>
+        @foreach (var (value, label) in RoutineLabels.Equipment)
+        {
+            <MudSelectItem Value="@value.ToString()">@label</MudSelectItem>
+        }
+    </MudSelect>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_exercises.Count == 0)
+{
+    <MudText Color="Color.Secondary">Sin resultados.</MudText>
+}
+else
+{
+    <MudTable Items="_exercises" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Músculo</MudTh>
+            <MudTh>Equipo</MudTh>
+            <MudTh>Origen</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">@context.Name</MudTd>
+            <MudTd DataLabel="Músculo">@RoutineLabels.MuscleLabel(context.PrimaryMuscle)</MudTd>
+            <MudTd DataLabel="Equipo">@string.Join(", ", context.Equipment.Select(RoutineLabels.EquipmentLabel))</MudTd>
+            <MudTd DataLabel="Origen">
+                <MudChip T="string" Color="@(context.IsSystem ? Color.Default : Color.Info)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @(context.IsSystem ? "SISTEMA" : "GYM")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (!context.IsSystem)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" title="Editar" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<ExerciseResponse> _exercises = [];
+    private bool _loading = true;
+    private string _search = string.Empty;
+    private string _muscle = string.Empty;
+    private string _equipment = string.Empty;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Exercises.ExercisesAllAsync(
+                string.IsNullOrWhiteSpace(_search) ? null : _search,
+                string.IsNullOrEmpty(_muscle) ? null : int.Parse(_muscle),
+                string.IsNullOrEmpty(_equipment) ? null : int.Parse(_equipment),
+                false);
+            _exercises = result.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearchChangedAsync(string value)
+    {
+        _search = value;
+        await LoadAsync();
+    }
+
+    private async Task OnMuscleChangedAsync(string value)
+    {
+        _muscle = value;
+        await LoadAsync();
+    }
+
+    private async Task OnEquipmentChangedAsync(string value)
+    {
+        _equipment = value;
+        await LoadAsync();
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<ExerciseFormDialog>("Nuevo ejercicio");
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Ejercicio creado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenEditAsync(ExerciseResponse exercise)
+    {
+        var parameters = new DialogParameters<ExerciseFormDialog> { { x => x.ExerciseId, exercise.Id } };
+        var dialog = await Dialogs.ShowAsync<ExerciseFormDialog>("Editar ejercicio", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Ejercicio actualizado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+}

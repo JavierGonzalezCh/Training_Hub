@@ -1,0 +1,107 @@
+@page "/classes/schedule"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IClassesClient Classes
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Horario semanal — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
+    <MudText Typo="Typo.h4">Horario semanal</MudText>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" />
+    <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" />
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @for (var i = 0; i < 7; i++)
+    {
+        var day = _weekStart.AddDays(i);
+        var entries = _entries.Where(e => e.SessionDate == day).OrderBy(e => e.StartTime).ToList();
+        <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-2 d-block">
+            @ClassLabels.DayLabel(((int)day.DayOfWeek + 6) % 7).ToUpperInvariant() · @GsmFormat.Day(day)
+        </MudText>
+        @if (entries.Count == 0)
+        {
+            <MudText Color="Color.Secondary" Class="mb-2">Sin clases.</MudText>
+        }
+        else
+        {
+            @foreach (var entry in entries)
+            {
+                <MudPaper Class="pa-3 mb-2 d-flex align-center flex-wrap" style="gap:1rem; cursor:pointer; border:1px solid var(--gsm-border)"
+                          Elevation="0" @onclick="@(() => OpenRosterAsync(entry))">
+                    <MudText Class="gsm-mono" Style="min-width:60px">@entry.StartTime.ToString("HH:mm")</MudText>
+                    <MudText Style="flex:1">@entry.ClassName</MudText>
+                    @if (entry.InstructorName is not null)
+                    {
+                        <MudText Color="Color.Secondary" Typo="Typo.body2">@entry.InstructorName</MudText>
+                    }
+                    <MudChip T="string" Color="@(entry.Status == "Cancelled" ? Color.Error : Color.Info)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                        @ClassLabels.SessionStatusLabel(entry.Status).ToUpperInvariant()
+                    </MudChip>
+                </MudPaper>
+            }
+        }
+    }
+}
+
+@code {
+    private DateOnly _weekStart = StartOfWeek(DateOnly.FromDateTime(DateTime.Today));
+    private List<ScheduleEntry> _entries = [];
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private static DateOnly StartOfWeek(DateOnly date)
+    {
+        var diff = ((int)date.DayOfWeek + 6) % 7; // lunes = inicio
+        return date.AddDays(-diff);
+    }
+
+    private async Task ShiftWeekAsync(int days)
+    {
+        _weekStart = _weekStart.AddDays(days);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Classes.ScheduleAsync(_weekStart, _weekStart.AddDays(6));
+            _entries = result.Entries.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenRosterAsync(ScheduleEntry entry)
+    {
+        var parameters = new DialogParameters<ClassRosterDialog>
+        {
+            { x => x.ClassId, entry.ClassId },
+            { x => x.SessionDate, entry.SessionDate },
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await Dialogs.ShowAsync<ClassRosterDialog>(entry.ClassName, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+}

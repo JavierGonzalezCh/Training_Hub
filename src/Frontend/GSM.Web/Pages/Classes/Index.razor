@@ -1,0 +1,135 @@
+@page "/classes"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IClassesClient Classes
+@inject NavigationManager Navigation
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Clases — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Clases</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CalendarViewWeek"
+               OnClick="@(() => Navigation.NavigateTo("/classes/schedule"))">
+        Horario semanal
+    </MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+        Nueva clase
+    </MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_classes.Count == 0)
+{
+    <MudText Color="Color.Secondary">No hay clases todavía.</MudText>
+}
+else
+{
+    <MudTable Items="_classes" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Instructor</MudTh>
+            <MudTh>Cuándo</MudTh>
+            <MudTh>Hora</MudTh>
+            <MudTh>Cupo</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">@context.Name</MudTd>
+            <MudTd DataLabel="Instructor">@(context.InstructorName ?? "—")</MudTd>
+            <MudTd DataLabel="Cuándo">
+                @(context.IsRecurring
+                    ? string.Join(", ", context.DaysOfWeek.Select(ClassLabels.DayLabel))
+                    : GsmFormat.Day(context.ScheduledDate!.Value))
+            </MudTd>
+            <MudTd DataLabel="Hora">@context.StartTime.ToString("HH:mm") · @context.DurationMinutes min</MudTd>
+            <MudTd DataLabel="Cupo">@(context.Capacity?.ToString() ?? "Libre")</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @(context.IsActive ? "ACTIVA" : "INACTIVA")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" />
+                @if (context.IsActive)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeactivateAsync(context))" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<ClassListItem> _classes = [];
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Classes.ClassesAllAsync(includeInactive: true);
+            _classes = result.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<ClassFormDialog>("Nueva clase");
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Clase creada.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenEditAsync(ClassListItem item)
+    {
+        var parameters = new DialogParameters<ClassFormDialog> { { x => x.ClassId, item.Id } };
+        var dialog = await Dialogs.ShowAsync<ClassFormDialog>("Editar clase", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Clase actualizada.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeactivateAsync(ClassListItem item)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Desactivar clase", $"¿Desactivar \"{item.Name}\"?", yesText: "Desactivar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await Classes.ClassesDELETEAsync(item.Id);
+            Snackbar.Add("Clase desactivada.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

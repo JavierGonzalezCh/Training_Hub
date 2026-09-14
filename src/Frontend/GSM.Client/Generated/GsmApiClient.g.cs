@@ -12721,7 +12721,7 @@ namespace GSM.Client.Generated
         public bool IsRecurring { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("daysOfWeek")]
-        public System.Collections.Generic.ICollection<int> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<int>();
+        public System.Collections.Generic.ICollection<string> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         [System.Text.Json.Serialization.JsonPropertyName("scheduledDate")]
         public System.DateOnly? ScheduledDate { get; set; } = default!;
@@ -12769,7 +12769,7 @@ namespace GSM.Client.Generated
         public bool IsRecurring { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("daysOfWeek")]
-        public System.Collections.Generic.ICollection<int> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<int>();
+        public System.Collections.Generic.ICollection<string> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         [System.Text.Json.Serialization.JsonPropertyName("scheduledDate")]
         public System.DateOnly? ScheduledDate { get; set; } = default!;

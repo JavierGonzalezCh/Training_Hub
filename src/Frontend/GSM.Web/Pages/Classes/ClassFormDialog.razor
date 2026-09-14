@@ -1,0 +1,172 @@
+@inject IClassesClient Classes
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+            <MudForm @ref="_form" Model="_model">
+                <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
+                <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Class="mb-3" />
+                <MudTextField T="string" @bind-Value="_model.InstructorName" Label="Instructor" Class="mb-3" />
+                <MudNumericField T="int?" @bind-Value="_model.Capacity" Label="Cupo (vacío = entrada libre)" Min="1" Class="mb-3" />
+
+                <MudGrid Class="mb-3">
+                    <MudItem xs="6">
+                        <MudTimePicker Label="Hora de inicio" Time="_startTime" TimeChanged="t => _startTime = t" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField T="int" @bind-Value="_model.DurationMinutes" Label="Duración (min)" Min="1" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudSwitch T="bool" @bind-Value="_model.IsRecurring" Label="Clase recurrente" Color="Color.Primary" Class="mb-3" />
+
+                @if (_model.IsRecurring)
+                {
+                    <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_daysOfWeek" Label="Días de la semana" Required="true">
+                        @foreach (var (value, label) in ClassLabels.DaysOfWeek)
+                        {
+                            <MudSelectItem Value="value">@label</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudDatePicker Label="Fecha" Date="_scheduledDate" DateChanged="d => _scheduledDate = d" Required="true" />
+                }
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? ClassId { get; set; }
+
+    private readonly FormModel _model = new();
+    private IEnumerable<int> _daysOfWeek = [];
+    private DateTime? _scheduledDate;
+    private TimeSpan? _startTime = new(6, 0, 0);
+    private MudForm _form = null!;
+    private bool _loading;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ClassId is not { } id)
+        {
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            var gymClass = await Classes.ClassesGETAsync(id);
+            _model.Name = gymClass.Name;
+            _model.Description = gymClass.Description;
+            _model.InstructorName = gymClass.InstructorName;
+            _model.Capacity = gymClass.Capacity;
+            _model.DurationMinutes = gymClass.DurationMinutes;
+            _model.IsRecurring = gymClass.IsRecurring;
+            _startTime = gymClass.StartTime.ToTimeSpan();
+            _daysOfWeek = gymClass.DaysOfWeek.Select(ClassLabels.ToValue).ToList();
+            _scheduledDate = gymClass.ScheduledDate?.ToDateTime(TimeOnly.MinValue);
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        await _form.Validate();
+        if (!_form.IsValid || _startTime is null)
+        {
+            return;
+        }
+
+        if (_model.IsRecurring && !_daysOfWeek.Any())
+        {
+            _error = "Elige al menos un día de la semana.";
+            return;
+        }
+
+        if (!_model.IsRecurring && _scheduledDate is null)
+        {
+            _error = "Elige la fecha de la clase.";
+            return;
+        }
+
+        var request = new SaveClassRequest
+        {
+            Name = _model.Name,
+            Description = _model.Description,
+            InstructorName = _model.InstructorName,
+            Capacity = _model.Capacity,
+            StartTime = TimeOnly.FromTimeSpan(_startTime.Value),
+            DurationMinutes = _model.DurationMinutes,
+            IsRecurring = _model.IsRecurring,
+            DaysOfWeek = _model.IsRecurring ? _daysOfWeek.ToList() : null,
+            ScheduledDate = _model.IsRecurring ? null : DateOnly.FromDateTime(_scheduledDate!.Value),
+        };
+
+        _submitting = true;
+        try
+        {
+            if (ClassId is { } id)
+            {
+                await Classes.ClassesPUTAsync(id, request);
+            }
+            else
+            {
+                await Classes.ClassesPOSTAsync(request);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed class FormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? InstructorName { get; set; }
+        public int? Capacity { get; set; }
+        public int DurationMinutes { get; set; } = 60;
+        public bool IsRecurring { get; set; } = true;
+    }
+}

@@ -1,0 +1,235 @@
+@page "/members/{MemberId:guid}/routines/new"
+@page "/members/{MemberId:guid}/routines/{RoutineId:guid}"
+@attribute [Authorize(Roles = GsmRoles.Owner + "," + GsmRoles.Staff)]
+@inject IRoutinesClient Routines
+@inject IMemberRoutinesClient MemberRoutines
+@inject IExercisesClient ExercisesApi
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Rutina — GSM</PageTitle>
+
+<MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{MemberId}"))" Class="mb-4 d-inline-block">← Volver a la ficha</MudLink>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+    }
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6">
+            <MudTextField T="string" @bind-Value="_name" Label="Nombre de la rutina" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField T="string" @bind-Value="_notes" Label="Notas" />
+        </MudItem>
+    </MudGrid>
+
+    @for (var dayIndex = 0; dayIndex < _days.Count; dayIndex++)
+    {
+        var day = _days[dayIndex];
+        var index = dayIndex;
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+            <div class="d-flex align-center flex-wrap mb-3" style="gap:0.75rem">
+                <MudText Typo="Typo.overline" Class="gsm-mono" Color="Color.Secondary">DÍA @(index + 1)</MudText>
+                <MudTextField T="string" @bind-Value="day.Name" Placeholder="Nombre del día (p. ej. Pierna)" Style="max-width:260px" />
+                <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Descanso" Color="Color.Primary" />
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => MoveDay(index, -1))" />
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == _days.Count - 1" OnClick="@(() => MoveDay(index, 1))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => _days.RemoveAt(index))" />
+            </div>
+
+            @if (!day.IsRest)
+            {
+                @foreach (var exercise in day.Exercises)
+                {
+                    <MudGrid Class="mb-2">
+                        <MudItem xs="12" sm="3">
+                            <MudAutocomplete T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Exercise = e)"
+                                              SearchFunc="SearchExercisesAsync" ToStringFunc="@(e => e?.Name ?? string.Empty)"
+                                              Placeholder="Ejercicio" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6" sm="2">
+                            <MudNumericField T="int" @bind-Value="exercise.TargetSets" Label="Series" Min="1" />
+                        </MudItem>
+                        <MudItem xs="6" sm="2">
+                            <MudTextField T="string" @bind-Value="exercise.TargetReps" Label="Reps (p. ej. 8-12)" />
+                        </MudItem>
+                        <MudItem xs="6" sm="2">
+                            <MudNumericField T="decimal?" @bind-Value="exercise.TargetWeightKg" Label="Kg" />
+                        </MudItem>
+                        <MudItem xs="6" sm="2">
+                            <MudNumericField T="int?" @bind-Value="exercise.RestSeconds" Label="Descanso (s)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="1" Class="d-flex justify-end">
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))" />
+                        </MudItem>
+                    </MudGrid>
+                }
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                           OnClick="@(() => day.Exercises.Add(new EditableExercise()))">
+                    Añadir ejercicio
+                </MudButton>
+            }
+        </MudPaper>
+    }
+
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Class="mb-6" OnClick="AddDay">
+        Añadir día
+    </MudButton>
+
+    <div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
+            @(_saving ? "Guardando..." : "Guardar rutina")
+        </MudButton>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid MemberId { get; set; }
+
+    [Parameter]
+    public Guid? RoutineId { get; set; }
+
+    private string _name = string.Empty;
+    private string? _notes;
+    private List<EditableDay> _days = [];
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RoutineId is not { } id)
+        {
+            _days.Add(new EditableDay());
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            var routine = await Routines.RoutinesGET2Async(id);
+            _name = routine.Name;
+            _notes = routine.Notes;
+            _days = routine.Days.Select(d => new EditableDay
+            {
+                Name = d.Name,
+                IsRest = d.IsRest,
+                Exercises = d.Exercises.Select(e => new EditableExercise
+                {
+                    Exercise = new ExerciseResponse { Id = e.ExerciseId, Name = e.ExerciseName },
+                    TargetSets = e.TargetSets,
+                    TargetReps = e.TargetReps,
+                    TargetWeightKg = e.TargetWeightKg is { } w ? (decimal)w : null,
+                    RestSeconds = e.RestSeconds,
+                    Notes = e.Notes,
+                }).ToList(),
+            }).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void AddDay() => _days.Add(new EditableDay());
+
+    private void MoveDay(int index, int delta)
+    {
+        var target = index + delta;
+        (_days[index], _days[target]) = (_days[target], _days[index]);
+    }
+
+    private async Task<IEnumerable<ExerciseResponse>> SearchExercisesAsync(string search, CancellationToken cancellationToken)
+    {
+        var result = await ExercisesApi.ExercisesAllAsync(
+            string.IsNullOrWhiteSpace(search) ? null : search, null, null, false, cancellationToken);
+        return result;
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "El nombre es obligatorio.";
+            return;
+        }
+
+        var request = new SaveRoutineRequest
+        {
+            Name = _name,
+            Notes = _notes,
+            Days = _days.Select(d => new RoutineDayInput
+            {
+                Name = string.IsNullOrWhiteSpace(d.Name) ? null : d.Name,
+                IsRest = d.IsRest,
+                Exercises = d.IsRest
+                    ? []
+                    : d.Exercises.Where(e => e.Exercise is not null).Select(e => new RoutineExerciseInput
+                    {
+                        ExerciseId = e.Exercise!.Id,
+                        TargetSets = e.TargetSets,
+                        TargetReps = e.TargetReps,
+                        TargetWeightKg = e.TargetWeightKg is { } w ? (double)w : null,
+                        RestSeconds = e.RestSeconds,
+                        Notes = e.Notes,
+                    }).ToList(),
+            }).ToList(),
+        };
+
+        _saving = true;
+        try
+        {
+            if (RoutineId is { } id)
+            {
+                await Routines.RoutinesPUTAsync(id, request);
+            }
+            else
+            {
+                await MemberRoutines.RoutinesPOST2Async(MemberId, request);
+            }
+
+            Snackbar.Add("Rutina guardada.", Severity.Success);
+            Navigation.NavigateTo($"/members/{MemberId}");
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private sealed class EditableDay
+    {
+        public string? Name { get; set; }
+        public bool IsRest { get; set; }
+        public List<EditableExercise> Exercises { get; set; } = [];
+    }
+
+    private sealed class EditableExercise
+    {
+        public ExerciseResponse? Exercise { get; set; }
+        public int TargetSets { get; set; } = 3;
+        public string TargetReps { get; set; } = "8-12";
+        public decimal? TargetWeightKg { get; set; }
+        public int? RestSeconds { get; set; } = 60;
+        public string? Notes { get; set; }
+    }
+}

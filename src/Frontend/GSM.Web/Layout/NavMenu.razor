@@ -14,8 +14,12 @@
     <NavLink class="gsm-nav-link" href="/attendance">
         <MudIcon Icon="@Icons.Material.Filled.FactCheck" Size="Size.Small" Class="mr-3" /> Asistencia
     </NavLink>
-    <Soon Icon="@Icons.Material.Filled.FitnessCenter" Label="Rutinas" />
-    <Soon Icon="@Icons.Material.Filled.CalendarMonth" Label="Clases" />
+    <NavLink class="gsm-nav-link" href="/exercises">
+        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" Class="mr-3" /> Ejercicios
+    </NavLink>
+    <NavLink class="gsm-nav-link" href="/classes">
+        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-3" /> Clases
+    </NavLink>
     <Soon Icon="@Icons.Material.Filled.BarChart" Label="Reportes" />
 
     <RequireRole Roles="@GsmRoles.Owner">

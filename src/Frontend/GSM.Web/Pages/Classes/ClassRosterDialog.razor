@@ -1,0 +1,143 @@
+@inject IClassesClient Classes
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_roster is { } roster)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                @GsmFormat.Day(roster.SessionDate) · @roster.StartTime.ToString("HH:mm")
+                · @roster.BookedCount@(roster.Capacity is { } cap ? $"/{cap}" : "") reservas
+                · <MudChip T="string" Color="@(roster.SessionStatus == "Cancelled" ? Color.Error : Color.Info)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @ClassLabels.SessionStatusLabel(roster.SessionStatus).ToUpperInvariant()
+                </MudChip>
+            </MudText>
+
+            @if (roster.Entries.Count == 0)
+            {
+                <MudText Color="Color.Secondary">Sin reservas para esta sesión.</MudText>
+            }
+            else
+            {
+                <MudTable Items="roster.Entries" Hover="true" Dense="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Socio</MudTh>
+                        <MudTh>Asistencia</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Socio">@context.MemberName</MudTd>
+                        <MudTd DataLabel="Asistencia">
+                            <MudSelect T="string" Value="@_desired[context.BookingId]" ValueChanged="@(v => _desired[context.BookingId] = v)" Dense="true">
+                                <MudSelectItem Value="@("Booked")">Reservado</MudSelectItem>
+                                <MudSelectItem Value="@("Attended")">Asistió</MudSelectItem>
+                                <MudSelectItem Value="@("NoShow")">No asistió</MudSelectItem>
+                            </MudSelect>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_roster is { SessionStatus: not "Cancelled" })
+        {
+            <MudButton Color="Color.Error" OnClick="CancelSessionAsync" Disabled="_saving">Cancelar sesión</MudButton>
+        }
+        <MudSpacer />
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cerrar</MudButton>
+        @if (_roster is { Entries.Count: > 0 })
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAttendanceAsync" Disabled="_saving">
+                @(_saving ? "Guardando..." : "Guardar asistencia")
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid ClassId { get; set; }
+
+    [Parameter, EditorRequired]
+    public DateOnly SessionDate { get; set; }
+
+    private RosterResponse? _roster;
+    private readonly Dictionary<Guid, string> _desired = new();
+    private bool _loading = true;
+    private bool _saving;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _roster = await Classes.RosterAsync(ClassId, SessionDate);
+            _desired.Clear();
+            foreach (var entry in _roster.Entries)
+            {
+                _desired[entry.BookingId] = entry.Status;
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAttendanceAsync()
+    {
+        _saving = true;
+        try
+        {
+            var attended = _desired.Where(kv => kv.Value == "Attended").Select(kv => kv.Key).ToList();
+            var noShow = _desired.Where(kv => kv.Value == "NoShow").Select(kv => kv.Key).ToList();
+            await Classes.AttendancePOSTAsync(ClassId, SessionDate, new MarkAttendanceRequest
+            {
+                Attended = attended,
+                NoShow = noShow,
+            });
+            Snackbar.Add("Asistencia guardada.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task CancelSessionAsync()
+    {
+        _saving = true;
+        try
+        {
+            await Classes.CancelAsync(ClassId, SessionDate, new CancelSessionRequest { Reason = "Cancelada desde el panel" });
+            Snackbar.Add("Sesión cancelada.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}
