@@ -25,7 +25,7 @@ El dominio de Payments ya prevé la corrección: los pagos son inmutables y un a
 | Sub-etapa | Qué | Estado |
 |---|---|---|
 | **1.1** | **Anular un pago**: `POST /api/payments/{id}/void` crea el asiento inverso (monto negativo, mismo método, miembro y membresía) con `reverses_payment_id` y un motivo obligatorio. No se puede anular dos veces (índice único) ni anular una anulación. La respuesta de los pagos trae `isReversed`. UI: acción "Anular" en Pagos, cierre de caja y ficha del socio. | hecho |
-| 1.2 | **Pago enlazado a la membresía**: "Asignar membresía" ofrece cobrar en el mismo paso, con el precio del plan precargado y `membershipId` enviado (el backend ya lo admite). El diálogo suelto de pago también permite elegir la membresía. | pendiente |
+| 1.2 | **Pago enlazado a la membresía**: "Asignar membresía" ofrece cobrar en el mismo paso, con el precio del plan precargado y `membershipId` enviado (el backend ya lo admite). El diálogo suelto de pago también permite elegir la membresía. | hecho |
 | 1.3 | **Cancelar una membresía asignada por error** (estado `cancelled`, deja de cubrir fechas; si tiene pagos enlazados, avisa de que hay que anularlos). | pendiente |
 | 1.4 | **Congelar / reanudar una membresía** (`Paused` ya existe en el enum pero no hay operación): extiende `EndDate` con los días congelados. | pendiente, decidir si entra en v1 |
 

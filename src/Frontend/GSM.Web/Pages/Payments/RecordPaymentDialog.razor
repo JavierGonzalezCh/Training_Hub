@@ -1,5 +1,6 @@
 @inject IPaymentsClient Payments
 @inject IMembersClient Members
+@inject IMemberMembershipsClient MemberMemberships
 
 <MudDialog>
     <DialogContent>
@@ -8,9 +9,21 @@
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
         }
         <MudForm @ref="_form" Model="_model">
-            <MudAutocomplete T="MemberListItem" Label="Miembro (opcional)" Value="_member" ValueChanged="v => _member = v"
+            <MudAutocomplete T="MemberListItem" Label="Miembro (opcional)" Value="_member" ValueChanged="OnMemberChangedAsync"
                               SearchFunc="SearchMembersAsync" ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
                               Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" />
+            @if (_memberships.Count > 0)
+            {
+                <MudSelect T="Guid?" Value="_membershipId" ValueChanged="OnMembershipChanged" Label="Membresía que cubre (opcional)"
+                           Clearable="true" Class="mb-3">
+                    @foreach (var membership in _memberships)
+                    {
+                        <MudSelectItem T="Guid?" Value="membership.Id">
+                            @membership.PlanName · @GsmFormat.DayRange(membership.StartDate, membership.EndDate)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
             <MudNumericField T="decimal" @bind-Value="_model.Amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3" />
             <MudSelect T="int" @bind-Value="_model.Method" Label="Método" Required="true" Class="mb-3">
                 @foreach (var (value, label) in PaymentMethodLabels.All)
@@ -41,6 +54,8 @@
     private readonly FormModel _model = new();
     private MudForm _form = null!;
     private MemberListItem? _member;
+    private List<MembershipResponse> _memberships = [];
+    private Guid? _membershipId;
     private bool _submitting;
     private string? _error;
 
@@ -63,10 +78,47 @@
                 Status = member.Status,
                 JoinedAt = member.JoinedAt,
             };
+            await LoadMembershipsAsync();
         }
         catch (GsmApiException)
         {
             // Si falla, se deja sin preseleccionar; el usuario puede buscarlo a mano.
+        }
+    }
+
+    private async Task OnMemberChangedAsync(MemberListItem? member)
+    {
+        _member = member;
+        await LoadMembershipsAsync();
+    }
+
+    // Las más recientes primero: lo normal es cobrar la que se acaba de asignar o la vigente.
+    private async Task LoadMembershipsAsync()
+    {
+        _membershipId = null;
+        _memberships = [];
+        if (_member is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var memberships = await MemberMemberships.MembershipsAllAsync(_member.Id);
+            _memberships = memberships.OrderByDescending(m => m.StartDate).Take(5).ToList();
+        }
+        catch (GsmApiException)
+        {
+            // Sin la lista se puede cobrar igual, solo que sin enlazar la membresía.
+        }
+    }
+
+    private void OnMembershipChanged(Guid? membershipId)
+    {
+        _membershipId = membershipId;
+        if (_memberships.FirstOrDefault(m => m.Id == membershipId) is { } membership && string.IsNullOrWhiteSpace(_model.Concept))
+        {
+            _model.Concept = $"Membresía {membership.PlanName} ({GsmFormat.DayRange(membership.StartDate, membership.EndDate)})";
         }
     }
 
@@ -100,6 +152,7 @@
                 Concept = _model.Concept,
                 Notes = _model.Notes,
                 MemberId = _member?.Id,
+                MembershipId = _member is null ? null : _membershipId,
             });
 
             MudDialog.Close(DialogResult.Ok(true));

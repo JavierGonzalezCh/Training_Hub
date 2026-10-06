@@ -377,9 +377,17 @@ else if (_member is not null)
         var parameters = new DialogParameters<AssignMembershipDialog> { { x => x.MemberId, Id } };
         var dialog = await Dialogs.ShowAsync<AssignMembershipDialog>("Asignar membresía", parameters);
         var result = await dialog.Result;
-        if (result is { Canceled: false })
+        if (result is { Canceled: false, Data: AssignMembershipDialog.AssignMembershipResult outcome })
         {
-            Snackbar.Add("Membresía asignada.", Severity.Success);
+            if (outcome.ChargeError is { } chargeError)
+            {
+                Snackbar.Add($"Membresía asignada, pero el cobro no se registró: {chargeError}", Severity.Warning);
+            }
+            else
+            {
+                Snackbar.Add(outcome.Charged ? "Membresía asignada y cobrada." : "Membresía asignada sin cobro.", Severity.Success);
+            }
+
             await LoadAsync();
         }
     }

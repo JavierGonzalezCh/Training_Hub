@@ -1,5 +1,6 @@
 @inject IMemberMembershipsClient MemberMemberships
 @inject IMembershipPlansClient Plans
+@inject IPaymentsClient Payments
 
 <MudDialog>
     <DialogContent>
@@ -20,13 +21,32 @@
             else
             {
                 <MudForm @ref="_form">
-                    <MudSelect T="Guid" @bind-Value="_planId" Label="Plan" Required="true" Class="mb-3">
+                    <MudSelect T="Guid" Value="_planId" ValueChanged="OnPlanChanged" Label="Plan" Required="true" Class="mb-3">
                         @foreach (var plan in _plans)
                         {
                             <MudSelectItem Value="plan.Id">@plan.Name — @GsmFormat.Money((decimal)plan.Price) · @plan.DurationDays días</MudSelectItem>
                         }
                     </MudSelect>
-                    <MudDatePicker Label="Fecha de inicio (opcional, hoy por defecto)" Date="_startDate" DateChanged="d => _startDate = d" />
+                    <MudDatePicker Label="Fecha de inicio (opcional, hoy por defecto)" Date="_startDate" DateChanged="d => _startDate = d" Class="mb-4" />
+
+                    <MudSwitch T="bool" @bind-Value="_charge" Color="Color.Primary" Label="Cobrar ahora" Class="mb-2" />
+                    @if (_charge)
+                    {
+                        <MudNumericField T="decimal" @bind-Value="_amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3"
+                                         HelperText="El precio del plan; cámbialo si hay descuento." />
+                        <MudSelect T="int" @bind-Value="_method" Label="Método" Required="true">
+                            @foreach (var (value, label) in PaymentMethodLabels.All)
+                            {
+                                <MudSelectItem Value="value">@label</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            La membresía quedará activa sin pago registrado. Podrás cobrarla después desde "Registrar pago".
+                        </MudAlert>
+                    }
                 </MudForm>
             }
         }
@@ -34,7 +54,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting || _plans.Count == 0">
-            @(_submitting ? "Asignando..." : "Asignar")
+            @(_submitting ? "Guardando..." : _charge ? "Asignar y cobrar" : "Asignar")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -49,6 +69,9 @@
     private List<PlanResponse> _plans = [];
     private Guid _planId;
     private DateTime? _startDate;
+    private bool _charge = true;
+    private decimal _amount;
+    private int _method;
     private MudForm _form = null!;
     private bool _loading = true;
     private bool _submitting;
@@ -62,7 +85,7 @@
             _plans = plans.ToList();
             if (_plans.Count > 0)
             {
-                _planId = _plans[0].Id;
+                OnPlanChanged(_plans[0].Id);
             }
         }
         catch (GsmApiException ex)
@@ -75,30 +98,73 @@
         }
     }
 
+    private void OnPlanChanged(Guid planId)
+    {
+        _planId = planId;
+        if (_plans.FirstOrDefault(p => p.Id == planId) is { } plan)
+        {
+            _amount = (decimal)plan.Price;
+        }
+    }
+
+    // Dos llamadas, no una operación atómica: asignar es de Memberships y cobrar de Payments, y la
+    // regla del proyecto es no escribir en otro módulo. Si el cobro falla, la membresía ya existe
+    // y se avisa para cobrarla desde "Registrar pago" (que ya permite elegir la membresía).
     private async Task SubmitAsync()
     {
         _error = null;
+        if (_charge && _amount <= 0)
+        {
+            _error = "El monto del cobro debe ser mayor que cero.";
+            return;
+        }
+
         _submitting = true;
+        MembershipResponse membership;
         try
         {
-            await MemberMemberships.MembershipsAsync(MemberId, new AssignMembershipRequest
+            membership = await MemberMemberships.MembershipsAsync(MemberId, new AssignMembershipRequest
             {
                 PlanId = _planId,
                 StartDate = _startDate is { } d ? DateOnly.FromDateTime(d) : null,
             });
-
-            MudDialog.Close(DialogResult.Ok(true));
         }
         catch (GsmApiException ex)
         {
             // 409: ya tiene una membresía vigente que se solapa.
             _error = ApiError.FromException(ex).DisplayMessage;
-        }
-        finally
-        {
             _submitting = false;
+            return;
+        }
+
+        if (!_charge)
+        {
+            MudDialog.Close(DialogResult.Ok(new AssignMembershipResult(Charged: false, ChargeError: null)));
+            return;
+        }
+
+        try
+        {
+            await Payments.PaymentsPOST2Async(new RecordPaymentRequest
+            {
+                Amount = (double)_amount,
+                Method = _method,
+                Concept = $"Membresía {membership.PlanName} ({GsmFormat.DayRange(membership.StartDate, membership.EndDate)})",
+                MemberId = MemberId,
+                MembershipId = membership.Id,
+            });
+            MudDialog.Close(DialogResult.Ok(new AssignMembershipResult(Charged: true, ChargeError: null)));
+        }
+        catch (GsmApiException ex)
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new AssignMembershipResult(Charged: false, ChargeError: ApiError.FromException(ex).DisplayMessage)));
         }
     }
 
     private void Cancel() => MudDialog.Cancel();
+}
+
+@code {
+    public sealed record AssignMembershipResult(bool Charged, string? ChargeError);
 }
