@@ -4,16 +4,58 @@
     {
       "name": "api",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "src/Backend/GSM.API", "--launch-profile", "https"],
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "src/Backend/GSM.API",
+        "--launch-profile",
+        "https"
+      ],
       "port": 7219,
-      "url": "https://localhost:7219/scalar"
+      "url": "https://localhost:7219"
     },
     {
       "name": "web",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "src/Frontend/GSM.Web", "--launch-profile", "https"],
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "src/Frontend/GSM.Web",
+        "--launch-profile",
+        "https"
+      ],
       "port": 7220,
       "url": "https://localhost:7220"
+    },
+    {
+      "name": "api-alt",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "src/Backend/GSM.API",
+        "--launch-profile",
+        "https",
+        "-p:OutDir=C:/Users/javie/AppData/Local/Temp/gsm-apirun/",
+        "--",
+        "--urls",
+        "https://localhost:7231",
+        "--Cors:AllowedOrigins:2",
+        "http://localhost:7232"
+      ],
+      "port": 7231,
+      "url": "https://localhost:7231"
+    },
+    {
+      "name": "web-alt",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "C:/Users/javie/AppData/Local/Temp/claude/C--Proyectos-Gymbro-gsm/5e013501-1cb4-4232-b201-e46222836eb0/scratchpad/spa_server.py",
+        "C:/Users/javie/AppData/Local/Temp/gsm-webpub/wwwroot",
+        "7232"
+      ],
+      "port": 7232,
+      "url": "http://localhost:7232"
     }
   ]
 }
