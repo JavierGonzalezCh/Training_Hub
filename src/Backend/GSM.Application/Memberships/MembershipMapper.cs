@@ -18,5 +18,7 @@ public static partial class MembershipMapper
             membership.EffectiveStatusOn(today).ToString(),
             membership.StartDate,
             membership.EndDate,
-            membership.CreatedAt);
+            membership.CreatedAt,
+            membership.PausedOn,
+            membership.CancellationReason);
 }

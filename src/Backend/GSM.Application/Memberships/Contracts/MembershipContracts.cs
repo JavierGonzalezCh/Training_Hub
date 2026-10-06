@@ -23,7 +23,11 @@ public sealed record MembershipResponse(
     string Status,
     DateOnly StartDate,
     DateOnly EndDate,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    DateOnly? PausedOn,
+    string? CancellationReason);
+
+public sealed record CancelMembershipRequest(string Reason);
 
 public sealed record ExpiringMembershipItem(
     Guid MembershipId,

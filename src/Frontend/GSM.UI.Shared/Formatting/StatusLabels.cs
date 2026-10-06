@@ -16,6 +16,7 @@ public static class StatusLabels
         "Expired" => "Vencido",
         "Pending" => "Pendiente",
         "Cancelled" => "Cancelado",
+        "Paused" => "Congelado",
         "Booked" => "Reservado",
         "Attended" => "Asistió",
         "NoShow" => "No asistió",

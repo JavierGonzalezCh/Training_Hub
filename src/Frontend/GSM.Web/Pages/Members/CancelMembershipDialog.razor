@@ -1,0 +1,119 @@
+@inject IMemberMembershipsClient MemberMemberships
+@inject IMemberPaymentsClient MemberPayments
+@inject IPaymentsClient Payments
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-3">
+            «@Membership.PlanName» (@GsmFormat.DayRange(Membership.StartDate, Membership.EndDate)) dejará de dar acceso.
+            Queda en el historial como cancelada.
+        </MudText>
+        @if (_loadingPayments)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-3" />
+        }
+        else if (_linked.Count > 0)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                Tiene @(_linked.Count == 1 ? "un pago enlazado" : $"{_linked.Count} pagos enlazados")
+                por @GsmFormat.Money(_linked.Sum(p => (decimal)p.Amount)).
+            </MudAlert>
+            <MudCheckBox T="bool" @bind-Value="_voidPayments" Color="Color.Primary"
+                         Label="Anular también esos pagos (se registra hoy el asiento inverso)" Class="mb-2" />
+        }
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2"
+                      HelperText="Por ejemplo: plan equivocado, asignada al socio que no era." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Volver</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting || _loadingPayments">
+            @(_submitting ? "Cancelando..." : "Cancelar membresía")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    [Parameter, EditorRequired]
+    public MembershipResponse Membership { get; set; } = null!;
+
+    private List<PaymentResponse> _linked = [];
+    private bool _voidPayments = true;
+    private bool _loadingPayments = true;
+    private string _reason = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    // Pagos de esta membresía que siguen contando en caja (ni anulados ni anulaciones).
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var page = await MemberPayments.PaymentsGET2Async(MemberId, 1, 100);
+            _linked = page.Items
+                .Where(p => p.MembershipId == Membership.Id && p.IsReversed != true && p.ReversesPaymentId is null)
+                .ToList();
+        }
+        catch (GsmApiException)
+        {
+            // Sin la lista se puede cancelar igual; los pagos se anulan después desde Pagos.
+        }
+        finally
+        {
+            _loadingPayments = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        var reason = _reason.Trim();
+        if (reason.Length < 3)
+        {
+            _error = "Escribe el motivo de la cancelación.";
+            return;
+        }
+
+        _error = null;
+        _submitting = true;
+        try
+        {
+            await MemberMemberships.Cancel2Async(MemberId, Membership.Id, new CancelMembershipRequest { Reason = reason });
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+            return;
+        }
+
+        // La membresía ya está cancelada: si un pago falla se informa, pero no se deshace lo anterior.
+        var failed = 0;
+        if (_voidPayments)
+        {
+            foreach (var payment in _linked)
+            {
+                try
+                {
+                    await Payments.VoidAsync(payment.Id, new VoidPaymentRequest { Reason = $"Membresía cancelada: {reason}" });
+                }
+                catch (GsmApiException)
+                {
+                    failed++;
+                }
+            }
+        }
+
+        MudDialog.Close(DialogResult.Ok(new CancelMembershipResult(_voidPayments ? _linked.Count - failed : 0, failed)));
+    }
+
+    public sealed record CancelMembershipResult(int VoidedPayments, int FailedVoids);
+}

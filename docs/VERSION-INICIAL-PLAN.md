@@ -14,7 +14,7 @@ Igual que el resto del proyecto: **una sub-etapa por vez, con confirmación entr
 
 ---
 
-## 1. Correcciones de caja y membresía (prioridad alta) — en curso
+## 1. Correcciones de caja y membresía (prioridad alta) — hecho
 
 Hoy un cobro mal digitado o un plan mal asignado no tienen arreglo desde la UI, y la caja queda
 descuadrada.
@@ -26,8 +26,8 @@ El dominio de Payments ya prevé la corrección: los pagos son inmutables y un a
 |---|---|---|
 | **1.1** | **Anular un pago**: `POST /api/payments/{id}/void` crea el asiento inverso (monto negativo, mismo método, miembro y membresía) con `reverses_payment_id` y un motivo obligatorio. No se puede anular dos veces (índice único) ni anular una anulación. La respuesta de los pagos trae `isReversed`. UI: acción "Anular" en Pagos, cierre de caja y ficha del socio. | hecho |
 | 1.2 | **Pago enlazado a la membresía**: "Asignar membresía" ofrece cobrar en el mismo paso, con el precio del plan precargado y `membershipId` enviado (el backend ya lo admite). El diálogo suelto de pago también permite elegir la membresía. | hecho |
-| 1.3 | **Cancelar una membresía asignada por error** (estado `cancelled`, deja de cubrir fechas; si tiene pagos enlazados, avisa de que hay que anularlos). | pendiente |
-| 1.4 | **Congelar / reanudar una membresía** (`Paused` ya existe en el enum pero no hay operación): extiende `EndDate` con los días congelados. | pendiente, decidir si entra en v1 |
+| 1.3 | **Cancelar una membresía asignada por error** (estado `cancelled`, motivo obligatorio, deja de cubrir fechas, no da días de gracia y libera su hueco para la siguiente asignación). El diálogo ofrece anular en el mismo paso los pagos enlazados. | hecho |
+| 1.4 | **Congelar / reanudar una membresía** (`Paused` ya existe en el enum pero no hay operación): solo la vigente hoy; al reanudar, `EndDate` se corre los días congelada y las renovaciones encadenadas detrás se corren lo mismo. | hecho |
 
 ## 2. Accesos que hoy dependen de copiar códigos a mano (prioridad alta)
 

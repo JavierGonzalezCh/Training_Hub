@@ -32,4 +32,42 @@ public sealed class MemberMembershipsController : ControllerBase
         var membership = await handler.HandleAsync(memberId, request, cancellationToken);
         return CreatedAtAction(nameof(List), new { memberId }, membership);
     }
+
+    /// <summary>Cancela una membresía asignada por error. Los pagos enlazados se anulan aparte.</summary>
+    [HttpPost("{membershipId:guid}/cancel")]
+    [ProducesResponseType<MembershipResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<MembershipResponse>> Cancel(
+        Guid memberId,
+        Guid membershipId,
+        CancelMembershipRequest request,
+        [FromServices] CancelMembershipHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, membershipId, request, cancellationToken));
+
+    /// <summary>Congela la membresía vigente hoy.</summary>
+    [HttpPost("{membershipId:guid}/pause")]
+    [ProducesResponseType<MembershipResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<MembershipResponse>> Pause(
+        Guid memberId,
+        Guid membershipId,
+        [FromServices] PauseMembershipHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, membershipId, cancellationToken));
+
+    /// <summary>Reanuda una membresía congelada y corre su fin los días congelados.</summary>
+    [HttpPost("{membershipId:guid}/resume")]
+    [ProducesResponseType<MembershipResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<MembershipResponse>> Resume(
+        Guid memberId,
+        Guid membershipId,
+        [FromServices] ResumeMembershipHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, membershipId, cancellationToken));
 }

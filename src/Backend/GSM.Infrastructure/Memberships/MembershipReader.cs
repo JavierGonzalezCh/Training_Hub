@@ -33,7 +33,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
         => Memberships.AnyAsync(m => m.Id == membershipId && m.MemberId == memberId, cancellationToken);
 
     public async Task<DateOnly?> GetLatestEndDateAsync(Guid memberId, CancellationToken cancellationToken = default)
-        => await Memberships.Where(m => m.MemberId == memberId)
+        => await Memberships.Where(m => m.MemberId == memberId && m.Status == MembershipStatus.Active)
             .Select(m => (DateOnly?)m.EndDate)
             .MaxAsync(cancellationToken);
 

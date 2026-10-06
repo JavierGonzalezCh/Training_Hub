@@ -30,3 +30,11 @@ public sealed class AssignMembershipRequestValidator : AbstractValidator<AssignM
     public AssignMembershipRequestValidator()
         => RuleFor(x => x.PlanId).NotEmpty();
 }
+
+public sealed class CancelMembershipRequestValidator : AbstractValidator<CancelMembershipRequest>
+{
+    public CancelMembershipRequestValidator()
+    {
+        RuleFor(x => x.Reason).NotEmpty().MinimumLength(3).MaximumLength(500);
+    }
+}

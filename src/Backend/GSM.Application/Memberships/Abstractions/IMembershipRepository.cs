@@ -25,7 +25,14 @@ public interface IMembershipRepository
     Task<IReadOnlyList<Membership>> GetHistoryAsync(
         Guid memberId, CancellationToken cancellationToken = default);
 
-    /// <summary>La membresía Active del miembro con el <c>end_date</c> más lejano que aún no venció (para encadenar la renovación).</summary>
+    /// <summary>
+    /// La membresía Active o congelada del miembro con el <c>end_date</c> más lejano que aún no venció
+    /// (para encadenar la renovación). Una cancelada no cuenta: su hueco queda libre.
+    /// </summary>
+    /// <summary>Membresías Active del miembro que empiezan después de <paramref name="date"/> (las encadenadas detrás).</summary>
+    Task<IReadOnlyList<Membership>> GetActiveStartingAfterAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default);
+
     Task<Membership?> GetLatestOpenAsync(
         Guid memberId, DateOnly today, CancellationToken cancellationToken = default);
 

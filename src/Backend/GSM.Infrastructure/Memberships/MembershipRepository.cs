@@ -55,10 +55,17 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
         Guid memberId, DateOnly today, CancellationToken cancellationToken = default)
         => Memberships
             .Where(m => m.MemberId == memberId
-                && m.Status == MembershipStatus.Active
+                && (m.Status == MembershipStatus.Active || m.Status == MembershipStatus.Paused)
                 && m.EndDate >= today)
             .OrderByDescending(m => m.EndDate)
             .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Membership>> GetActiveStartingAfterAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
+        => await Memberships
+            .Where(m => m.MemberId == memberId && m.Status == MembershipStatus.Active && m.StartDate > date)
+            .OrderBy(m => m.StartDate)
+            .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<ExpiringMembershipRow>> GetExpiringAsync(
         Guid gymId, DateOnly today, int withinDays, CancellationToken cancellationToken = default)

@@ -47,7 +47,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "user_role", new[] { "superadmin", "owner", "staff", "member" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_status", new[] { "active", "inactive" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "memberships", "membership_status", new[] { "active", "expired", "paused" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "memberships", "membership_status", new[] { "active", "expired", "paused", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "transfer", "card", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "equipment", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "cardio" });
@@ -1247,6 +1247,15 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("cancellation_reason");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1262,6 +1271,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<Guid>("MemberId")
                         .HasColumnType("uuid")
                         .HasColumnName("member_id");
+
+                    b.Property<DateOnly?>("PausedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("paused_on");
 
                     b.Property<Guid>("PlanId")
                         .HasColumnType("uuid")

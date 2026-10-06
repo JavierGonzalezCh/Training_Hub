@@ -24,8 +24,15 @@ public sealed class Membership : BaseEntity, ITenantEntity
 
     public DateOnly EndDate { get; private set; }
 
-    /// <summary>En almacenamiento solo <see cref="MembershipStatus.Active"/> o <see cref="MembershipStatus.Paused"/>.</summary>
+    /// <summary>En almacenamiento nunca <see cref="MembershipStatus.Expired"/>: ese se deriva de la fecha.</summary>
     public MembershipStatus Status { get; private set; } = MembershipStatus.Active;
+
+    /// <summary>Día de negocio en que se congeló. Solo con <see cref="MembershipStatus.Paused"/>.</summary>
+    public DateOnly? PausedOn { get; private set; }
+
+    public DateTimeOffset? CancelledAt { get; private set; }
+
+    public string? CancellationReason { get; private set; }
 
     public static Membership Create(
         Guid gymId, Guid memberId, Guid planId, DateOnly startDate, int durationDays)
@@ -53,11 +60,81 @@ public sealed class Membership : BaseEntity, ITenantEntity
 
     /// <summary>Estado efectivo en una fecha: materializa <see cref="MembershipStatus.Expired"/>.</summary>
     public MembershipStatus EffectiveStatusOn(DateOnly today)
-        => Status == MembershipStatus.Paused
-            ? MembershipStatus.Paused
+        => Status is MembershipStatus.Paused or MembershipStatus.Cancelled
+            ? Status
             : EndDate < today
                 ? MembershipStatus.Expired
                 : MembershipStatus.Active;
+
+    /// <summary>
+    /// Anula una membresía asignada por error. No borra la fila (queda en el historial) y deja de
+    /// cubrir fechas. Los pagos enlazados no se tocan: se anulan aparte, desde Payments.
+    /// </summary>
+    public void Cancel(string reason, DateTimeOffset now)
+    {
+        if (Status == MembershipStatus.Cancelled)
+        {
+            throw new ConflictException("La membresía ya está cancelada.");
+        }
+
+        var trimmed = (reason ?? string.Empty).Trim();
+        if (trimmed.Length is < 3 or > 500)
+        {
+            throw new ValidationDomainException("El motivo de la cancelación es obligatorio (3 a 500 caracteres).");
+        }
+
+        Status = MembershipStatus.Cancelled;
+        PausedOn = null;
+        CancelledAt = now;
+        CancellationReason = trimmed;
+    }
+
+    /// <summary>Congela la membresía que cubre hoy. Mientras está congelada no da acceso.</summary>
+    public void Pause(DateOnly today)
+    {
+        if (Status != MembershipStatus.Active)
+        {
+            throw new ConflictException("Solo se puede congelar una membresía activa.");
+        }
+
+        if (!CoversDate(today))
+        {
+            throw new ValidationDomainException("Solo se puede congelar la membresía que está vigente hoy.");
+        }
+
+        Status = MembershipStatus.Paused;
+        PausedOn = today;
+    }
+
+    /// <summary>
+    /// Reanuda una membresía congelada y corre su fin tantos días como estuvo congelada. Devuelve
+    /// esos días para que el caso de uso corra también las membresías encadenadas detrás.
+    /// </summary>
+    public int Resume(DateOnly today)
+    {
+        if (Status != MembershipStatus.Paused || PausedOn is not { } pausedOn)
+        {
+            throw new ConflictException("La membresía no está congelada.");
+        }
+
+        var days = Math.Max(0, today.DayNumber - pausedOn.DayNumber);
+        EndDate = EndDate.AddDays(days);
+        Status = MembershipStatus.Active;
+        PausedOn = null;
+        return days;
+    }
+
+    /// <summary>Corre una membresía futura (encadenada) cuando la anterior se extiende al reanudarse.</summary>
+    public void ShiftBy(int days)
+    {
+        if (days < 0)
+        {
+            throw new ValidationDomainException("Solo se puede correr una membresía hacia adelante.");
+        }
+
+        StartDate = StartDate.AddDays(days);
+        EndDate = EndDate.AddDays(days);
+    }
 
     public bool CoversDate(DateOnly date)
         => Status == MembershipStatus.Active && StartDate <= date && date <= EndDate;

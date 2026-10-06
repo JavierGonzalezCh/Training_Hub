@@ -11,6 +11,7 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
         builder.ToTable("memberships", "memberships");
 
         builder.Property(m => m.Status).HasColumnName("status");
+        builder.Property(m => m.CancellationReason).HasMaxLength(500);
 
         // Índice requerido por el plan para el dashboard y la renovación.
         builder.HasIndex(m => new { m.MemberId, m.EndDate });

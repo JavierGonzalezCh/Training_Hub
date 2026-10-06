@@ -25,7 +25,7 @@ GSM (Gym System Management) es el codename técnico interno de un sistema de ges
 
 Fase: **Fase 2 y 3 construidas; falta desplegar.**
 
-Las etapas 0–7 (MVP), **9 (Routines)**, **10 (Classes)** y **11 (SuperAdmin, sub-etapas 11.1 a 11.5)** están implementadas y validadas end-to-end, con **158 tests** de integración contra Postgres.
+Las etapas 0–7 (MVP), **9 (Routines)**, **10 (Classes)** y **11 (SuperAdmin, sub-etapas 11.1 a 11.5)** están implementadas y validadas end-to-end, con **160 tests** de integración contra Postgres.
 
 De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de despliegue. **Se despliega en servidor propio con Dokploy, no en Railway** (decidido el 2026-10-05; plan en `docs/DEPLOY-DOKPLOY-PLAN.md`). R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
 
@@ -45,7 +45,7 @@ Ningún módulo nuevo de backend está en construcción. **Del frontend están h
 
 **No construido, fuera de alcance por ahora**: el catálogo de ejercicios del sistema reutilizado desde el panel SuperAdmin (mencionado en el plan para F8) — la pantalla de F6 sigue siendo solo-Staff; abrirla a superadmin sin impersonar exigía resolver el contexto de gym para un rol que no tiene uno, y no se hizo por tiempo.
 
-**En curso — versión inicial** (`docs/VERSION-INICIAL-PLAN.md`): los huecos que salieron de recorrer el sistema de punta a punta en el navegador. No se despliega hasta cerrarlos. Hecha la sub-etapa **1.1 (anular un pago)**: `POST /api/payments/{id}/void` crea el asiento inverso fechado hoy con `reverses_payment_id` (índice único: un pago se anula una sola vez; una anulación no se anula) y motivo obligatorio en `Notes`. El original no cambia, así que el cierre de un día pasado sigue igual. `PaymentResponse.IsReversed` no sale de la entidad: lo resuelven los casos de uso de lectura con `IPaymentRepository.GetReversedIdsAsync`.
+**En curso — versión inicial** (`docs/VERSION-INICIAL-PLAN.md`): los huecos que salieron de recorrer el sistema de punta a punta en el navegador. No se despliega hasta cerrarlos. Hecha la sub-etapa **1.1 (anular un pago)**: `POST /api/payments/{id}/void` crea el asiento inverso fechado hoy con `reverses_payment_id` (índice único: un pago se anula una sola vez; una anulación no se anula) y motivo obligatorio en `Notes`. El original no cambia, así que el cierre de un día pasado sigue igual. `PaymentResponse.IsReversed` no sale de la entidad: lo resuelven los casos de uso de lectura con `IPaymentRepository.GetReversedIdsAsync`. Hechas también **1.2–1.4**: "Asignar membresía" cobra en el mismo paso (dos llamadas desde la UI, no una escritura cruzada); una membresía se puede **cancelar** (`cancelled`, con motivo: deja de cubrir, no da gracia y libera su hueco) y **congelar/reanudar** (`paused` + `paused_on`; al reanudar se corren su fin y el de las encadenadas). `IMembershipReader.GetLatestEndDateAsync` solo mira membresías `Active`.
 
 Siguen pendientes el despliegue (Dokploy, etapa 8 punto 4 del backend), y los módulos sin planificar (Reports, Locations).
 

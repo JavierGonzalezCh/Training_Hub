@@ -142,12 +142,40 @@ else if (_member is not null)
                         <MudTh>Estado</MudTh>
                         <MudTh>Desde</MudTh>
                         <MudTh>Hasta</MudTh>
+                        <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Plan">@context.PlanName</MudTd>
+                        <MudTd DataLabel="Plan">
+                            @context.PlanName
+                            @if (context.CancellationReason is { } cancelReason)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@cancelReason</MudText>
+                            }
+                            else if (context.PausedOn is { } pausedOn)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Congelada desde @GsmFormat.Day(pausedOn)</MudText>
+                            }
+                        </MudTd>
                         <MudTd DataLabel="Estado"><StatusChip Status="@context.Status" /></MudTd>
                         <MudTd DataLabel="Desde">@GsmFormat.Day(context.StartDate)</MudTd>
                         <MudTd DataLabel="Hasta">@GsmFormat.Day(context.EndDate)</MudTd>
+                        <MudTd>
+                            @if (context.Status != "Cancelled")
+                            {
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true"
+                                         AriaLabel="@($"Acciones de la membresía {context.PlanName}")">
+                                    @if (context.Status == "Active")
+                                    {
+                                        <MudMenuItem OnClick="@(() => PauseMembershipAsync(context))">Congelar</MudMenuItem>
+                                    }
+                                    @if (context.Status == "Paused")
+                                    {
+                                        <MudMenuItem OnClick="@(() => ResumeMembershipAsync(context))">Reanudar</MudMenuItem>
+                                    }
+                                    <MudMenuItem OnClick="@(() => CancelMembershipAsync(context))">Cancelar membresía</MudMenuItem>
+                                </MudMenu>
+                            }
+                        </MudTd>
                     </RowTemplate>
                 </MudTable>
             }
@@ -328,7 +356,8 @@ else if (_member is not null)
         }
     }
 
-    private ServerTable<PaymentResponse> _paymentsTable = null!;
+    // Null mientras la pestaña Pagos no se ha abierto: MudTabs solo renderiza la pestaña activa.
+    private ServerTable<PaymentResponse>? _paymentsTable;
 
     private async Task<ServerTablePage<PaymentResponse>> LoadPaymentsAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -404,6 +433,86 @@ else if (_member is not null)
         }
     }
 
+    private async Task PauseMembershipAsync(MembershipResponse membership)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Congelar membresía",
+            $"«{membership.PlanName}» deja de dar acceso desde hoy. Al reanudarla, su fin (y el de las renovaciones encadenadas) se corre los días que estuvo congelada.",
+            yesText: "Congelar", cancelText: "Volver");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        await RunMembershipActionAsync(() => MemberMemberships.PauseAsync(Id, membership.Id), "Membresía congelada.");
+    }
+
+    private Task ResumeMembershipAsync(MembershipResponse membership)
+        => RunMembershipActionAsync(
+            () => MemberMemberships.ResumeAsync(Id, membership.Id), "Membresía reanudada; su fin se corrió los días que estuvo congelada.");
+
+    private async Task CancelMembershipAsync(MembershipResponse membership)
+    {
+        var parameters = new DialogParameters<CancelMembershipDialog>
+        {
+            { x => x.MemberId, Id },
+            { x => x.Membership, membership },
+        };
+        var dialog = await Dialogs.ShowAsync<CancelMembershipDialog>("Cancelar membresía", parameters);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: CancelMembershipDialog.CancelMembershipResult outcome })
+        {
+            return;
+        }
+
+        if (outcome.FailedVoids > 0)
+        {
+            Snackbar.Add($"Membresía cancelada, pero {outcome.FailedVoids} pago(s) no se anularon: anúlalos desde la pestaña Pagos.", Severity.Warning);
+        }
+        else
+        {
+            Snackbar.Add(outcome.VoidedPayments > 0
+                ? $"Membresía cancelada y {outcome.VoidedPayments} pago(s) anulados."
+                : "Membresía cancelada.", Severity.Success);
+        }
+
+        await RefreshMembershipsAsync();
+    }
+
+    private async Task RunMembershipActionAsync(Func<Task> action, string successMessage)
+    {
+        try
+        {
+            await action();
+            Snackbar.Add(successMessage, Severity.Success);
+            await RefreshMembershipsAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    // Como OnPaymentVoidedAsync: sin el indicador de carga, para no desmontar la ficha.
+    private async Task RefreshMembershipsAsync()
+    {
+        try
+        {
+            _member = await Members.MembersGET2Async(Id);
+            var memberships = await MemberMemberships.MembershipsAllAsync(Id);
+            _memberships = memberships.OrderByDescending(m => m.StartDate).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+
+        if (_paymentsTable is not null)
+        {
+            await _paymentsTable.RefreshAsync();
+        }
+    }
+
     // Sin LoadAsync: su indicador de carga desmonta la ficha y devolvería al usuario a la primera
     // pestaña. Basta con refrescar "Últimos pagos" y la tabla (el asiento nuevo y la fila anulada).
     private async Task OnPaymentVoidedAsync()
@@ -417,7 +526,10 @@ else if (_member is not null)
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
 
-        await _paymentsTable.RefreshAsync();
+        if (_paymentsTable is not null)
+        {
+            await _paymentsTable.RefreshAsync();
+        }
     }
 
     private async Task UploadPhotoAsync(IBrowserFile file)
