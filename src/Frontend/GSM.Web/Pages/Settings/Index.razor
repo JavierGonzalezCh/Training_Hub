@@ -23,6 +23,9 @@
                     <MudTextField T="string" @bind-Value="_gymModel.Nit" Label="NIT" Class="mb-3" />
                     <MudTextField T="string" @bind-Value="_gymModel.Phone" Label="Teléfono" Class="mb-3" />
                     <MudTextField T="string" @bind-Value="_gymModel.Email" Label="Email" InputType="InputType.Email" Class="mb-3" />
+                    <MudNumericField T="int?" @bind-Value="_gymModel.Capacity" Label="Aforo aproximado (clientes a la vez)"
+                                     Min="1" Max="5000" Immediate="true" Class="mb-3"
+                                     HelperText="¿Cuántas personas caben cómodamente entrenando al mismo tiempo? Con este dato calcularemos qué tan lleno está el gimnasio en tiempo real." />
                     <div class="d-flex align-center mb-3" style="gap:0.75rem">
                         <MudTextField T="string" @bind-Value="_gymModel.PrimaryColor" Label="Color primario (hex)"
                                       Error="@(!IsValidHex(_gymModel.PrimaryColor))" ErrorText="Formato #RRGGBB" />
@@ -63,27 +66,69 @@
         }
     </MudTabPanel>
 
-    <MudTabPanel Text="Feature flags">
+    <MudTabPanel Text="Módulos">
         @if (_loadingFlags)
         {
             <MudProgressCircular Indeterminate="true" Class="mt-4" />
         }
         else
         {
-            <MudList T="string" Class="mt-2" style="max-width:420px">
-                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowRoutines" Label="Rutinas" Color="Color.Primary" Class="mb-2" />
-                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowClasses" Label="Clases" Color="Color.Primary" Class="mb-2" />
-                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowProgress" Label="Progreso" Color="Color.Primary" Class="mb-2" />
-                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowGamification" Label="Gamificación (logros)" Color="Color.Primary" Class="mb-2" />
-                <MudSwitch T="bool" @bind-Value="_flagsModel.ShowCommunity" Label="Comunidad" Color="Color.Primary" Class="mb-2" />
-                <MudSwitch T="bool" @bind-Value="_flagsModel.CheckinQr" Label="Check-in por QR (app del socio)" Color="Color.Primary" Class="mb-2" />
-                <MudSwitch T="bool" @bind-Value="_flagsModel.CommunityComments" Label="Comentarios en comunidad" Color="Color.Primary" Class="mb-2" />
-                <MudSwitch T="bool" @bind-Value="_flagsModel.MembersCanCreateRoutines" Label="Socios pueden crear su propia rutina" Color="Color.Primary" Class="mb-4" />
-            </MudList>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveFlagsAsync" Disabled="_savingFlags">
+            <p class="gsm-modules-intro">Activa o desactiva lo que ven tus miembros en su app. Lo que apagues deja de mostrarse; no se borra ningún dato.</p>
+
+            <section class="gsm-module-section" aria-labelledby="mod-ops">
+                <h2 id="mod-ops" class="gsm-module-section__title">Acceso</h2>
+                <div class="gsm-module-grid">
+                    @ModuleCard(Icons.Material.Outlined.QrCodeScanner, "Check-in con QR",
+                        "Los miembros registran su entrada escaneando el QR del gimnasio con su teléfono.",
+                        _flagsModel.CheckinQr, v => _flagsModel.CheckinQr = v)
+                </div>
+            </section>
+
+            <section class="gsm-module-section" aria-labelledby="mod-train">
+                <h2 id="mod-train" class="gsm-module-section__title">Entrenamiento</h2>
+                <div class="gsm-module-grid">
+                    @ModuleCard(Icons.Material.Outlined.FitnessCenter, "Rutinas",
+                        "Cada miembro ve su rutina asignada y registra lo que entrena por ejercicio.",
+                        _flagsModel.ShowRoutines, v => _flagsModel.ShowRoutines = v)
+                    @ModuleCard(Icons.Material.Outlined.EditNote, "Rutinas propias",
+                        "Los miembros pueden crear su propia rutina sin esperar a que el staff se la arme.",
+                        _flagsModel.MembersCanCreateRoutines, v => _flagsModel.MembersCanCreateRoutines = v)
+                    @ModuleCard(Icons.Material.Outlined.CalendarMonth, "Clases",
+                        "Horario semanal de clases grupales, con reservas y cupos desde la app.",
+                        _flagsModel.ShowClasses, v => _flagsModel.ShowClasses = v)
+                    @ModuleCard(Icons.Material.Outlined.Timeline, "Progreso",
+                        "Racha de asistencia y evolución del miembro a lo largo del tiempo.",
+                        _flagsModel.ShowProgress, v => _flagsModel.ShowProgress = v)
+                </div>
+            </section>
+
+            <section class="gsm-module-section" aria-labelledby="mod-engage">
+                <h2 id="mod-engage" class="gsm-module-section__title">Motivación y comunidad</h2>
+                <div class="gsm-module-grid">
+                    @ModuleCard(Icons.Material.Outlined.EmojiEvents, "Logros",
+                        "Insignias que el miembro desbloquea por constancia, visitas y clases.",
+                        _flagsModel.ShowGamification, v => _flagsModel.ShowGamification = v)
+                    @ModuleCard(Icons.Material.Outlined.Forum, "Comunidad",
+                        "Espacio social del gimnasio para publicar y compartir entre miembros.",
+                        _flagsModel.ShowCommunity, v => _flagsModel.ShowCommunity = v)
+                    @ModuleCard(Icons.Material.Outlined.ChatBubbleOutline, "Comentarios",
+                        "Permite responder y comentar las publicaciones de la comunidad.",
+                        _flagsModel.CommunityComments, v => _flagsModel.CommunityComments = v)
+                </div>
+            </section>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveFlagsAsync" Disabled="_savingFlags" Class="mt-2">
                 @(_savingFlags ? "Guardando..." : "Guardar cambios")
             </MudButton>
         }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Check-in">
+        <CheckinTab />
+    </MudTabPanel>
+
+    <MudTabPanel Text="Comunicaciones">
+        <CommunicationsTab />
     </MudTabPanel>
 
     <MudTabPanel Text="Staff">
@@ -164,6 +209,7 @@
             _gymModel.Nit = gym.Nit;
             _gymModel.Phone = gym.Phone;
             _gymModel.Email = gym.Email;
+            _gymModel.Capacity = gym.Capacity;
             _gymModel.PrimaryColor = gym.PrimaryColor;
             _gymModel.SecondaryColor = gym.SecondaryColor;
         }
@@ -188,6 +234,7 @@
                 Nit = _gymModel.Nit,
                 Phone = _gymModel.Phone,
                 Email = _gymModel.Email,
+                Capacity = _gymModel.Capacity,
                 PrimaryColor = _gymModel.PrimaryColor,
                 SecondaryColor = _gymModel.SecondaryColor,
             });
@@ -270,7 +317,7 @@
                 MembersCanCreateRoutines = _flagsModel.MembersCanCreateRoutines,
             });
             await Session.BootstrapAsync();
-            Snackbar.Add("Feature flags actualizados.", Severity.Success);
+            Snackbar.Add("Módulos actualizados.", Severity.Success);
         }
         catch (GsmApiException ex)
         {
@@ -358,6 +405,7 @@
 
     private sealed class GymModel
     {
+        public int? Capacity { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Nit { get; set; }
         public string? Phone { get; set; }
@@ -365,6 +413,20 @@
         public string PrimaryColor { get; set; } = "#B50016";
         public string SecondaryColor { get; set; } = "#0AAFCA";
     }
+
+    // Tarjeta de módulo: icono, nombre, qué hace y el interruptor. El interruptor lleva el nombre del
+    // módulo como etiqueta accesible y toda la tarjeta cambia de aspecto cuando está apagado.
+    private RenderFragment ModuleCard(string icon, string title, string description, bool value, Action<bool> set) => __builder =>
+    {
+        <div class="gsm-module-card @(value ? "is-on" : "is-off")">
+            <span class="gsm-module-card__icon" aria-hidden="true"><MudIcon Icon="@icon" /></span>
+            <div class="gsm-module-card__body">
+                <div class="gsm-module-card__title">@title</div>
+                <p class="gsm-module-card__desc">@description</p>
+            </div>
+            <MudSwitch T="bool" Value="value" ValueChanged="set" Color="Color.Primary" aria-label="@title" />
+        </div>
+    };
 
     private sealed class FlagsModel
     {

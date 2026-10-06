@@ -37,13 +37,13 @@
         <MudDatePicker Label="Hasta" Date="_to" DateChanged="OnToChangedAsync" Style="max-width:180px" />
     </ToolBarContent>
     <HeaderContent>
-        <MudTh>Socio</MudTh>
+        <MudTh>Miembro</MudTh>
         <MudTh>Fecha</MudTh>
         <MudTh>Hora</MudTh>
         <MudTh>Método</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Socio">
+        <MudTd DataLabel="Miembro">
             <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
                 @context.MemberName
             </MudLink>

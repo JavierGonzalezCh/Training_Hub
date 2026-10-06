@@ -36,9 +36,6 @@ public sealed class Member : BaseEntity, ITenantEntity
 
     public MemberStatus Status { get; private set; } = MemberStatus.Active;
 
-    /// <summary>Código único por gym para el check-in por QR. No es la PK.</summary>
-    public string QrCode { get; private set; } = string.Empty;
-
     public DateOnly JoinedAt { get; private set; }
 
     public static Member Create(
@@ -70,7 +67,6 @@ public sealed class Member : BaseEntity, ITenantEntity
             EmergencyContact = Clean(emergencyContact),
             PhotoUrl = Clean(photoUrl),
             Status = MemberStatus.Active,
-            QrCode = Guid.NewGuid().ToString("N"),
             JoinedAt = joinedAt,
         };
     }

@@ -24,7 +24,7 @@
         <MudDatePicker Label="Desde" Date="_from" DateChanged="OnFromChangedAsync" Class="mr-4" Style="max-width:180px" />
         <MudDatePicker Label="Hasta" Date="_to" DateChanged="OnToChangedAsync" Class="mr-4" Style="max-width:180px" />
         <MudSelect T="string" Value="_method" ValueChanged="OnMethodChangedAsync" Label="Método" Style="max-width:180px">
-            <MudSelectItem Value="@("")">Todos</MudSelectItem>
+            <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
             @foreach (var (value, label) in PaymentMethodLabels.All)
             {
                 <MudSelectItem Value="@value.ToString()">@label</MudSelectItem>
@@ -49,7 +49,7 @@
     private ServerTable<PaymentResponse> _table = null!;
     private DateTime? _from;
     private DateTime? _to;
-    private string _method = string.Empty;
+    private string _method = FilterValues.All;
 
     private async Task<ServerTablePage<PaymentResponse>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -58,7 +58,7 @@
             var result = await Payments.PaymentsGET3Async(
                 _from is { } f ? DateOnly.FromDateTime(f) : null,
                 _to is { } t ? DateOnly.FromDateTime(t) : null,
-                string.IsNullOrEmpty(_method) ? null : int.Parse(_method),
+                FilterValues.IsAll(_method) ? null : int.Parse(_method),
                 null, page, pageSize, cancellationToken);
             return new ServerTablePage<PaymentResponse>(result.Items.ToList(), result.Total);
         }

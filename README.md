@@ -88,6 +88,25 @@ En `Development` corre `DevSeeder`, que es idempotente y deja:
 | `owner@demo.local` | Owner del gym `demo` | `ChangeMe_123456` |
 | `staff@demo.local` | Staff del gym `demo` | `ChangeMe_123456` |
 
+### Datos de demostración
+
+`DevSeeder` solo deja las cuentas. Para revisar todas las pantallas con datos, con la API
+arrancada:
+
+```powershell
+./scripts/seed-demo.ps1
+```
+
+Siembra el gym `demo`: 30 miembros (activos, por vencer, vencidos y uno dado de baja), planes,
+pagos de dos meses, ventas de mostrador, seis semanas de asistencia, clases con reservas, asistencia
+y una sesión cancelada, rutinas con historial y logros. También crea tres cuentas para la app
+del miembro (`/app`) y cuatro gyms más para el panel SuperAdmin, cada uno en un estado distinto:
+activo, en prueba, en mora y suspendido. Las cuentas y sus claves están en la cabecera del script.
+
+Lo que tiene reglas de negocio pasa por la API. El historial (fechas pasadas) se escribe por
+SQL, porque la API solo registra "hoy". Si el script detecta que el gym ya está sembrado, se
+detiene.
+
 ## Tests
 
 ```bash
@@ -110,7 +129,16 @@ CREATE DATABASE gsm_test OWNER gsm;
 
 Nada de esto impide desarrollar, pero conviene saber en qué estado está:
 
-- **Despliegue** — no hay `Dockerfile` ni configuración de Railway (etapa 8, punto 4). En producción
+- **Comunicaciones** (etapa 13) — `Communications:UnsubscribeSigningKey`, `Communications:PublicApiBaseUrl` y `Jobs:Secret` tienen valores de desarrollo en `appsettings.Development.json`; en producción van por variable de entorno. La tarea periódica (recordatorios y envío de correos) no corre sola: en local se lanza a mano con
+  `curl -k -X POST https://localhost:7219/internal/jobs/communications/run -H "X-Job-Secret: dev-only-jobs-secret-change-me-32-bytes+"`
+  y en producción la invoca una tarea programada de Dokploy (ver `docs/DEPLOY-DOKPLOY-PLAN.md`).
+
+- **Despliegue** — no hay `Dockerfile` ni configuración de despliegue (etapa 8, punto 4). Se desplegará con Dokploy en servidor propio: ver `docs/DEPLOY-DOKPLOY-PLAN.md`. En producción
   la base es un Postgres gestionado, no un contenedor propio.
 - **Cloudflare R2** (`Storage:R2`) — sin credenciales, las subidas de archivo responden 500.
 - **Resend** (`Email:Resend`) — sin API key, los correos se escriben en el log en vez de enviarse.
+- **`Checkin:SigningKey`** — clave HMAC (≥ 32 caracteres) de los QR del gym. Vacía en `appsettings.json` y la API
+  no arranca sin ella; en desarrollo viene en `appsettings.Development.json`. En producción hay que definirla.
+
+Para probar el check-in con QR en local, entra como staff y abre `https://localhost:7220/kiosk`: muestra el QR del gym;
+el enlace que lleva abre `/app/checkin` en la app del socio.

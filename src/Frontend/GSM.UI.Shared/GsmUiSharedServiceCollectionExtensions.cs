@@ -1,5 +1,6 @@
 using GSM.Client;
 using GSM.UI.Shared.Auth;
+using GSM.UI.Shared.Theming;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 

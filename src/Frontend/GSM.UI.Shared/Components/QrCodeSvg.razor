@@ -20,6 +20,14 @@
         using var generator = new QRCoder.QRCodeGenerator();
         using var data = generator.CreateQrCode(Value, QRCoder.QRCodeGenerator.ECCLevel.Q);
         var svg = new QRCoder.SvgQRCode(data);
-        _svg = svg.GetGraphic(20, "#0F0E0D", "#FFFFFF");
+        // SizingMode.ViewBoxAttribute: por defecto QRCoder emite width/height en píxeles y
+        // sin viewBox, así que al encogerlo por CSS el dibujo no escala y solo se ve la
+        // esquina superior izquierda del código. Con viewBox, el QR se adapta al hueco.
+        _svg = svg.GetGraphic(
+            20,
+            "#0F0E0D",
+            "#FFFFFF",
+            drawQuietZones: true,
+            sizingMode: QRCoder.SvgQRCode.SizingMode.ViewBoxAttribute);
     }
 }

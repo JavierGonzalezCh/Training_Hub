@@ -1,114 +1,974 @@
-/* Identidad visual GSM v4.0. Anton para marca/marketing; Inter ya lo trae el tema de MudBlazor. */
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* ============================================================================================
+   GSM · estilos compartidos y temas
+   --------------------------------------------------------------------------------------------
+   Un solo tema, Forja (data-gsm-theme="forja" en <html>, lo pone gsm-theme.js): industrial oscuro,
+   identidad v4.0 con Anton, rojo y aristas vivas. Los colores deben coincidir con GsmTheme.cs.
+   ============================================================================================ */
 
-:root {
-    --gsm-base: #0F0E0D;
-    --gsm-panel: #191817;
-    --gsm-border: #282624;
-    --gsm-muted: #4A4844;
-    --gsm-silver: #8A8480;
-    --gsm-cloud: #EEEBE6;
-    --gsm-red: #B50016;
-    --gsm-red-hot: #E8001E;
-    --gsm-cyan: #0AAFCA;
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ---------- Tokens ---------------------------------------------------------------------- */
+
+:root,
+:root[data-gsm-theme="forja"] {
+    color-scheme: dark;
+    --gsm-bg: #0F0E0D;
+    --gsm-surface: #171615;
+    --gsm-surface-2: #1F1D1B;
+    --gsm-border: #2A2826;
+    --gsm-border-strong: #3A3734;
+    --gsm-text: #EEEBE6;
+    --gsm-text-2: #9A948F;
+    --gsm-text-3: #5A5753;
+    --gsm-accent: #B50016;
+    --gsm-on-accent: #FFFFFF;
+    /* Rojo para texto: el #B50016 sobre negro no llega a 4,5:1; este sí (5,4:1). */
+    --gsm-accent-text: #FF3347;
+    --gsm-accent-soft: rgba(181, 0, 22, 0.16);
+    /* Retícula de fondo del acceso: muy por debajo del acento, es textura, no dibujo. */
+    --gsm-grid-line: rgba(181, 0, 22, 0.07);
+    --gsm-danger: #FF3347;
+    --gsm-ok: #3FB950;
+    --gsm-warn: #E0A106;
+    --gsm-ring: #FF3347;
+    --gsm-radius: 2px;
+    --gsm-radius-lg: 2px;
+    --gsm-radius-pill: 2px;
+
+    --gsm-font-ui: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+    --gsm-font-mono: 'JetBrains Mono', Consolas, monospace;
+    --gsm-font-display: 'Anton', 'Barlow', sans-serif;
+    --gsm-display-case: uppercase;
+    --gsm-display-style: normal;
+    --gsm-display-weight: 400;
+    --gsm-display-tracking: 0.01em;
+    --gsm-font-number: 'Anton', 'Barlow', sans-serif;
+    --gsm-number-weight: 400;
 }
 
-/* Wordmark "GSM": bloque compuesto, segmento final en rojo (imita las barras de peso). */
+/* Alias de los nombres v4.0: hay estilos en línea y componentes que todavía los usan. */
+:root {
+    --gsm-base: var(--gsm-bg);
+    --gsm-panel: var(--gsm-surface);
+    --gsm-cloud: var(--gsm-text);
+    --gsm-silver: var(--gsm-text-2);
+    --gsm-muted: var(--gsm-text-3);
+    --gsm-red: var(--gsm-accent);
+    --gsm-red-hot: var(--gsm-danger);
+    --gsm-green: var(--gsm-ok);
+    --gsm-cyan: var(--gsm-accent-text);
+}
+
+/* ---------- Base ------------------------------------------------------------------------ */
+
+html,
+body {
+    background-color: var(--gsm-bg);
+    color: var(--gsm-text);
+}
+
+body {
+    font-family: var(--gsm-font-ui);
+}
+
+/* El cambio de tema se nota como transición, no como parpadeo. Solo color y fondo. */
+body,
+.mud-appbar,
+.mud-drawer,
+.mud-paper,
+.gsm-panel,
+.gsm-kpi {
+    transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0ms !important;
+        animation-duration: 0ms !important;
+    }
+}
+
+:focus-visible {
+    outline: 2px solid var(--gsm-ring);
+    outline-offset: 2px;
+}
+
+/* ---------- Marca ----------------------------------------------------------------------- */
+
+/* Wordmark "GSM": bloque compuesto, segmento final en el acento (imita las barras de peso). */
 .gsm-wordmark {
-    font-family: 'Anton', sans-serif;
+    font-family: var(--gsm-font-display);
+    font-style: var(--gsm-display-style);
+    font-weight: var(--gsm-display-weight);
     text-transform: uppercase;
     letter-spacing: 0.01em;
     line-height: 1;
     display: inline-flex;
     align-items: baseline;
+    color: var(--gsm-text);
 }
 
 .gsm-wordmark .accent {
-    color: var(--gsm-red);
-    border-left: 0.28em solid var(--gsm-red);
+    color: var(--gsm-accent);
+    border-left: 0.28em solid var(--gsm-accent);
     padding-left: 0.12em;
     margin-left: 0.06em;
 }
 
-/* Titulares de marketing / hero (login, landing): Anton, mayúsculas. */
 .gsm-display {
-    font-family: 'Anton', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
+    font-family: var(--gsm-font-display);
+    font-style: var(--gsm-display-style);
+    font-weight: var(--gsm-display-weight);
+    text-transform: var(--gsm-display-case);
+    letter-spacing: var(--gsm-display-tracking);
     line-height: 1.05;
 }
 
 .gsm-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--gsm-font-mono);
     letter-spacing: 0.04em;
 }
 
-.gsm-kicker {
-    font-family: 'JetBrains Mono', monospace;
+.gsm-num {
+    font-family: var(--gsm-font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.875rem;
+}
+
+.gsm-kicker,
+.gsm-eyebrow {
+    font-family: var(--gsm-font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.16em;
     font-size: 0.75rem;
-    color: var(--gsm-red);
+    color: var(--gsm-text-2);
     display: flex;
     align-items: center;
     gap: 0.6em;
 }
 
-.gsm-kicker::before {
+.gsm-kicker::before,
+.gsm-eyebrow::before {
     content: "";
     display: inline-block;
+    flex: none;
     width: 1.5em;
     height: 2px;
-    background: var(--gsm-red);
+    background: var(--gsm-accent);
 }
 
-/* Fondo de las pantallas de acceso: grid sutil en rojo + dos resplandores radiales. */
-.gsm-auth-backdrop {
-    min-height: 100vh;
-    background-color: var(--gsm-base);
-    background-image:
-        radial-gradient(600px circle at 90% 0%, rgba(181, 0, 22, 0.16), transparent 60%),
-        radial-gradient(600px circle at 5% 100%, rgba(10, 175, 202, 0.12), transparent 60%),
-        linear-gradient(rgba(181, 0, 22, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(181, 0, 22, 0.06) 1px, transparent 1px);
-    background-size: auto, auto, 42px 42px, 42px 42px;
-    display: flex;
+@media (max-width: 420px) {
+    .gsm-kicker,
+    .gsm-eyebrow {
+        font-size: 0.6875rem;
+        letter-spacing: 0.1em;
+    }
+}
+
+/* ---------- Selector de tema ------------------------------------------------------------ */
+
+/* Muestra fija por tema: enseña a qué se cambia, no el tema actual. */
+
+/* ---------- Shell: barra superior, sidebar y área de contenido ------------------------- */
+
+.gsm-topbar.mud-appbar {
+    border-bottom: 1px solid var(--gsm-border);
+}
+
+.gsm-topbar .mud-toolbar {
+    gap: 0.25rem;
+}
+
+.gsm-topbar__brand {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    text-decoration: none;
+    font-size: 1.5rem;
+}
+
+.gsm-topbar__gym {
+    margin-left: 1rem;
+    padding-left: 1rem;
+    border-left: 1px solid var(--gsm-border);
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+    white-space: nowrap;
+}
+
+.gsm-topbar__action.mud-button-root {
+    min-height: 38px;
+}
+
+.gsm-avatar-button {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 50%;
 }
 
-.gsm-auth-card {
-    width: 100%;
-    max-width: 400px;
-    background: var(--gsm-panel);
-    border: 1px solid var(--gsm-border);
-    border-radius: 10px;
-    padding: 2.25rem 2rem;
+.gsm-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--gsm-surface-2);
+    border: 1px solid var(--gsm-border-strong);
+    color: var(--gsm-text);
+    font: 600 0.75rem/1 var(--gsm-font-mono);
+    letter-spacing: 0.02em;
 }
 
-/* Sidebar del panel: ítem activo con fondo rojo translúcido y borde izquierdo. */
+.gsm-avatar--sm {
+    width: 28px;
+    height: 28px;
+    font-size: 0.6875rem;
+}
+
+.gsm-user-card {
+    padding: 0.75rem 1rem;
+    min-width: 200px;
+}
+
+.gsm-user-card__name {
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-user-card__meta {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    color: var(--gsm-text-2);
+}
+
+/* El drawer va recortado bajo el appbar (ClipMode): el logo queda en la esquina superior
+   izquierda, encima del menú, y el borde separa el menú del contenido. */
+.gsm-drawer {
+    border-right: 1px solid var(--gsm-border);
+}
+
+.gsm-drawer .mud-drawer-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.gsm-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-height: 100%;
+    padding: 1.25rem 0.75rem 1rem;
+}
+
+.gsm-nav__group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gsm-nav__label {
+    padding: 0 0.75rem 0.4rem;
+    font-family: var(--gsm-font-display);
+    font-size: 0.8125rem;
+    font-weight: var(--gsm-display-weight);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
 .gsm-nav-link {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.6rem 1rem;
-    border-radius: 6px;
-    color: var(--gsm-silver);
+    min-height: 40px;
+    padding: 0 0.75rem;
+    border-radius: var(--gsm-radius);
+    color: var(--gsm-text-2);
     text-decoration: none;
-    border-left: 3px solid transparent;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    transition: background-color 160ms ease, color 160ms ease;
 }
 
 .gsm-nav-link:hover {
-    color: var(--gsm-cloud);
-    background: rgba(238, 235, 230, 0.04);
+    color: var(--gsm-text);
+    background: var(--gsm-surface);
 }
 
 .gsm-nav-link.active {
-    color: var(--gsm-cloud);
-    background: rgba(181, 0, 22, 0.14);
-    border-left-color: var(--gsm-red);
+    color: var(--gsm-text);
+    background: var(--gsm-accent-soft);
 }
+
+.gsm-nav__gym {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius);
+    background: var(--gsm-surface);
+}
+
+.gsm-nav__gym-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--gsm-radius);
+    background: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+    font: var(--gsm-display-style) var(--gsm-display-weight) 1.125rem/1 var(--gsm-font-display);
+}
+
+.gsm-nav__gym-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.gsm-nav__gym-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--gsm-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gsm-nav__gym-meta {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-page.mud-container {
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+}
+
+@media (min-width: 960px) {
+    .gsm-page.mud-container {
+        padding-left: 2.5rem;
+        padding-right: 2.5rem;
+    }
+}
+
+/* Títulos de las páginas que aún no usan PageHeader: toman la tipografía de display del tema,
+   así todo el panel cambia de carácter con el tema y no solo las pantallas rediseñadas. */
+.gsm-main .mud-typography-h4 {
+    font-family: var(--gsm-font-display);
+    font-style: var(--gsm-display-style);
+    font-weight: var(--gsm-display-weight);
+    text-transform: var(--gsm-display-case);
+    letter-spacing: var(--gsm-display-tracking);
+    line-height: 1.05;
+    font-size: clamp(1.75rem, 3vw, 2.375rem);
+}
+
+/* ---------- Cabecera de página ---------------------------------------------------------- */
+
+.gsm-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--gsm-border);
+}
+
+.gsm-page-header__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.gsm-page-title {
+    margin: 0;
+    font-family: var(--gsm-font-display);
+    font-style: var(--gsm-display-style);
+    font-weight: var(--gsm-display-weight);
+    text-transform: var(--gsm-display-case);
+    letter-spacing: var(--gsm-display-tracking);
+    line-height: 1;
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    color: var(--gsm-text);
+}
+
+.gsm-page-subtitle {
+    margin: 0;
+    max-width: 60ch;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--gsm-text-2);
+}
+
+.gsm-page-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* ---------- KPIs ----------------------------------------------------------------------- */
+
+/* 4, 2 o 1 columnas, nunca 3 + 1: con auto-fit la cuarta cifra quedaba huérfana en su fila. */
+.gsm-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 999px) {
+    .gsm-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 559px) {
+    .gsm-kpi-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.gsm-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 152px;
+    padding: 1.25rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    /* La cifra se mide contra la tarjeta, no contra la ventana: "416.000 COP" debe caber
+       igual en una rejilla de cuatro columnas que en una de dos. */
+    container-type: inline-size;
+}
+
+.gsm-kpi__label {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
+/* La cifra encoge con el ancho de la tarjeta en vez de partirse o cortarse (cqi = 1 % del
+   ancho del contenedor); tabular-nums alinea los dígitos. --gsm-kpi-scale ajusta por tema el
+   ancho relativo de cada tipografía: Anton y Barlow Condensed son estrechas, Bodoni no. */
+.gsm-kpi__value {
+    margin-top: auto;
+    font-family: var(--gsm-font-number);
+    font-weight: var(--gsm-number-weight);
+    font-size: var(--gsm-kpi-max, 3rem);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.005em;
+    color: var(--gsm-text);
+    white-space: nowrap;
+}
+
+/* Solo las cifras largas (importes) encogen con la tarjeta: "32" se queda grande. */
+.gsm-kpi__value--long {
+    font-size: min(var(--gsm-kpi-max, 3rem), calc(var(--gsm-kpi-scale, 15) * 1cqi));
+}
+
+.gsm-kpi.is-accent .gsm-kpi__value { color: var(--gsm-accent-text); }
+.gsm-kpi.is-alert .gsm-kpi__value { color: var(--gsm-danger); }
+
+.gsm-kpi__meter {
+    height: 4px;
+    background: var(--gsm-surface-2);
+    border-radius: var(--gsm-radius-pill);
+    overflow: hidden;
+}
+
+.gsm-kpi__meter span {
+    display: block;
+    height: 100%;
+    background: var(--gsm-accent);
+    border-radius: inherit;
+}
+
+.gsm-kpi__hint {
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+/* Compatibilidad: tarjetas de cifra antiguas que aún usen la clase. */
+.gsm-stat {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border: 1px solid var(--gsm-border);
+}
+
+.gsm-stat-value {
+    font-family: var(--gsm-font-number);
+    font-size: clamp(1.25rem, 1.9vw, 1.75rem);
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    margin-top: auto;
+}
+
+/* ---------- Paneles del dashboard ------------------------------------------------------- */
+
+.gsm-dash-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 1100px) {
+    .gsm-dash-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.gsm-panel {
+    padding: 1.25rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    margin-bottom: 1rem;
+    min-width: 0;
+}
+
+.gsm-dash-grid .gsm-panel {
+    margin-bottom: 0;
+}
+
+.gsm-panel__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.gsm-panel__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-panel__meta,
+.gsm-panel__link {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    color: var(--gsm-text-2);
+}
+
+.gsm-panel__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    text-decoration: none;
+    color: var(--gsm-accent-text);
+}
+
+.gsm-panel__link:hover {
+    text-decoration: underline;
+}
+
+.gsm-panel .gsm-table.mud-table {
+    background: transparent;
+    margin: 0 -1.25rem -1.25rem;
+}
+
+/* Barras de afluencia por hora. */
+.gsm-bars {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: end;
+    gap: 4px;
+    height: 200px;
+}
+
+.gsm-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+    height: 100%;
+}
+
+.gsm-bar__track {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+}
+
+.gsm-bar__fill {
+    width: 100%;
+    min-height: 2px;
+    background: var(--gsm-border-strong);
+    border-radius: var(--gsm-radius) var(--gsm-radius) 0 0;
+}
+
+.gsm-bar.is-peak .gsm-bar__fill {
+    background: var(--gsm-accent);
+}
+
+/* La hora actual se marca por fuera de la barra (si fuera por dentro, una barra llena la
+   taparía) y en su etiqueta, que es lo que se lee de un vistazo. */
+.gsm-bar.is-now .gsm-bar__track::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border: 1px dashed var(--gsm-text-2);
+    border-radius: var(--gsm-radius);
+    pointer-events: none;
+}
+
+.gsm-bar.is-now .gsm-bar__label {
+    color: var(--gsm-text);
+    font-weight: 700;
+}
+
+.gsm-bar__label {
+    text-align: center;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.625rem;
+    color: var(--gsm-text-2);
+}
+
+/* En pantallas estrechas solo se rotulan las horas pares. */
+@media (max-width: 600px) {
+    .gsm-bar:nth-child(odd) .gsm-bar__label {
+        visibility: hidden;
+    }
+}
+
+.gsm-legend {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.gsm-legend__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.gsm-legend__dot.is-peak {
+    background: var(--gsm-accent);
+}
+
+.gsm-legend__dot.is-now {
+    border: 1px dashed var(--gsm-text-2);
+}
+
+/* Feed de check-ins. */
+.gsm-feed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.gsm-feed__item {
+    display: grid;
+    grid-template-columns: 3rem auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 48px;
+    border-bottom: 1px solid var(--gsm-border);
+}
+
+.gsm-feed__item:last-child {
+    border-bottom: 0;
+}
+
+.gsm-feed__time {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--gsm-text-2);
+}
+
+.gsm-feed__name {
+    color: var(--gsm-text);
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gsm-feed__name:hover {
+    color: var(--gsm-accent-text);
+    text-decoration: underline;
+}
+
+.gsm-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--gsm-border-strong);
+    border-radius: var(--gsm-radius-pill);
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    color: var(--gsm-text-2);
+    white-space: nowrap;
+}
+
+.gsm-identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.gsm-days {
+    font-family: var(--gsm-font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--gsm-text-2);
+}
+
+.gsm-days.is-urgent {
+    color: var(--gsm-danger);
+    font-weight: 700;
+}
+
+/* ---------- Controles ------------------------------------------------------------------- */
+
+.gsm-segmented {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    background: var(--gsm-bg);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-pill);
+}
+
+.gsm-segmented__option {
+    min-height: 34px;
+    padding: 0 0.9rem;
+    border: 0;
+    border-radius: var(--gsm-radius-pill);
+    background: transparent;
+    color: var(--gsm-text-2);
+    font: 500 0.875rem/1 var(--gsm-font-ui);
+    cursor: pointer;
+    transition: background-color 160ms ease, color 160ms ease;
+}
+
+.gsm-segmented__option:hover {
+    color: var(--gsm-text);
+}
+
+.gsm-segmented__option.is-active {
+    background: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+}
+
+/* Tablas: cabecera en mono pequeña, filas aireadas. */
+.gsm-table.mud-table {
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    overflow: hidden;
+}
+
+.gsm-panel .gsm-table.mud-table {
+    border: 0;
+    border-top: 1px solid var(--gsm-border);
+    border-radius: 0;
+}
+
+/* La cabecera en mono aplica a todas las tablas del panel, no solo a las que llevan
+   gsm-table: así las páginas aún sin rediseñar comparten el mismo lenguaje. */
+.gsm-main .mud-table-head .mud-table-cell,
+.gsm-table .mud-table-head .mud-table-cell {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+    background: transparent;
+}
+
+.gsm-table .mud-table-body .mud-table-row {
+    height: 56px;
+}
+
+.gsm-table .mud-toolbar {
+    gap: 1rem;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 64px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Insignias de estado (StatusChip) con el tipo mono del tema. */
+.mud-chip.gsm-mono {
+    font-family: var(--gsm-font-mono);
+    border-radius: var(--gsm-radius-pill);
+}
+
+/* Enlaces de identidad en listados. MudLink es Primary por defecto, así que una tabla entera
+   salía en el acento y se leía como una lista de errores. En reposo son texto. */
+.mud-link.mud-primary-text {
+    color: var(--gsm-text) !important;
+}
+
+.mud-link.mud-primary-text:hover,
+.mud-link.mud-primary-text:focus-visible {
+    color: var(--gsm-accent-text) !important;
+    text-decoration: underline;
+}
+
+/* ---------- Acceso (login y recuperación) ---------------------------------------------- */
+
+.gsm-auth-backdrop {
+    position: relative;
+    min-height: 100vh;
+    background-color: var(--gsm-bg);
+    background-image:
+        radial-gradient(600px circle at 90% 0%, var(--gsm-accent-soft), transparent 60%),
+        linear-gradient(var(--gsm-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--gsm-grid-line) 1px, transparent 1px);
+    background-size: auto, 42px 42px, 42px 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4.5rem 1.5rem 1.5rem;
+}
+
+/* En escritorio la marca sostiene la mitad izquierda y el formulario la derecha. */
+.gsm-auth-split {
+    width: 100%;
+    max-width: 960px;
+    display: grid;
+    grid-template-columns: 1fr minmax(0, 400px);
+    align-items: center;
+    gap: 4rem;
+}
+
+.gsm-auth-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.gsm-auth-logo {
+    font-size: clamp(3rem, 7vw, 4.5rem);
+    margin: 0;
+}
+
+.gsm-auth-tagline {
+    font-size: 1.125rem;
+    line-height: 1.5;
+    color: var(--gsm-text-2);
+    margin: 0;
+    max-width: 30ch;
+}
+
+.gsm-auth-points {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.gsm-auth-points li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-auth-points li::before {
+    content: "";
+    flex: none;
+    width: 0.5rem;
+    height: 2px;
+    background: var(--gsm-accent);
+}
+
+.gsm-auth-card.mud-paper {
+    width: 100%;
+    max-width: 400px;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    padding: 2.25rem 2rem;
+}
+
+/* Los enlaces de las tarjetas de acceso deben medir al menos 24px (WCAG 2.2 SC 2.5.8). */
+.gsm-auth-card a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+}
+
+@media (max-width: 899px) {
+    .gsm-auth-split {
+        grid-template-columns: minmax(0, 400px);
+        justify-content: center;
+        gap: 2rem;
+    }
+
+    .gsm-auth-brand {
+        gap: 0.75rem;
+    }
+
+    /* En móvil la marca es una cabecera compacta: los argumentos estorban a quien viene a entrar. */
+    .gsm-auth-points {
+        display: none;
+    }
+
+    .gsm-auth-logo {
+        font-size: 2.5rem;
+    }
+
+    .gsm-auth-tagline {
+        font-size: 1rem;
+    }
+}
+
+/* ---------- Otros componentes compartidos ---------------------------------------------- */
 
 .gsm-qr svg {
     display: block;
@@ -116,9 +976,9 @@
     height: auto;
 }
 
-.gsm-status-active { color: var(--gsm-cyan); }
-.gsm-status-overdue { color: var(--gsm-red-hot); }
-.gsm-status-neutral { color: var(--gsm-silver); }
+.gsm-status-active { color: var(--gsm-ok); }
+.gsm-status-overdue { color: var(--gsm-danger); }
+.gsm-status-neutral { color: var(--gsm-text-2); }
 
 .gsm-impersonation-bar {
     position: fixed;
@@ -131,9 +991,9 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: var(--gsm-red);
-    color: var(--gsm-cloud);
-    font-family: 'JetBrains Mono', monospace;
+    background: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+    font-family: var(--gsm-font-mono);
     font-size: 0.8rem;
 }
 
@@ -145,4 +1005,1557 @@ body:has(.gsm-impersonation-bar) .mud-appbar {
 body:has(.gsm-impersonation-bar) .mud-drawer,
 body:has(.gsm-impersonation-bar) .mud-main-content {
     margin-top: 2rem;
+}
+
+/* Barra de navegación inferior de la app del miembro. */
+.gsm-tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    background: var(--gsm-surface);
+    border-top: 1px solid var(--gsm-border);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.gsm-tabbar a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    min-height: 56px;
+    padding: 0.5rem 0.25rem;
+    text-decoration: none;
+    color: var(--gsm-text-2);
+    border-top: 2px solid transparent;
+}
+
+.gsm-tabbar a:hover {
+    color: var(--gsm-text);
+}
+
+.gsm-tabbar a.active {
+    color: var(--gsm-text);
+    border-top-color: var(--gsm-accent);
+}
+
+.gsm-tabbar-label {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Logros: el estado bloqueado va en el borde, no en opacidad (que arrastraría al texto). */
+.gsm-achievement {
+    height: 100%;
+    border: 1px solid var(--gsm-border);
+}
+
+.gsm-achievement--locked {
+    border-style: dashed;
+}
+
+.gsm-achievement-progress {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--gsm-border);
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.gsm-achievement-progress span {
+    display: block;
+    height: 100%;
+    background: var(--gsm-accent);
+}
+
+/* Estado vacío: centrado y con icono, para que no parezca que algo falló. */
+.gsm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 2.5rem 1.5rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-empty-icon {
+    color: var(--gsm-text-3);
+}
+
+.gsm-empty-title {
+    color: var(--gsm-text);
+    font-size: 1.0625rem;
+}
+
+/* ============================================================================================
+   Rasgos propios de cada tema
+   ============================================================================================ */
+
+/* ---------- Forja: industrial -------------------------------------------------------------
+   Aristas vivas, retícula de taller en el lienzo, índices numerados en el menú y cifras en
+   Anton. Los botones van en mayúsculas espaciadas, como rotulado de maquinaria. */
+
+:root[data-gsm-theme="forja"] .gsm-main,
+:root:not([data-gsm-theme]) .gsm-main {
+    background-image:
+        linear-gradient(rgba(238, 235, 230, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(238, 235, 230, 0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+}
+
+:root[data-gsm-theme="forja"] .gsm-nav-link.active {
+    box-shadow: inset 3px 0 0 var(--gsm-accent);
+}
+
+:root[data-gsm-theme="forja"] .gsm-kpi {
+    position: relative;
+    border-top: 2px solid var(--gsm-border-strong);
+}
+
+:root[data-gsm-theme="forja"] .gsm-kpi.is-alert {
+    border-top-color: var(--gsm-danger);
+}
+
+:root[data-gsm-theme="forja"] .gsm-kpi.is-accent {
+    border-top-color: var(--gsm-accent);
+}
+
+:root[data-gsm-theme="forja"] .gsm-kpi__value {
+    --gsm-kpi-max: 3.5rem;
+    --gsm-kpi-scale: 19;
+}
+
+:root[data-gsm-theme="forja"] .gsm-panel__title {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+:root[data-gsm-theme="forja"] .mud-button-root {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.8125rem;
+}
+
+:root[data-gsm-theme="forja"] .gsm-page-title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+}
+
+/* ---------- Check-in con QR del gym (etapa 12.4) ---------------------------------------- */
+
+.gsm-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Selector de tipo de QR (radio nativo: teclado y lector de pantalla gratis). */
+.gsm-choice-group {
+    border: 0;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+    max-width: 520px;
+}
+
+.gsm-choice-group__legend {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+    margin-bottom: 0.5rem;
+    padding: 0;
+}
+
+.gsm-choice {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius);
+    background: var(--gsm-surface);
+    cursor: pointer;
+}
+
+.gsm-choice.is-selected {
+    border-color: var(--gsm-accent);
+    background: var(--gsm-accent-soft);
+}
+
+.gsm-choice input {
+    margin-top: 0.2rem;
+    accent-color: var(--gsm-accent);
+}
+
+.gsm-choice:focus-within {
+    outline: 2px solid var(--gsm-ring);
+    outline-offset: 2px;
+}
+
+.gsm-choice__body {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.gsm-choice__title {
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-choice__hint {
+    font-size: 0.875rem;
+    color: var(--gsm-text-2);
+}
+
+/* Campana de intentos rechazados. */
+.gsm-bell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius);
+    background: transparent;
+    color: var(--gsm-text);
+    cursor: pointer;
+}
+
+.gsm-bell.has-alerts {
+    border-color: var(--gsm-danger);
+    color: var(--gsm-danger);
+}
+
+.gsm-bell__count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: var(--gsm-danger);
+    color: #fff;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    line-height: 18px;
+    text-align: center;
+}
+
+.gsm-bell-panel {
+    min-width: 280px;
+    max-width: 340px;
+    padding: 0.5rem 0;
+}
+
+.gsm-bell-panel__title {
+    padding: 0.5rem 1rem;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
+.gsm-bell-panel__empty {
+    padding: 0.75rem 1rem 1rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-bell-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.gsm-bell-item {
+    display: grid;
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--gsm-border);
+}
+
+.gsm-bell-item__name {
+    color: var(--gsm-text);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.gsm-bell-item__name:hover {
+    text-decoration: underline;
+}
+
+.gsm-bell-item__meta {
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+/* Kiosco: pantalla completa, legible a distancia. */
+.gsm-kiosk-shell {
+    min-height: 100vh;
+    background: var(--gsm-bg);
+    color: var(--gsm-text);
+}
+
+.gsm-kiosk {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: clamp(1rem, 3vw, 2.5rem);
+}
+
+.gsm-kiosk--centered {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.gsm-kiosk__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.gsm-kiosk__title {
+    margin: 0;
+    font-family: var(--gsm-font-display);
+    text-transform: var(--gsm-display-case);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.05;
+}
+
+.gsm-kiosk__clock {
+    font-family: var(--gsm-font-mono);
+    font-size: clamp(1.5rem, 4vw, 2.75rem);
+    font-variant-numeric: tabular-nums;
+    color: var(--gsm-text-2);
+}
+
+.gsm-kiosk__main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .gsm-kiosk__main {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.gsm-kiosk__qr-card {
+    display: grid;
+    gap: 1rem;
+    justify-items: center;
+    justify-self: center;
+    width: min(100%, 460px);
+}
+
+.gsm-kiosk__qr-card .gsm-qr {
+    width: 100% !important;
+}
+
+.gsm-kiosk__timer {
+    width: 100%;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.gsm-kiosk__timer-track {
+    display: block;
+    height: 6px;
+    background: var(--gsm-border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.gsm-kiosk__timer-fill {
+    display: block;
+    height: 100%;
+    background: var(--gsm-accent);
+    transition: width 1s linear;
+}
+
+.gsm-kiosk__timer-label {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.875rem;
+    color: var(--gsm-text-2);
+    text-align: center;
+}
+
+.gsm-kiosk__activity {
+    width: 100%;
+    min-width: 0;
+}
+
+.gsm-feed--kiosk .gsm-feed__item {
+    grid-template-columns: 4rem minmax(0, 1fr) auto;
+    min-height: 56px;
+    font-size: 1.125rem;
+}
+
+.gsm-feed__item--denied .gsm-feed__name {
+    color: var(--gsm-danger);
+}
+
+.gsm-kiosk__denied {
+    color: var(--gsm-danger);
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+
+.gsm-kiosk__hint {
+    color: var(--gsm-text-2);
+    max-width: 52ch;
+}
+
+.gsm-kiosk__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.gsm-kiosk__spacer {
+    flex: 1;
+}
+
+.gsm-kiosk__back {
+    color: var(--gsm-text-2);
+    font-size: 0.875rem;
+}
+
+/* Cartel imprimible: invisible en pantalla; al imprimir es lo único que se ve. */
+.gsm-poster {
+    display: none;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .gsm-poster,
+    .gsm-poster * {
+        visibility: visible;
+    }
+
+    .gsm-poster {
+        display: flex;
+        position: absolute;
+        inset: 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        background: #fff;
+        color: #000;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .gsm-poster__gym {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+
+    .gsm-poster__text {
+        font-size: 1.75rem;
+    }
+}
+
+/* Resultado del check-in en la app del miembro (etapa 12.5). */
+.gsm-checkin-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 2.5rem 1rem;
+}
+
+.gsm-checkin-result__icon {
+    width: 96px;
+    height: 96px;
+    color: var(--gsm-text-2);
+}
+
+.gsm-checkin-result.is-entered .gsm-checkin-result__icon,
+.gsm-checkin-result.is-already .gsm-checkin-result__icon {
+    color: var(--gsm-ok);
+}
+
+.gsm-checkin-result.is-grace .gsm-checkin-result__icon {
+    color: var(--gsm-warn);
+}
+
+.gsm-checkin-result.is-rejected .gsm-checkin-result__icon,
+.gsm-checkin-result.is-invalid .gsm-checkin-result__icon,
+.gsm-checkin-result.is-disabled .gsm-checkin-result__icon,
+.gsm-checkin-result.is-error .gsm-checkin-result__icon {
+    color: var(--gsm-danger);
+}
+
+.gsm-checkin-result__title {
+    margin: 0;
+    font-family: var(--gsm-font-display);
+    text-transform: var(--gsm-display-case);
+    font-size: clamp(1.75rem, 7vw, 2.25rem);
+    line-height: 1.1;
+}
+
+.gsm-checkin-result__detail {
+    margin: 0;
+    max-width: 38ch;
+    font-size: 1.0625rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-checkin-result__unlocked {
+    display: grid;
+    gap: 0.25rem;
+    justify-items: center;
+    margin-top: 0.5rem;
+}
+
+.gsm-checkin-settings {
+    padding-top: 1.25rem;
+}
+
+/* Configuración · módulos del gym. */
+.gsm-modules-intro {
+    margin: 1rem 0 1.5rem;
+    max-width: 62ch;
+    color: var(--gsm-text-2);
+}
+
+.gsm-module-section {
+    margin-bottom: 1.75rem;
+}
+
+.gsm-module-section__title {
+    margin: 0 0 0.75rem;
+    font-family: var(--gsm-font-display);
+    font-size: 0.9375rem;
+    font-weight: var(--gsm-display-weight);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
+.gsm-module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    gap: 0.75rem;
+}
+
+.gsm-module-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+}
+
+.gsm-module-card.is-on {
+    border-color: var(--gsm-border-strong);
+}
+
+.gsm-module-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--gsm-radius);
+    background: var(--gsm-accent-soft);
+    color: var(--gsm-accent-text);
+}
+
+.gsm-module-card.is-off .gsm-module-card__icon {
+    background: transparent;
+    border: 1px solid var(--gsm-border);
+    color: var(--gsm-text-3);
+}
+
+.gsm-module-card__title {
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-module-card.is-off .gsm-module-card__title {
+    color: var(--gsm-text-2);
+}
+
+.gsm-module-card__desc {
+    margin: 0.15rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--gsm-text-2);
+}
+
+/* Ficha del miembro: rutinas desplegables. */
+.gsm-routine-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.gsm-routine-head__main {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+}
+
+.gsm-routine-head__name {
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-routine-head__meta {
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-routine-list .mud-expansion-panel {
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.gsm-routine-notes {
+    margin: 0 0 1rem;
+    color: var(--gsm-text-2);
+    max-width: 70ch;
+}
+
+.gsm-routine-days {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 0.75rem;
+}
+
+.gsm-routine-day {
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius);
+}
+
+.gsm-routine-day.is-rest {
+    border-style: dashed;
+    opacity: 0.7;
+}
+
+.gsm-routine-day__title {
+    margin: 0 0 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.gsm-routine-day__num {
+    margin-right: 0.35rem;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--gsm-accent-text);
+}
+
+.gsm-routine-day__rest {
+    margin: 0;
+    color: var(--gsm-text-2);
+}
+
+.gsm-routine-ex {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.gsm-routine-ex__item {
+    display: grid;
+    padding: 0.4rem 0;
+    border-top: 1px solid var(--gsm-border);
+}
+
+.gsm-routine-ex__item:first-child {
+    border-top: 0;
+}
+
+.gsm-routine-ex__name {
+    color: var(--gsm-text);
+}
+
+.gsm-routine-ex__target {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+/* ---------- App del miembro: marca del gym, inicio ------------------------------------------- */
+
+.gsm-m-bar {
+    border-bottom: 1px solid var(--gsm-border);
+}
+
+.gsm-m-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.gsm-m-brand__logo {
+    height: 34px;
+    max-width: 120px;
+    object-fit: contain;
+    border-radius: var(--gsm-radius);
+}
+
+.gsm-m-brand__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--gsm-radius);
+    background: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+    font-family: var(--gsm-font-display);
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.gsm-m-brand__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--gsm-font-display);
+    font-size: 1.125rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.gsm-m-hero {
+    margin-bottom: 1rem;
+    padding: 1.25rem;
+    border-radius: var(--gsm-radius-lg);
+    background:
+        linear-gradient(135deg, var(--gsm-accent) 0%, color-mix(in srgb, var(--gsm-accent) 45%, #000) 100%);
+    color: var(--gsm-on-accent);
+}
+
+.gsm-m-hero__top {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.gsm-m-hero__avatar {
+    width: 56px;
+    height: 56px;
+    background: rgba(0, 0, 0, 0.28) !important;
+    color: inherit !important;
+    font-family: var(--gsm-font-display);
+    font-size: 1.25rem;
+}
+
+.gsm-m-hero__who {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+}
+
+.gsm-m-hero__hello {
+    font-size: 0.875rem;
+    opacity: 0.85;
+}
+
+.gsm-m-hero__name {
+    margin: 0;
+    font-family: var(--gsm-font-display);
+    font-size: 2rem;
+    line-height: 1.05;
+    text-transform: uppercase;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gsm-m-plan {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.gsm-m-plan__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.gsm-m-plan__name {
+    font-weight: 600;
+    font-size: 1.0625rem;
+}
+
+.gsm-m-plan__left {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.875rem;
+}
+
+.gsm-m-plan__track {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.gsm-m-plan__fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: currentColor;
+}
+
+.gsm-m-plan__until {
+    font-size: 0.8125rem;
+    opacity: 0.85;
+}
+
+.gsm-m-card {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+    padding: 1rem 1.1rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    color: var(--gsm-text);
+    text-decoration: none;
+}
+
+a.gsm-m-card:hover {
+    border-color: var(--gsm-accent);
+}
+
+.gsm-m-card__icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--gsm-radius);
+    background: var(--gsm-accent-soft);
+    color: var(--gsm-accent-text);
+}
+
+.gsm-m-card__body {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 0.1rem;
+}
+
+.gsm-m-card__kicker {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gsm-accent-text);
+}
+
+.gsm-m-card__title {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+}
+
+.gsm-m-card__text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-card__go {
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.gsm-m-stat {
+    display: grid;
+    gap: 0.15rem;
+    padding: 1rem 1.1rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-top: 2px solid var(--gsm-accent);
+    border-radius: var(--gsm-radius-lg);
+}
+
+.gsm-m-stat__label {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-stat__value {
+    font-family: var(--gsm-font-number);
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.gsm-m-stat__hint {
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-section {
+    margin: 0.5rem 0 0.5rem;
+    font-family: var(--gsm-font-display);
+    font-size: 0.9375rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-visit-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+}
+
+.gsm-m-visit {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--gsm-border);
+}
+
+.gsm-m-visit:first-child {
+    border-top: 0;
+}
+
+.gsm-m-visit__time {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.875rem;
+    color: var(--gsm-text-2);
+}
+
+/* ---------- App del miembro: rutina por serie y calendario de clases ------------------------- */
+
+.gsm-m-ex {
+    margin-bottom: 0.6rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+}
+
+.gsm-m-ex.is-done {
+    border-color: var(--gsm-ok);
+}
+
+.gsm-m-ex__head {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    padding: 0.9rem 1rem;
+    background: none;
+    border: 0;
+    color: var(--gsm-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.gsm-m-ex__check {
+    display: inline-flex;
+    color: var(--gsm-text-3);
+}
+
+.gsm-m-ex.is-done .gsm-m-ex__check {
+    color: var(--gsm-ok);
+}
+
+.gsm-m-ex__title {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+}
+
+.gsm-m-ex__name {
+    font-weight: 600;
+}
+
+.gsm-m-ex__target {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-ex__body {
+    padding: 0 1rem 1rem;
+    border-top: 1px solid var(--gsm-border);
+}
+
+.gsm-m-set {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr 1fr 2rem;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.6rem;
+}
+
+.gsm-m-set--head {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-set__num {
+    font-family: var(--gsm-font-number);
+    font-size: 1.25rem;
+    color: var(--gsm-accent-text);
+}
+
+.gsm-m-ex__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+.gsm-m-ex__spacer {
+    flex: 1;
+}
+
+.gsm-cal-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.gsm-cal-nav__label {
+    flex: 1;
+    display: grid;
+    justify-items: center;
+}
+
+.gsm-cal-nav__range {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.9375rem;
+}
+
+.gsm-cal-nav__today {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--gsm-accent-text);
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.gsm-cal-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.35rem;
+    margin-bottom: 1.25rem;
+}
+
+.gsm-cal-day {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    padding: 0.5rem 0 0.4rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    color: var(--gsm-text-2);
+    cursor: pointer;
+}
+
+.gsm-cal-day__dow {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+}
+
+.gsm-cal-day__num {
+    font-family: var(--gsm-font-number);
+    font-size: 1.375rem;
+    line-height: 1.1;
+    color: var(--gsm-text);
+}
+
+.gsm-cal-day.is-today .gsm-cal-day__num {
+    color: var(--gsm-accent-text);
+}
+
+.gsm-cal-day.is-selected {
+    background: var(--gsm-accent);
+    border-color: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+}
+
+.gsm-cal-day.is-selected .gsm-cal-day__num {
+    color: var(--gsm-on-accent);
+}
+
+.gsm-cal-day__dots {
+    display: flex;
+    gap: 3px;
+    height: 6px;
+}
+
+.gsm-cal-day__dots i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--gsm-accent-text);
+}
+
+.gsm-cal-day.is-selected .gsm-cal-day__dots i {
+    background: var(--gsm-on-accent);
+}
+
+.gsm-cal-title {
+    margin: 0 0 0.75rem;
+    font-family: var(--gsm-font-display);
+    font-size: 1.125rem;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.gsm-cal-agenda {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.gsm-cal-slot {
+    display: grid;
+    grid-template-columns: 3.4rem 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.7rem;
+}
+
+.gsm-cal-slot__time {
+    display: grid;
+    align-content: start;
+    justify-items: end;
+    font-family: var(--gsm-font-mono);
+    padding-top: 0.9rem;
+}
+
+.gsm-cal-slot__start {
+    font-size: 0.9375rem;
+    color: var(--gsm-text);
+}
+
+.gsm-cal-slot__end {
+    font-size: 0.75rem;
+    color: var(--gsm-text-3);
+}
+
+.gsm-cal-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-left: 3px solid var(--gsm-text-3);
+    border-radius: var(--gsm-radius-lg);
+}
+
+.gsm-cal-card.is-booked {
+    border-left-color: var(--gsm-accent);
+    background: var(--gsm-accent-soft);
+}
+
+.gsm-cal-card.is-cancelled {
+    border-left-color: var(--gsm-danger);
+    opacity: 0.75;
+}
+
+.gsm-cal-card__main {
+    flex: 1;
+    min-width: 0;
+}
+
+.gsm-cal-card__name {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+}
+
+.gsm-cal-card__meta {
+    margin: 0.1rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+/* ============================================================================================
+   Comunicaciones (etapa 13): anuncios del panel, feed y avisos de la app del miembro
+   ============================================================================================ */
+
+.gsm-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    margin-left: 0.35rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+    font: 600 0.6875rem/1 var(--gsm-font-mono);
+}
+
+.gsm-tag--draft { border-style: dashed; }
+.gsm-tag--published { color: var(--gsm-ok); border-color: currentColor; }
+.gsm-tag--archived { color: var(--gsm-text-3); }
+
+/* Panel: lista de anuncios como tarjetas, no como tabla: el texto es el contenido. */
+.gsm-announcements {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.gsm-announcement {
+    padding: 1.25rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+}
+
+.gsm-announcement.is-pinned {
+    box-shadow: inset 3px 0 0 var(--gsm-accent);
+}
+
+.gsm-announcement__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.gsm-announcement__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.gsm-announcement__date {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-announcement__title {
+    margin: 0.75rem 0 0.4rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+/* Se respetan los saltos de línea del texto plano, recortado a 4 líneas en la lista. */
+.gsm-announcement__body {
+    margin: 0;
+    color: var(--gsm-text-2);
+    white-space: pre-line;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.gsm-announcement__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--gsm-border);
+}
+
+.gsm-reaction-totals {
+    display: flex;
+    gap: 1rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-reaction-total {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.gsm-announcement__email {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+/* Editor: formulario y vista previa lado a lado; en pantallas estrechas, uno bajo el otro. */
+.gsm-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 760px) {
+    .gsm-editor {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.gsm-editor__hint {
+    margin: 0.25rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-editor__preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gsm-bg);
+    border: 1px dashed var(--gsm-border-strong);
+    border-radius: var(--gsm-radius-lg);
+}
+
+/* App del miembro: tarjetas del feed y reacciones. */
+.gsm-m-section--page {
+    margin: 0.25rem 0 1rem;
+    font-size: 1.5rem;
+    color: var(--gsm-text);
+}
+
+.gsm-segmented--full {
+    display: flex;
+    width: 100%;
+}
+
+.gsm-segmented--full .gsm-segmented__option {
+    flex: 1;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gsm-feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding-bottom: 1rem;
+}
+
+.gsm-feed-card {
+    padding: 1rem 1.1rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+}
+
+.gsm-feed-card.is-pinned {
+    box-shadow: inset 3px 0 0 var(--gsm-accent);
+}
+
+.gsm-feed-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.75rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-feed-card__title {
+    margin: 0.5rem 0 0.35rem;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-feed-card__body {
+    margin: 0;
+    color: var(--gsm-text-2);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.gsm-reactions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+/* 44x44 como mínimo: son objetivos táctiles en el teléfono. */
+.gsm-reaction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 0.85rem;
+    border: 1px solid var(--gsm-border-strong);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--gsm-text-2);
+    cursor: pointer;
+    transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.gsm-reaction:hover {
+    color: var(--gsm-text);
+    border-color: var(--gsm-text-2);
+}
+
+.gsm-reaction.is-mine {
+    background: var(--gsm-accent-soft);
+    border-color: var(--gsm-accent);
+    color: var(--gsm-text);
+}
+
+.gsm-reaction:disabled {
+    cursor: progress;
+    opacity: 0.7;
+}
+
+.gsm-notice-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.gsm-notice {
+    display: flex;
+    gap: 0.85rem;
+    width: 100%;
+    padding: 0.9rem 1rem;
+    text-align: left;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.gsm-notice.is-unread {
+    border-color: var(--gsm-accent);
+    box-shadow: inset 3px 0 0 var(--gsm-accent);
+}
+
+.gsm-notice__icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--gsm-text-2);
+}
+
+.gsm-notice__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.gsm-notice__title {
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-notice__text {
+    font-size: 0.875rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-notice__time {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-news-prefs {
+    margin-bottom: 1.5rem;
+}
+
+/* Indicador de no leídos sobre el icono de la pestaña "Novedades". */
+.gsm-tabbar-icon {
+    position: relative;
+    display: inline-flex;
+}
+
+.gsm-tabbar-badge {
+    position: absolute;
+    top: -0.4rem;
+    right: -0.7rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    background: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+    font: 600 0.625rem/1.1rem var(--gsm-font-mono);
+    text-align: center;
 }

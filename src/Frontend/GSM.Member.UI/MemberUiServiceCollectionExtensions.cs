@@ -9,6 +9,7 @@ public static class MemberUiServiceCollectionExtensions
     {
         services.AddScoped<MemberContext>();
         services.AddScoped<MemberBootstrapService>();
+        services.AddScoped<NewsUnreadState>();
         return services;
     }
 }

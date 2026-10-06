@@ -8,62 +8,135 @@
 
 <PageTitle>Clases — GSM</PageTitle>
 
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Clases</MudText>
+
 @if (GymCtx.FeatureFlags?.ShowClasses == false)
 {
     <MudAlert Severity="Severity.Normal">Las clases no están activadas en este gimnasio.</MudAlert>
 }
 else
 {
-    <div class="d-flex align-center mb-4" style="gap:0.5rem">
-        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" />
-        <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
-        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" />
+    <div class="gsm-cal-nav">
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" aria-label="Semana anterior" />
+        <div class="gsm-cal-nav__label">
+            <span class="gsm-cal-nav__range">@GsmFormat.DayRange(_weekStart, _weekStart.AddDays(6))</span>
+            @if (!IsCurrentWeek)
+            {
+                <button type="button" class="gsm-cal-nav__today" @onclick="GoToTodayAsync">Ir a hoy</button>
+            }
+        </div>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" aria-label="Semana siguiente" />
     </div>
+
+    @* Tira de la semana: un botón por día, con un punto por clase. *@
+    <div class="gsm-cal-week" role="tablist" aria-label="Días de la semana">
+        @for (var d = 0; d < 7; d++)
+        {
+            var day = _weekStart.AddDays(d);
+            var count = _entries.Count(e => e.SessionDate == day && e.Status != "Cancelled");
+            <button type="button" role="tab" aria-selected="@(day == _selected ? "true" : "false")"
+                    class="gsm-cal-day @(day == _selected ? "is-selected" : null) @(day == _today ? "is-today" : null)"
+                    @onclick="() => _selected = day">
+                <span class="gsm-cal-day__dow">@DayInitial(day)</span>
+                <span class="gsm-cal-day__num">@day.Day</span>
+                <span class="gsm-cal-day__dots" aria-hidden="true">
+                    @for (var k = 0; k < Math.Min(count, 3); k++)
+                    {
+                        <i></i>
+                    }
+                </span>
+                <span class="gsm-visually-hidden">@(count == 0 ? "sin clases" : count == 1 ? "1 clase" : $"{count} clases")</span>
+            </button>
+        }
+    </div>
+
+    <h2 class="gsm-cal-title">@GsmFormat.DayLong(_selected)</h2>
 
     @if (_loading)
     {
         <MudProgressCircular Indeterminate="true" />
     }
-    else if (_entries.Count == 0)
-    {
-        <MudText Color="Color.Secondary">Sin clases esta semana.</MudText>
-    }
     else
     {
-        @foreach (var entry in _entries.OrderBy(e => e.SessionDate).ThenBy(e => e.StartTime))
+        var dayEntries = _entries.Where(e => e.SessionDate == _selected).OrderBy(e => e.StartTime).ToList();
+        @if (dayEntries.Count == 0)
         {
-            <MudPaper Class="pa-3 mb-2" Elevation="0" Style="border:1px solid var(--gsm-border)">
-                <div class="d-flex align-center justify-space-between flex-wrap" style="gap:0.5rem">
-                    <div>
-                        <MudText Typo="Typo.body1">@entry.ClassName</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="gsm-mono">
-                            @GsmFormat.Day(entry.SessionDate) · @entry.StartTime.ToString("HH:mm")
-                        </MudText>
-                    </div>
-                    @if (entry.Status == "Cancelled")
-                    {
-                        <MudChip T="string" Color="Color.Error" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">CANCELADA</MudChip>
-                    }
-                    else if (entry.MyBookingStatus is "Booked")
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => CancelAsync(entry))">
-                            Cancelar
-                        </MudButton>
-                    }
-                    else
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => BookAsync(entry))">
-                            Reservar
-                        </MudButton>
-                    }
-                </div>
-            </MudPaper>
+            <div class="gsm-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.EventAvailable" Class="gsm-empty-icon" />
+                <span>No hay clases este día.</span>
+            </div>
+        }
+        else
+        {
+            <ol class="gsm-cal-agenda">
+                @foreach (var entry in dayEntries)
+                {
+                    var end = entry.StartTime.AddMinutes(entry.DurationMinutes);
+                    var cancelled = entry.Status == "Cancelled";
+                    <li class="gsm-cal-slot">
+                        <div class="gsm-cal-slot__time">
+                            <span class="gsm-cal-slot__start">@entry.StartTime.ToString("HH:mm")</span>
+                            <span class="gsm-cal-slot__end">@end.ToString("HH:mm")</span>
+                        </div>
+                        <article class="gsm-cal-card @(cancelled ? "is-cancelled" : entry.MyBookingStatus == "Booked" ? "is-booked" : null)">
+                            <div class="gsm-cal-card__main">
+                                <h3 class="gsm-cal-card__name">@entry.ClassName</h3>
+                                <p class="gsm-cal-card__meta">
+                                    @entry.DurationMinutes min@(string.IsNullOrWhiteSpace(entry.InstructorName) ? "" : $" · {entry.InstructorName}")@(entry.Capacity is { } cap ? $" · {cap} cupos" : " · entrada libre")
+                                </p>
+                                @if (cancelled && !string.IsNullOrWhiteSpace(entry.CancellationReason))
+                                {
+                                    <p class="gsm-cal-card__meta">@entry.CancellationReason</p>
+                                }
+                            </div>
+                            @if (cancelled)
+                            {
+                                <MudChip T="string" Color="Color.Error" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">CANCELADA</MudChip>
+                            }
+                            else if (entry.MyBookingStatus is "Booked")
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => CancelAsync(entry))">
+                                    Cancelar
+                                </MudButton>
+                            }
+                            else if (entry.Capacity is not null)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => BookAsync(entry))">
+                                    Reservar
+                                </MudButton>
+                            }
+                        </article>
+                    </li>
+                }
+            </ol>
         }
     }
 }
 
 @code {
-    private DateOnly _weekStart = StartOfWeek(DateOnly.FromDateTime(DateTime.Today));
+    private readonly DateOnly _today = GsmFormat.Today();
+    private DateOnly _weekStart = StartOfWeek(GsmFormat.Today());
+    private DateOnly _selected = GsmFormat.Today();
+
+    private bool IsCurrentWeek => _today >= _weekStart && _today <= _weekStart.AddDays(6);
+
+    private static string DayInitial(DateOnly day) => day.DayOfWeek switch
+    {
+        DayOfWeek.Monday => "L",
+        DayOfWeek.Tuesday => "M",
+        DayOfWeek.Wednesday => "X",
+        DayOfWeek.Thursday => "J",
+        DayOfWeek.Friday => "V",
+        DayOfWeek.Saturday => "S",
+        _ => "D",
+    };
+
+    private async Task GoToTodayAsync()
+    {
+        _weekStart = StartOfWeek(_today);
+        _selected = _today;
+        await LoadAsync();
+    }
     private List<ScheduleEntry> _entries = [];
     private bool _loading = true;
 

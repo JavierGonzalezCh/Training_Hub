@@ -29,6 +29,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Jwt:SigningKey", "integration-tests-signing-key-32-bytes-min!!");
         builder.UseSetting("Jwt:Issuer", "gsm-api");
         builder.UseSetting("Jwt:Audience", "gsm-clients");
+        builder.UseSetting("Checkin:SigningKey", "integration-tests-checkin-key-32-bytes-min!!");
+        builder.UseSetting("Communications:UnsubscribeSigningKey", "integration-tests-unsubscribe-key-32-bytes!!");
+        builder.UseSetting("Communications:PublicApiBaseUrl", "https://api.test.local");
+        builder.UseSetting("Jobs:Secret", "integration-tests-jobs-secret-32-bytes-min!!");
 
         builder.ConfigureTestServices(services =>
         {

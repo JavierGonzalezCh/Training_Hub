@@ -19,9 +19,6 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
     public Task<bool> ExistsAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Members.AnyAsync(m => m.Id == memberId, cancellationToken);
 
-    public Task<MemberInfo?> ResolveByQrAsync(string qrCode, CancellationToken cancellationToken = default)
-        => Project(Members.Where(m => m.QrCode == qrCode)).FirstOrDefaultAsync(cancellationToken);
-
     public Task<MemberInfo?> ResolveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
         => Project(Members.IgnoreQueryFilters().Where(m => m.UserId == userId))
             .FirstOrDefaultAsync(cancellationToken);
@@ -37,7 +34,19 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
             .Select(g => new { GymId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.GymId, x => x.Count, cancellationToken);
 
+    public Task<MemberContactView?> GetContactAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => Members.Where(m => m.Id == memberId)
+            .Select(m => new MemberContactView(m.Id, m.GymId, m.FirstName, m.Email, m.Status))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<MemberContactView>> GetEmailContactsAsync(
+        Guid gymId, CancellationToken cancellationToken = default)
+        => await Members
+            .Where(m => m.GymId == gymId && m.Status == MemberStatus.Active && m.Email != null && m.Email != "")
+            .Select(m => new MemberContactView(m.Id, m.GymId, m.FirstName, m.Email, m.Status))
+            .ToListAsync(cancellationToken);
+
     private static IQueryable<MemberInfo> Project(IQueryable<Member> source)
         => source.Select(m => new MemberInfo(
-            m.Id, m.GymId, m.UserId, m.FirstName, m.LastName, m.Status, m.QrCode));
+            m.Id, m.GymId, m.UserId, m.FirstName, m.LastName, m.Status));
 }

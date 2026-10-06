@@ -4,91 +4,107 @@ using MudBlazor;
 namespace GSM.UI.Shared.Theming;
 
 /// <summary>
-/// Tema MudBlazor de GSM: identidad visual v4.0, <b>oscuro por defecto</b> (negro casi puro como
-/// lienzo; rojo = marca/acción/urgencia, cian = dato/positivo/navegación).
-/// El branding por gym (<see cref="MeGym.PrimaryColor"/> / <see cref="MeGym.SecondaryColor"/>)
-/// sobrescribe el rojo y el cian de marca cuando el gym define los suyos.
-/// La tipografía (Anton / Inter / JetBrains Mono) se aplica en <c>gsm.css</c>.
+/// Tema MudBlazor de GSM: Forja, la identidad visual v4.0 (oscuro industrial, rojo). El color de marca
+/// del gym (<see cref="MeGym.PrimaryColor"/>) solo lo sustituye cuando el gym eligió uno <b>distinto</b>
+/// del rojo por defecto. Los colores de CSS salen de los tokens de <c>gsm.css</c>; los de aquí deben coincidir.
 /// </summary>
 public static class GsmTheme
 {
+    // Forja (identidad v4.0). Se conservan como constantes públicas porque hay código que las usa.
     public const string Base = "#0F0E0D";
-    public const string Panel = "#191817";
-    public const string Border = "#282624";
-    public const string Muted = "#4A4844";
-    public const string Silver = "#8A8480";
+    public const string Panel = "#171615";
+    public const string Border = "#2A2826";
+    public const string Muted = "#5A5753";
+    public const string Silver = "#9A948F";
     public const string Cloud = "#EEEBE6";
     public const string Red = "#B50016";
-    public const string RedHot = "#E8001E";
-    public const string Cyan = "#0AAFCA";
+    public const string RedHot = "#FF3347";
+    /// <summary>Verde de estado. Solo significa "activo/correcto", nunca decora.</summary>
+    public const string Green = "#3FB950";
 
-    private static readonly string[] Sans = ["Inter", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"];
-    private static readonly string[] Mono = ["JetBrains Mono", "SF Mono", "Cascadia Code", "Consolas", "monospace"];
+    /// <summary>Rojo por defecto con el que nace todo gym (<c>Gym.DefaultPrimaryColor</c>).</summary>
+    private const string FactoryPrimary = "#B50016";
+
+    private static readonly string[] Barlow = ["Barlow", "Helvetica Neue", "Arial", "sans-serif"];
+    private static readonly string[] JetBrains = ["JetBrains Mono", "Consolas", "monospace"];
 
     public static MudTheme Build(MeGym? gym = null)
     {
-        var primary = Sanitize(gym?.PrimaryColor) ?? Red;
-        var secondary = Sanitize(gym?.SecondaryColor) ?? Cyan;
-
-        return new MudTheme
+        var gymPrimary = Sanitize(gym?.PrimaryColor);
+        if (string.Equals(gymPrimary, FactoryPrimary, StringComparison.OrdinalIgnoreCase))
         {
-            PaletteDark = new PaletteDark
-            {
-                Primary = primary,
-                Secondary = secondary,
-                Tertiary = secondary,
-                Info = secondary,
-                Success = secondary,
-                Warning = "#E0A106",
-                Error = RedHot,
-                Dark = Base,
+            gymPrimary = null;
+        }
 
-                Black = Base,
-                Background = Base,
-                BackgroundGray = "#141312",
-                Surface = Panel,
-                AppbarBackground = Panel,
-                AppbarText = Cloud,
-                DrawerBackground = Base,
-                DrawerText = Silver,
-                DrawerIcon = Silver,
+        // El color secundario del gym pinta Tertiary, no Secondary: Secondary es el papel
+        // que MudBlazor usa para el texto atenuado (Color.Secondary sale en 86 sitios), así
+        // que un color de marca ahí convierte toda la letra pequeña de la app en un acento.
+        var gymAccent = Sanitize(gym?.SecondaryColor);
 
-                TextPrimary = Cloud,
-                TextSecondary = Silver,
-                TextDisabled = Muted,
-                ActionDefault = Silver,
-                ActionDisabled = Muted,
-
-                Divider = Border,
-                DividerLight = Border,
-                LinesDefault = Border,
-                LinesInputs = Border,
-                TableLines = Border,
-                TableStriped = "#1E1D1B",
-                TableHover = "#211F1D",
-                OverlayDark = "rgba(15, 14, 13, 0.85)",
-            },
-            Typography = new Typography
-            {
-                Default = new DefaultTypography
-                {
-                    FontFamily = Sans,
-                    FontSize = "0.9375rem",
-                    LineHeight = "1.7",
-                    FontWeight = "400",
-                },
-                Button = new ButtonTypography { FontFamily = Sans, FontWeight = "600", TextTransform = "none" },
-                Caption = new CaptionTypography { FontFamily = Mono, FontSize = "0.75rem", LetterSpacing = "0.06em" },
-                Overline = new OverlineTypography { FontFamily = Mono, LetterSpacing = "0.12em", TextTransform = "uppercase" },
-            },
-            LayoutProperties = new LayoutProperties
-            {
-                DefaultBorderRadius = "6px",
-                DrawerWidthLeft = "244px",
-                AppbarHeight = "60px",
-            },
-        };
+        return Forja(gymPrimary, gymAccent);
     }
+
+    private static MudTheme Forja(string? gymPrimary, string? gymAccent) => new()
+    {
+        PaletteDark = new PaletteDark
+        {
+            Primary = gymPrimary ?? Red,
+            PrimaryContrastText = "#FFFFFF",
+            // Roles separados: cada uno dice una cosa y solo una.
+            Secondary = Silver,
+            Tertiary = gymAccent ?? Cloud,
+            Info = Cloud,
+            Success = Green,
+            Warning = "#E0A106",
+            Error = RedHot,
+            Dark = Base,
+            Black = Base,
+            Background = Base,
+            BackgroundGray = "#141312",
+            Surface = Panel,
+            AppbarBackground = Base,
+            AppbarText = Cloud,
+            DrawerBackground = Base,
+            DrawerText = Silver,
+            DrawerIcon = Silver,
+            TextPrimary = Cloud,
+            TextSecondary = Silver,
+            TextDisabled = Muted,
+            ActionDefault = Silver,
+            ActionDisabled = Muted,
+            Divider = Border,
+            DividerLight = Border,
+            LinesDefault = Border,
+            LinesInputs = "#3A3734",
+            TableLines = Border,
+            TableStriped = "#1B1A18",
+            TableHover = "#1F1D1B",
+            OverlayDark = "rgba(15, 14, 13, 0.85)",
+        },
+        Typography = Typography(Barlow, JetBrains),
+        LayoutProperties = Layout("2px"),
+    };
+
+    private static Typography Typography(string[] sans, string[] mono) => new()
+    {
+        Default = new DefaultTypography
+        {
+            FontFamily = sans,
+            FontSize = "0.9375rem",
+            LineHeight = "1.6",
+            FontWeight = "400",
+        },
+        Button = new ButtonTypography { FontFamily = sans, FontWeight = "600", TextTransform = "none" },
+        Caption = new CaptionTypography { FontFamily = mono, FontSize = "0.75rem", LetterSpacing = "0.04em" },
+        Overline = new OverlineTypography { FontFamily = mono, LetterSpacing = "0.12em", TextTransform = "uppercase" },
+    };
+
+    private static LayoutProperties Layout(string radius) => new()
+    {
+        DefaultBorderRadius = radius,
+        DrawerWidthLeft = "252px",
+        AppbarHeight = "64px",
+    };
 
     private static string? Sanitize(string? hex)
     {

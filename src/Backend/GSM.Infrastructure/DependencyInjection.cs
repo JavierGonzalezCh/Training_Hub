@@ -1,4 +1,4 @@
-﻿using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Abstractions;
 using GSM.Application.Gyms.Abstractions;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Identity;
@@ -11,6 +11,7 @@ using GSM.Application.Memberships.Public;
 using GSM.Application.Payments.Abstractions;
 using GSM.Application.Payments.Public;
 using GSM.Application.Attendance.Abstractions;
+using GSM.Application.Communications.Abstractions;
 using GSM.Application.Attendance.Public;
 using GSM.Application.Achievements.Abstractions;
 using GSM.Application.Achievements.Public;
@@ -27,6 +28,7 @@ using GSM.Application.Routines.Public;
 using GSM.Infrastructure.Achievements;
 using GSM.Infrastructure.Routines;
 using GSM.Infrastructure.Attendance;
+using GSM.Infrastructure.Communications;
 using GSM.Infrastructure.Common;
 using GSM.Infrastructure.Email;
 using GSM.Infrastructure.Gyms;
@@ -65,12 +67,19 @@ public static class DependencyInjection
                     npgsql.MapEnum<MembershipStatus>("membership_status", "memberships", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<PaymentMethod>("payment_method", "payments", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<AttendanceMethod>("attendance_method", "attendance", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<CheckinMode>("checkin_mode", "attendance", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<CheckinRejectionReason>("checkin_rejection_reason", "attendance", SnakeCaseNameTranslator.Instance);
                     npgsql.MapEnum<AchievementConditionType>("condition_type", "achievements", SnakeCaseNameTranslator.Instance);
                     npgsql.MapEnum<Muscle>("muscle", "routines", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<GSM.Domain.Classes.ClassDayOfWeek>("day_of_week", "classes", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<GSM.Domain.Classes.ClassSessionStatus>("class_session_status", "classes", LowerCaseNameTranslator.Instance);
                     npgsql.MapEnum<GSM.Domain.Classes.ClassBookingStatus>("class_booking_status", "classes", SnakeCaseNameTranslator.Instance);
+                    npgsql.MapEnum<GSM.Domain.Communications.AnnouncementStatus>("announcement_status", "communications", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<GSM.Domain.Communications.ReactionKind>("reaction_kind", "communications", LowerCaseNameTranslator.Instance);
+                    npgsql.MapEnum<GSM.Domain.Communications.NotificationType>("notification_type", "communications", SnakeCaseNameTranslator.Instance);
+                    npgsql.MapEnum<GSM.Domain.Communications.EmailKind>("email_kind", "communications", SnakeCaseNameTranslator.Instance);
+                    npgsql.MapEnum<GSM.Domain.Communications.EmailStatus>("email_status", "communications", LowerCaseNameTranslator.Instance);
                 })
                 .UseSnakeCaseNamingConvention());
 
@@ -121,6 +130,25 @@ public static class DependencyInjection
 
         services.AddScoped<IAttendanceRepository, AttendanceRepository>();
         services.AddScoped<IAttendanceReader, AttendanceReader>();
+        services.AddScoped<ICheckinSettingsRepository, CheckinSettingsRepository>();
+        services.AddScoped<IAnnouncementRepository, AnnouncementRepository>();
+        services.AddScoped<IAnnouncementReactionRepository, AnnouncementReactionRepository>();
+        services.AddScoped<IMemberFeedStateRepository, MemberFeedStateRepository>();
+        services.AddScoped<IMemberNotificationRepository, MemberNotificationRepository>();
+        services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
+        services.AddScoped<IMemberCommunicationPreferencesRepository, MemberCommunicationPreferencesRepository>();
+        services.AddScoped<ICommunicationsSettingsRepository, CommunicationsSettingsRepository>();
+        services.AddSingleton<IUnsubscribeLinks, UnsubscribeLinks>();
+        services.AddOptions<CommunicationsOptions>()
+            .Bind(configuration.GetSection(CommunicationsOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddScoped<ICheckinAttemptRepository, CheckinAttemptRepository>();
+        services.AddSingleton<ICheckinCodeSigner, HmacCheckinCodeSigner>();
+        services.AddOptions<CheckinOptions>()
+            .Bind(configuration.GetSection(CheckinOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         services.AddScoped<IAchievementRepository, AchievementRepository>();
         services.AddScoped<IAchievementReader, AchievementReader>();

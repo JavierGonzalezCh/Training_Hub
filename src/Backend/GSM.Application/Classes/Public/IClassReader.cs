@@ -19,4 +19,7 @@ public interface IClassReader
 
     /// <summary>Nº de sesiones (calculadas + materializadas no canceladas) que ocurren hoy en el gym.</summary>
     Task<int> GetTodaySessionCountAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>Nombre de la clase (para los avisos de Comunicaciones). Nulo si no existe.</summary>
+    Task<string?> GetClassNameAsync(Guid classId, CancellationToken cancellationToken = default);
 }

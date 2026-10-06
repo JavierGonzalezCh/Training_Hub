@@ -16,6 +16,10 @@ public sealed class AchievementReader(
     IRoutineReader routines,
     IClassReader classes) : IAchievementReader
 {
+    public Task<string?> GetAchievementNameAsync(Guid achievementId, CancellationToken cancellationToken = default)
+        => dbContext.Set<Achievement>().Where(a => a.Id == achievementId).Select(a => (string?)a.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<IReadOnlyList<MemberAchievementView>> GetForMemberAsync(
         Guid memberId, Guid gymId, CancellationToken cancellationToken = default)
     {

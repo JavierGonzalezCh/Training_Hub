@@ -36,7 +36,7 @@ public sealed class RoutineLogRepository(GsmDbContext dbContext) : IRoutineLogRe
 
     public async Task<IReadOnlyList<RoutineHistoryRow>> GetHistoryAsync(
         Guid memberId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
-        => await (from log in Logs
+        => await (from log in Logs.AsNoTracking() // las series son una colección JSON propia: proyectarla exige no rastrear
                   where log.MemberId == memberId && log.PerformedOn >= fromDate && log.PerformedOn <= toDate
                   join ex in dbContext.Set<RoutineExercise>() on log.RoutineExerciseId equals ex.Id
                   join catalog in dbContext.Set<Exercise>() on ex.ExerciseId equals catalog.Id into c
@@ -51,7 +51,8 @@ public sealed class RoutineLogRepository(GsmDbContext dbContext) : IRoutineLogRe
                       log.RepsDone,
                       log.WeightKg,
                       log.Notes,
-                      log.CompletedAt))
+                      log.CompletedAt,
+                      log.Sets))
             .ToListAsync(cancellationToken);
 
     public void Add(RoutineExerciseLog log) => Logs.Add(log);

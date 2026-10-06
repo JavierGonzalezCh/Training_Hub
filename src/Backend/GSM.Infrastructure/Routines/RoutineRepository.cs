@@ -35,6 +35,7 @@ public sealed class RoutineRepository(GsmDbContext dbContext) : IRoutineReposito
     public async Task<IReadOnlyList<Routine>> ListForMemberAsync(
         Guid memberId, CancellationToken cancellationToken = default)
         => await Routines
+            .Include(r => r.Days) // CycleLength sale de los días
             .Where(r => r.MemberId == memberId)
             .OrderByDescending(r => r.IsActive)
             .ThenByDescending(r => r.StartsOn)

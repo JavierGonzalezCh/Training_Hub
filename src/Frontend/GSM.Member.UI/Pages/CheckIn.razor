@@ -1,0 +1,144 @@
+@page "/app/checkin"
+@layout MemberLayout
+@attribute [Authorize]
+@inject IAttendanceClient Attendance
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Registrar entrada — GSM</PageTitle>
+
+@* El código llega en ?t= desde el QR de la entrada. En cuanto hay respuesta se quita de la URL
+   (el resultado vive en el estado de la página), para que recargar no repita el intento. *@
+@if (_state == State.Working)
+{
+    <div class="d-flex justify-center mt-8" role="status" aria-label="Registrando tu entrada">
+        <MudProgressCircular Indeterminate="true" />
+    </div>
+}
+else
+{
+    <section class="gsm-checkin-result is-@(_state.ToString().ToLowerInvariant())" aria-live="polite">
+        <MudIcon Icon="@Icon()" Class="gsm-checkin-result__icon" />
+        <h1 class="gsm-checkin-result__title">@Title()</h1>
+        @if (!string.IsNullOrEmpty(_detail))
+        {
+            <p class="gsm-checkin-result__detail">@_detail</p>
+        }
+        @if (_result is { UnlockedAchievements.Count: > 0 } unlocked)
+        {
+            <div class="gsm-checkin-result__unlocked">
+                <span class="gsm-kicker">Logros desbloqueados</span>
+                @foreach (var achievement in unlocked.UnlockedAchievements)
+                {
+                    <MudChip T="string" Color="Color.Info" Class="ma-1">@achievement.Name</MudChip>
+                }
+            </div>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/app" Class="mt-6">Ir al inicio</MudButton>
+    </section>
+}
+
+@code {
+    private enum State { Working, Entered, Already, Grace, Rejected, Invalid, Disabled, NoCode, NotMember, Error }
+
+    [SupplyParameterFromQuery(Name = "t")]
+    public string? Code { get; set; }
+
+    private State _state = State.Working;
+    private string? _detail;
+    private CheckInResponse? _result;
+
+    // Solo OnInitialized: al quitar ?t= de la URL la página no se reinicia y conserva el resultado.
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        if (!user.IsInRole(GsmRoles.Member))
+        {
+            _state = State.NotMember;
+            _detail = "Este código es para miembros del gimnasio. Con tu cuenta se registra a mano desde Recepción.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Code))
+        {
+            _state = State.NoCode;
+            _detail = "Escanea el QR de la entrada del gimnasio con la cámara de tu teléfono.";
+            return;
+        }
+
+        var code = Code;
+        try
+        {
+            _result = await Attendance.CheckinAsync(new CheckInRequest { GymCode = code });
+            Resolve(_result);
+        }
+        catch (GsmApiException ex)
+        {
+            var error = ApiError.FromException(ex);
+            _detail = error.DisplayMessage;
+            switch (ex.StatusCode)
+            {
+                case 409:
+                    _state = State.Rejected;
+                    _detail = $"{error.DisplayMessage} El gimnasio ya fue avisado.";
+                    break;
+                case 422:
+                    _state = State.Invalid;
+                    _detail = "Vuelve a escanear el código de la entrada.";
+                    break;
+                case 403:
+                    _state = State.Disabled;
+                    break;
+                default:
+                    _state = State.Error;
+                    break;
+            }
+        }
+        finally
+        {
+            // Fuera de la URL el código: recargar ya no repite el intento.
+            Navigation.NavigateTo(GymCodeLink.CheckinPath, replace: true);
+        }
+    }
+
+    private void Resolve(CheckInResponse result)
+    {
+        if (result.AlreadyCheckedInToday)
+        {
+            _state = State.Already;
+            _detail = $"{result.MemberName}, tu entrada de hoy ya estaba registrada ({GsmFormat.Time(result.CheckedInAt)}).";
+        }
+        else if (result.GraceDaysLeft is { } left)
+        {
+            _state = State.Grace;
+            _detail = $"Tu membresía venció el {(result.MembershipEndsOn is { } end ? GsmFormat.Day(end) : "—")}. "
+                + $"Te {(left == 1 ? "queda 1 día" : $"quedan {left} días")} para renovar.";
+        }
+        else
+        {
+            _state = State.Entered;
+            _detail = $"{result.MemberName} · {GsmFormat.Time(result.CheckedInAt)}";
+        }
+    }
+
+    private string Title() => _state switch
+    {
+        State.Entered => "Entrada registrada",
+        State.Already => "Ya habías entrado hoy",
+        State.Grace => "Entrada registrada, con aviso",
+        State.Rejected => "No pudimos registrar tu entrada",
+        State.Invalid => "Código no válido o caducado",
+        State.Disabled => "Check-in con QR desactivado",
+        State.NoCode => "Registra tu entrada",
+        State.NotMember => "Código para miembros",
+        _ => "Algo salió mal",
+    };
+
+    private string Icon() => _state switch
+    {
+        State.Entered or State.Already => Icons.Material.Filled.CheckCircle,
+        State.Grace => Icons.Material.Filled.WarningAmber,
+        State.NoCode or State.NotMember => Icons.Material.Filled.QrCodeScanner,
+        _ => Icons.Material.Filled.Cancel,
+    };
+}

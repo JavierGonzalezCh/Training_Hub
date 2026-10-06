@@ -5,47 +5,55 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>Socios — GSM</PageTitle>
+<PageTitle>Miembros — GSM</PageTitle>
 
-<div class="d-flex align-center mb-4">
-    <MudText Typo="Typo.h4">Socios</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
-               OnClick="OpenCreateAsync">
-        Nuevo socio
-    </MudButton>
-</div>
+<PageHeader Eyebrow="Negocio" Title="Miembros">
+    <Subtitle>@(_total is { } total ? $"{total} {(total == 1 ? "miembro" : "miembros")} con este filtro." : "Busca por nombre o documento.")</Subtitle>
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
+                   OnClick="OpenCreateAsync">
+            Nuevo miembro
+        </MudButton>
+    </Actions>
+</PageHeader>
 
 <ServerTable @ref="_table" TItem="MemberListItem" Load="LoadAsync" Class="gsm-table">
     <ToolBarContent>
         <MudTextField T="string" Placeholder="Buscar por nombre o documento" Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" DebounceInterval="400"
                       ValueChanged="OnSearchChangedAsync" Class="mr-4" Style="max-width:320px" />
-        <MudSelect T="string" Value="_status" ValueChanged="OnStatusChangedAsync" Label="Estado" Style="max-width:180px">
-            <MudSelectItem Value="@("")">Todos</MudSelectItem>
-            <MudSelectItem Value="@("0")">Activo</MudSelectItem>
-            <MudSelectItem Value="@("1")">Inactivo</MudSelectItem>
-        </MudSelect>
+        @* Tres opciones caben a la vista: un desplegable las escondía detrás de un clic. *@
+        <div class="gsm-segmented" role="group" aria-label="Filtrar por estado">
+            @foreach (var (value, label) in StatusFilters)
+            {
+                <button type="button" class="gsm-segmented__option @(_status == value ? "is-active" : null)"
+                        aria-pressed="@(_status == value ? "true" : "false")"
+                        @onclick="() => OnStatusChangedAsync(value)">@label</button>
+            }
+        </div>
     </ToolBarContent>
     <HeaderContent>
-        <MudTh>Socio</MudTh>
+        <MudTh>Miembro</MudTh>
         <MudTh>Teléfono</MudTh>
         <MudTh>Estado</MudTh>
         <MudTh>Ingresó</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Socio">
+        <MudTd DataLabel="Miembro">
             <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.Id}"))" Underline="Underline.None">
-                <MudText Typo="Typo.body1">@context.FirstName @context.LastName</MudText>
-                <MudText Typo="Typo.caption" Class="gsm-mono" Color="Color.Secondary">@context.DocumentNumber</MudText>
+                <span class="gsm-identity">
+                    <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials($"{context.FirstName} {context.LastName}")</span>
+                    <span>@context.FirstName @context.LastName</span>
+                </span>
             </MudLink>
         </MudTd>
-        <MudTd DataLabel="Teléfono">@(context.Phone ?? "—")</MudTd>
+        <MudTd DataLabel="Teléfono" Class="gsm-num">@(context.Phone ?? "—")</MudTd>
         <MudTd DataLabel="Estado"><StatusChip Status="@context.Status" /></MudTd>
         <MudTd DataLabel="Ingresó">@GsmFormat.Day(context.JoinedAt)</MudTd>
         <MudTd>
-            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" title="Editar" />
+            <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))"
+                           aria-label="@($"Editar a {context.FirstName} {context.LastName}")" />
         </MudTd>
     </RowTemplate>
 </ServerTable>
@@ -53,7 +61,11 @@
 @code {
     private ServerTable<MemberListItem> _table = null!;
     private string _search = string.Empty;
-    private string _status = string.Empty;
+    private string _status = FilterValues.All;
+    private int? _total;
+
+    private static readonly (string Value, string Label)[] StatusFilters =
+        [(FilterValues.All, "Todos"), ("0", "Activos"), ("1", "Inactivos")];
 
     private async Task<ServerTablePage<MemberListItem>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -61,8 +73,15 @@
         {
             var result = await Members.MembersGETAsync(
                 string.IsNullOrWhiteSpace(_search) ? null : _search,
-                string.IsNullOrEmpty(_status) ? null : int.Parse(_status),
+                FilterValues.IsAll(_status) ? null : int.Parse(_status),
                 page, pageSize, cancellationToken);
+            // La cabecera vive fuera de la tabla: hay que avisarla cuando cambia el total.
+            if (_total != result.Total)
+            {
+                _total = result.Total;
+                _ = InvokeAsync(StateHasChanged);
+            }
+
             return new ServerTablePage<MemberListItem>(result.Items.ToList(), result.Total);
         }
         catch (GsmApiException ex)
@@ -86,11 +105,11 @@
 
     private async Task OpenCreateAsync()
     {
-        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Nuevo socio");
+        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Nuevo miembro");
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {
-            Snackbar.Add("Socio creado.", Severity.Success);
+            Snackbar.Add("Miembro creado.", Severity.Success);
             await _table.RefreshAsync();
         }
     }
@@ -98,11 +117,11 @@
     private async Task OpenEditAsync(MemberListItem item)
     {
         var parameters = new DialogParameters<MemberFormDialog> { { x => x.MemberId, item.Id } };
-        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Editar socio", parameters);
+        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Editar miembro", parameters);
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {
-            Snackbar.Add("Socio actualizado.", Severity.Success);
+            Snackbar.Add("Miembro actualizado.", Severity.Success);
             await _table.RefreshAsync();
         }
     }

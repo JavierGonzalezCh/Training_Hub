@@ -1,11 +1,26 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider Theme="@GsmTheme.Build()" IsDarkMode="true" />
+<GsmThemeProvider />
 <MudPopoverProvider />
 <MudSnackbarProvider />
 
 <div class="gsm-auth-backdrop">
-    <MudPaper Class="gsm-auth-card" Elevation="0">
-        @Body
-    </MudPaper>
+    <div class="gsm-auth-split">
+        @* La marca vive en el layout, no en cada página: antes las cuatro pantallas de
+           acceso repetían el wordmark dentro de la tarjeta y ninguna declaraba un h1. *@
+        <section class="gsm-auth-brand">
+            <div class="gsm-kicker">Sistema de gestión · B2B SaaS</div>
+            <h1 class="gsm-wordmark gsm-auth-logo">GS<span class="accent">M</span></h1>
+            <p class="gsm-auth-tagline">Tu operación, bajo control total.</p>
+            <ul class="gsm-auth-points">
+                <li>Miembros, planes y membresías</li>
+                <li>Control de acceso y asistencia</li>
+                <li>Caja y pagos al día</li>
+            </ul>
+        </section>
+
+        <MudPaper Class="gsm-auth-card" Elevation="0">
+            @Body
+        </MudPaper>
+    </div>
 </div>

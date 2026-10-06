@@ -19,6 +19,9 @@ public static class DependencyInjection
 
         services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 
+        // Servicio compartido (no es un caso de uso): lo usan handlers de eventos y la tarea periódica.
+        services.AddScoped<Communications.MemberNotifier>();
+
         var eventHandlerInterface = typeof(IDomainEventHandler<>);
 
         foreach (var type in assembly.GetTypes())

@@ -3,50 +3,74 @@
 @inject SessionService Session
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
+@inject IBrowserViewportService Viewport
 @implements IDisposable
 
-<MudThemeProvider Theme="@_theme" IsDarkMode="true" />
+<GsmThemeProvider Gym="@GymContext.Gym" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
+<MudLayout Class="gsm-shell">
     <ImpersonationBar />
-    <MudAppBar Elevation="0">
-        <span class="gsm-wordmark" style="font-size:1.4rem">GS<span class="accent">M</span></span>
-        <MudSpacer />
+    <MudAppBar Elevation="0" Class="gsm-topbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       Class="mr-2 d-md-none" OnClick="@(() => _drawerOpen = !_drawerOpen)" aria-label="Abrir menú" />
+        <a href="/" class="gsm-topbar__brand" aria-label="GSM, ir al dashboard">
+            <span class="gsm-wordmark">GS<span class="accent">M</span></span>
+        </a>
         @if (GymContext.Gym is { } gym)
         {
-            <MudText Class="gsm-mono mr-4" Typo="Typo.body2" Color="Color.Default">@gym.Name.ToUpperInvariant()</MudText>
+            <span class="gsm-topbar__gym d-none d-sm-inline">@gym.Name</span>
         }
+        <MudSpacer />
+        <AttemptsBell />
+        @* La acción más repetida en recepción, a un clic desde cualquier pantalla. *@
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="gsm-topbar__action ml-3"
+                   StartIcon="@Icons.Material.Filled.QrCodeScanner" Href="/attendance/checkin" aria-label="Check-in">
+            <span class="d-none d-sm-inline">Check-in</span>
+        </MudButton>
         <AuthorizeView>
             <Authorized>
-                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                    @Initials(context.User.Identity?.Name)
-                </MudAvatar>
-                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" title="Cerrar sesión" />
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="ml-2">
+                    <ActivatorContent>
+                        <button type="button" class="gsm-avatar-button" aria-label="Menú de usuario">
+                            <span class="gsm-avatar">@GsmFormat.Initials(context.User.Identity?.Name)</span>
+                        </button>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <div class="gsm-user-card">
+                            <div class="gsm-user-card__name">@(context.User.Identity?.Name ?? "—")</div>
+                            <div class="gsm-user-card__meta">@RoleLabel(GymContext.Role)</div>
+                        </div>
+                        <MudDivider />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">Cerrar sesión</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer Open="true" Elevation="0" Variant="DrawerVariant.Persistent">
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
+               ClipMode="DrawerClipMode.Always" Class="gsm-drawer">
         <NavMenu />
     </MudDrawer>
 
-    <MudMainContent>
+    <MudMainContent Class="gsm-main">
         <SubscriptionBanner />
-        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6 pb-8">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="gsm-page">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
-    private MudTheme _theme = GsmTheme.Build();
+    private bool _drawerOpen = true;
 
     protected override async Task OnInitializedAsync()
     {
-        GymContext.Changed += OnGymContextChanged;
+        GymContext.Changed += OnGymChanged;
+        Navigation.LocationChanged += OnLocationChanged;
 
         // El layout envuelve tanto el contenido autorizado como el "acceso denegado" de
         // AuthorizeRouteView: si aún no hay sesión, no tiene sentido pedir /api/auth/me.
@@ -69,11 +93,25 @@
         }
     }
 
-    private void OnGymContextChanged()
+    // En móvil el drawer se abre por encima del contenido: navegar tiene que cerrarlo.
+    // En escritorio queda fijo, así que solo se cierra por debajo del breakpoint.
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        _theme = GsmTheme.Build(GymContext.Gym);
-        InvokeAsync(StateHasChanged);
+        if (!_drawerOpen)
+        {
+            return;
+        }
+
+        var breakpoint = await Viewport.GetCurrentBreakpointAsync();
+        if (breakpoint is Breakpoint.Xs or Breakpoint.Sm)
+        {
+            _drawerOpen = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
+
+    // El nombre del gym y su color de marca (GsmThemeProvider) llegan con el bootstrap.
+    private void OnGymChanged() => InvokeAsync(StateHasChanged);
 
     private async Task LogoutAsync()
     {
@@ -81,21 +119,17 @@
         Navigation.NavigateTo("/login", replace: true);
     }
 
-    private static string Initials(string? name)
+    private static string RoleLabel(string? role) => role switch
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return "?";
-        }
+        GsmRoles.Owner => "Propietario",
+        GsmRoles.Staff => "Staff",
+        GsmRoles.SuperAdmin => "SuperAdmin",
+        _ => "—",
+    };
 
-        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length switch
-        {
-            0 => "?",
-            1 => parts[0][..1].ToUpperInvariant(),
-            _ => $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant(),
-        };
+    public void Dispose()
+    {
+        GymContext.Changed -= OnGymChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
     }
-
-    public void Dispose() => GymContext.Changed -= OnGymContextChanged;
 }

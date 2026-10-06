@@ -31,6 +31,12 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
 
     public string SecondaryColor { get; private set; } = DefaultSecondaryColor;
 
+    /// <summary>
+    /// Aforo aproximado: cuántos clientes caben a la vez en el gimnasio, según el dueño. <c>null</c> si
+    /// aún no lo ha dicho. Base para la tasa de ocupación en tiempo real.
+    /// </summary>
+    public int? Capacity { get; private set; }
+
     public bool IsActive { get; private set; } = true;
 
     public GymPlan Plan { get; private set; } = GymPlan.Basic;
@@ -41,8 +47,13 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
 
     Guid ITenantEntity.GymId => Id;
 
-    public const string DefaultPrimaryColor = "#2563EB";
-    public const string DefaultSecondaryColor = "#1E293B";
+    /// <summary>
+    /// Colores de marca por defecto: los de la identidad visual v4.0 (rojo GSM / cian).
+    /// Un gym que no define los suyos hereda la marca del producto, no el azul de Material.
+    /// </summary>
+    public const string DefaultPrimaryColor = "#B50016";
+
+    public const string DefaultSecondaryColor = "#0AAFCA";
 
     public static Gym Create(
         string name,
@@ -89,6 +100,18 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
         Nit = Trim(nit);
         Phone = Trim(phone);
         Email = Trim(email);
+    }
+
+    public const int MaxCapacity = 5000;
+
+    public void UpdateCapacity(int? capacity)
+    {
+        if (capacity is < 1 or > MaxCapacity)
+        {
+            throw new ValidationDomainException($"El aforo debe estar entre 1 y {MaxCapacity} clientes.");
+        }
+
+        Capacity = capacity;
     }
 
     public void UpdateBranding(string? logoUrl, string primaryColor, string secondaryColor)

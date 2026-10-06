@@ -15,29 +15,34 @@
 }
 else if (_dashboard is { } d)
 {
-    <MudGrid Class="mb-6">
+    @* Actividad de la plataforma. Los dos bloques comparten la misma retícula de 12
+       columnas en md para que las tarjetas no queden dentadas entre filas. *@
+    <MudGrid Class="mb-4">
         <MudItem xs="12" sm="6" md="3">
             <StatCard Label="Gyms" Value="@d.Platform.GymCount.ToString()" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Socios activos" Value="@d.Platform.ActiveMembers.ToString()" />
+            <StatCard Label="Miembros activos" Value="@d.Platform.ActiveMembers.ToString()" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Check-ins del mes" Value="@d.Platform.CheckInsThisMonth.ToString()" Accent="Color.Info" />
+            <StatCard Label="Check-ins del mes" Value="@d.Platform.CheckInsThisMonth.ToString()" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Por vencer (15 días)" Value="@d.Portfolio.ExpiringWithin15Days.ToString()" Accent="Color.Error" />
+            @* El rojo solo cuando hay algo que vencer: un 0 en rojo es una falsa alarma
+               y entrena a ignorar el color. *@
+            <StatCard Label="Por vencer (15 días)" Value="@d.Portfolio.ExpiringWithin15Days.ToString()"
+                      Accent="@(d.Portfolio.ExpiringWithin15Days > 0 ? Color.Error : Color.Default)" />
         </MudItem>
     </MudGrid>
 
     <MudGrid Class="mb-6">
-        <MudItem xs="12" sm="4">
+        <MudItem xs="12" sm="6" md="3">
             <StatCard Label="Contratado" Value="@GsmFormat.Money((decimal)d.Revenue.Contracted)" />
         </MudItem>
-        <MudItem xs="12" sm="4">
-            <StatCard Label="Cobrado este mes" Value="@GsmFormat.Money((decimal)d.Revenue.CollectedThisMonth)" Accent="Color.Info" />
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Label="Cobrado este mes" Value="@GsmFormat.Money((decimal)d.Revenue.CollectedThisMonth)" />
         </MudItem>
-        <MudItem xs="12" sm="4">
+        <MudItem xs="12" sm="6" md="3">
             <StatCard Label="Cobrado mes anterior" Value="@GsmFormat.Money((decimal)d.Revenue.CollectedLastMonth)" />
         </MudItem>
     </MudGrid>
@@ -57,7 +62,7 @@ else if (_dashboard is { } d)
         <HeaderContent>
             <MudTh>Gym</MudTh>
             <MudTh>Estado</MudTh>
-            <MudTh>Socios activos</MudTh>
+            <MudTh>Miembros activos</MudTh>
             <MudTh>Check-ins del mes</MudTh>
             <MudTh>Ingresos del mes</MudTh>
             <MudTh>Última visita</MudTh>
@@ -73,7 +78,7 @@ else if (_dashboard is { } d)
                     @SuperAdminLabels.StatusLabel(context.EffectiveStatus).ToUpperInvariant()
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Socios activos">@context.ActiveMembers</MudTd>
+            <MudTd DataLabel="Miembros activos">@context.ActiveMembers</MudTd>
             <MudTd DataLabel="Check-ins del mes">@context.CheckInsThisMonth</MudTd>
             <MudTd DataLabel="Ingresos del mes" Class="gsm-mono">@GsmFormat.Money((decimal)context.MemberRevenueThisMonth)</MudTd>
             <MudTd DataLabel="Última visita">@(context.LastCheckIn is { } d2 ? GsmFormat.Day(d2) : "—")</MudTd>

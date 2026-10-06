@@ -268,7 +268,7 @@ Dos vías y una excepción: \*\*lecturas\*\* síncronas por `Public/I{Módulo}Re
 
 | Identity | `IIdentityReader` | `GetUserAsync` |
 
-| Members | `IMemberReader` | `GetAsync`, `ExistsAsync`, `ResolveByQrAsync`, `ResolveByUserIdAsync`, `GetActiveCountAsync`, `GetActiveCountsByGymAsync` |
+| Members | `IMemberReader` | `GetAsync`, `ExistsAsync`, `ResolveByUserIdAsync`, `GetActiveCountAsync`, `GetActiveCountsByGymAsync` |
 
 | Memberships | `IMembershipReader` | `GetActiveAsync`, `IsActiveAsync`, `GetExpiringAsync`, `GetExpiredCountAsync`, `GetExpiringCountAsync`, `BelongsToMemberAsync` |
 
@@ -324,7 +324,7 @@ Despachador propio (`IDomainEventPublisher`), sin MediatR. La publicación ocurr
 
 
 
-\*\*Publicados sin consumidor todavía\*\* — disparadores reservados para push y correo: `CheckInRegistered`, `AchievementUnlockedEvent`, `MemberCreated`, `MemberDeactivated`, `MembershipCreated`, `MembershipRenewed`, `PaymentRecorded`, `RoutineAssigned`, `ClassSessionCancelled`.
+\*\*Publicados sin consumidor todavía\*\* — disparadores reservados para push y correo: `CheckInRegistered`, `CheckInRejected`, `MemberCreated`, `MemberDeactivated`, `MembershipCreated`, `MembershipRenewed`, `PaymentRecorded`, `RoutineAssigned`, `AnnouncementPublished`. Desde la etapa 13, `ClassSessionCancelled` y `AchievementUnlockedEvent` los consume Comunicaciones (avisos personales; ver `docs/GSM-modulo-comunicaciones.md`).
 
 
 
@@ -485,8 +485,6 @@ Member
 
 &#x20; PhotoUrl: string?
 
-&#x20; QrCode: string (único, autogenerado)
-
 &#x20; JoinedAt: DateOnly
 
 &#x20; Invariante: User.GymId debe coincidir con Member.GymId
@@ -623,7 +621,7 @@ MemberAchievement
 
 | Gyms | `UpdateFeatureFlags` | gymId, flags | — |
 
-| Members | `RegisterMember` | gymId, fullName, phone | MemberId + QrCode |
+| Members | `RegisterMember` | gymId, fullName, phone | MemberId |
 
 | Members | `GetMemberProfile` | memberId | MemberDto |
 
@@ -635,7 +633,7 @@ MemberAchievement
 
 | Payments | `GetPaymentHistory` | memberId | List\\<PaymentDto\\> |
 
-| Attendance | `CheckInMember` | memberId (o qrCode), method | AttendanceId |
+| Attendance | `CheckInMember` | memberId (staff) o gymCode (miembro) | AttendanceId |
 
 | Attendance | `GetAttendanceHistory` | memberId | List\\<AttendanceDto\\> |
 
@@ -665,7 +663,7 @@ PATCH  /api/gyms/{id}/feature-flags       → 204                        \[Owner
 
 
 
-POST   /api/members                       → 201 { memberId, qrCode }   \[Owner, Staff]
+POST   /api/members                       → 201 { id }   \[Owner, Staff]
 
 GET    /api/members/{id}                  → 200 MemberDto              \[Owner, Staff, Member(self)]
 
@@ -684,6 +682,8 @@ GET    /api/payments?memberId=            → 200 List<PaymentDto>       \[Owner
 
 
 POST   /api/attendance/checkin            → 201 { attendanceId }       \[Owner, Staff, Member(self)]
+
+El miembro solo se registra con el código del QR del gym (`gymCode`), con regla de días de gracia; el staff registra a mano por `memberId`. El QR personal del miembro ya no existe. Detalle, ajustes, kiosco e intentos rechazados: `docs/CHECKIN-QR-BUILD-PLAN.md` (etapa 12).
 
 GET    /api/attendance?memberId=          → 200 List<AttendanceDto>    \[Owner, Staff, Member(self)]
 

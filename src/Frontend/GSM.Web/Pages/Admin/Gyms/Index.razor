@@ -12,7 +12,7 @@
     <MudText Typo="Typo.h4">Cartera</MudText>
     <MudSpacer />
     <MudSelect T="string" Value="_status" ValueChanged="OnStatusChangedAsync" Label="Estado" Style="max-width:200px">
-        <MudSelectItem Value="@("")">Todos</MudSelectItem>
+        <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
         <MudSelectItem Value="@("Trial")">Prueba</MudSelectItem>
         <MudSelectItem Value="@("Active")">Activo</MudSelectItem>
         <MudSelectItem Value="@("Overdue")">Moroso</MudSelectItem>
@@ -59,7 +59,7 @@ else if (_portfolio is { } portfolio)
 
 @code {
     private PortfolioResponse? _portfolio;
-    private string _status = string.Empty;
+    private string _status = FilterValues.All;
     private bool _loading = true;
 
     protected override Task OnInitializedAsync() => LoadAsync();
@@ -69,7 +69,7 @@ else if (_portfolio is { } portfolio)
         _loading = true;
         try
         {
-            _portfolio = await AdminGyms.GymsGETAsync(string.IsNullOrEmpty(_status) ? null : _status);
+            _portfolio = await AdminGyms.GymsGETAsync(FilterValues.IsAll(_status) ? null : _status);
         }
         catch (GsmApiException ex)
         {

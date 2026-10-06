@@ -1,46 +1,76 @@
 @inherits LayoutComponentBase
 @inject SessionService Session
 @inject NavigationManager Navigation
+@inject IBrowserViewportService Viewport
+@implements IDisposable
 
-<MudThemeProvider Theme="@GsmTheme.Build()" IsDarkMode="true" />
+<GsmThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
+<MudLayout Class="gsm-shell">
     <ImpersonationBar />
-    <MudAppBar Elevation="0">
+    <MudAppBar Elevation="0" Class="gsm-topbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       Class="mr-2 d-md-none" OnClick="@(() => _drawerOpen = !_drawerOpen)" title="Menú" />
         <span class="gsm-wordmark" style="font-size:1.4rem">GS<span class="accent">M</span></span>
         <MudText Class="gsm-mono ml-3" Typo="Typo.body2" Color="Color.Secondary">SUPERADMIN</MudText>
         <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" title="Cerrar sesión" />
+        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" aria-label="Cerrar sesión" Class="ml-2" />
     </MudAppBar>
 
-    <MudDrawer Open="true" Elevation="0" Variant="DrawerVariant.Persistent">
-        <MudNavMenu Class="pt-4 px-2">
-            <NavLink class="gsm-nav-link" href="/admin" Match="NavLinkMatch.All">
-                <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" Size="Size.Small" Class="mr-3" /> Dashboard
-            </NavLink>
-            <NavLink class="gsm-nav-link" href="/admin/gyms">
-                <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Class="mr-3" /> Cartera
-            </NavLink>
-            <NavLink class="gsm-nav-link" href="/admin/payments">
-                <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" Class="mr-3" /> Cobros
-            </NavLink>
-            <NavLink class="gsm-nav-link" href="/admin/impersonations">
-                <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" Class="mr-3" /> Impersonaciones
-            </NavLink>
-        </MudNavMenu>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
+               ClipMode="DrawerClipMode.Always" Class="gsm-drawer">
+        <nav class="gsm-nav" aria-label="Navegación de plataforma">
+            <div class="gsm-nav__group">
+                <div class="gsm-nav__label">Plataforma</div>
+                <NavLink class="gsm-nav-link" href="/admin" Match="NavLinkMatch.All">
+                    <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" Size="Size.Small" /><span>Dashboard</span>
+                </NavLink>
+                <NavLink class="gsm-nav-link" href="/admin/gyms">
+                    <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" /><span>Cartera</span>
+                </NavLink>
+                <NavLink class="gsm-nav-link" href="/admin/payments">
+                    <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" /><span>Cobros</span>
+                </NavLink>
+                <NavLink class="gsm-nav-link" href="/admin/impersonations">
+                    <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" /><span>Impersonaciones</span>
+                </NavLink>
+            </div>
+        </nav>
     </MudDrawer>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6 pb-8">
+    <MudMainContent Class="gsm-main">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="gsm-page">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
+    private bool _drawerOpen = true;
+
+    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
+
+    // Igual que en MainLayout: en móvil el drawer tapa el contenido, así que navegar lo cierra.
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (!_drawerOpen)
+        {
+            return;
+        }
+
+        var breakpoint = await Viewport.GetCurrentBreakpointAsync();
+        if (breakpoint is Breakpoint.Xs or Breakpoint.Sm)
+        {
+            _drawerOpen = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+
     private async Task LogoutAsync()
     {
         await Session.LogoutAsync();

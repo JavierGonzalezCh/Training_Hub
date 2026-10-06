@@ -8,7 +8,7 @@
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
         }
         <MudForm @ref="_form" Model="_model">
-            <MudAutocomplete T="MemberListItem" Label="Socio (opcional)" Value="_member" ValueChanged="v => _member = v"
+            <MudAutocomplete T="MemberListItem" Label="Miembro (opcional)" Value="_member" ValueChanged="v => _member = v"
                               SearchFunc="SearchMembersAsync" ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
                               Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" />
             <MudNumericField T="decimal" @bind-Value="_model.Amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3" />
@@ -34,7 +34,7 @@
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    /// <summary>Preselecciona el socio cuando el pago se registra desde su ficha.</summary>
+    /// <summary>Preselecciona el miembro cuando el pago se registra desde su ficha.</summary>
     [Parameter]
     public Guid? MemberId { get; set; }
 
@@ -61,7 +61,6 @@
                 LastName = member.LastName,
                 DocumentNumber = member.DocumentNumber,
                 Status = member.Status,
-                QrCode = member.QrCode,
                 JoinedAt = member.JoinedAt,
             };
         }

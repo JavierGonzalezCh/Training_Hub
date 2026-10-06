@@ -1,4 +1,5 @@
-@* Si el usuario no tiene acceso a la ruta pedida: anónimo → login; autenticado → su propia área. *@
+@* Si el usuario no tiene acceso a la ruta pedida: anónimo → login (y de vuelta a esa ruta al entrar);
+   autenticado → su propia área. *@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
 
@@ -10,7 +11,7 @@
 
         var target = user.Identity?.IsAuthenticated == true
             ? GsmRoles.HomeFor(user.Role())
-            : "/login";
+            : ReturnUrl.LoginFor(Navigation.ToBaseRelativePath(Navigation.Uri));
 
         Navigation.NavigateTo(target, replace: true);
     }

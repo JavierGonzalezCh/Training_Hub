@@ -41,6 +41,7 @@ public sealed class UpdateGymRequestValidator : AbstractValidator<UpdateGymReque
         RuleFor(x => x.LogoUrl).MaximumLength(2048);
         RuleFor(x => x.PrimaryColor).NotEmpty().Matches(GymRules.HexColorPattern);
         RuleFor(x => x.SecondaryColor).NotEmpty().Matches(GymRules.HexColorPattern);
+        RuleFor(x => x.Capacity).InclusiveBetween(1, GSM.Domain.Gyms.Gym.MaxCapacity).When(x => x.Capacity is not null);
     }
 }
 

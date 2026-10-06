@@ -8,25 +8,17 @@
 
 <MudText Typo="Typo.h4" Class="mb-1">Recepción</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
-    Escanea el QR (o pasa el lector de código de barras) y pulsa Enter. También puedes buscar al socio a mano.
+    Registro manual: busca al miembro por nombre o documento. Los miembros entran solos escaneando el QR del kiosco.
 </MudText>
+
+<MudButton Variant="Variant.Outlined" Href="/kiosk" StartIcon="@Icons.Material.Outlined.QrCode2" Class="mb-6">Abrir kiosco</MudButton>
 
 <MudGrid>
     <MudItem xs="12" md="7">
-        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-            <MudTextField @ref="_qrField" T="string" @bind-Value="_qrCode" Label="Código QR / documento"
-                          Immediate="true" Disabled="_submitting" AutoFocus="true"
-                          OnKeyDown="OnQrKeyDownAsync" Class="gsm-mono" Placeholder="Escanea aquí…" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" FullWidth="true"
-                       Disabled="_submitting || string.IsNullOrWhiteSpace(_qrCode)" OnClick="SubmitQrAsync">
-                Registrar entrada
-            </MudButton>
-        </MudPaper>
-
         <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
             <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Buscar a mano</MudText>
             <MudAutocomplete T="MemberListItem" Value="null" ValueChanged="OnMemberPickedAsync"
-                              SearchFunc="SearchMembersAsync" Disabled="_submitting"
+                              SearchFunc="SearchMembersAsync" Disabled="_submitting" AutoFocus="true"
                               ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
                               Placeholder="Nombre o documento" ResetValueOnEmptyText="true" />
         </MudPaper>
@@ -48,7 +40,19 @@
                 }
                 @if (_result.MembershipExpired)
                 {
-                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">Membresía vencida. La entrada quedó registrada igual.</MudAlert>
+                    @if (_result.GraceDaysLeft is { } left)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">
+                            Dentro de la gracia: le @(left == 1 ? "queda 1 día" : $"quedan {left} días").
+                            Venció el @(_result.MembershipEndsOn is { } e ? GsmFormat.Day(e) : "—").
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">
+                            Membresía vencida@(_result.MembershipEndsOn is { } e2 ? $" el {GsmFormat.Day(e2)}" : " o inexistente"). La entrada quedó registrada igual.
+                        </MudAlert>
+                    }
                 }
 
                 @if (_result.UnlockedAchievements is { Count: > 0 } achievements)
@@ -72,25 +76,8 @@
 </MudGrid>
 
 @code {
-    private MudTextField<string> _qrField = null!;
-    private string _qrCode = string.Empty;
     private CheckInResponse? _result;
     private bool _submitting;
-
-    private Task OnQrKeyDownAsync(KeyboardEventArgs args)
-        => args.Key == "Enter" ? SubmitQrAsync() : Task.CompletedTask;
-
-    private async Task SubmitQrAsync()
-    {
-        if (string.IsNullOrWhiteSpace(_qrCode) || _submitting)
-        {
-            return;
-        }
-
-        await SubmitAsync(new CheckInRequest { QrCode = _qrCode, Method = (int)AttendanceMethodValue.Qr });
-        _qrCode = string.Empty;
-        await _qrField.FocusAsync();
-    }
 
     private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
     {
@@ -110,8 +97,7 @@
             return;
         }
 
-        await SubmitAsync(new CheckInRequest { MemberId = member.Id, Method = (int)AttendanceMethodValue.Manual });
-        await _qrField.FocusAsync();
+        await SubmitAsync(new CheckInRequest { MemberId = member.Id });
     }
 
     private async Task SubmitAsync(CheckInRequest request)
@@ -137,11 +123,4 @@
         { AlreadyCheckedInToday: true } => "border:1px solid var(--gsm-border)",
         _ => "border:1px solid var(--gsm-cyan)",
     };
-
-    /// <summary>Espejo de <c>AttendanceMethod</c> del backend (Qr=0, Manual=1).</summary>
-    private enum AttendanceMethodValue
-    {
-        Qr = 0,
-        Manual = 1,
-    }
 }

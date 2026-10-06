@@ -3,108 +3,158 @@
 @attribute [Authorize(Roles = GsmRoles.Member)]
 @inject GymContext GymCtx
 @inject MemberContext MemberCtx
-@inject IAttendanceClient Attendance
 @inject IMemberAttendanceClient MemberAttendance
+@inject IQrScanner Scanner
+@inject IMeClient Me
+@inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
 <PageTitle>Mi gimnasio — GSM</PageTitle>
 
 @if (MemberCtx.Detail is { } member)
 {
-    <div class="d-flex align-center mb-4" style="gap:1rem">
-        <MudAvatar Size="Size.Large" Style="width:64px;height:64px">
-            @if (!string.IsNullOrEmpty(member.PhotoUrl))
-            {
-                <MudImage Src="@member.PhotoUrl" />
-            }
-            else
-            {
-                @($"{member.FirstName[0]}{member.LastName[0]}".ToUpperInvariant())
-            }
-        </MudAvatar>
-        <div>
-            <MudText Typo="Typo.h5">@member.FirstName @member.LastName</MudText>
+    <section class="gsm-m-hero">
+        <div class="gsm-m-hero__top">
+            <MudAvatar Class="gsm-m-hero__avatar">
+                @if (!string.IsNullOrEmpty(member.PhotoUrl))
+                {
+                    <MudImage Src="@member.PhotoUrl" />
+                }
+                else
+                {
+                    @($"{member.FirstName[0]}{member.LastName[0]}".ToUpperInvariant())
+                }
+            </MudAvatar>
+            <div class="gsm-m-hero__who">
+                <span class="gsm-m-hero__hello">Hola,</span>
+                <h1 class="gsm-m-hero__name">@member.FirstName</h1>
+            </div>
             <StatusChip Status="@member.Status" />
         </div>
-    </div>
 
-    <MudPaper Class="pa-4 mb-4 d-flex flex-column align-center" Elevation="0" Style="border:1px solid var(--gsm-border)">
-        <QrCodeSvg Value="@member.QrCode" SizePx="200" />
-        <MudText Typo="Typo.caption" Class="gsm-mono mt-2" Color="Color.Secondary">@member.QrCode</MudText>
-    </MudPaper>
+        @if (member.CurrentMembership is { } membership)
+        {
+            var total = Math.Max(1, membership.EndDate.DayNumber - membership.StartDate.DayNumber + 1);
+            var left = Math.Max(0, membership.EndDate.DayNumber - GsmFormat.Today().DayNumber + 1);
+            var pct = Math.Clamp(left * 100 / total, 0, 100);
+            <div class="gsm-m-plan">
+                <div class="gsm-m-plan__row">
+                    <span class="gsm-m-plan__name">@membership.PlanName</span>
+                    <span class="gsm-m-plan__left">@(left == 0 ? "Vence hoy" : left == 1 ? "1 día" : $"{left} días")</span>
+                </div>
+                <div class="gsm-m-plan__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@pct" aria-label="Tiempo restante de la membresía">
+                    <span class="gsm-m-plan__fill" style="width:@(pct.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                </div>
+                <span class="gsm-m-plan__until">Vigente hasta el @GsmFormat.Day(membership.EndDate)</span>
+            </div>
+        }
+        else
+        {
+            <div class="gsm-m-plan">
+                <span class="gsm-m-plan__name">Sin membresía vigente</span>
+                <span class="gsm-m-plan__until">Pasa por recepción para activar tu plan.</span>
+            </div>
+        }
+    </section>
 
     @if (GymCtx.FeatureFlags?.CheckinQr == true)
     {
-        <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" Class="mb-4"
-                   OnClick="CheckInAsync" Disabled="_checkingIn">
-            @(_checkingIn ? "Registrando..." : "Registrar mi entrada")
-        </MudButton>
-
-        @if (_checkInMessage is not null)
-        {
-            <MudAlert Severity="@_checkInSeverity" Dense="true" Class="mb-4">@_checkInMessage</MudAlert>
-        }
-    }
-
-    <MudGrid Class="mb-4">
-        <MudItem xs="6">
-            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Racha</MudText>
-                <MudText Typo="Typo.h4" Class="gsm-mono">@(_streak?.CurrentStreak ?? 0)</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">días seguidos</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="6">
-            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Congeladores</MudText>
-                <MudText Typo="Typo.h4" Class="gsm-mono">@(_streak?.FreezesAvailable ?? 0)</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">disponibles</MudText>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-
-    @if (member.CurrentMembership is { } membership)
-    {
-        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-            <MudText Typo="Typo.overline" Color="Color.Secondary">Membresía</MudText>
-            <MudText Typo="Typo.h6">@membership.PlanName</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Vence @GsmFormat.Day(membership.EndDate)</MudText>
-        </MudPaper>
-    }
-
-    <MudText Typo="Typo.h6" Class="mb-2">Últimas visitas</MudText>
-    @if (_recentAttendance is null)
-    {
-        <MudProgressCircular Indeterminate="true" />
-    }
-    else if (_recentAttendance.Count == 0)
-    {
-        <MudText Color="Color.Secondary">Todavía no has entrado.</MudText>
-    }
-    else
-    {
-        @foreach (var visit in _recentAttendance)
-        {
-            <div class="d-flex justify-space-between py-1">
-                <MudText Typo="Typo.body2">@GsmFormat.Day(visit.AttendanceDate)</MudText>
-                <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">@GsmFormat.Instant(visit.CheckedInAt)</MudText>
+        <section class="gsm-m-card gsm-m-checkin">
+            <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" /></span>
+            <div class="gsm-m-card__body">
+                <h2 class="gsm-m-card__title">Registrar entrada</h2>
+                <p class="gsm-m-card__text">Escanea el QR de la entrada del gimnasio con la cámara de tu teléfono.</p>
             </div>
-        }
+            @if (Scanner.IsSupported)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ScanAsync">Escanear</MudButton>
+            }
+        </section>
     }
+
+    <div class="gsm-m-stats">
+        <div class="gsm-m-stat">
+            <span class="gsm-m-stat__label">Racha</span>
+            <span class="gsm-m-stat__value">@(_streak?.CurrentStreak ?? 0)</span>
+            <span class="gsm-m-stat__hint">días seguidos</span>
+        </div>
+        <div class="gsm-m-stat">
+            <span class="gsm-m-stat__label">Congeladores</span>
+            <span class="gsm-m-stat__value">@(_streak?.FreezesAvailable ?? 0)</span>
+            <span class="gsm-m-stat__hint">disponibles</span>
+        </div>
+    </div>
+
+    @if (GymCtx.FeatureFlags?.ShowRoutines != false && _today is not null)
+    {
+        <a class="gsm-m-card gsm-m-today" href="/app/rutina">
+            <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.FitnessCenter" /></span>
+            <div class="gsm-m-card__body">
+                <span class="gsm-m-card__kicker">Tu entrenamiento de hoy</span>
+                <h2 class="gsm-m-card__title">@_today.DayName</h2>
+                <p class="gsm-m-card__text">@(_today.IsRest ? "Día de descanso: recupérate." : $"{_today.Exercises.Count} ejercicios")</p>
+            </div>
+            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
+        </a>
+    }
+
+    <section class="gsm-m-visits" aria-labelledby="visits-title">
+        <h2 id="visits-title" class="gsm-m-section">Últimas visitas</h2>
+        @if (_recentAttendance is null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_recentAttendance.Count == 0)
+        {
+            <p class="gsm-m-card__text">Todavía no has entrado. ¡Tu primera visita te espera!</p>
+        }
+        else
+        {
+            <ol class="gsm-m-visit-list">
+                @foreach (var visit in _recentAttendance)
+                {
+                    <li class="gsm-m-visit">
+                        <span class="gsm-m-visit__day">@GsmFormat.Day(visit.AttendanceDate)</span>
+                        <span class="gsm-m-visit__time">@GsmFormat.Time(visit.CheckedInAt)</span>
+                    </li>
+                }
+            </ol>
+        }
+    </section>
 }
 
 @code {
     private MemberStreakResponse? _streak;
     private List<AttendanceListItem>? _recentAttendance;
-    private bool _checkingIn;
-    private string? _checkInMessage;
-    private Severity _checkInSeverity = Severity.Success;
+    private TodayView? _today;
+
+    private async Task ScanAsync()
+    {
+        var code = GymCodeLink.ExtractCode(await Scanner.ScanAsync());
+        if (code is null)
+        {
+            return;
+        }
+
+        Navigation.NavigateTo(GymCodeLink.PathFor(code));
+    }
 
     protected override async Task OnInitializedAsync()
     {
         if (MemberCtx.MemberId is not { } memberId)
         {
             return;
+        }
+
+        if (GymCtx.FeatureFlags?.ShowRoutines != false)
+        {
+            try
+            {
+                _today = (await Me.RoutinesGETAsync()).Today;
+            }
+            catch (GsmApiException)
+            {
+            }
         }
 
         try
@@ -116,47 +166,6 @@
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
-        }
-    }
-
-    private async Task CheckInAsync()
-    {
-        _checkingIn = true;
-        _checkInMessage = null;
-        try
-        {
-            var result = await Attendance.CheckinAsync(new CheckInRequest());
-            if (result.AlreadyCheckedInToday)
-            {
-                _checkInSeverity = Severity.Warning;
-                _checkInMessage = "Ya habías entrado hoy.";
-            }
-            else
-            {
-                _checkInSeverity = Severity.Success;
-                _checkInMessage = "¡Entrada registrada!";
-            }
-
-            if (result.MembershipExpired)
-            {
-                _checkInSeverity = Severity.Error;
-                _checkInMessage += " Tu membresía está vencida — pasa por recepción.";
-            }
-
-            if (MemberCtx.MemberId is { } memberId)
-            {
-                var page = await MemberAttendance.AttendanceGET2Async(memberId, 1, 5);
-                _recentAttendance = page.Items.ToList();
-            }
-        }
-        catch (GsmApiException ex)
-        {
-            _checkInSeverity = Severity.Error;
-            _checkInMessage = ApiError.FromException(ex).DisplayMessage;
-        }
-        finally
-        {
-            _checkingIn = false;
         }
     }
 }

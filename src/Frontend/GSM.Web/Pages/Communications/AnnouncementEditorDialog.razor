@@ -1,0 +1,163 @@
+@* Editor de anuncios: contenido, fijado, caducidad y envío por email, con vista previa tal como
+   lo verá el miembro en la app. Guardar deja un borrador; Publicar lo hace visible. *@
+@inject IAnnouncementsClient Announcements
+@inject IDialogService Dialogs
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+
+        <div class="gsm-editor">
+            <div class="gsm-editor__form">
+                <MudTextField T="string" @bind-Value="_title" Label="Título" Required="true" MaxLength="120"
+                              Counter="120" Immediate="true" />
+                <MudTextField T="string" @bind-Value="_body" Label="Texto" Lines="7" Required="true" MaxLength="4000"
+                              Counter="4000" Immediate="true" Class="mt-2"
+                              HelperText="Texto plano. Los saltos de línea se respetan." />
+                <MudDatePicker Label="Visible hasta (opcional)" Date="_expires" DateChanged="d => _expires = d"
+                               Clearable="true" MinDate="DateTime.Today" Class="mt-2"
+                               HelperText="Después de ese día deja de verse en la app." />
+
+                @if (IsNew)
+                {
+                    <MudSwitch T="bool" @bind-Value="_pinned" Label="Fijar arriba" Color="Color.Primary" Class="mt-3" />
+                }
+
+                @if (Existing is null || Existing.Status == "Draft")
+                {
+                    <MudSwitch T="bool" @bind-Value="_sendEmail" Label="Enviar también por email" Color="Color.Primary" />
+                    @if (_sendEmail)
+                    {
+                        <p class="gsm-editor__hint">
+                            @(_audience is { } n ? $"Se enviará a {n} {(n == 1 ? "miembro" : "miembros")} con email al publicar." : "Se enviará al publicar.")
+                        </p>
+                    }
+                }
+                else if (Existing.SendEmail)
+                {
+                    <p class="gsm-editor__hint">Ya se envió por email: editar cambia lo que se ve en la app, pero no reenvía correos.</p>
+                }
+            </div>
+
+            <aside class="gsm-editor__preview" aria-label="Vista previa en la app">
+                <div class="gsm-eyebrow">Vista previa</div>
+                <article class="gsm-feed-card">
+                    <h3 class="gsm-feed-card__title">@(string.IsNullOrWhiteSpace(_title) ? "Título del anuncio" : _title)</h3>
+                    <p class="gsm-feed-card__body">@(string.IsNullOrWhiteSpace(_body) ? "El texto aparecerá aquí." : _body)</p>
+                </article>
+            </aside>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="() => SaveAsync(publish: false)" Disabled="_submitting">
+            @(IsDraft ? "Guardar borrador" : "Guardar cambios")
+        </MudButton>
+        @if (IsDraft)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SaveAsync(publish: true)" Disabled="_submitting">
+                Publicar
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Nulo = anuncio nuevo.</summary>
+    [Parameter]
+    public AnnouncementResponse? Existing { get; set; }
+
+    private string _title = string.Empty;
+    private string _body = string.Empty;
+    private DateTime? _expires;
+    private bool _pinned;
+    private bool _sendEmail;
+    private int? _audience;
+    private string? _error;
+    private bool _submitting;
+
+    private bool IsNew => Existing is null;
+
+    private bool IsDraft => Existing is null || Existing.Status == "Draft";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Existing is { } a)
+        {
+            _title = a.Title;
+            _body = a.Body;
+            _expires = a.ExpiresOn?.ToDateTime(TimeOnly.MinValue);
+            _pinned = a.Pinned;
+            _sendEmail = a.SendEmail;
+        }
+
+        try
+        {
+            _audience = (await Announcements.EmailAudienceAsync()).Recipients;
+        }
+        catch (GsmApiException)
+        {
+            _audience = null;
+        }
+    }
+
+    private async Task SaveAsync(bool publish)
+    {
+        _error = null;
+        if (_title.Trim().Length < 3 || string.IsNullOrWhiteSpace(_body))
+        {
+            _error = "El título necesita al menos 3 caracteres y el texto no puede estar vacío.";
+            return;
+        }
+
+        if (publish && !await AnnouncementActions.ConfirmPublishAsync(Dialogs, Announcements, _sendEmail))
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var expires = _expires is { } e ? DateOnly.FromDateTime(e) : (DateOnly?)null;
+            Guid id;
+            if (Existing is null)
+            {
+                id = (await Announcements.AnnouncementsPOSTAsync(new CreateAnnouncementRequest
+                {
+                    Title = _title, Body = _body, Pinned = _pinned, ExpiresOn = expires, SendEmail = _sendEmail,
+                })).Id;
+            }
+            else
+            {
+                id = Existing.Id;
+                await Announcements.AnnouncementsPUTAsync(id, new UpdateAnnouncementRequest
+                {
+                    Title = _title, Body = _body, ExpiresOn = expires, SendEmail = _sendEmail,
+                });
+            }
+
+            if (publish)
+            {
+                await Announcements.PublishAsync(id);
+            }
+
+            MudDialog.Close(DialogResult.Ok(publish ? "Anuncio publicado." : IsNew ? "Borrador guardado." : "Cambios guardados."));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

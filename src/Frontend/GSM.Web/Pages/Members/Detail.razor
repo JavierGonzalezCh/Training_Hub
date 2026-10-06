@@ -6,13 +6,14 @@
 @inject IMemberPaymentsClient MemberPayments
 @inject IMemberMembershipsClient MemberMemberships
 @inject IMemberRoutinesClient MemberRoutinesClient
+@inject IRoutinesClient RoutinesClient
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>@(_member?.FirstName is null ? "Socio" : $"{_member.FirstName} {_member.LastName}") — GSM</PageTitle>
+<PageTitle>@(_member?.FirstName is null ? "Miembro" : $"{_member.FirstName} {_member.LastName}") — GSM</PageTitle>
 
-<MudLink OnClick="@(() => Navigation.NavigateTo("/members"))" Class="mb-4 d-inline-block">← Socios</MudLink>
+<MudLink OnClick="@(() => Navigation.NavigateTo("/members"))" Class="mb-4 d-inline-block">← Miembros</MudLink>
 
 @if (_loading)
 {
@@ -20,7 +21,7 @@
 }
 else if (_notFound)
 {
-    <MudAlert Severity="Severity.Error">No se encontró el socio.</MudAlert>
+    <MudAlert Severity="Severity.Error">No se encontró el miembro.</MudAlert>
 }
 else if (_member is not null)
 {
@@ -54,7 +55,6 @@ else if (_member is not null)
             </MudText>
         </div>
         <div class="d-flex flex-wrap" style="gap:0.5rem">
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.QrCode2" OnClick="ShowQrAsync">QR</MudButton>
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" OnClick="InviteAsync">Invitar</MudButton>
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CardMembership" OnClick="AssignMembershipAsync">
                 Asignar membresía
@@ -169,29 +169,69 @@ else if (_member is not null)
             }
             else
             {
-                <MudTable Items="_routines" Hover="true" Dense="true" Elevation="0">
-                    <HeaderContent>
-                        <MudTh>Nombre</MudTh>
-                        <MudTh>Desde</MudTh>
-                        <MudTh>Ciclo</MudTh>
-                        <MudTh>Estado</MudTh>
-                        <MudTh></MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="Nombre">@context.Name</MudTd>
-                        <MudTd DataLabel="Desde">@GsmFormat.Day(context.StartsOn)</MudTd>
-                        <MudTd DataLabel="Ciclo">@context.CycleLength días</MudTd>
-                        <MudTd DataLabel="Estado">
-                            <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
-                                @(context.IsActive ? "ACTIVA" : "INACTIVA")
-                            </MudChip>
-                        </MudTd>
-                        <MudTd>
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                           OnClick="@(() => Navigation.NavigateTo($"/members/{Id}/routines/{context.Id}"))" />
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
+                @* Pulsar una rutina despliega sus días y ejercicios (se cargan al abrirla). *@
+                <MudExpansionPanels MultiExpansion="true" Elevation="0" Class="gsm-routine-list">
+                    @foreach (var routine in _routines)
+                    {
+                        var current = routine;
+                        <MudExpansionPanel ExpandedChanged="@((bool open) => OnRoutineToggledAsync(current.Id, open))">
+                            <TitleContent>
+                                <div class="gsm-routine-head">
+                                    <div class="gsm-routine-head__main">
+                                        <span class="gsm-routine-head__name">@current.Name</span>
+                                        <span class="gsm-routine-head__meta">Desde @GsmFormat.Day(current.StartsOn) · ciclo de @current.CycleLength días</span>
+                                    </div>
+                                    <MudChip T="string" Color="@(current.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                                        @(current.IsActive ? "ACTIVA" : "INACTIVA")
+                                    </MudChip>
+                                    <span @onclick:stopPropagation="true">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar rutina"
+                                                       OnClick="@(() => Navigation.NavigateTo($"/members/{Id}/routines/{current.Id}"))" />
+                                    </span>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                @if (!_routineDetails.TryGetValue(current.Id, out var detail))
+                                {
+                                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                                }
+                                else
+                                {
+                                    @if (!string.IsNullOrWhiteSpace(detail.Notes))
+                                    {
+                                        <p class="gsm-routine-notes">@detail.Notes</p>
+                                    }
+                                    <div class="gsm-routine-days">
+                                        @foreach (var day in detail.Days.OrderBy(d => d.Position))
+                                        {
+                                            <section class="gsm-routine-day @(day.IsRest ? "is-rest" : null)">
+                                                <h3 class="gsm-routine-day__title">
+                                                    <span class="gsm-routine-day__num">Día @(day.Position)</span> @day.Name
+                                                </h3>
+                                                @if (day.IsRest)
+                                                {
+                                                    <p class="gsm-routine-day__rest">Descanso</p>
+                                                }
+                                                else
+                                                {
+                                                    <ol class="gsm-routine-ex">
+                                                        @foreach (var ex in day.Exercises.OrderBy(e => e.Order))
+                                                        {
+                                                            <li class="gsm-routine-ex__item">
+                                                                <span class="gsm-routine-ex__name">@ex.ExerciseName</span>
+                                                                <span class="gsm-routine-ex__target">@ex.TargetSets × @ex.TargetReps@(ex.TargetWeightKg is { } kg ? $" · {kg:0.#} kg" : "")@(ex.RestSeconds is { } rest ? $" · {rest} s" : "")</span>
+                                                            </li>
+                                                        }
+                                                    </ol>
+                                                }
+                                            </section>
+                                        }
+                                    </div>
+                                }
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
             }
         </MudTabPanel>
         <MudTabPanel Text="Pagos">
@@ -235,9 +275,27 @@ else if (_member is not null)
     private MemberStreakResponse? _streak;
     private List<MembershipResponse>? _memberships;
     private List<RoutineListItem>? _routines;
+    private readonly Dictionary<Guid, RoutineResponse> _routineDetails = [];
     private bool _loading = true;
     private bool _notFound;
     private bool _uploadingPhoto;
+
+    private async Task OnRoutineToggledAsync(Guid routineId, bool open)
+    {
+        if (!open || _routineDetails.ContainsKey(routineId))
+        {
+            return;
+        }
+
+        try
+        {
+            _routineDetails[routineId] = await RoutinesClient.RoutinesGET2Async(routineId);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
 
     protected override Task OnParametersSetAsync() => LoadAsync();
 
@@ -280,13 +338,6 @@ else if (_member is not null)
         return new ServerTablePage<AttendanceListItem>(result.Items.ToList(), result.Total);
     }
 
-    private Task ShowQrAsync()
-    {
-        var parameters = new DialogParameters<MemberQrDialog> { { x => x.QrCode, _member!.QrCode } };
-        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
-        return Dialogs.ShowAsync<MemberQrDialog>("Código QR", parameters, options);
-    }
-
     private async Task InviteAsync()
     {
         try
@@ -308,11 +359,11 @@ else if (_member is not null)
     private async Task EditAsync()
     {
         var parameters = new DialogParameters<MemberFormDialog> { { x => x.MemberId, Id } };
-        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Editar socio", parameters);
+        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Editar miembro", parameters);
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {
-            Snackbar.Add("Socio actualizado.", Severity.Success);
+            Snackbar.Add("Miembro actualizado.", Severity.Success);
             await LoadAsync();
         }
     }
@@ -378,7 +429,7 @@ else if (_member is not null)
         try
         {
             await Members.MembersDELETEAsync(Id);
-            Snackbar.Add("Socio dado de baja.", Severity.Success);
+            Snackbar.Add("Miembro dado de baja.", Severity.Success);
             await LoadAsync();
         }
         catch (GsmApiException ex)

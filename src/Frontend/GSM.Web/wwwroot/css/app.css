@@ -1,51 +1,91 @@
+/* Arranque de la app: se ve ANTES de que monte Blazor. Los colores salen de los tokens de
+   gsm.css, y gsm-theme.js ya ha puesto el tema elegido, así que el loader sale con ese tema. */
 html, body {
-    font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--gsm-font-ui);
+    background-color: var(--gsm-bg);
+    color: var(--gsm-text);
+}
+
+/* Pantalla de carga del WASM. Mismo fondo que las pantallas de acceso para que la
+   transición a /login no parpadee en blanco. */
+/* :has() acota estas reglas al rato en que el loader existe. Sin ese ancla, el flex y
+   el wordmark del ::before se quedan aplicados sobre la app ya montada. */
+#app:has(.loading-progress) {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    background-color: var(--gsm-bg);
+    background-image: radial-gradient(600px circle at 90% 0%, var(--gsm-accent-soft), transparent 60%);
+}
+
+/* El wordmark se dibuja en CSS: Anton puede no haber cargado todavía y un fallback
+   sans en mayúsculas sigue leyéndose como la marca. */
+#app:has(.loading-progress)::before {
+    content: "GSM";
+    font-family: var(--gsm-font-display);
+    font-size: 2.75rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--gsm-text);
+    line-height: 1;
 }
 
 .loading-progress {
     position: relative;
     display: block;
-    width: 8rem;
-    height: 8rem;
-    margin: 20vh auto 1rem auto;
+    width: 3rem;
+    height: 3rem;
+    margin: 0;
 }
 
 .loading-progress circle {
     fill: none;
-    stroke: #e0e0e0;
-    stroke-width: 0.6rem;
+    stroke: var(--gsm-border);
+    stroke-width: 0.35rem;
     transform-origin: 50% 50%;
     transform: rotate(-90deg);
 }
 
 .loading-progress circle:last-child {
-    stroke: #1b6ec2;
+    stroke: var(--gsm-accent);
     stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-    transition: stroke-dasharray 0.05s ease-in-out;
+    transition: stroke-dasharray 0.15s ease-in-out;
 }
 
 .loading-progress-text {
-    position: absolute;
-    text-align: center;
-    font-weight: bold;
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
 }
 
 .loading-progress-text:after {
     content: var(--blazor-load-percentage-text, "Cargando");
 }
 
+/* Barra de error: la plantilla la deja en amarillo claro con color-scheme light,
+   que en una app dark-first aparece como un flash blanco a pie de página. */
 #blazor-error-ui {
-    color-scheme: light only;
-    background: lightyellow;
+    background: var(--gsm-surface);
+    border-top: 2px solid var(--gsm-danger);
+    color: var(--gsm-text);
+    font-size: 0.875rem;
     bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
     display: none;
     left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    padding: 0.75rem 1.25rem;
     position: fixed;
     width: 100%;
     z-index: 1000;
+}
+
+#blazor-error-ui .reload {
+    color: var(--gsm-accent-text);
 }
 
 #blazor-error-ui .dismiss {

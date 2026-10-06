@@ -1,0 +1,211 @@
+@page "/communications"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IAnnouncementsClient Announcements
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Comunicaciones — GSM</PageTitle>
+
+<PageHeader Eyebrow="Negocio" Title="Comunicaciones">
+    <Subtitle>Anuncios para tus miembros: los ven en la app y, si quieres, también por email.</Subtitle>
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Campaign"
+                   OnClick="() => OpenEditorAsync(null)">
+            Nuevo anuncio
+        </MudButton>
+    </Actions>
+</PageHeader>
+
+<div class="gsm-segmented mb-4" role="group" aria-label="Filtrar por estado">
+    @foreach (var (value, label) in Filters)
+    {
+        <button type="button" class="gsm-segmented__option @(_status == value ? "is-active" : null)"
+                aria-pressed="@(_status == value ? "true" : "false")"
+                @onclick="() => OnStatusChangedAsync(value)">@label</button>
+    }
+</div>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_items.Count == 0)
+{
+    <section class="gsm-panel">
+        <div class="gsm-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.Campaign" Size="Size.Large" Class="gsm-empty-icon" />
+            <span class="gsm-empty-title">@(_status is null ? "Aún no hay anuncios" : "Nada en este estado")</span>
+            <span>Cuéntales a tus miembros un horario de festivo, una máquina nueva o un evento.</span>
+        </div>
+    </section>
+}
+else
+{
+    <div class="gsm-announcements">
+        @foreach (var a in _items)
+        {
+            <article class="gsm-announcement @(a.Pinned ? "is-pinned" : null)">
+                <header class="gsm-announcement__header">
+                    <div class="gsm-announcement__meta">
+                        <span class="gsm-tag gsm-tag--@a.Status.ToLowerInvariant()">@CommunicationLabels.Status(a.Status)</span>
+                        @if (a.Pinned)
+                        {
+                            <span class="gsm-tag"><MudIcon Icon="@Icons.Material.Filled.PushPin" Style="font-size:0.85rem" /> Fijado</span>
+                        }
+                        <span class="gsm-announcement__date">
+                            @(a.PublishedAt is { } p ? $"Publicado {GsmFormat.Instant(p)}" : $"Creado {GsmFormat.Instant(a.CreatedAt)}")
+                        </span>
+                        @if (a.ExpiresOn is { } exp)
+                        {
+                            <span class="gsm-announcement__date">· visible hasta el @GsmFormat.Day(exp)</span>
+                        }
+                    </div>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+                             aria-label="@($"Acciones de «{a.Title}»")">
+                        @if (a.Status != "Archived")
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="() => OpenEditorAsync(a)">Editar</MudMenuItem>
+                        }
+                        @if (a.Status == "Draft")
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Outlined.Send" OnClick="() => PublishAsync(a)">Publicar</MudMenuItem>
+                        }
+                        @if (a.Status != "Archived")
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Outlined.PushPin" OnClick="() => TogglePinAsync(a)">
+                                @(a.Pinned ? "Desfijar" : "Fijar arriba")
+                            </MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Outlined.Archive" OnClick="() => ArchiveAsync(a)">Archivar</MudMenuItem>
+                        }
+                    </MudMenu>
+                </header>
+
+                <h2 class="gsm-announcement__title">@a.Title</h2>
+                <p class="gsm-announcement__body">@a.Body</p>
+
+                <footer class="gsm-announcement__footer">
+                    <div class="gsm-reaction-totals" aria-label="Reacciones">
+                        @foreach (var kind in CommunicationLabels.Reactions)
+                        {
+                            <span class="gsm-reaction-total" title="@CommunicationLabels.ReactionLabel(kind)">
+                                <MudIcon Icon="@CommunicationLabels.ReactionIcon(kind)" Size="Size.Small" />
+                                <span class="gsm-num">@Count(a.Reactions, kind)</span>
+                                <span class="gsm-visually-hidden">@CommunicationLabels.ReactionLabel(kind)</span>
+                            </span>
+                        }
+                    </div>
+                    @if (a.SendEmail)
+                    {
+                        <span class="gsm-announcement__email">
+                            <MudIcon Icon="@Icons.Material.Outlined.Email" Size="Size.Small" />
+                            @if (a.Delivery is { } d)
+                            {
+                                <span>@d.Sent enviados@(d.Pending > 0 ? $" · {d.Pending} en cola" : "")@(d.Failed > 0 ? $" · {d.Failed} fallidos" : "")</span>
+                            }
+                            else
+                            {
+                                <span>@(a.Status == "Draft" ? "Se enviará por email al publicar" : "Por email")</span>
+                            }
+                        </span>
+                    }
+                </footer>
+            </article>
+        }
+    </div>
+}
+
+@code {
+    private static readonly (string? Value, string Label)[] Filters =
+        [(null, "Todos"), ("Draft", "Borradores"), ("Published", "Publicados"), ("Archived", "Archivados")];
+
+    private List<AnnouncementResponse> _items = [];
+    private string? _status;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var page = await Announcements.AnnouncementsGETAsync(_status, 1, 50);
+            _items = page.Items.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnStatusChangedAsync(string? value)
+    {
+        _status = value;
+        await LoadAsync();
+    }
+
+    private async Task OpenEditorAsync(AnnouncementResponse? existing)
+    {
+        var parameters = new DialogParameters<AnnouncementEditorDialog> { { x => x.Existing, existing } };
+        var dialog = await Dialogs.ShowAsync<AnnouncementEditorDialog>(
+            existing is null ? "Nuevo anuncio" : "Editar anuncio", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: string message })
+        {
+            Snackbar.Add(message, Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task PublishAsync(AnnouncementResponse a)
+    {
+        if (!await AnnouncementActions.ConfirmPublishAsync(Dialogs, Announcements, a.SendEmail))
+        {
+            return;
+        }
+
+        await RunAsync(() => Announcements.PublishAsync(a.Id), "Anuncio publicado.");
+    }
+
+    private Task TogglePinAsync(AnnouncementResponse a)
+        => RunAsync(() => a.Pinned ? Announcements.UnpinAsync(a.Id) : Announcements.PinAsync(a.Id),
+            a.Pinned ? "Anuncio desfijado." : "Anuncio fijado arriba.");
+
+    private async Task ArchiveAsync(AnnouncementResponse a)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Archivar anuncio",
+            $"«{a.Title}» dejará de verse en la app. Los correos ya enviados no se recuperan.",
+            yesText: "Archivar", cancelText: "Cancelar");
+        if (confirmed == true)
+        {
+            await RunAsync(() => Announcements.ArchiveAsync(a.Id), "Anuncio archivado.");
+        }
+    }
+
+    private async Task RunAsync(Func<Task> action, string success)
+    {
+        try
+        {
+            await action();
+            Snackbar.Add(success, Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private static int Count(ReactionCounts counts, string kind) => kind switch
+    {
+        CommunicationLabels.Celebrate => counts.Celebrate,
+        CommunicationLabels.Strong => counts.Strong,
+        _ => counts.Like,
+    };
+}

@@ -20,5 +20,6 @@ builder.Services.AddScoped<ITokenStore, LocalStorageTokenStore>();
 builder.Services.AddGsmClient(apiBaseUrl);
 builder.Services.AddGsmUiShared();
 builder.Services.AddGsmMemberUi();
+builder.Services.AddSingleton<GSM.Member.UI.IQrScanner, GSM.Member.UI.UnsupportedQrScanner>();
 
 await builder.Build().RunAsync();

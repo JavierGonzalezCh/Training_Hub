@@ -1,31 +1,88 @@
-<MudNavMenu Class="pt-4 px-2">
-    <NavLink class="gsm-nav-link" href="/" Match="NavLinkMatch.All">
-        <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" Size="Size.Small" Class="mr-3" /> Dashboard
-    </NavLink>
-    <NavLink class="gsm-nav-link" href="/members">
-        <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Class="mr-3" /> Socios
-    </NavLink>
-    <NavLink class="gsm-nav-link" href="/payments">
-        <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" Class="mr-3" /> Pagos y caja
-    </NavLink>
-    <NavLink class="gsm-nav-link" href="/plans">
-        <MudIcon Icon="@Icons.Material.Filled.CardMembership" Size="Size.Small" Class="mr-3" /> Planes
-    </NavLink>
-    <NavLink class="gsm-nav-link" href="/attendance">
-        <MudIcon Icon="@Icons.Material.Filled.FactCheck" Size="Size.Small" Class="mr-3" /> Asistencia
-    </NavLink>
-    <NavLink class="gsm-nav-link" href="/exercises">
-        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" Class="mr-3" /> Ejercicios
-    </NavLink>
-    <NavLink class="gsm-nav-link" href="/classes">
-        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-3" /> Clases
-    </NavLink>
-    <Soon Icon="@Icons.Material.Filled.BarChart" Label="Reportes" />
+@* Navegación del panel agrupada por tarea, no por módulo: lo que se hace en el mostrador
+   arriba, la gestión comercial después y el entrenamiento al final. Ocho destinos en una
+   lista plana obligaban a leerlos todos para encontrar uno. *@
+@implements IDisposable
+@inject GymContext GymContext
+
+<nav class="gsm-nav" aria-label="Navegación principal">
+    <div class="gsm-nav__group">
+        <div class="gsm-nav__label">Operación</div>
+        <NavLink class="gsm-nav-link" href="/" Match="NavLinkMatch.All">
+            <MudIcon Icon="@Icons.Material.Outlined.SpaceDashboard" Size="Size.Small" /><span>Dashboard</span>
+        </NavLink>
+        <NavLink class="gsm-nav-link" href="/attendance/checkin">
+            <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Size="Size.Small" /><span>Recepción</span>
+        </NavLink>
+        <NavLink class="gsm-nav-link" href="/kiosk">
+            <MudIcon Icon="@Icons.Material.Outlined.QrCode2" Size="Size.Small" /><span>Kiosco</span>
+        </NavLink>
+        <NavLink class="gsm-nav-link" href="/attendance" Match="NavLinkMatch.All">
+            <MudIcon Icon="@Icons.Material.Outlined.FactCheck" Size="Size.Small" /><span>Asistencia</span>
+        </NavLink>
+    </div>
+
+    <div class="gsm-nav__group">
+        <div class="gsm-nav__label">Negocio</div>
+        <NavLink class="gsm-nav-link" href="/members">
+            <MudIcon Icon="@Icons.Material.Outlined.Groups" Size="Size.Small" /><span>Miembros</span>
+        </NavLink>
+        <NavLink class="gsm-nav-link" href="/plans">
+            <MudIcon Icon="@Icons.Material.Outlined.CardMembership" Size="Size.Small" /><span>Planes</span>
+        </NavLink>
+        <NavLink class="gsm-nav-link" href="/payments">
+            <MudIcon Icon="@Icons.Material.Outlined.Payments" Size="Size.Small" /><span>Pagos y caja</span>
+        </NavLink>
+        <NavLink class="gsm-nav-link" href="/communications">
+            <MudIcon Icon="@Icons.Material.Outlined.Campaign" Size="Size.Small" /><span>Comunicaciones</span>
+        </NavLink>
+    </div>
+
+    <div class="gsm-nav__group">
+        <div class="gsm-nav__label">Entrenamiento</div>
+        <NavLink class="gsm-nav-link" href="/classes">
+            <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" /><span>Clases</span>
+        </NavLink>
+        <NavLink class="gsm-nav-link" href="/exercises">
+            <MudIcon Icon="@Icons.Material.Outlined.FitnessCenter" Size="Size.Small" /><span>Ejercicios</span>
+        </NavLink>
+    </div>
 
     <RequireRole Roles="@GsmRoles.Owner">
-        <MudDivider Class="my-3 mx-2" />
-        <NavLink class="gsm-nav-link" href="/settings">
-            <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Class="mr-3" /> Configuración
-        </NavLink>
+        <div class="gsm-nav__group">
+            <div class="gsm-nav__label">Gestión</div>
+            <NavLink class="gsm-nav-link" href="/settings">
+                <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" /><span>Configuración</span>
+            </NavLink>
+        </div>
     </RequireRole>
-</MudNavMenu>
+
+    @if (GymContext.Gym is { } gym)
+    {
+        <div class="gsm-nav__gym">
+            <span class="gsm-nav__gym-mark" aria-hidden="true">@GymInitial(gym.Name)</span>
+            <span class="gsm-nav__gym-text">
+                <span class="gsm-nav__gym-name">@gym.Name</span>
+                <span class="gsm-nav__gym-meta">Sesión · @RoleLabel(GymContext.Role)</span>
+            </span>
+        </div>
+    }
+</nav>
+
+@code {
+    protected override void OnInitialized() => GymContext.Changed += OnGymChanged;
+
+    private void OnGymChanged() => InvokeAsync(StateHasChanged);
+
+    private static string RoleLabel(string? role) => role switch
+    {
+        GsmRoles.Owner => "propietario",
+        GsmRoles.Staff => "staff",
+        GsmRoles.SuperAdmin => "soporte",
+        _ => "—",
+    };
+
+    private static string GymInitial(string name)
+        => string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[..1].ToUpperInvariant();
+
+    public void Dispose() => GymContext.Changed -= OnGymChanged;
+}

@@ -3,8 +3,8 @@ using GSM.Domain.Attendance;
 
 namespace GSM.Application.Attendance.Contracts;
 
-/// <summary>Check-in por QR o por memberId. Un `member` autenticado ignora ambos: se registra a sí mismo.</summary>
-public sealed record CheckInRequest(string? QrCode, Guid? MemberId, AttendanceMethod? Method);
+/// <summary>Staff/Owner: `MemberId` (registro manual). Miembro: `GymCode`, el código del QR del gym.</summary>
+public sealed record CheckInRequest(Guid? MemberId, string? GymCode);
 
 public sealed record CheckInResponse(
     Guid AttendanceId,
@@ -14,7 +14,30 @@ public sealed record CheckInResponse(
     string Method,
     bool AlreadyCheckedInToday,
     bool MembershipExpired,
-    IReadOnlyList<UnlockedAchievement> UnlockedAchievements);
+    IReadOnlyList<UnlockedAchievement> UnlockedAchievements,
+    DateOnly? MembershipEndsOn,
+    int? GraceDaysLeft);
+
+public sealed record CheckinAttemptItem(
+    Guid Id,
+    Guid MemberId,
+    string MemberName,
+    DateTimeOffset AttemptedAt,
+    int AttemptCount,
+    string Reason,
+    DateOnly? MembershipEndedOn,
+    DateTimeOffset? AcknowledgedAt);
+
+public sealed record PendingAttemptCountResponse(int Count);
+
+public sealed record ListCheckinAttemptsQuery
+{
+    public DateOnly? From { get; init; }
+    public DateOnly? To { get; init; }
+    public bool PendingOnly { get; init; }
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 20;
+}
 
 public sealed record AttendanceListItem(
     Guid Id,
@@ -34,3 +57,10 @@ public sealed record ListAttendanceQuery
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }
+
+public sealed record CheckinSettingsResponse(string Mode, int GraceDays);
+
+public sealed record UpdateCheckinSettingsRequest(string Mode, int GraceDays);
+
+/// <summary>Código vigente del gym. <c>ExpiresAtUtc</c> solo en modo rotativo.</summary>
+public sealed record KioskCodeResponse(string Mode, string Code, DateTimeOffset? ExpiresAtUtc);

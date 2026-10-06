@@ -8,6 +8,9 @@ public interface IMembershipReader
 
     Task<bool> IsActiveAsync(Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>Ultimo dia cubierto (<c>end_date</c> maximo) entre las membresias del miembro, en cualquier estado. <c>null</c> si nunca tuvo.</summary>
+    Task<DateOnly?> GetLatestEndDateAsync(Guid memberId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<ExpiringMembershipView>> GetExpiringAsync(
         Guid gymId, int withinDays, CancellationToken cancellationToken = default);
 

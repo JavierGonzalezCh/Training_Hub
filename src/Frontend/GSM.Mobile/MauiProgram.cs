@@ -5,6 +5,7 @@ using GSM.Mobile.Platform;
 using GSM.UI.Shared;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
+using ZXing.Net.Maui.Controls;
 
 namespace GSM.Mobile;
 
@@ -15,6 +16,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
+            .UseBarcodeReader()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -29,6 +31,7 @@ public static class MauiProgram
         builder.Services.AddGsmClient(ApiBaseUrl);
         builder.Services.AddGsmUiShared();
         builder.Services.AddGsmMemberUi();
+        builder.Services.AddSingleton<IQrScanner, ZxingQrScanner>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

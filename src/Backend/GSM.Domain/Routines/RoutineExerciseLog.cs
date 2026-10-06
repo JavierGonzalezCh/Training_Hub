@@ -35,6 +35,15 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
 
     public string? Notes { get; private set; }
 
+    /// <summary>
+    /// Detalle por serie (repeticiones y peso de cada una). Vacío si el socio solo marcó el ejercicio o
+    /// anotó una carga global. <see cref="SetsDone"/>, <see cref="RepsDone"/> y <see cref="WeightKg"/>
+    /// se derivan de aquí cuando hay detalle, para que el progreso siga leyendo los mismos campos.
+    /// </summary>
+    public List<RoutineSetEntry> Sets { get; private set; } = [];
+
+    public const int MaxSets = 30;
+
     public static RoutineExerciseLog Record(
         Guid gymId,
         Guid memberId,
@@ -44,7 +53,8 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
         int? setsDone,
         string? repsDone,
         decimal? weightKg,
-        string? notes)
+        string? notes,
+        IReadOnlyList<RoutineSetEntry>? sets = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty || routineExerciseId == Guid.Empty)
         {
@@ -60,20 +70,31 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
             CompletedAt = completedAt,
         };
 
-        log.SetLoad(setsDone, repsDone, weightKg, notes);
+        log.SetLoad(setsDone, repsDone, weightKg, notes, sets);
         return log;
     }
 
     /// <summary>Segunda marca del mismo día: se actualizan carga e instante.</summary>
     public void Update(
-        DateTimeOffset completedAt, int? setsDone, string? repsDone, decimal? weightKg, string? notes)
+        DateTimeOffset completedAt, int? setsDone, string? repsDone, decimal? weightKg, string? notes,
+        IReadOnlyList<RoutineSetEntry>? sets = null)
     {
         CompletedAt = completedAt;
-        SetLoad(setsDone, repsDone, weightKg, notes);
+        SetLoad(setsDone, repsDone, weightKg, notes, sets);
     }
 
-    private void SetLoad(int? setsDone, string? repsDone, decimal? weightKg, string? notes)
+    private void SetLoad(
+        int? setsDone, string? repsDone, decimal? weightKg, string? notes, IReadOnlyList<RoutineSetEntry>? sets)
     {
+        var detail = NormalizeSets(sets);
+        if (detail.Count > 0)
+        {
+            // Con detalle por serie, los campos globales salen de él.
+            setsDone = detail.Count;
+            weightKg = detail.Where(s => s.WeightKg is not null).Select(s => s.WeightKg).DefaultIfEmpty(weightKg).Max();
+            repsDone = string.IsNullOrWhiteSpace(repsDone) ? SummarizeReps(detail) : repsDone;
+        }
+
         if (setsDone is < 0)
         {
             throw new ValidationDomainException("sets_done no puede ser negativo.");
@@ -96,9 +117,54 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
             throw new ValidationDomainException("Las notas no pueden exceder 500 caracteres.");
         }
 
+        Sets = detail;
         SetsDone = setsDone;
         RepsDone = reps;
         WeightKg = weightKg;
         Notes = cleanNotes;
+    }
+
+    private static List<RoutineSetEntry> NormalizeSets(IReadOnlyList<RoutineSetEntry>? sets)
+    {
+        if (sets is null || sets.Count == 0)
+        {
+            return [];
+        }
+
+        if (sets.Count > MaxSets)
+        {
+            throw new ValidationDomainException($"Una serie de ejercicio admite como máximo {MaxSets} series.");
+        }
+
+        var result = new List<RoutineSetEntry>(sets.Count);
+        foreach (var set in sets)
+        {
+            if (set.Reps is < 0 or > 1000)
+            {
+                throw new ValidationDomainException("Las repeticiones de una serie deben estar entre 0 y 1000.");
+            }
+
+            if (set.WeightKg is < 0 or > 1000)
+            {
+                throw new ValidationDomainException("El peso de una serie debe estar entre 0 y 1000 kg.");
+            }
+
+            result.Add(new RoutineSetEntry(result.Count + 1, set.Reps, set.WeightKg));
+        }
+
+        return result;
+    }
+
+    // "10" si todas iguales, "10/8/8" si varían (cabe en los 30 caracteres de reps_done).
+    private static string? SummarizeReps(List<RoutineSetEntry> sets)
+    {
+        var reps = sets.Where(s => s.Reps is not null).Select(s => s.Reps!.Value).ToList();
+        if (reps.Count == 0)
+        {
+            return null;
+        }
+
+        var text = reps.Distinct().Count() == 1 ? reps[0].ToString() : string.Join('/', reps);
+        return text.Length <= 30 ? text : null;
     }
 }

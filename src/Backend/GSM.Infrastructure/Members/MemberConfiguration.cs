@@ -17,11 +17,9 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
         builder.Property(m => m.Email).HasMaxLength(256);
         builder.Property(m => m.EmergencyContact).HasMaxLength(200);
         builder.Property(m => m.PhotoUrl).HasMaxLength(2048);
-        builder.Property(m => m.QrCode).HasMaxLength(64).IsRequired();
         builder.Property(m => m.Status).HasColumnName("status");
 
         builder.HasIndex(m => new { m.GymId, m.DocumentNumber }).IsUnique();
-        builder.HasIndex(m => new { m.GymId, m.QrCode }).IsUnique();
         builder.HasIndex(m => new { m.GymId, m.Status });
         builder.HasIndex(m => m.UserId);
     }

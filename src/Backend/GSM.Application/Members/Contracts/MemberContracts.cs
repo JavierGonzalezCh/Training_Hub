@@ -31,7 +31,7 @@ public sealed record ListMembersQuery
     public int PageSize { get; init; } = 20;
 }
 
-public sealed record CreateMemberResponse(Guid Id, string QrCode);
+public sealed record CreateMemberResponse(Guid Id);
 
 public sealed record InviteMemberResponse(string Code, DateTimeOffset ExpiresAt);
 
@@ -51,7 +51,6 @@ public sealed record MemberListItem(
     string DocumentNumber,
     string? Phone,
     string Status,
-    string QrCode,
     DateOnly JoinedAt);
 
 public sealed record MemberDetail(
@@ -67,7 +66,6 @@ public sealed record MemberDetail(
     string? PhotoUrl,
     string? EmergencyContact,
     string Status,
-    string QrCode,
     DateOnly JoinedAt,
     DateTimeOffset CreatedAt)
 {

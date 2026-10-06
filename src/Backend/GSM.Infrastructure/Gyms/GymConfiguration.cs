@@ -21,6 +21,7 @@ public sealed class GymConfiguration : IEntityTypeConfiguration<Gym>
         builder.Property(g => g.PrimaryColor).HasMaxLength(7).IsRequired();
         builder.Property(g => g.SecondaryColor).HasMaxLength(7).IsRequired();
         builder.Property(g => g.OwnerId).IsRequired();
+        builder.Property(g => g.Capacity);
 
         builder.Property(g => g.Plan).HasColumnName("plan");
         builder.Property(g => g.Status).HasColumnName("status");

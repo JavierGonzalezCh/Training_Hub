@@ -12,6 +12,7 @@ public sealed record DashboardResponse(
 public sealed record ExpiringMemberRow(
     Guid MembershipId,
     Guid MemberId,
+    string MemberName,
     string PlanName,
     DateOnly EndDate,
     int DaysLeft);

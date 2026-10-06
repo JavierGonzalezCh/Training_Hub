@@ -126,7 +126,7 @@ else
     private async Task DeactivateAsync(PlanResponse plan)
     {
         var confirmed = await Dialogs.ShowMessageBox(
-            "Desactivar plan", $"¿Desactivar \"{plan.Name}\"? Los socios con este plan no se ven afectados.",
+            "Desactivar plan", $"¿Desactivar \"{plan.Name}\"? Los miembros con este plan no se ven afectados.",
             yesText: "Desactivar", cancelText: "Cancelar");
         if (confirmed != true)
         {

@@ -22,9 +22,66 @@ public static class GsmFormat
     public static string Day(DateOnly day)
         => day.ToString("d MMM yyyy", Colombia);
 
+    /// <summary>
+    /// Día corto con día de la semana, p. ej. <c>lun 14 sept</c>. Para listas acotadas a una
+    /// semana, donde repetir el año en cada fila es ruido.
+    /// </summary>
+    public static string DayCompact(DateOnly day)
+        => day.ToString("ddd d MMM", Colombia);
+
+    /// <summary>
+    /// Rango de días colapsando lo que comparten, p. ej. <c>14 – 20 sept 2026</c> o
+    /// <c>28 sept – 4 oct 2026</c>. Escrito entero, "14 sept 2026 – 20 sept 2026" no cabe
+    /// en una línea de móvil y parte el encabezado en dos.
+    /// </summary>
+    public static string DayRange(DateOnly from, DateOnly to)
+    {
+        if (from.Year != to.Year)
+        {
+            return $"{Day(from)} – {Day(to)}";
+        }
+
+        // from.Day, no ToString("d"): un "d" suelto es el patrón de fecha corta de .NET
+        // (14/9/2026), no el día del mes.
+        return from.Month == to.Month
+            ? $"{from.Day} – {to.ToString("d MMM yyyy", Colombia)}"
+            : $"{from.ToString("d MMM", Colombia)} – {to.ToString("d MMM yyyy", Colombia)}";
+    }
+
     /// <summary>Instante mostrado en la hora local del gym.</summary>
     public static string Instant(DateTimeOffset instant)
         => TimeZoneInfo.ConvertTime(instant, GymZone).ToString("d MMM yyyy, HH:mm", Colombia);
+
+    /// <summary>Solo la hora local del gym, p. ej. <c>06:42</c>. Para listas acotadas a un día.</summary>
+    public static string Time(DateTimeOffset instant)
+        => TimeZoneInfo.ConvertTime(instant, GymZone).ToString("HH:mm", Colombia);
+
+    /// <summary>
+    /// Día de negocio de hoy en la zona del gym. Nunca desde UTC: entre las 19:00 y medianoche
+    /// de Colombia el día UTC ya es el siguiente.
+    /// </summary>
+    public static DateOnly Today()
+        => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, GymZone).DateTime);
+
+    /// <summary>Hora actual (0–23) en la zona del gym.</summary>
+    public static int CurrentHour()
+        => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, GymZone).Hour;
+
+    /// <summary>Iniciales para avatares: primera letra del primer y del último nombre.</summary>
+    public static string Initials(string? name)
+    {
+        var parts = (name ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => "?",
+            1 => parts[0][..1].ToUpperInvariant(),
+            _ => $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant(),
+        };
+    }
+
+    /// <summary>Fecha larga para cabeceras, p. ej. <c>domingo 4 de octubre</c>.</summary>
+    public static string DayLong(DateOnly day)
+        => day.ToString("dddd d 'de' MMMM", Colombia);
 
     private static TimeZoneInfo ResolveBogota()
     {

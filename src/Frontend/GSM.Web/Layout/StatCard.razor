@@ -1,11 +1,21 @@
-<MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-    <MudText Typo="Typo.overline" Color="Color.Secondary">@Label</MudText>
-    <MudText Typo="Typo.h4" Color="@Accent" Class="gsm-mono">@Value</MudText>
+@* Cifra titular de un dashboard. La cifra manda (tipografía de display del tema); la etiqueta
+   y la pista quedan en segundo plano. Un medidor opcional da proporción sin abrir un gráfico. *@
+<div class="gsm-kpi @ToneClass">
+    <div class="gsm-kpi__label">@Label</div>
+    <div class="gsm-kpi__value @(Value.Length > 6 ? "gsm-kpi__value--long" : null)">@Value</div>
+    @if (Meter is { } meter)
+    {
+        var percent = Math.Clamp(meter, 0, 1) * 100;
+        <div class="gsm-kpi__meter" role="meter" aria-label="@Label" aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="@percent.ToString("0", System.Globalization.CultureInfo.InvariantCulture)">
+            <span style="width:@(percent.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+        </div>
+    }
     @if (!string.IsNullOrEmpty(Hint))
     {
-        <MudText Typo="Typo.caption" Color="Color.Secondary">@Hint</MudText>
+        <div class="gsm-kpi__hint">@Hint</div>
     }
-</MudPaper>
+</div>
 
 @code {
     [Parameter, EditorRequired]
@@ -14,9 +24,26 @@
     [Parameter, EditorRequired]
     public string Value { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Tono de la cifra. Reservado para cuando el valor <em>significa</em> algo:
+    /// <see cref="Color.Error"/> = alerta activa, <see cref="Color.Info"/> o
+    /// <see cref="Color.Primary"/> = el dato titular. Pintar todas por decorarlas convierte el
+    /// color en ruido y deja de leerse como señal.
+    /// </summary>
     [Parameter]
     public Color Accent { get; set; } = Color.Default;
 
     [Parameter]
     public string? Hint { get; set; }
+
+    /// <summary>Proporción 0–1 para el medidor bajo la cifra (p. ej. check-ins / activos). Nulo = sin medidor.</summary>
+    [Parameter]
+    public double? Meter { get; set; }
+
+    private string? ToneClass => Accent switch
+    {
+        Color.Error => "is-alert",
+        Color.Info or Color.Primary => "is-accent",
+        _ => null,
+    };
 }

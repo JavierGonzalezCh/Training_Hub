@@ -15,6 +15,10 @@ public sealed class ClassReader(GsmDbContext dbContext, IClock clock) : IClassRe
 {
     private IQueryable<ClassBooking> Bookings => dbContext.Set<ClassBooking>();
 
+    public Task<string?> GetClassNameAsync(Guid classId, CancellationToken cancellationToken = default)
+        => dbContext.Set<GymClass>().Where(c => c.Id == classId).Select(c => (string?)c.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<int> GetAttendedCountAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Bookings.CountAsync(
             b => b.MemberId == memberId && b.Status == ClassBookingStatus.Attended, cancellationToken);

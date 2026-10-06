@@ -3,6 +3,9 @@ using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
 using GSM.Application.Classes;
 using GSM.Application.Classes.Contracts;
+using GSM.Application.Common;
+using GSM.Application.Communications;
+using GSM.Application.Communications.Contracts;
 using GSM.Application.MemberStreak;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
@@ -78,5 +81,100 @@ public sealed class MeController : ControllerBase
     [ProducesResponseType<MemberStreakResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<MemberStreakResponse>> Streak(
         [FromServices] GetMyStreakHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Anuncios publicados y vigentes del gym, fijados primero. 403 si <c>show_community = false</c>.</summary>
+    [HttpGet("feed")]
+    [ProducesResponseType<PagedResult<FeedItem>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<FeedItem>>> Feed(
+        [FromQuery] int page,
+        [FromQuery] int pageSize,
+        [FromServices] GetMemberFeedHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(page <= 0 ? 1 : page, pageSize <= 0 ? 20 : pageSize, cancellationToken));
+
+    /// <summary>
+    /// Reacciona a un anuncio. Con otra reacción la cambia; con la misma la quita (alterna).
+    /// 404 si el anuncio no está publicado y vigente.
+    /// </summary>
+    [HttpPut("feed/{announcementId:guid}/reaction")]
+    [ProducesResponseType<ReactionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReactionResponse>> React(
+        Guid announcementId,
+        ReactRequest request,
+        [FromServices] ReactToAnnouncementHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(announcementId, request.Kind, cancellationToken));
+
+    [HttpDelete("feed/{announcementId:guid}/reaction")]
+    [ProducesResponseType<ReactionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReactionResponse>> RemoveReaction(
+        Guid announcementId,
+        [FromServices] ReactToAnnouncementHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(announcementId, null, cancellationToken));
+
+    /// <summary>Marca los anuncios como vistos: los publicados después vuelven a contar como no leídos.</summary>
+    [HttpPost("feed/seen")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> MarkFeedSeen(
+        [FromServices] MarkAnnouncementsSeenHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Avisos personales del miembro: los no leídos primero.</summary>
+    [HttpGet("notifications")]
+    [ProducesResponseType<PagedResult<NotificationItem>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<NotificationItem>>> Notifications(
+        [FromQuery] int page,
+        [FromQuery] int pageSize,
+        [FromServices] ListMyNotificationsHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(page <= 0 ? 1 : page, pageSize <= 0 ? 20 : pageSize, cancellationToken));
+
+    [HttpPost("notifications/{id:guid}/read")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> MarkNotificationRead(
+        Guid id, [FromServices] MarkNotificationReadHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("notifications/read-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> MarkAllNotificationsRead(
+        [FromServices] MarkAllNotificationsReadHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("communication-preferences")]
+    [ProducesResponseType<CommunicationPreferencesResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<CommunicationPreferencesResponse>> CommunicationPreferences(
+        [FromServices] GetCommunicationPreferencesHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Activa o desactiva los avisos del gym por email (no afecta a los transaccionales).</summary>
+    [HttpPut("communication-preferences")]
+    [ProducesResponseType<CommunicationPreferencesResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<CommunicationPreferencesResponse>> UpdateCommunicationPreferences(
+        UpdateCommunicationPreferencesRequest request,
+        [FromServices] UpdateCommunicationPreferencesHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    [HttpGet("feed/unread-count")]
+    [ProducesResponseType<UnreadCountResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<UnreadCountResponse>> UnreadCount(
+        [FromServices] GetUnreadCountHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 }

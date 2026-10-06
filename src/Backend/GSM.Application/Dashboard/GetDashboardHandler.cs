@@ -27,6 +27,15 @@ public sealed class GetDashboardHandler(
 
         var expiring = await memberships.GetExpiringAsync(gymId, ExpiringWindowDays, cancellationToken);
 
+        // Sin el nombre, la tabla no sirve para lo que existe: que recepción llame a renovar.
+        var rows = new List<ExpiringMemberRow>(expiring.Count);
+        foreach (var e in expiring)
+        {
+            var member = await members.GetAsync(e.MemberId, cancellationToken);
+            var name = member is null ? "(miembro no encontrado)" : $"{member.FirstName} {member.LastName}";
+            rows.Add(new ExpiringMemberRow(e.MembershipId, e.MemberId, name, e.PlanName, e.EndDate, e.DaysLeft));
+        }
+
         return new DashboardResponse(
             ActiveMembers: await members.GetActiveCountAsync(gymId, cancellationToken),
             CheckInsToday: await attendance.GetTodayCountAsync(gymId, cancellationToken),
@@ -34,8 +43,6 @@ public sealed class GetDashboardHandler(
             RevenueLastMonth: await payments.GetMonthlyRevenueAsync(gymId, lastMonth.Year, lastMonth.Month, cancellationToken),
             ExpiredMemberships: await memberships.GetExpiredCountAsync(gymId, cancellationToken),
             ExpiringSoon: expiring.Count,
-            ExpiringMemberships: expiring
-                .Select(e => new ExpiringMemberRow(e.MembershipId, e.MemberId, e.PlanName, e.EndDate, e.DaysLeft))
-                .ToList());
+            ExpiringMemberships: rows);
     }
 }

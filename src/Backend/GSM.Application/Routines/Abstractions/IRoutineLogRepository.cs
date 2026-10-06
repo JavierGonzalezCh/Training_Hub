@@ -14,7 +14,8 @@ public sealed record RoutineHistoryRow(
     string? RepsDone,
     decimal? WeightKg,
     string? Notes,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt,
+    IReadOnlyList<RoutineSetEntry>? Sets = null);
 
 public interface IRoutineLogRepository
 {

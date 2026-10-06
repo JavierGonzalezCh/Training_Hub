@@ -40,6 +40,8 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
         <PackageReference Include="MudBlazor" Version="8.5.1" />
+        <!-- Lector de QR (12.6). OJO: ZXing.Net.Maui 1.0.0 es un paquete net6 antiguo; el mantenido es la 0.10.x con .Controls. -->
+        <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.10.4" />
     </ItemGroup>
 
     <ItemGroup>

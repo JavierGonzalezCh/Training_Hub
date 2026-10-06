@@ -19,6 +19,7 @@ public sealed class UpdateGymHandler(
             ?? throw new NotFoundException("El gym del usuario no existe.");
 
         gym.UpdateProfile(request.Name, request.Nit, request.Phone, request.Email);
+        gym.UpdateCapacity(request.Capacity);
         gym.UpdateBranding(request.LogoUrl, request.PrimaryColor, request.SecondaryColor);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

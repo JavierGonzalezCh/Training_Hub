@@ -8,6 +8,8 @@
 
 <PageTitle>Mi rutina — GSM</PageTitle>
 
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Mi rutina</MudText>
+
 @if (GymCtx.FeatureFlags?.ShowRoutines == false)
 {
     <MudAlert Severity="Severity.Normal">Las rutinas no están activadas en este gimnasio.</MudAlert>
@@ -18,22 +20,30 @@ else if (_loading)
 }
 else if (_response?.Routine is null)
 {
-    <MudText Color="Color.Secondary" Class="mb-4">Todavía no tienes una rutina asignada.</MudText>
-    @if (_createError is not null)
-    {
-        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">@_createError</MudAlert>
-    }
-    else if (GymCtx.FeatureFlags?.MembersCanCreateRoutines == true)
-    {
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                   Href="/app/rutina/nueva">
-            Crear mi rutina
-        </MudButton>
-    }
+    <div class="gsm-empty">
+        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Large" Class="gsm-empty-icon" />
+        <div class="gsm-empty-title">Todavía no tienes una rutina</div>
+        @if (_createError is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true">@_createError</MudAlert>
+        }
+        else if (GymCtx.FeatureFlags?.MembersCanCreateRoutines == true)
+        {
+            <MudText Typo="Typo.body2">Arma la tuya y llévala contigo a cada entrenamiento.</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       Href="/app/rutina/nueva" Class="mt-2">
+                Crear mi rutina
+            </MudButton>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">Pídele una a tu entrenador y aparecerá aquí.</MudText>
+        }
+    </div>
 }
 else
 {
-    <MudText Typo="Typo.h5" Class="mb-1">@_response.Routine.Name</MudText>
+    <MudText Typo="Typo.h6" Class="mb-1">@_response.Routine.Name</MudText>
     @if (_response.Today is { } today)
     {
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
@@ -44,18 +54,62 @@ else
         {
             @foreach (var exercise in today.Exercises)
             {
-                <MudPaper Class="pa-3 mb-2" Elevation="0" Style="border:1px solid var(--gsm-border)">
-                    <div class="d-flex align-center justify-space-between">
-                        <div>
-                            <MudText Typo="Typo.body1">@exercise.ExerciseName</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="gsm-mono">
-                                @exercise.TargetSets x @exercise.TargetReps
-                                @(exercise.TargetWeightKg is { } w ? $"· {w} kg" : "")
-                            </MudText>
+                var state = StateOf(exercise);
+                <section class="gsm-m-ex @(state.Done ? "is-done" : null)">
+                    <button type="button" class="gsm-m-ex__head" aria-expanded="@(state.Open ? "true" : "false")"
+                            @onclick="() => state.Open = !state.Open">
+                        <span class="gsm-m-ex__check" aria-hidden="true">
+                            <MudIcon Icon="@(state.Done ? Icons.Material.Filled.CheckCircle : Icons.Material.Outlined.RadioButtonUnchecked)" />
+                        </span>
+                        <span class="gsm-m-ex__title">
+                            <span class="gsm-m-ex__name">@exercise.ExerciseName</span>
+                            <span class="gsm-m-ex__target">
+                                Meta: @exercise.TargetSets × @exercise.TargetReps@(exercise.TargetWeightKg is { } w ? $" · {w:0.#} kg" : "")
+                            </span>
+                        </span>
+                        <MudIcon Icon="@(state.Open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" />
+                    </button>
+
+                    @if (state.Open)
+                    {
+                        <div class="gsm-m-ex__body">
+                            <div class="gsm-m-set gsm-m-set--head" aria-hidden="true">
+                                <span>Serie</span><span>Peso (kg)</span><span>Reps</span><span></span>
+                            </div>
+                            @for (var n = 0; n < state.Rows.Count; n++)
+                            {
+                                var row = state.Rows[n];
+                                var index = n;
+                                <div class="gsm-m-set">
+                                    <span class="gsm-m-set__num">@(index + 1)</span>
+                                    <MudNumericField T="double?" @bind-Value="row.Weight" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                     Min="0" Max="1000" Step="2.5" HideSpinButtons="true" Immediate="true"
+                                                     aria-label="@($"Peso de la serie {index + 1}, en kilos")" />
+                                    <MudNumericField T="int?" @bind-Value="row.Reps" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                     Min="0" Max="1000" HideSpinButtons="true" Immediate="true"
+                                                     aria-label="@($"Repeticiones de la serie {index + 1}")" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Close" Size="Size.Small"
+                                                   Disabled="state.Rows.Count <= 1" aria-label="@($"Quitar la serie {index + 1}")"
+                                                   OnClick="() => state.Rows.RemoveAt(index)" />
+                                </div>
+                            }
+                            <div class="gsm-m-ex__actions">
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="() => AddSet(state)">Serie</MudButton>
+                                <span class="gsm-m-ex__spacer"></span>
+                                @if (state.Done)
+                                {
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" Disabled="state.Saving"
+                                               OnClick="() => RemoveAsync(exercise, state)">Quitar registro</MudButton>
+                                }
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="state.Saving"
+                                           OnClick="() => SaveAsync(exercise, state)">
+                                    @(state.Saving ? "Guardando..." : state.Done ? "Actualizar" : "Guardar")
+                                </MudButton>
+                            </div>
                         </div>
-                        <MudCheckBox T="bool" Value="_done.Contains(exercise.Id)" ValueChanged="@(v => ToggleAsync(exercise, v))" Color="Color.Primary" />
-                    </div>
-                </MudPaper>
+                    }
+                </section>
             }
         }
     }
@@ -68,7 +122,21 @@ else
 
 @code {
     private MyRoutineResponse? _response;
-    private readonly HashSet<Guid> _done = [];
+    private readonly Dictionary<Guid, ExerciseState> _states = [];
+
+    private sealed class SetRow
+    {
+        public double? Weight { get; set; }
+        public int? Reps { get; set; }
+    }
+
+    private sealed class ExerciseState
+    {
+        public List<SetRow> Rows { get; set; } = [];
+        public bool Open { get; set; }
+        public bool Done { get; set; }
+        public bool Saving { get; set; }
+    }
     private bool _loading = true;
     private string? _createError;
 
@@ -83,6 +151,10 @@ else
         try
         {
             _response = await Me.RoutinesGETAsync();
+            if (_response.Today is { IsRest: false } todayView)
+            {
+                await LoadTodayAsync(todayView);
+            }
         }
         catch (GsmApiException ex) when (ex.StatusCode == 403)
         {
@@ -99,29 +171,103 @@ else
         }
     }
 
-    private async Task ToggleAsync(RoutineExerciseResponse exercise, bool done)
+    // Estado de cada ejercicio de hoy: filas de series con la meta como punto de partida.
+    private ExerciseState StateOf(RoutineExerciseResponse exercise)
+    {
+        if (!_states.TryGetValue(exercise.Id, out var state))
+        {
+            var reps = FirstNumber(exercise.TargetReps);
+            state = new ExerciseState
+            {
+                Rows = Enumerable.Range(0, Math.Max(1, exercise.TargetSets))
+                    .Select(_ => new SetRow { Weight = exercise.TargetWeightKg, Reps = reps })
+                    .ToList(),
+            };
+            _states[exercise.Id] = state;
+        }
+
+        return state;
+    }
+
+    // "8-10" -> 8, "12" -> 12, "45 s" -> 45: el primer número de la meta, como valor inicial.
+    private static int? FirstNumber(string? text)
+    {
+        var digits = new string((text ?? string.Empty).SkipWhile(c => !char.IsDigit(c)).TakeWhile(char.IsDigit).ToArray());
+        return int.TryParse(digits, out var n) ? n : null;
+    }
+
+    private static void AddSet(ExerciseState state)
+    {
+        var last = state.Rows.LastOrDefault();
+        state.Rows.Add(new SetRow { Weight = last?.Weight, Reps = last?.Reps });
+    }
+
+    // Lo ya registrado hoy se carga al abrir la pantalla, para poder corregirlo y no perderlo al recargar.
+    private async Task LoadTodayAsync(TodayView today)
     {
         try
         {
-            if (done)
+            var logged = await Me.HistoryAsync(today.Date, today.Date);
+            foreach (var item in logged)
             {
-                await RoutineExercises.LogPOSTAsync(exercise.Id, new LogRoutineExerciseRequest
+                var exercise = today.Exercises.FirstOrDefault(e => e.Id == item.RoutineExerciseId);
+                if (exercise is null)
                 {
-                    SetsDone = exercise.TargetSets,
-                    RepsDone = exercise.TargetReps,
-                    WeightKg = exercise.TargetWeightKg is { } w ? (double)w : null,
-                });
-                _done.Add(exercise.Id);
+                    continue;
+                }
+
+                var state = StateOf(exercise);
+                state.Done = true;
+                if (item.Sets is { Count: > 0 } sets)
+                {
+                    state.Rows = sets.OrderBy(x => x.Number).Select(x => new SetRow { Weight = x.WeightKg, Reps = x.Reps }).ToList();
+                }
             }
-            else
+        }
+        catch (GsmApiException)
+        {
+            // Sin historial se muestra la rutina igual, solo que sin lo ya marcado.
+        }
+    }
+
+    private async Task SaveAsync(RoutineExerciseResponse exercise, ExerciseState state)
+    {
+        state.Saving = true;
+        try
+        {
+            await RoutineExercises.LogPOSTAsync(exercise.Id, new LogRoutineExerciseRequest
             {
-                await RoutineExercises.LogDELETEAsync(exercise.Id);
-                _done.Remove(exercise.Id);
-            }
+                Sets = state.Rows.Select(r => new LogSetRequest { Reps = r.Reps, WeightKg = r.Weight }).ToList(),
+            });
+            state.Done = true;
+            state.Open = false;
+            Snackbar.Add("Ejercicio registrado.", Severity.Success);
         }
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            state.Saving = false;
+        }
+    }
+
+    private async Task RemoveAsync(RoutineExerciseResponse exercise, ExerciseState state)
+    {
+        state.Saving = true;
+        try
+        {
+            await RoutineExercises.LogDELETEAsync(exercise.Id);
+            state.Done = false;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            state.Saving = false;
         }
     }
 }

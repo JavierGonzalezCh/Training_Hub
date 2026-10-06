@@ -82,6 +82,57 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
                 .HandleAsync(w.ExerciseLineIds[0], new LogRoutineExerciseRequest(null, null, null, null), default));
     }
 
+    [Fact]
+    public async Task Per_set_weights_are_stored_derive_the_totals_and_come_back_in_the_history()
+    {
+        var w = await SeedAsync(exercisesPerDay: 1);
+        var day = new DateOnly(2026, 6, 12);
+
+        using (var scope = AsMember(w, day))
+        {
+            var log = await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
+                w.ExerciseLineIds[0],
+                new LogRoutineExerciseRequest(null, null, null, null,
+                [
+                    new LogSetRequest(10, 40m),
+                    new LogSetRequest(8, 45m),
+                    new LogSetRequest(6, 50m),
+                ]),
+                default);
+
+            Assert.Equal(3, log.SetsDone);
+            Assert.Equal(50m, log.WeightKg);          // el mayor peso, para el progreso
+            Assert.Equal("10/8/6", log.RepsDone);
+            Assert.Equal([1, 2, 3], log.Sets!.Select(s => s.Number));
+
+            // Repetir el mismo día reemplaza el detalle.
+            var again = await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
+                w.ExerciseLineIds[0],
+                new LogRoutineExerciseRequest(null, null, null, null, [new LogSetRequest(12, 30m)]),
+                default);
+            Assert.Single(again.Sets!);
+            Assert.Equal(30m, again.WeightKg);
+        }
+
+        using (var scope = AsMember(w, day))
+        {
+            var history = await scope.ServiceProvider.GetRequiredService<GetMyRoutineHistoryHandler>()
+                .HandleAsync(day, day, default);
+            var item = Assert.Single(history);
+            var set = Assert.Single(item.Sets!);
+            Assert.Equal((12, 30m), (set.Reps, set.WeightKg));
+        }
+
+        using (var scope = AsMember(w, day))
+        {
+            await Assert.ThrowsAsync<ValidationDomainException>(() =>
+                scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
+                    w.ExerciseLineIds[0],
+                    new LogRoutineExerciseRequest(null, null, null, null, [new LogSetRequest(10, -5m)]),
+                    default));
+        }
+    }
+
     private IServiceScope AsMember(World w, DateOnly day)
     {
         var scope = factory.CreateScopeWithMigration();

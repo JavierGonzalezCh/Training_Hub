@@ -28,13 +28,13 @@ else
 {
     <MudTable Items="_items" Hover="true" Dense="true" Elevation="0">
         <HeaderContent>
-            <MudTh>Socio</MudTh>
+            <MudTh>Miembro</MudTh>
             <MudTh>Plan</MudTh>
             <MudTh>Vence</MudTh>
             <MudTh>Días</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Socio">
+            <MudTd DataLabel="Miembro">
                 <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
                     @context.MemberName
                 </MudLink>

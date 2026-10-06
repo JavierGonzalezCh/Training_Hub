@@ -14,6 +14,13 @@ public sealed class RoutineExerciseLogConfiguration : IEntityTypeConfiguration<R
         builder.Property(l => l.Notes).HasMaxLength(500);
         builder.Property(l => l.WeightKg).HasPrecision(6, 2);
 
+        // Detalle por serie como JSON en la propia fila: se lee y se escribe siempre junto con el registro.
+        builder.OwnsMany(l => l.Sets, set =>
+        {
+            set.ToJson("sets");
+            set.Property(x => x.WeightKg).HasPrecision(6, 2);
+        });
+
         // Un registro por ejercicio por día: repetir actualiza.
         builder.HasIndex(l => new { l.RoutineExerciseId, l.PerformedOn }).IsUnique();
         builder.HasIndex(l => new { l.MemberId, l.PerformedOn });

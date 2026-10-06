@@ -48,9 +48,6 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
             m => m.DocumentNumber == documentNumber && (excludeMemberId == null || m.Id != excludeMemberId),
             cancellationToken);
 
-    public Task<bool> QrExistsAsync(string qrCode, CancellationToken cancellationToken = default)
-        => Members.AnyAsync(m => m.QrCode == qrCode, cancellationToken);
-
     public void Add(Member member) => Members.Add(member);
 
     // --- Invitaciones ---

@@ -46,6 +46,6 @@ public sealed class CreateMemberHandler(
         logger.LogInformation("Miembro {MemberId} creado en gym {GymId}", member.Id, gymId);
         await events.PublishAsync(new MemberCreated(member.Id, gymId), cancellationToken);
 
-        return new CreateMemberResponse(member.Id, member.QrCode);
+        return new CreateMemberResponse(member.Id);
     }
 }

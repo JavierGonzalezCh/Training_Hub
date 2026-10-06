@@ -19,14 +19,14 @@
                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
                   DebounceInterval="400" Style="max-width:260px" />
     <MudSelect T="string" Value="_muscle" ValueChanged="OnMuscleChangedAsync" Label="Músculo" Style="max-width:200px">
-        <MudSelectItem Value="@("")">Todos</MudSelectItem>
+        <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
         @foreach (var (value, label) in RoutineLabels.Muscles)
         {
             <MudSelectItem Value="@value.ToString()">@label</MudSelectItem>
         }
     </MudSelect>
     <MudSelect T="string" Value="_equipment" ValueChanged="OnEquipmentChangedAsync" Label="Equipo" Style="max-width:200px">
-        <MudSelectItem Value="@("")">Todos</MudSelectItem>
+        <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
         @foreach (var (value, label) in RoutineLabels.Equipment)
         {
             <MudSelectItem Value="@value.ToString()">@label</MudSelectItem>
@@ -75,8 +75,8 @@ else
     private List<ExerciseResponse> _exercises = [];
     private bool _loading = true;
     private string _search = string.Empty;
-    private string _muscle = string.Empty;
-    private string _equipment = string.Empty;
+    private string _muscle = FilterValues.All;
+    private string _equipment = FilterValues.All;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -87,8 +87,8 @@ else
         {
             var result = await Exercises.ExercisesAllAsync(
                 string.IsNullOrWhiteSpace(_search) ? null : _search,
-                string.IsNullOrEmpty(_muscle) ? null : int.Parse(_muscle),
-                string.IsNullOrEmpty(_equipment) ? null : int.Parse(_equipment),
+                FilterValues.IsAll(_muscle) ? null : int.Parse(_muscle),
+                FilterValues.IsAll(_equipment) ? null : int.Parse(_equipment),
                 false);
             _exercises = result.ToList();
         }

@@ -144,7 +144,7 @@
             var error = ApiError.FromException(ex);
             if (error.IsConflict)
             {
-                _error = "Ya existe un socio con ese documento.";
+                _error = "Ya existe un miembro con ese documento.";
                 _fieldErrors["documentNumber"] = [_error];
             }
             else if (error.IsValidation)

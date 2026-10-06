@@ -23,7 +23,8 @@ public sealed record UpdateGymRequest(
     string? Email,
     string? LogoUrl,
     string PrimaryColor,
-    string SecondaryColor);
+    string SecondaryColor,
+    int? Capacity = null);
 
 public sealed record UpdateFeatureFlagsRequest(
     bool ShowRoutines,
@@ -45,6 +46,7 @@ public sealed record GymResponse(
     string? LogoUrl,
     string PrimaryColor,
     string SecondaryColor,
+    int? Capacity,
     bool IsActive,
     string Plan,
     string Status,

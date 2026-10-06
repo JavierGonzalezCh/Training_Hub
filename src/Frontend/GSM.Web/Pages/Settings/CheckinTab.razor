@@ -1,0 +1,129 @@
+@* Pestaña "Check-in" de la configuración: tipo de QR del gym, días de gracia y regeneración del
+   cartel impreso. Solo Owner. Ver docs/CHECKIN-QR-BUILD-PLAN.md. *@
+@inject IAttendanceClient Attendance
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <div class="gsm-checkin-settings">
+        <fieldset class="gsm-choice-group">
+            <legend class="gsm-choice-group__legend">Tipo de QR en la entrada</legend>
+            <label class="gsm-choice @(_mode == Rotating ? "is-selected" : null)">
+                <input type="radio" name="checkin-mode" value="@Rotating" checked="@(_mode == Rotating)"
+                       @onchange="@(() => _mode = Rotating)" />
+                <span class="gsm-choice__body">
+                    <span class="gsm-choice__title">Pantalla en la entrada</span>
+                    <span class="gsm-choice__hint">El código cambia cada 30 s. Una captura no sirve para entrar desde casa.</span>
+                </span>
+            </label>
+            <label class="gsm-choice @(_mode == Static ? "is-selected" : null)">
+                <input type="radio" name="checkin-mode" value="@Static" checked="@(_mode == Static)"
+                       @onchange="@(() => _mode = Static)" />
+                <span class="gsm-choice__body">
+                    <span class="gsm-choice__title">Cartel impreso</span>
+                    <span class="gsm-choice__hint">Código fijo que se imprime una vez. Puedes regenerarlo si se filtra.</span>
+                </span>
+            </label>
+        </fieldset>
+
+        <MudNumericField T="int" @bind-Value="_graceDays" Label="Días de gracia" Min="0" Max="30"
+                         HelperText="Días después de vencer la membresía en que la entrada aún se registra, con aviso. Pasado ese plazo se rechaza y el gym recibe la alerta."
+                         Class="mb-4" Style="max-width:420px" />
+
+        <div class="d-flex flex-wrap" style="gap:0.75rem">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
+                @(_saving ? "Guardando..." : "Guardar cambios")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Href="/kiosk" StartIcon="@Icons.Material.Outlined.QrCode2">Abrir kiosco</MudButton>
+            @if (_savedMode == Static)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="RegenerateAsync" Disabled="_regenerating"
+                           StartIcon="@Icons.Material.Outlined.Refresh">
+                    Regenerar código
+                </MudButton>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private const string Rotating = "Rotating";
+    private const string Static = "Static";
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _regenerating;
+    private string _mode = Rotating;
+    private string _savedMode = Rotating;
+    private int _graceDays = 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var settings = await Attendance.SettingsGETAsync();
+            _mode = _savedMode = settings.Mode;
+            _graceDays = settings.GraceDays;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode, GraceDays = _graceDays });
+            _mode = _savedMode = saved.Mode;
+            _graceDays = saved.GraceDays;
+            Snackbar.Add("Ajustes de check-in guardados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task RegenerateAsync()
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Regenerar el código",
+            "El cartel impreso actual dejará de funcionar. Tendrás que imprimir y colocar el nuevo.",
+            yesText: "Regenerar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        _regenerating = true;
+        try
+        {
+            await Attendance.RegenerateAsync();
+            Snackbar.Add("Código regenerado. Imprime el cartel nuevo desde el kiosco.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _regenerating = false;
+        }
+    }
+}

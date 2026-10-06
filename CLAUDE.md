@@ -13,6 +13,11 @@ GSM (Gym System Management) es el codename técnico interno de un sistema de ges
 | Routines (etapa 9) | `docs/GSM-modulo-routines.md` | `docs/ROUTINES-BUILD-PLAN.md` |
 | Classes (etapa 10) | `docs/GSM-modulo-classes.md` | `docs/CLASSES-BUILD-PLAN.md` |
 | SuperAdmin (etapa 11) | `docs/GSM-modulo-superadmin.md` | `docs/SUPERADMIN-BUILD-PLAN.md` |
+| Check-in con QR del gym (etapa 12) | `docs/GSM-especificacion-tecnica.md` (Attendance) | `docs/CHECKIN-QR-BUILD-PLAN.md` |
+| Comunicaciones (etapa 13, **hecho**) | `docs/GSM-modulo-comunicaciones.md` | `docs/COMMUNICATIONS-BUILD-PLAN.md` |
+| Despliegue con Dokploy (etapa 8, punto 4, **planificado, sin empezar**) | — | `docs/DEPLOY-DOKPLOY-PLAN.md` |
+
+**Hecho — Check-in con QR del gym (etapa 12, sub-etapas 12.1–12.6):** `docs/CHECKIN-QR-BUILD-PLAN.md`. El gym muestra el QR en `/kiosk` (rotativo cada 30 s o cartel impreso fijo) y el miembro lo escanea con la cámara del teléfono o con el escáner de la app nativa; días de gracia por gym; el QR personal del miembro ya no existe.
 
 **Frontend** (etapas F0–F8): `docs/FRONTEND-BUILD-PLAN.md`. Blazor WASM (panel del gym, SuperAdmin y app del socio en `/app`) + MAUI Blazor Hybrid, que comparten las pantallas del socio en `GSM.Member.UI`; cliente generado desde OpenAPI. Vive en `src/Frontend/`.
 
@@ -22,7 +27,7 @@ Fase: **Fase 2 y 3 construidas; falta desplegar.**
 
 Las etapas 0–7 (MVP), **9 (Routines)**, **10 (Classes)** y **11 (SuperAdmin, sub-etapas 11.1 a 11.5)** están implementadas y validadas end-to-end, con **118 tests** de integración contra Postgres.
 
-De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de Railway. R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
+De la etapa 8 falta **solo el punto 4 (despliegue)**: no hay Dockerfile ni configuración de despliegue. **Se despliega en servidor propio con Dokploy, no en Railway** (decidido el 2026-10-05; plan en `docs/DEPLOY-DOKPLOY-PLAN.md`). R2 y Resend están integrados pero **sin configurar**, así que las subidas de archivo fallan y los emails van al log.
 
 Ningún módulo nuevo de backend está en construcción. **Del frontend están hechas F0–F6** (`docs/FRONTEND-BUILD-PLAN.md`): `src/Frontend/GSM.Frontend.slnx` con `GSM.Client` (cliente NSwag generado + `AuthenticatedHttpHandler`, `ApiError`, `ITokenStore`, `JwtPayload`), `GSM.UI.Shared` (`GsmAuthenticationStateProvider`, `SessionService`, `GymContext`, `GsmTheme` con la identidad visual v4.0, `SubscriptionBanner`, `RequireRole`, `ServerTable<T>`, `StatusChip`, `QrCodeSvg`), `GSM.Web` (Blazor WASM + MudBlazor en `7220`/`5220`: login, "olvidé mi contraseña", shell del panel, Socios, Planes/membresías/pagos, recepción y asistencia, dashboard, configuración solo-Owner, catálogo de ejercicios, editor de rutinas en la ficha del socio, y clases — CRUD, horario semanal proyectado, roster y marcar asistencia/cancelar sesión) y `tests/GSM.Web.Tests` (bUnit, 47 tests). El cliente se regenera con `scripts/generate-client.ps1`. **Hueco H1 resuelto después de F8**: `api/gym/staff` (GET/POST/DELETE + `POST {id}/reactivate`, solo Owner) vive entero en Identity con `IStaffAccountService` — no es una escritura cruzada. La cuenta de staff nace **sin contraseña** y recibe por email un código de restablecimiento (vence en 24 h; si vence, sirve "olvidé mi contraseña"); desactivar no borra y revoca los refresh tokens. Pestaña "Staff" en `/settings`.
 
@@ -40,7 +45,7 @@ Ningún módulo nuevo de backend está en construcción. **Del frontend están h
 
 **No construido, fuera de alcance por ahora**: el catálogo de ejercicios del sistema reutilizado desde el panel SuperAdmin (mencionado en el plan para F8) — la pantalla de F6 sigue siendo solo-Staff; abrirla a superadmin sin impersonar exigía resolver el contexto de gym para un rol que no tiene uno, y no se hizo por tiempo.
 
-Siguen pendientes el despliegue (Dockerfile/Railway, etapa 8 punto 4 del backend) y los módulos sin planificar (Community, Reports, Locations).
+Siguen pendientes el despliegue (Dokploy, etapa 8 punto 4 del backend), y los módulos sin planificar (Reports, Locations).
 
 **Cómo levantar el entorno local está en `README.md`** — Postgres 18 nativo, bases `gsm` y `gsm_test`, migraciones a mano (la API no migra al arrancar).
 
@@ -105,7 +110,7 @@ Fase 2/3, los tres construidos: **Routines** (9), **Classes** (10) y **SuperAdmi
 
 Fuera de esa cadena vive `GSM.Application/MemberStreak/`, que no es un módulo de negocio sino el compositor de la racha: junta Attendance, Routines y el congelador de Achievements para resolver `GET /api/members/{id}/streak` y `GET /api/me/streak`.
 
-Módulos sin planificar todavía (no implementar): Community, Reports, Locations.
+Módulos sin planificar todavía (no implementar): Reports, Locations. **Community se sustituyó por Comunicaciones** (etapa 13): publica el gym y los miembros reaccionan; sin publicaciones ni comentarios de miembros.
 
 ## Multi-tenancy
 
@@ -133,7 +138,7 @@ Routines y Classes mapean a mano (`RoutineMapper`, `ClassMapper`): sus DTOs son 
 
 ## Base de datos
 
-Un schema de PostgreSQL por módulo, los diez ya creados: `identity`, `gyms`, `members`, `memberships`, `payments`, `attendance`, `achievements`, `routines`, `classes`, `superadmin`. Convenciones: `snake_case`, tablas en plural, PK siempre `id` (uuid), FK `{tabla_singular}_id`, índices `ix_{tabla}_{columna}`, constraints `fk_{tabla}_{tabla_referenciada}`, enums nativos de Postgres.
+Un schema de PostgreSQL por módulo, los once ya creados: `identity`, `gyms`, `members`, `memberships`, `payments`, `attendance`, `achievements`, `routines`, `classes`, `superadmin`, `communications`. Convenciones: `snake_case`, tablas en plural, PK siempre `id` (uuid), FK `{tabla_singular}_id`, índices `ix_{tabla}_{columna}`, constraints `fk_{tabla}_{tabla_referenciada}`, enums nativos de Postgres.
 
 No hay FK entre schemas de módulos distintos: la referencia se valida en el caso de uso contra el `I{Módulo}Reader` correspondiente.
 
@@ -156,7 +161,7 @@ No hay FK entre schemas de módulos distintos: la referencia se valida en el cas
 
 **Fase 2/3 (hecho):** Routines (9), Classes (10) y SuperAdmin (11) — ver la tabla de documentos arriba.
 
-No construyas Community, Reports ni Locations todavía.
+No construyas Reports ni Locations todavía.
 
 ### Notas de Routines que afectan a módulos ya cerrados
 
@@ -179,3 +184,25 @@ No construyas Community, Reports ni Locations todavía.
 - **Los pagos del SaaS no se mezclan con los del gym.** Se comparte el enum `payment_method` y nada más: son bolsillos distintos y no pueden acabar en el mismo cierre de caja.
 - **Ni Gyms ni Identity dependen de SuperAdmin.** El bloque `subscription` (`SubscriptionInfo`, en `Application/Common`) lo componen los controllers, y el login consulta la suspensión por `IGymLoginGate`: un puerto que declara Identity e implementa SuperAdmin en Infrastructure. Así el único ciclo entre módulos es el deliberado `Attendance ↔ Achievements`.
 - **La impersonación es de solo lectura y la impone el mismo filtro**: token de 15 minutos que conserva la identidad real del superadmin en `sub` y solo admite `GET`. Para que pueda leer, `RequireStaff` admite a un superadmin cuyo token trae `impersonating=true` (el token lleva el rol real, y sin esa excepción recibía 403 en todo el gym); `RequireOwner` no se abre porque no protege ningún GET.
+
+### Notas de Comunicaciones (etapa 13)
+
+- **Sustituye a "Community" con alcance reducido:** publica el gym, los miembros reaccionan (me gusta / celebrar / fuerza); sin publicaciones ni comentarios de miembros. El flag `ShowCommunity` se reutiliza como "mostrar comunicaciones"; `CommunityComments` sigue sin uso.
+- **Existe la primera tarea periódica del sistema**, sin scheduler interno: `POST /internal/jobs/communications/run` (cabecera `X-Job-Secret` contra `Jobs:Secret`, fuera de OpenAPI) que debe invocar una tarea programada de Dokploy cada 5–10 min. Crea los recordatorios de vencimiento, vacía la cola de correos y purga avisos de más de 90 días. Es idempotente y tolera ejecuciones perdidas.
+- **La tarea y la baja por enlace corren sin usuario**, así que el Global Query Filter está desactivado (`GymId` nulo) y fijan `gym_id` explícitamente en cada escritura. Son las únicas rutas, junto con SuperAdmin, que ven varios gyms.
+- **Los correos nunca se envían dentro de la petición:** se encolan en `communications.email_outbox` (índice único por miembro + tipo + referencia) y los envía la tarea. Sin Resend configurado van al log.
+- **Claves nuevas pendientes de configurar en producción:** `Communications:UnsubscribeSigningKey`, `Communications:PublicApiBaseUrl` y `Jobs:Secret` (la API no arranca sin las dos primeras).
+- **Avisos por evento, sin escrituras cruzadas:** Communications consume `ClassSessionCancelled` y `AchievementUnlockedEvent`; para los textos lee `IClassReader.GetClassNameAsync` y `IAchievementReader.GetAchievementNameAsync` (añadidos, solo lectura), y `IMemberReader.GetContactAsync`/`GetEmailContactsAsync` para el email.
+
+### Notas del check-in con QR del gym (etapa 12)
+
+- **El miembro solo se registra con el código del QR de su gym** (`CheckInRequest(MemberId?, GymCode?)`). El código es un HMAC firmado con `Checkin:SigningKey`, recalculado con el `gymId` del JWT: uno de otro gym falla solo. Rotativo = ventana de 30 s (vale la actual y la anterior); fijo = versión regenerable. Solo vale el modo vigente del gym. Un código inválido es 422 y **no** cuenta como intento rechazado.
+- **Regla de gracia** (`checkin_settings.grace_days`, por gym, 3 por defecto): membresía vencida hasta `EndDate + GraceDays` entra con `GraceDaysLeft`; pasada la gracia, o sin membresía, es 409 y queda un `CheckinAttempt` (se repite la fila si el miembro insiste el mismo día mientras siga sin verse). Quien ya entró hoy no vuelve a ser rechazado. El **staff** registra a mano siempre, sin gracia, con el aviso en la respuesta.
+- **Los ajustes son perezosos:** sin fila en `attendance.checkin_settings` valen los de `CheckinSettings.Default` (rotativo, 3 días) y no se persisten hasta el primer `PUT`.
+- **`CheckinQr` se aplica en el servidor** (403 al miembro y al kiosco si está apagado); el registro manual del staff sigue funcionando.
+- **El QR personal del miembro ya no existe** (`members.qr_code` borrada; migración irreversible en datos).
+- **El kiosco (`/kiosk`) usa una sesión de staff normal.** Una cuenta de "dispositivo" solo para el kiosco queda pendiente.
+- **Tercer defecto de NSwag:** un enum suelto en el cuerpo de una respuesta (`CheckinMode`) sale como `int` aunque viaje como texto; por eso `Mode` es `string` en los DTOs de check-in.
+- **Producción:** `Checkin:SigningKey` (≥ 32 caracteres) debe configurarse; la API no arranca sin ella.
+- **Sin verificar en dispositivo:** el escáner de `GSM.Mobile` (`ZxingQrScanner`, ZXing.Net.Maui.Controls 0.10.4) compila para Android, pero no se ha probado con una cámara real. El build de Windows de `GSM.Mobile` ya fallaba en este entorno antes de la etapa 12 (NETSDK1047).
+- **Pendientes, no construidos:** cuenta de dispositivo para el kiosco; avisos por email o push de los intentos rechazados (el evento `CheckInRejected` ya existe); App Links verificados en producción para que el enlace abra la app nativa; geocerca.

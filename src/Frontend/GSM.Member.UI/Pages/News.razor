@@ -1,0 +1,275 @@
+@page "/app/novedades"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@* Novedades del miembro (etapa 13): anuncios del gym con reacciones y avisos personales.
+   Abrir cada sección la marca como leída (anuncios: "seen"; avisos: "read-all"). *@
+@inject IMeClient Me
+@inject GymContext GymCtx
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject NewsUnreadState Unread
+
+<PageTitle>Novedades — GSM</PageTitle>
+
+<h1 class="gsm-m-section gsm-m-section--page">Novedades</h1>
+
+@if (GymCtx.FeatureFlags?.ShowCommunity != true)
+{
+    <div class="gsm-empty">
+        <MudIcon Icon="@Icons.Material.Outlined.Campaign" Size="Size.Large" Class="gsm-empty-icon" />
+        <span>Tu gimnasio todavía no publica novedades en la app.</span>
+    </div>
+}
+else
+{
+    <div class="gsm-segmented gsm-segmented--full mb-4" role="tablist" aria-label="Secciones de novedades">
+        <button type="button" role="tab" class="gsm-segmented__option @(_tab == Tab.Announcements ? "is-active" : null)"
+                aria-selected="@(_tab == Tab.Announcements ? "true" : "false")" @onclick="() => SwitchAsync(Tab.Announcements)">
+            Anuncios
+        </button>
+        <button type="button" role="tab" class="gsm-segmented__option @(_tab == Tab.ForYou ? "is-active" : null)"
+                aria-selected="@(_tab == Tab.ForYou ? "true" : "false")" @onclick="() => SwitchAsync(Tab.ForYou)">
+            Para ti @if (_unreadNotifications > 0) { <span class="gsm-badge">@_unreadNotifications</span> }
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_tab == Tab.Announcements)
+    {
+        @if (_feed.Count == 0)
+        {
+            <div class="gsm-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.Campaign" Size="Size.Large" Class="gsm-empty-icon" />
+                <span>Aún no hay anuncios de tu gimnasio.</span>
+            </div>
+        }
+        else
+        {
+            <div class="gsm-feed-list">
+                @foreach (var item in _feed)
+                {
+                    <article class="gsm-feed-card @(item.Pinned ? "is-pinned" : null)">
+                        <div class="gsm-feed-card__meta">
+                            @if (item.Pinned)
+                            {
+                                <span class="gsm-tag"><MudIcon Icon="@Icons.Material.Filled.PushPin" Style="font-size:0.8rem" /> Fijado</span>
+                            }
+                            <time datetime="@item.PublishedAt.ToString("o")">@CommunicationLabels.Relative(item.PublishedAt, DateTimeOffset.UtcNow)</time>
+                        </div>
+                        <h2 class="gsm-feed-card__title">@item.Title</h2>
+                        <p class="gsm-feed-card__body">@item.Body</p>
+                        <div class="gsm-reactions" role="group" aria-label="Reacciones">
+                            @foreach (var kind in CommunicationLabels.Reactions)
+                            {
+                                var mine = item.MyReaction == kind;
+                                var count = Count(item.Reactions, kind);
+                                <button type="button" class="gsm-reaction @(mine ? "is-mine" : null)"
+                                        aria-pressed="@(mine ? "true" : "false")"
+                                        aria-label="@($"{CommunicationLabels.ReactionLabel(kind)}, {count}")"
+                                        disabled="@_reacting.Contains(item.Id)"
+                                        @onclick="() => ReactAsync(item, kind)">
+                                    <MudIcon Icon="@CommunicationLabels.ReactionIcon(kind)" Size="Size.Small" />
+                                    <span class="gsm-num">@count</span>
+                                </button>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        @if (_notifications.Count == 0)
+        {
+            <div class="gsm-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.NotificationsNone" Size="Size.Large" Class="gsm-empty-icon" />
+                <span>No tienes avisos. Aquí verás si se cancela una clase o vence tu plan.</span>
+            </div>
+        }
+        else
+        {
+            <ul class="gsm-notice-list">
+                @foreach (var n in _notifications)
+                {
+                    <li>
+                        <button type="button" class="gsm-notice @(n.ReadAt is null ? "is-unread" : null)" @onclick="() => OpenNotification(n)">
+                            <span class="gsm-notice__icon" aria-hidden="true"><MudIcon Icon="@CommunicationLabels.NotificationIcon(n.Type)" /></span>
+                            <span class="gsm-notice__body">
+                                <span class="gsm-notice__title">@n.Title</span>
+                                <span class="gsm-notice__text">@n.Body</span>
+                                <span class="gsm-notice__time">@CommunicationLabels.Relative(n.CreatedAt, DateTimeOffset.UtcNow)</span>
+                            </span>
+                            @if (n.ReadAt is null)
+                            {
+                                <span class="gsm-visually-hidden">Sin leer</span>
+                            }
+                        </button>
+                    </li>
+                }
+            </ul>
+        }
+
+        <section class="gsm-m-card gsm-news-prefs">
+            <div class="gsm-m-card__body">
+                <h2 class="gsm-m-card__title">Avisos por email</h2>
+                <p class="gsm-m-card__text">Anuncios del gym, clases canceladas y vencimiento de tu plan.</p>
+            </div>
+            <MudSwitch T="bool" Value="!_emailOptOut" ValueChanged="SetEmailAsync" Color="Color.Primary"
+                       Disabled="_savingPrefs" aria-label="Recibir avisos del gimnasio por email" />
+        </section>
+    }
+}
+
+@code {
+    private enum Tab { Announcements, ForYou }
+
+    private Tab _tab = Tab.Announcements;
+    private bool _loading = true;
+    private List<FeedItem> _feed = [];
+    private List<NotificationItem> _notifications = [];
+    private int _unreadNotifications;
+    private bool _emailOptOut;
+    private bool _savingPrefs;
+    private readonly HashSet<Guid> _reacting = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GymCtx.FeatureFlags?.ShowCommunity != true)
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            _unreadNotifications = (await Me.UnreadCountAsync()).Notifications;
+        }
+        catch (GsmApiException)
+        {
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task SwitchAsync(Tab tab)
+    {
+        if (_tab == tab)
+        {
+            return;
+        }
+
+        _tab = tab;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            if (_tab == Tab.Announcements)
+            {
+                _feed = (await Me.FeedAsync(1, 30)).Items.ToList();
+                await Me.SeenAsync();
+            }
+            else
+            {
+                _notifications = (await Me.NotificationsAsync(1, 30)).Items.ToList();
+                _emailOptOut = (await Me.CommunicationPreferencesGETAsync()).EmailOptOut;
+                if (_notifications.Any(n => n.ReadAt is null))
+                {
+                    await Me.ReadAllAsync();
+                }
+
+                _unreadNotifications = 0;
+            }
+
+            await Unread.RefreshAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // Actualización optimista: la reacción cambia al instante y se revierte si la API falla.
+    private async Task ReactAsync(FeedItem item, string kind)
+    {
+        var previousMine = item.MyReaction;
+        var previousCounts = new ReactionCounts { Like = item.Reactions.Like, Celebrate = item.Reactions.Celebrate, Strong = item.Reactions.Strong };
+
+        Apply(item, previousMine, -1);
+        item.MyReaction = previousMine == kind ? null : kind;
+        Apply(item, item.MyReaction, +1);
+        _reacting.Add(item.Id);
+
+        try
+        {
+            var result = await Me.ReactionPUTAsync(item.Id, new ReactRequest { Kind = kind });
+            item.Reactions = result.Reactions;
+            item.MyReaction = result.MyReaction;
+        }
+        catch (GsmApiException ex)
+        {
+            item.Reactions = previousCounts;
+            item.MyReaction = previousMine;
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _reacting.Remove(item.Id);
+        }
+    }
+
+    private static void Apply(FeedItem item, string? kind, int delta)
+    {
+        switch (kind)
+        {
+            case CommunicationLabels.Like: item.Reactions.Like += delta; break;
+            case CommunicationLabels.Celebrate: item.Reactions.Celebrate += delta; break;
+            case CommunicationLabels.Strong: item.Reactions.Strong += delta; break;
+        }
+    }
+
+    private static int Count(ReactionCounts counts, string kind) => kind switch
+    {
+        CommunicationLabels.Celebrate => counts.Celebrate,
+        CommunicationLabels.Strong => counts.Strong,
+        _ => counts.Like,
+    };
+
+    private void OpenNotification(NotificationItem n)
+    {
+        if (!string.IsNullOrEmpty(n.Link))
+        {
+            Navigation.NavigateTo(n.Link);
+        }
+    }
+
+    private async Task SetEmailAsync(bool receive)
+    {
+        _savingPrefs = true;
+        try
+        {
+            _emailOptOut = (await Me.CommunicationPreferencesPUTAsync(
+                new UpdateCommunicationPreferencesRequest { EmailOptOut = !receive })).EmailOptOut;
+            Snackbar.Add(receive ? "Recibirás los avisos por email." : "Ya no recibirás avisos por email.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _savingPrefs = false;
+        }
+    }
+}

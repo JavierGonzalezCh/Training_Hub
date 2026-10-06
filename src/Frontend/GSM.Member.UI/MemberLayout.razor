@@ -4,22 +4,36 @@
 @inject SessionService Session
 @inject MemberBootstrapService Bootstrap
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
 @implements IDisposable
 
-<MudThemeProvider Theme="@_theme" IsDarkMode="true" />
+<GsmThemeProvider Gym="@GymCtx.Gym" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="0">
-        <span class="gsm-wordmark" style="font-size:1.3rem">GS<span class="accent">M</span></span>
-        <MudSpacer />
+    <MudAppBar Elevation="0" Class="gsm-m-bar">
         @if (GymCtx.Gym is { } gym)
         {
-            <MudText Class="gsm-mono mr-3" Typo="Typo.body2">@gym.Name.ToUpperInvariant()</MudText>
+            <div class="gsm-m-brand">
+                @if (!string.IsNullOrWhiteSpace(gym.LogoUrl))
+                {
+                    <img class="gsm-m-brand__logo" src="@gym.LogoUrl" alt="@gym.Name" />
+                }
+                else
+                {
+                    <span class="gsm-m-brand__mark" aria-hidden="true">@GymBrand.Initial(gym.Name)</span>
+                }
+                <span class="gsm-m-brand__name">@gym.Name</span>
+            </div>
         }
-        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" title="Cerrar sesión" />
+        else
+        {
+            <span class="gsm-wordmark" style="font-size:1.3rem">GS<span class="accent">M</span></span>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" aria-label="Cerrar sesión" />
     </MudAppBar>
 
     <MudMainContent>
@@ -38,18 +52,34 @@
         </MudContainer>
     </MudMainContent>
 
-    <MudPaper Class="pa-0" Elevation="4" Style="position:fixed; bottom:0; left:0; right:0; z-index:10;">
-        <MudBottomNavigation Color="Color.Primary" Style="background:var(--gsm-panel)">
-            <MudBottomNavigationItem Icon="@Icons.Material.Filled.Home" Href="/app" Match="NavLinkMatch.All">Inicio</MudBottomNavigationItem>
-            <MudBottomNavigationItem Icon="@Icons.Material.Filled.EmojiEvents" Href="/app/logros">Logros</MudBottomNavigationItem>
-            <MudBottomNavigationItem Icon="@Icons.Material.Filled.FitnessCenter" Href="/app/rutina">Rutina</MudBottomNavigationItem>
-            <MudBottomNavigationItem Icon="@Icons.Material.Filled.CalendarMonth" Href="/app/clases">Clases</MudBottomNavigationItem>
-        </MudBottomNavigation>
-    </MudPaper>
+    @* NavLink de Blazor, no MudBottomNavigation: ese componente no existe en MudBlazor y
+       Razor lo emitía como etiqueta HTML desconocida, así que los destinos salían como
+       texto suelto y no navegaban. *@
+    <nav class="gsm-tabbar" aria-label="Navegación principal">
+        <NavLink href="/app" Match="NavLinkMatch.All">
+            <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />
+            <span class="gsm-tabbar-label">Inicio</span>
+        </NavLink>
+        <NavLink href="/app/logros">
+            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Small" />
+            <span class="gsm-tabbar-label">Logros</span>
+        </NavLink>
+        <NavLink href="/app/rutina">
+            <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" />
+            <span class="gsm-tabbar-label">Rutina</span>
+        </NavLink>
+        <NavLink href="/app/clases">
+            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" />
+            <span class="gsm-tabbar-label">Clases</span>
+        </NavLink>
+        @if (!_loading && GymCtx.FeatureFlags?.ShowCommunity == true)
+        {
+            <NewsTabLink />
+        }
+    </nav>
 </MudLayout>
 
 @code {
-    private MudTheme _theme = GsmTheme.Build();
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -64,7 +94,10 @@
                 await Session.BootstrapAsync();
             }
 
-            if (!MemberCtx.IsLoaded)
+            // /app/checkin tambien lo abre quien no es miembro (staff con el enlace del QR): ese caso
+            // no tiene ficha de socio que cargar y la propia pagina lo explica.
+            var user = (await AuthState.GetAuthenticationStateAsync()).User;
+            if (user.IsInRole(GsmRoles.Member) && !MemberCtx.IsLoaded)
             {
                 await Bootstrap.LoadAsync();
             }
@@ -79,11 +112,7 @@
         }
     }
 
-    private void OnChanged()
-    {
-        _theme = GsmTheme.Build(GymCtx.Gym);
-        InvokeAsync(StateHasChanged);
-    }
+    private void OnChanged() => InvokeAsync(StateHasChanged);
 
     private async Task LogoutAsync()
     {

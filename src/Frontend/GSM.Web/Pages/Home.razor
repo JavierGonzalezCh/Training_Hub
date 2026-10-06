@@ -3,87 +3,283 @@
 @implements IDisposable
 @inject GymContext GymContext
 @inject IDashboardClient Dashboard
+@inject IAttendanceClient Attendance
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
 <PageTitle>Dashboard — GSM</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-1">Dashboard</MudText>
-<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
-    @(GymContext.Gym?.Name ?? "—") · sesión de @(GymContext.Role ?? "—")
-</MudText>
+<PageHeader Eyebrow="@GsmFormat.DayLong(_today)" Title="Resumen de hoy">
+    <Subtitle>@(_dashboard is { } d ? Headline(d) : (GymContext.Gym?.Name ?? ""))</Subtitle>
+    <Actions>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Schedule" Href="/memberships/expiring">
+            Por vencer
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.PointOfSale" Href="/cash-register">
+            Cierre de caja
+        </MudButton>
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-6" />
 }
 else if (_dashboard is { } dashboard)
 {
-    <MudGrid Class="mb-6">
-        <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Miembros activos" Value="@dashboard.ActiveMembers.ToString()" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Check-ins hoy" Value="@dashboard.CheckInsToday.ToString()" Accent="Color.Info" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Ingresos del mes" Value="@GsmFormat.Money((decimal)dashboard.RevenueThisMonth)"
-                      Accent="Color.Info" Hint="@RevenueHint(dashboard)" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Vencidas / por vencer" Value="@($"{dashboard.ExpiredMemberships} / {dashboard.ExpiringSoon}")"
-                      Accent="Color.Error" />
-        </MudItem>
-    </MudGrid>
+    <section class="gsm-kpi-grid" aria-label="Indicadores">
+        <StatCard Label="Miembros activos" Value="@dashboard.ActiveMembers.ToString()"
+                  Hint="Con estado activo en el gym" />
+        <StatCard Label="Check-ins hoy" Value="@dashboard.CheckInsToday.ToString()" Accent="Color.Info"
+                  Meter="@Ratio(dashboard.CheckInsToday, dashboard.ActiveMembers)"
+                  Hint="@($"{Percent(dashboard.CheckInsToday, dashboard.ActiveMembers)} de los activos")" />
+        <StatCard Label="Ingresos del mes" Value="@GsmFormat.Money((decimal)dashboard.RevenueThisMonth)"
+                  Hint="@RevenueHint(dashboard)" />
+        <StatCard Label="Por vencer · 7 días" Value="@dashboard.ExpiringSoon.ToString()"
+                  Accent="@(dashboard.ExpiringSoon > 0 ? Color.Error : Color.Default)"
+                  Hint="@($"{dashboard.ExpiredMemberships} ya vencidas")" />
+    </section>
 
-    <MudText Typo="Typo.h6" Class="mb-3">Membresías por vencer</MudText>
-    @if (dashboard.ExpiringMemberships.Count == 0)
-    {
-        <MudText Color="Color.Secondary">Nada por vencer en los próximos días.</MudText>
-    }
-    else
-    {
-        <MudTable Items="dashboard.ExpiringMemberships" Hover="true" Dense="true" Elevation="0">
-            <HeaderContent>
-                <MudTh>Plan</MudTh>
-                <MudTh>Vence</MudTh>
-                <MudTh>Días</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Plan">
-                    <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
-                        @context.PlanName
-                    </MudLink>
-                </MudTd>
-                <MudTd DataLabel="Vence">@GsmFormat.Day(context.EndDate)</MudTd>
-                <MudTd DataLabel="Días" Class="gsm-mono">
-                    <MudText Color="@(context.DaysLeft <= 3 ? Color.Error : Color.Default)">@context.DaysLeft</MudText>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
-    }
+    <div class="gsm-dash-grid">
+        <section class="gsm-panel" aria-labelledby="peak-title">
+            <header class="gsm-panel__header">
+                <h2 id="peak-title" class="gsm-panel__title">Afluencia por hora</h2>
+                <span class="gsm-panel__meta">@PeakMeta()</span>
+            </header>
+            @if (_peak.Count == 0)
+            {
+                <div class="gsm-empty">
+                    <MudIcon Icon="@Icons.Material.Outlined.QueryStats" Class="gsm-empty-icon" />
+                    <span>Sin check-ins en los últimos 30 días.</span>
+                </div>
+            }
+            else
+            {
+                <div class="gsm-bars" role="img" aria-label="@PeakSummary()">
+                    @foreach (var bucket in _peak)
+                    {
+                        var height = _peakMax == 0 ? 0 : bucket.Count * 100.0 / _peakMax;
+                        var classes = $"gsm-bar{(bucket.Hour == _peakHour ? " is-peak" : "")}{(bucket.Hour == _currentHour ? " is-now" : "")}";
+                        <div class="@classes" title="@($"{bucket.Hour:00}:00 · {bucket.Count} check-ins")">
+                            <span class="gsm-bar__track">
+                                <span class="gsm-bar__fill" style="height:@(height.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                            </span>
+                            <span class="gsm-bar__label">@bucket.Hour.ToString("00")</span>
+                        </div>
+                    }
+                </div>
+                <div class="gsm-legend">
+                    <span class="gsm-legend__item"><span class="gsm-legend__dot is-peak"></span>Hora pico</span>
+                    <span class="gsm-legend__item"><span class="gsm-legend__dot is-now"></span>Ahora</span>
+                </div>
+            }
+        </section>
+
+        <section class="gsm-panel" aria-labelledby="feed-title">
+            <header class="gsm-panel__header">
+                <h2 id="feed-title" class="gsm-panel__title">Últimos check-ins</h2>
+                <a class="gsm-panel__link" href="/attendance">Ver todo</a>
+            </header>
+            @if (_feed.Count == 0)
+            {
+                <div class="gsm-empty">
+                    <MudIcon Icon="@Icons.Material.Outlined.DoorFront" Class="gsm-empty-icon" />
+                    <span>Nadie ha entrado todavía hoy.</span>
+                </div>
+            }
+            else
+            {
+                <ol class="gsm-feed">
+                    @foreach (var item in _feed)
+                    {
+                        <li class="gsm-feed__item">
+                            <span class="gsm-feed__time">@GsmFormat.Time(item.CheckedInAt)</span>
+                            <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(item.MemberName)</span>
+                            <a class="gsm-feed__name" href="@($"/members/{item.MemberId}")">@item.MemberName</a>
+                            <span class="gsm-tag">@(item.Method.Equals("qr", StringComparison.OrdinalIgnoreCase) ? "QR" : "Manual")</span>
+                        </li>
+                    }
+                </ol>
+            }
+        </section>
+    </div>
+
+    <section class="gsm-panel" aria-labelledby="rejected-title">
+        <header class="gsm-panel__header">
+            <h2 id="rejected-title" class="gsm-panel__title">Intentos rechazados hoy</h2>
+            <span class="gsm-panel__meta">@(_rejected.Count(a => a.AcknowledgedAt is null)) sin ver</span>
+        </header>
+        @if (_rejected.Count == 0)
+        {
+            <div class="gsm-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.GppGood" Class="gsm-empty-icon" />
+                <span>Nadie ha sido rechazado hoy.</span>
+            </div>
+        }
+        else
+        {
+            <ol class="gsm-feed">
+                @foreach (var item in _rejected)
+                {
+                    <li class="gsm-feed__item">
+                        <span class="gsm-feed__time">@GsmFormat.Time(item.AttemptedAt)</span>
+                        <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(item.MemberName)</span>
+                        <a class="gsm-feed__name" href="@($"/members/{item.MemberId}")">@item.MemberName</a>
+                        <span class="gsm-tag">@(item.Reason == "NoMembership" ? "Sin membresía" : "Vencida")@(item.AttemptCount > 1 ? $" · x{item.AttemptCount}" : "")</span>
+                    </li>
+                }
+            </ol>
+        }
+    </section>
+
+    <section class="gsm-panel" aria-labelledby="expiring-title">
+        <header class="gsm-panel__header">
+            <h2 id="expiring-title" class="gsm-panel__title">Membresías por vencer</h2>
+            <a class="gsm-panel__link" href="/memberships/expiring">Ver todas</a>
+        </header>
+        @if (dashboard.ExpiringMemberships.Count == 0)
+        {
+            <div class="gsm-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.EventAvailable" Class="gsm-empty-icon" />
+                <span>Nada vence en los próximos 7 días.</span>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="dashboard.ExpiringMemberships" Hover="true" Dense="true" Elevation="0" Class="gsm-table">
+                <HeaderContent>
+                    <MudTh>Miembro</MudTh>
+                    <MudTh>Plan</MudTh>
+                    <MudTh>Vence</MudTh>
+                    <MudTh Style="text-align:right">Días</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Miembro">
+                        <div class="gsm-identity">
+                            <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(context.MemberName)</span>
+                            <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
+                                @context.MemberName
+                            </MudLink>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Plan">@context.PlanName</MudTd>
+                    <MudTd DataLabel="Vence">@GsmFormat.Day(context.EndDate)</MudTd>
+                    <MudTd DataLabel="Días" Style="text-align:right">
+                        <span class="gsm-days @(context.DaysLeft <= 3 ? "is-urgent" : null)">
+                            @(context.DaysLeft == 0 ? "Hoy" : context.DaysLeft.ToString())
+                        </span>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </section>
 }
 
 @code {
+    private const int PeakWindowDays = 30;
+
+    private readonly DateOnly _today = GsmFormat.Today();
+    private readonly int _currentHour = GsmFormat.CurrentHour();
     private DashboardResponse? _dashboard;
+    private List<PeakHourBucket> _peak = [];
+    private List<AttendanceListItem> _feed = [];
+    private List<CheckinAttemptItem> _rejected = [];
+    private int _peakMax;
+    private int? _peakHour;
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        GymContext.Changed += StateHasChanged;
+        GymContext.Changed += OnGymChanged;
+
+        // Las tres lecturas son independientes: en paralelo, y si falla una de las
+        // secundarias (afluencia, feed) el dashboard sigue mostrando las cifras.
+        var dashboardTask = Dashboard.Dashboard2Async();
+        var peakTask = Attendance.PeakHoursAsync(_today.AddDays(-PeakWindowDays), _today);
+        var feedTask = Attendance.AttendanceGETAsync(null, _today, _today, 1, 8);
+        var rejectedTask = Attendance.AttemptsAsync(_today, _today, null, 1, 6);
+
         try
         {
-            _dashboard = await Dashboard.Dashboard2Async();
+            _dashboard = await dashboardTask;
         }
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
-        finally
+
+        try
         {
-            _loading = false;
+            BuildPeak(await peakTask);
         }
+        catch (GsmApiException)
+        {
+        }
+
+        try
+        {
+            _feed = (await feedTask).Items.OrderByDescending(i => i.CheckedInAt).ToList();
+        }
+        catch (GsmApiException)
+        {
+        }
+
+        try
+        {
+            _rejected = (await rejectedTask).Items.OrderByDescending(i => i.AttemptedAt).ToList();
+        }
+        catch (GsmApiException)
+        {
+        }
+
+        _loading = false;
     }
+
+    // Rango continuo de horas: un hueco a mitad de la mañana es información, no un error,
+    // así que las horas sin check-ins se dibujan a cero en lugar de desaparecer.
+    private void BuildPeak(ICollection<PeakHourBucket> buckets)
+    {
+        var withData = buckets.Where(b => b.Count > 0).ToList();
+        if (withData.Count == 0)
+        {
+            return;
+        }
+
+        var from = Math.Min(withData.Min(b => b.Hour), 5);
+        var to = Math.Max(withData.Max(b => b.Hour), 21);
+        var byHour = withData.ToDictionary(b => b.Hour, b => b.Count);
+        _peak = Enumerable.Range(from, to - from + 1)
+            .Select(h => new PeakHourBucket { Hour = h, Count = byHour.GetValueOrDefault(h) })
+            .ToList();
+        _peakMax = _peak.Max(b => b.Count);
+        _peakHour = _peak.MaxBy(b => b.Count)?.Hour;
+    }
+
+    private string PeakMeta()
+        => _peakHour is { } hour ? $"Últimos {PeakWindowDays} días · pico {hour:00}:00" : $"Últimos {PeakWindowDays} días";
+
+    private string PeakSummary()
+        => _peakHour is { } hour
+            ? $"Check-ins por hora en los últimos {PeakWindowDays} días. La hora pico es las {hour:00}:00."
+            : "Check-ins por hora.";
+
+    // Voz del producto: una frase con el dato que pide acción, sin relleno motivacional.
+    private static string Headline(DashboardResponse d)
+    {
+        if (d.ExpiringSoon == 0 && d.ExpiredMemberships == 0)
+        {
+            return "Ninguna membresía vence esta semana.";
+        }
+
+        var expiring = d.ExpiringSoon == 1 ? "1 membresía vence" : $"{d.ExpiringSoon} membresías vencen";
+        return d.ExpiredMemberships > 0
+            ? $"Esta semana {expiring} y hay {d.ExpiredMemberships} ya vencidas por renovar."
+            : $"Esta semana {expiring}.";
+    }
+
+    private static double? Ratio(int part, int total) => total <= 0 ? null : (double)part / total;
+
+    private static string Percent(int part, int total) => total <= 0 ? "0 %" : $"{part * 100 / total} %";
 
     private static string RevenueHint(DashboardResponse dashboard)
     {
@@ -94,8 +290,10 @@ else if (_dashboard is { } dashboard)
 
         var change = (dashboard.RevenueThisMonth - dashboard.RevenueLastMonth) / dashboard.RevenueLastMonth * 100;
         var sign = change >= 0 ? "+" : "";
-        return $"{sign}{change:0}% vs mes anterior";
+        return $"{sign}{change:0} % vs mes anterior";
     }
 
-    public void Dispose() => GymContext.Changed -= StateHasChanged;
+    private void OnGymChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => GymContext.Changed -= OnGymChanged;
 }

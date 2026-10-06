@@ -19,7 +19,10 @@ public static class SuperAdminLabels
 
     public static Color StatusColor(string status) => status switch
     {
-        "Active" or "Trial" => Color.Info,
+        // "Activo" es un estado correcto, no informativo: verde. "Prueba" no pide ninguna
+        // acción, así que se queda neutro en vez de competir con los estados que sí.
+        "Active" => Color.Success,
+        "Trial" => Color.Default,
         "Overdue" => Color.Warning,
         "Disabled" or "Suspended" => Color.Error,
         _ => Color.Default,

@@ -1,0 +1,58 @@
+@* Pestaña "Comunicaciones" de la configuración: antelación del recordatorio de vencimiento. Solo Owner. *@
+@inject IAnnouncementsClient Announcements
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <MudNumericField T="int" @bind-Value="_days" Label="Avisar del vencimiento con (días de antelación)" Min="0" Max="14"
+                     HelperText="El miembro recibe un aviso en la app y por email cuando su membresía está por vencer. 0 = sin recordatorios."
+                     Class="mb-4" Style="max-width:460px" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
+        @(_saving ? "Guardando..." : "Guardar cambios")
+    </MudButton>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private int _days = 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _days = (await Announcements.ReminderSettingsGETAsync()).ReminderDaysBefore;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            _days = (await Announcements.ReminderSettingsPUTAsync(new UpdateCommunicationsSettingsRequest { ReminderDaysBefore = _days }))
+                .ReminderDaysBefore;
+            Snackbar.Add("Ajustes de comunicaciones guardados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

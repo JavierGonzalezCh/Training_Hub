@@ -1,0 +1,248 @@
+@page "/kiosk"
+@layout KioskLayout
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@implements IAsyncDisposable
+@inject GymContext GymContext
+@inject IAttendanceClient Attendance
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Kiosco — GSM</PageTitle>
+
+@if (_disabled)
+{
+    <section class="gsm-kiosk gsm-kiosk--centered">
+        <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="gsm-empty-icon" />
+        <h1 class="gsm-kiosk__title">El check-in con QR está desactivado</h1>
+        <p class="gsm-kiosk__hint">Actívalo en Configuración → Feature flags para que los miembros puedan registrar su entrada.</p>
+        <RequireRole Roles="@GsmRoles.Owner">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/settings">Ir a Configuración</MudButton>
+        </RequireRole>
+        <a class="gsm-kiosk__back" href="/">Volver al panel</a>
+    </section>
+}
+else
+{
+    <section class="gsm-kiosk">
+        <header class="gsm-kiosk__top">
+            <div>
+                <div class="gsm-eyebrow">@(GymContext.Gym?.Name ?? "GSM")</div>
+                <h1 class="gsm-kiosk__title">Escanea para entrar</h1>
+            </div>
+            <div class="gsm-kiosk__clock" aria-hidden="true">@GsmFormat.Time(_now)</div>
+        </header>
+
+        <div class="gsm-kiosk__main">
+            <div class="gsm-kiosk__qr-card">
+                @if (_code is not null)
+                {
+                    <QrCodeSvg Value="@LinkFor(_code.Code)" SizePx="@QrSize" />
+                    @if (_code.ExpiresAtUtc is { } expires)
+                    {
+                        var left = Math.Max(0, (int)Math.Ceiling((expires - _now).TotalSeconds));
+                        <div class="gsm-kiosk__timer" role="timer" aria-label="El código cambia en @left segundos">
+                            <span class="gsm-kiosk__timer-track">
+                                <span class="gsm-kiosk__timer-fill" style="width:@((left * 100 / 30).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                            </span>
+                            <span class="gsm-kiosk__timer-label">Cambia en @(left)s</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+            </div>
+
+            <aside class="gsm-kiosk__activity" aria-labelledby="kiosk-activity">
+                <h2 id="kiosk-activity" class="gsm-panel__title">Actividad de hoy</h2>
+                @if (_rejected.Count > 0)
+                {
+                    <ul class="gsm-feed gsm-feed--kiosk">
+                        @foreach (var a in _rejected)
+                        {
+                            <li class="gsm-feed__item gsm-feed__item--denied">
+                                <span class="gsm-feed__time">@GsmFormat.Time(a.AttemptedAt)</span>
+                                <span class="gsm-feed__name">@FirstName(a.MemberName)</span>
+                                <span class="gsm-kiosk__denied">Acceso denegado — pasa por recepción</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                @if (_entries.Count == 0 && _rejected.Count == 0)
+                {
+                    <p class="gsm-kiosk__hint">Todavía no hay entradas hoy.</p>
+                }
+                <ul class="gsm-feed gsm-feed--kiosk">
+                    @foreach (var e in _entries)
+                    {
+                        <li class="gsm-feed__item">
+                            <span class="gsm-feed__time">@GsmFormat.Time(e.CheckedInAt)</span>
+                            <span class="gsm-feed__name">Hola, @FirstName(e.MemberName)</span>
+                        </li>
+                    }
+                </ul>
+            </aside>
+        </div>
+
+        <footer class="gsm-kiosk__bar">
+            <a class="gsm-kiosk__back" href="/">Volver al panel</a>
+            <span class="gsm-kiosk__spacer"></span>
+            @if (_code?.Mode == "Static")
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PrintAsync" StartIcon="@Icons.Material.Outlined.Print">Imprimir cartel</MudButton>
+            }
+            <MudButton Variant="Variant.Outlined" OnClick="FullscreenAsync" StartIcon="@Icons.Material.Outlined.Fullscreen">Pantalla completa</MudButton>
+        </footer>
+    </section>
+
+    @if (_code?.Mode == "Static")
+    {
+        @* Cartel: solo se ve al imprimir (ver @media print en gsm.css). *@
+        <div class="gsm-poster" aria-hidden="true">
+            <div class="gsm-poster__gym">@(GymContext.Gym?.Name)</div>
+            <QrCodeSvg Value="@LinkFor(_code.Code)" SizePx="520" />
+            <div class="gsm-poster__text">Escanea con la cámara para registrar tu entrada</div>
+        </div>
+    }
+}
+
+@code {
+    private const int QrSize = 460;
+
+    private readonly CancellationTokenSource _cts = new();
+    private KioskCodeResponse? _code;
+    private List<AttendanceListItem> _entries = [];
+    private List<CheckinAttemptItem> _rejected = [];
+    private DateTimeOffset _now = DateTimeOffset.UtcNow;
+    private DateTimeOffset _nextActivity = DateTimeOffset.MinValue;
+    private DateTimeOffset _nextCodeFetch = DateTimeOffset.MinValue;
+    private bool _disabled;
+    private Task? _loop;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshCodeAsync();
+        if (_disabled)
+        {
+            return;
+        }
+
+        await RefreshActivityAsync();
+        _loop = RunAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_disabled)
+        {
+            try
+            {
+                // Que la pantalla no se apague mientras el kiosco está abierto. Puede no estar soportado.
+                await JS.InvokeVoidAsync("navigator.wakeLock.request", "screen");
+            }
+            catch (Exception)
+            {
+            }
+        }
+    }
+
+    // Un solo reloj de 1 s: refresca el contador, pide el código nuevo poco antes de que caduque y
+    // la actividad cada ~5 s. Se detiene con el token al salir de la página.
+    private async Task RunAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_cts.Token))
+            {
+                _now = DateTimeOffset.UtcNow;
+
+                // El código anterior sigue valiendo una ventana más: basta pedir el nuevo cuando caduca el actual.
+                if (_code?.ExpiresAtUtc is { } expires && _now >= expires && _now >= _nextCodeFetch)
+                {
+                    await RefreshCodeAsync();
+                }
+
+                if (_now >= _nextActivity)
+                {
+                    await RefreshActivityAsync();
+                }
+
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task RefreshCodeAsync()
+    {
+        // Si el reloj del equipo va adelantado, el servidor devolvería el mismo código: no insistir cada segundo.
+        _nextCodeFetch = DateTimeOffset.UtcNow.AddSeconds(2);
+        try
+        {
+            _code = await Attendance.KioskCodeAsync(_cts.Token);
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 403)
+        {
+            _disabled = true;
+        }
+        catch (GsmApiException)
+        {
+            // Un fallo puntual: se reintenta en el siguiente tick.
+        }
+    }
+
+    private async Task RefreshActivityAsync()
+    {
+        _nextActivity = DateTimeOffset.UtcNow.AddSeconds(5);
+        var today = GsmFormat.Today();
+        try
+        {
+            var entries = await Attendance.AttendanceGETAsync(null, today, today, 1, 6, _cts.Token);
+            _entries = entries.Items.OrderByDescending(i => i.CheckedInAt).ToList();
+            var attempts = await Attendance.AttemptsAsync(today, today, null, 1, 4, _cts.Token);
+            _rejected = attempts.Items.OrderByDescending(i => i.AttemptedAt).ToList();
+        }
+        catch (GsmApiException)
+        {
+        }
+    }
+
+    // El enlace que lleva el QR: abre la app del miembro y registra la entrada.
+    private string LinkFor(string code) => $"{Navigation.BaseUri}app/checkin?t={Uri.EscapeDataString(code)}";
+
+    private static string FirstName(string fullName) => fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? fullName;
+
+    private async Task FullscreenAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("document.documentElement.requestFullscreen");
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("window.print");
+
+    public async ValueTask DisposeAsync()
+    {
+        _cts.Cancel();
+        if (_loop is not null)
+        {
+            try
+            {
+                await _loop;
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        _cts.Dispose();
+    }
+}

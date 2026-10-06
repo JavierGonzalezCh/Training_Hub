@@ -5,7 +5,13 @@ public sealed record LogRoutineExerciseRequest(
     int? SetsDone,
     string? RepsDone,
     decimal? WeightKg,
-    string? Notes);
+    string? Notes,
+    IReadOnlyList<LogSetRequest>? Sets = null);
+
+/// <summary>Una serie realizada: repeticiones y peso que usó el socio. El número lo pone el servidor por orden.</summary>
+public sealed record LogSetRequest(int? Reps, decimal? WeightKg);
+
+public sealed record SetResponse(int Number, int? Reps, decimal? WeightKg);
 
 public sealed record RoutineLogResponse(
     Guid Id,
@@ -15,7 +21,8 @@ public sealed record RoutineLogResponse(
     string? RepsDone,
     decimal? WeightKg,
     string? Notes,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt,
+    IReadOnlyList<SetResponse>? Sets = null);
 
 public sealed record RoutineHistoryItem(
     DateOnly PerformedOn,
@@ -26,4 +33,5 @@ public sealed record RoutineHistoryItem(
     string? RepsDone,
     decimal? WeightKg,
     string? Notes,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt,
+    IReadOnlyList<SetResponse>? Sets = null);

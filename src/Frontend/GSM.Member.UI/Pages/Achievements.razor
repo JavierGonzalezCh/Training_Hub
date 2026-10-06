@@ -7,6 +7,8 @@
 
 <PageTitle>Logros — GSM</PageTitle>
 
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Logros</MudText>
+
 @if (GymCtx.FeatureFlags?.ShowGamification == false)
 {
     <MudAlert Severity="Severity.Normal">La gamificación no está activada en este gimnasio.</MudAlert>
@@ -25,14 +27,25 @@ else
         @foreach (var achievement in _achievements)
         {
             <MudItem xs="6" sm="4">
-                <MudPaper Class="pa-4 text-center" Elevation="0"
-                          Style="@($"border:1px solid var(--gsm-border); opacity:{(achievement.Unlocked ? "1" : "0.45")}")">
-                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large"
-                              Color="@(achievement.Unlocked ? Color.Info : Color.Default)" Class="mb-2" />
-                    <MudText Typo="Typo.body1">@achievement.Name</MudText>
+                <MudPaper Class="@($"pa-4 text-center gsm-achievement{(achievement.Unlocked ? "" : " gsm-achievement--locked")}")" Elevation="0">
+                    <MudIcon Icon="@(achievement.Unlocked ? Icons.Material.Filled.EmojiEvents : Icons.Material.Filled.Lock)"
+                             Size="Size.Large" Class="mb-2"
+                             Style="@($"color:{(achievement.Unlocked ? "var(--gsm-red)" : "var(--gsm-muted)")}")" />
+                    <MudText Typo="Typo.body1" Style="@(achievement.Unlocked ? null : "color:var(--gsm-silver)")">@achievement.Name</MudText>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         @AchievementConditionLabels.Label(achievement.ConditionType) · @achievement.Progress/@achievement.ConditionValue
                     </MudText>
+                    @if (!achievement.Unlocked && achievement.ConditionValue > 0)
+                    {
+                        <div class="gsm-achievement-progress"
+                             role="progressbar"
+                             aria-valuenow="@achievement.Progress"
+                             aria-valuemin="0"
+                             aria-valuemax="@achievement.ConditionValue"
+                             aria-label="@($"Progreso de {achievement.Name}")">
+                            <span style="@($"width:{Math.Min(100, achievement.Progress * 100d / achievement.ConditionValue).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}%")"></span>
+                        </div>
+                    }
                 </MudPaper>
             </MudItem>
         }

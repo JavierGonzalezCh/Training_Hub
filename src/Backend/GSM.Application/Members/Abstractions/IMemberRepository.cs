@@ -16,7 +16,6 @@ public interface IMemberRepository
     Task<bool> DocumentExistsAsync(
         string documentNumber, Guid? excludeMemberId, CancellationToken cancellationToken = default);
 
-    Task<bool> QrExistsAsync(string qrCode, CancellationToken cancellationToken = default);
 
     void Add(Member member);
 

@@ -12,7 +12,7 @@ namespace GSM.API.Controllers;
 [Authorize]
 public sealed class AttendanceController : ControllerBase
 {
-    /// <summary>Registrar entrada. Staff pasa qrCode o memberId; un miembro se registra a sí mismo.</summary>
+    /// <summary>Registrar entrada. Staff pasa memberId; un miembro se registra a sí mismo.</summary>
     [HttpPost("checkin")]
     [ProducesResponseType<CheckInResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<CheckInResponse>(StatusCodes.Status200OK)]
@@ -41,4 +41,72 @@ public sealed class AttendanceController : ControllerBase
         [FromServices] GetPeakHoursHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
+
+    [HttpGet("settings")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<CheckinSettingsResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<CheckinSettingsResponse>> GetSettings(
+        [FromServices] GetCheckinSettingsHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    [HttpPut("settings")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<CheckinSettingsResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<CheckinSettingsResponse>> UpdateSettings(
+        UpdateCheckinSettingsRequest request,
+        [FromServices] UpdateCheckinSettingsHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>Código vigente del gym para el kiosco o el cartel. 403 si el check-in por QR está apagado.</summary>
+    [HttpGet("kiosk-code")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<KioskCodeResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<KioskCodeResponse>> GetKioskCode(
+        [FromServices] GetKioskCodeHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Invalida el cartel impreso actual. Solo en modo fijo (409 en rotativo).</summary>
+    [HttpPost("kiosk-code/regenerate")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<KioskCodeResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<KioskCodeResponse>> RegenerateKioskCode(
+        [FromServices] RegenerateStaticCodeHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    [HttpGet("attempts")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<PagedResult<CheckinAttemptItem>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<CheckinAttemptItem>>> ListAttempts(
+        [FromQuery] ListCheckinAttemptsQuery query,
+        [FromServices] ListCheckinAttemptsHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(query, cancellationToken));
+
+    [HttpGet("attempts/pending-count")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<PendingAttemptCountResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PendingAttemptCountResponse>> PendingAttemptCount(
+        [FromServices] GetPendingAttemptCountHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    [HttpPost("attempts/{id:guid}/acknowledge")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> AcknowledgeAttempt(
+        Guid id, [FromServices] AcknowledgeCheckinAttemptHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("attempts/acknowledge-all")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> AcknowledgeAllAttempts(
+        [FromServices] AcknowledgeAllCheckinAttemptsHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(cancellationToken);
+        return NoContent();
+    }
 }

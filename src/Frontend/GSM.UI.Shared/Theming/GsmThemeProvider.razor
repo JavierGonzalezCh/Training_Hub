@@ -1,0 +1,30 @@
+@* MudThemeProvider con el tema Forja y, si se le pasa, la marca del gym: el color de MudBlazor y los
+   tokens CSS de acento (ver GymBrand). Todos los layouts lo usan en lugar del MudThemeProvider suelto. *@
+@namespace GSM.UI.Shared.Theming
+
+<MudThemeProvider Theme="@_theme" IsDarkMode="true" />
+@if (_brandCss.Length > 0)
+{
+    @* En el cuerpo y no en <head>: GSM.Mobile no tiene HeadOutlet. Los navegadores aplican <style> en cualquier sitio. *@
+    <style id="gsm-brand">@((MarkupString)_brandCss)</style>
+}
+
+@code {
+    private MudTheme _theme = GsmTheme.Build();
+    private MeGym? _builtFor;
+    private string _brandCss = string.Empty;
+
+    /// <summary>Gym cuya marca se aplica. Nulo en pantallas sin gym (acceso, admin).</summary>
+    [Parameter]
+    public MeGym? Gym { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(_builtFor, Gym))
+        {
+            _theme = GsmTheme.Build(Gym);
+            _brandCss = GymBrand.Css(Gym);
+            _builtFor = Gym;
+        }
+    }
+}
