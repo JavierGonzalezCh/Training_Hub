@@ -1,0 +1,39 @@
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+@* Celda de acciones de un pago: marca si ya está anulado o si es una anulación; si no, ofrece anularlo. *@
+@if (Payment.IsReversed == true)
+{
+    <MudChip T="string" Color="Color.Default" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">ANULADO</MudChip>
+}
+else if (Payment.ReversesPaymentId is not null)
+{
+    <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">ANULACIÓN</MudChip>
+}
+else
+{
+    <MudTooltip Text="Anular pago">
+        <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small" aria-label="@($"Anular {Payment.Concept}")"
+                       OnClick="VoidAsync" />
+    </MudTooltip>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public PaymentResponse Payment { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback OnVoided { get; set; }
+
+    private async Task VoidAsync()
+    {
+        var parameters = new DialogParameters<VoidPaymentDialog> { { x => x.Payment, Payment } };
+        var dialog = await Dialogs.ShowAsync<VoidPaymentDialog>("Anular pago", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Pago anulado.", Severity.Success);
+            await OnVoided.InvokeAsync();
+        }
+    }
+}

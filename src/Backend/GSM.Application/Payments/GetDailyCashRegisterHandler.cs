@@ -20,6 +20,8 @@ public sealed class GetDailyCashRegisterHandler(
 
         var dayPayments = await payments.GetInRangeAsync(fromUtc, toUtc, cancellationToken);
 
+        var reversed = await payments.GetReversedIdsAsync(dayPayments.Select(p => p.Id).ToList(), cancellationToken);
+
         var totalsByMethod = dayPayments
             .GroupBy(p => p.Method.ToString())
             .ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
@@ -29,6 +31,6 @@ public sealed class GetDailyCashRegisterHandler(
             dayPayments.Sum(p => p.Amount),
             dayPayments.Count,
             totalsByMethod,
-            dayPayments.Select(PaymentMapper.ToResponse).ToList());
+            dayPayments.Select(p => PaymentMapper.ToResponse(p, reversed)).ToList());
     }
 }

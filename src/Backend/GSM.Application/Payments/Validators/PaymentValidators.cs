@@ -18,3 +18,11 @@ public sealed class RecordPaymentRequestValidator : AbstractValidator<RecordPaym
             .WithMessage("Un pago con membershipId debe indicar también memberId.");
     }
 }
+
+public sealed class VoidPaymentRequestValidator : AbstractValidator<VoidPaymentRequest>
+{
+    public VoidPaymentRequestValidator()
+    {
+        RuleFor(x => x.Reason).NotEmpty().MinimumLength(3).MaximumLength(500);
+    }
+}

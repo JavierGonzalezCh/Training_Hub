@@ -36,4 +36,17 @@ public sealed class PaymentsController : ControllerBase
     public async Task<ActionResult<PaymentResponse>> Get(
         Guid id, [FromServices] GetPaymentHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>Anula un pago con un asiento inverso fechado hoy. El pago original no cambia.</summary>
+    [HttpPost("{id:guid}/void")]
+    [ProducesResponseType<PaymentResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PaymentResponse>> Void(
+        Guid id, VoidPaymentRequest request, [FromServices] VoidPaymentHandler handler, CancellationToken cancellationToken)
+    {
+        var reversal = await handler.HandleAsync(id, request, cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = reversal.Id }, reversal);
+    }
 }

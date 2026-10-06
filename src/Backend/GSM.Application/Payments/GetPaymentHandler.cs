@@ -14,6 +14,9 @@ public sealed class GetPaymentHandler(ICurrentUserService currentUser, IPaymentR
         var payment = await payments.GetByIdAsync(paymentId, cancellationToken)
             ?? throw new NotFoundException("Pago no encontrado.");
 
-        return PaymentMapper.ToResponse(payment);
+        return PaymentMapper.ToResponse(payment) with
+        {
+            IsReversed = await payments.IsReversedAsync(payment.Id, cancellationToken),
+        };
     }
 }

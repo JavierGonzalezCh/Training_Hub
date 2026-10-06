@@ -36,6 +36,12 @@ public sealed class Payment : BaseEntity, ITenantEntity
     /// <summary>Instante en que se registró el asiento (no la "fecha valor"). Inmutable, del reloj.</summary>
     public DateTimeOffset PaidAt { get; private set; }
 
+    /// <summary>
+    /// Pago que este asiento anula, o <c>null</c> si es un pago normal. Único: un pago se anula una
+    /// sola vez. El pago original no cambia; la anulación es este asiento inverso.
+    /// </summary>
+    public Guid? ReversesPaymentId { get; private set; }
+
     public static Payment Create(
         Guid gymId,
         Guid? memberId,
@@ -85,5 +91,45 @@ public sealed class Payment : BaseEntity, ITenantEntity
             RegisteredBy = registeredBy,
             PaidAt = paidAt,
         };
+    }
+
+    /// <summary>
+    /// Asiento inverso de <paramref name="original"/>: mismo método, miembro y membresía, monto
+    /// opuesto. Así la caja del día de la anulación cuadra con lo que de verdad salió del cajón.
+    /// </summary>
+    public static Payment CreateReversal(
+        Payment original, string reason, Guid registeredBy, DateTimeOffset paidAt)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+
+        if (original.ReversesPaymentId is not null)
+        {
+            throw new ValidationDomainException("Una anulación no se puede anular.");
+        }
+
+        var trimmedReason = (reason ?? string.Empty).Trim();
+        if (trimmedReason.Length is < 3 or > 500)
+        {
+            throw new ValidationDomainException("El motivo de la anulación es obligatorio (3 a 500 caracteres).");
+        }
+
+        var concept = $"Anulación: {original.Concept}";
+        if (concept.Length > 200)
+        {
+            concept = concept[..200];
+        }
+
+        var reversal = Create(
+            original.GymId,
+            original.MemberId,
+            original.MembershipId,
+            -original.Amount,
+            original.Method,
+            concept,
+            trimmedReason,
+            registeredBy,
+            paidAt);
+        reversal.ReversesPaymentId = original.Id;
+        return reversal;
     }
 }

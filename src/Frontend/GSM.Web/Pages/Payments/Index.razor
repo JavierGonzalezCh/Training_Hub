@@ -36,12 +36,14 @@
         <MudTh>Concepto</MudTh>
         <MudTh>Método</MudTh>
         <MudTh>Monto</MudTh>
+        <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.PaidAt)</MudTd>
         <MudTd DataLabel="Concepto">@context.Concept</MudTd>
         <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
         <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+        <MudTd><PaymentVoidAction Payment="context" OnVoided="@(() => _table.RefreshAsync())" /></MudTd>
     </RowTemplate>
 </ServerTable>
 

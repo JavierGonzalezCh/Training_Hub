@@ -33,7 +33,9 @@ public sealed class ListPaymentsHandler(
             new PaymentPageQuery(fromUtc, toUtc, query.Method, query.MemberId, page, pageSize),
             cancellationToken);
 
+        var reversed = await payments.GetReversedIdsAsync(items.Select(p => p.Id).ToList(), cancellationToken);
+
         return new PagedResult<PaymentResponse>(
-            items.Select(PaymentMapper.ToResponse).ToList(), page, pageSize, total);
+            items.Select(p => PaymentMapper.ToResponse(p, reversed)).ToList(), page, pageSize, total);
     }
 }

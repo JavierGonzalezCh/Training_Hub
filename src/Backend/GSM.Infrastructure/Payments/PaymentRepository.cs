@@ -14,6 +14,25 @@ public sealed class PaymentRepository(GsmDbContext dbContext) : IPaymentReposito
     public Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default)
         => Payments.FirstOrDefaultAsync(p => p.Id == paymentId, cancellationToken);
 
+    public Task<bool> IsReversedAsync(Guid paymentId, CancellationToken cancellationToken = default)
+        => Payments.AnyAsync(p => p.ReversesPaymentId == paymentId, cancellationToken);
+
+    public async Task<IReadOnlySet<Guid>> GetReversedIdsAsync(
+        IReadOnlyCollection<Guid> paymentIds, CancellationToken cancellationToken = default)
+    {
+        if (paymentIds.Count == 0)
+        {
+            return new HashSet<Guid>();
+        }
+
+        var reversed = await Payments
+            .Where(p => p.ReversesPaymentId != null && paymentIds.Contains(p.ReversesPaymentId.Value))
+            .Select(p => p.ReversesPaymentId!.Value)
+            .ToListAsync(cancellationToken);
+
+        return reversed.ToHashSet();
+    }
+
     public async Task<(IReadOnlyList<Payment> Items, int Total)> GetPageAsync(
         PaymentPageQuery query, CancellationToken cancellationToken = default)
     {

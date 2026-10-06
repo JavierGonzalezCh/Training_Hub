@@ -19,7 +19,14 @@ public sealed record PaymentResponse(
     string Concept,
     string? Notes,
     Guid RegisteredBy,
-    DateTimeOffset PaidAt);
+    DateTimeOffset PaidAt,
+    Guid? ReversesPaymentId)
+{
+    /// <summary>Ya existe una anulación de este pago. No viene de la entidad: lo resuelve el caso de uso.</summary>
+    public bool IsReversed { get; init; }
+}
+
+public sealed record VoidPaymentRequest(string Reason);
 
 public sealed record ListPaymentsQuery
 {

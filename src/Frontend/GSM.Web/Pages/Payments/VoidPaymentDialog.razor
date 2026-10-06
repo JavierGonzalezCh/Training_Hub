@@ -1,0 +1,59 @@
+@inject IPaymentsClient Payments
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-4">
+            Se registrará hoy un asiento de <span class="gsm-mono">@GsmFormat.Money(-(decimal)Payment.Amount)</span>
+            (@PaymentMethodLabels.Label(Payment.Method)) que cancela «@Payment.Concept». El pago original no se borra:
+            la anulación cuenta en la caja de hoy.
+        </MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2"
+                      HelperText="Por ejemplo: monto mal digitado, cobro duplicado." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Anulando..." : "Anular pago")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public PaymentResponse Payment { get; set; } = null!;
+
+    private string _reason = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_reason) || _reason.Trim().Length < 3)
+        {
+            _error = "Escribe el motivo de la anulación.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Payments.VoidAsync(Payment.Id, new VoidPaymentRequest { Reason = _reason.Trim() });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

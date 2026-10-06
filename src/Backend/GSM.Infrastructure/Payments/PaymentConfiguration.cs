@@ -18,5 +18,8 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.HasIndex(p => new { p.GymId, p.PaidAt });
         builder.HasIndex(p => p.MemberId);
         builder.HasIndex(p => p.MembershipId);
+
+        // Un pago se anula una sola vez: dos anulaciones simultáneas chocan aquí y no en la caja.
+        builder.HasIndex(p => p.ReversesPaymentId).IsUnique();
     }
 }

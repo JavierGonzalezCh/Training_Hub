@@ -1398,6 +1398,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("registered_by");
 
+                    b.Property<Guid?>("ReversesPaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reverses_payment_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1410,6 +1414,10 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasIndex("MembershipId")
                         .HasDatabaseName("ix_payments_membership_id");
+
+                    b.HasIndex("ReversesPaymentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payments_reverses_payment_id");
 
                     b.HasIndex("GymId", "PaidAt")
                         .HasDatabaseName("ix_payments_gym_id_paid_at");

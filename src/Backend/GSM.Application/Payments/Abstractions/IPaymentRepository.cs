@@ -17,6 +17,12 @@ public interface IPaymentRepository
 
     Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
 
+    Task<bool> IsReversedAsync(Guid paymentId, CancellationToken cancellationToken = default);
+
+    /// <summary>De <paramref name="paymentIds"/>, los que ya tienen una anulación.</summary>
+    Task<IReadOnlySet<Guid>> GetReversedIdsAsync(
+        IReadOnlyCollection<Guid> paymentIds, CancellationToken cancellationToken = default);
+
     Task<(IReadOnlyList<Payment> Items, int Total)> GetPageAsync(
         PaymentPageQuery query, CancellationToken cancellationToken = default);
 

@@ -235,18 +235,20 @@ else if (_member is not null)
             }
         </MudTabPanel>
         <MudTabPanel Text="Pagos">
-            <ServerTable TItem="PaymentResponse" Load="LoadPaymentsAsync" Class="mt-4">
+            <ServerTable @ref="_paymentsTable" TItem="PaymentResponse" Load="LoadPaymentsAsync" Class="mt-4">
                 <HeaderContent>
                     <MudTh>Fecha</MudTh>
                     <MudTh>Concepto</MudTh>
                     <MudTh>Método</MudTh>
                     <MudTh>Monto</MudTh>
+                    <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.PaidAt)</MudTd>
                     <MudTd DataLabel="Concepto">@context.Concept</MudTd>
                     <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
                     <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+                    <MudTd><PaymentVoidAction Payment="context" OnVoided="OnPaymentVoidedAsync" /></MudTd>
                 </RowTemplate>
             </ServerTable>
         </MudTabPanel>
@@ -326,6 +328,8 @@ else if (_member is not null)
         }
     }
 
+    private ServerTable<PaymentResponse> _paymentsTable = null!;
+
     private async Task<ServerTablePage<PaymentResponse>> LoadPaymentsAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
         var result = await MemberPayments.PaymentsGET2Async(Id, page, pageSize, cancellationToken);
@@ -390,6 +394,22 @@ else if (_member is not null)
             Snackbar.Add("Pago registrado.", Severity.Success);
             await LoadAsync();
         }
+    }
+
+    // Sin LoadAsync: su indicador de carga desmonta la ficha y devolvería al usuario a la primera
+    // pestaña. Basta con refrescar "Últimos pagos" y la tabla (el asiento nuevo y la fila anulada).
+    private async Task OnPaymentVoidedAsync()
+    {
+        try
+        {
+            _member = await Members.MembersGET2Async(Id);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+
+        await _paymentsTable.RefreshAsync();
     }
 
     private async Task UploadPhotoAsync(IBrowserFile file)
