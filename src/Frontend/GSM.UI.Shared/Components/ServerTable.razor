@@ -1,13 +1,33 @@
 @typeparam TItem
 @* Componente único para todos los listados paginados en servidor (ver CLAUDE.md / reglas
    transversales del cliente). Envuelve MudTable con su ServerData sobre la forma común
-   ServerTablePage&lt;T&gt;. *@
+   ServerTablePage&lt;T&gt;.
+
+   Adaptable: por debajo de 960 px (celular) cada fila pasa a tarjeta. Con CardTemplate la tarjeta
+   es la que define la pantalla; sin ella, MudTable apila las celdas de cada fila con su DataLabel
+   (una tarjeta genérica con las columnas), así que toda tabla con DataLabel se adapta sola. *@
+@implements IDisposable
+@inject IServiceProvider Services
 
 <MudTable T="TItem" @ref="_table" ServerData="ReloadAsync" Hover="true" Dense="Dense" Elevation="0"
-          Loading="_loading" Class="@Class">
+          Loading="_loading" Class="@TableClass" Breakpoint="Breakpoint.Sm">
     <ToolBarContent>@ToolBarContent</ToolBarContent>
-    <HeaderContent>@HeaderContent</HeaderContent>
-    <RowTemplate>@RowTemplate(context)</RowTemplate>
+    <HeaderContent>
+        @if (!CardMode)
+        {
+            @HeaderContent
+        }
+    </HeaderContent>
+    <RowTemplate>
+        @if (CardMode)
+        {
+            <MudTd Class="gsm-card-cell"><div class="gsm-card" data-testid="server-table-card">@CardTemplate!(context)</div></MudTd>
+        }
+        else
+        {
+            @RowTemplate(context)
+        }
+    </RowTemplate>
     <NoRecordsContent>
         @if (NoRecordsContent is not null)
         {
@@ -30,6 +50,42 @@
     private MudTable<TItem>? _table;
     private bool _loading;
 
+    // El estado del ancho es opcional: un host (o test) que no lo registre ve siempre la tabla.
+    private ViewportState? Viewport => Services.GetService(typeof(ViewportState)) as ViewportState;
+
+    private bool CardMode => CardTemplate is not null && Viewport?.IsNarrow == true;
+
+    private string? TableClass => CardMode ? $"{Class} gsm-table--cards".Trim() : Class;
+
+    protected override void OnInitialized()
+    {
+        if (Viewport is { } viewport)
+        {
+            viewport.Changed += OnViewportChanged;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (Viewport is { } viewport)
+            {
+                await viewport.EnsureStartedAsync();
+            }
+        }
+    }
+
+    private void OnViewportChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Viewport is { } viewport)
+        {
+            viewport.Changed -= OnViewportChanged;
+        }
+    }
+
     [Parameter, EditorRequired]
     public Func<int, int, CancellationToken, Task<ServerTablePage<TItem>>> Load { get; set; } = null!;
 
@@ -38,6 +94,10 @@
 
     [Parameter, EditorRequired]
     public RenderFragment<TItem> RowTemplate { get; set; } = null!;
+
+    /// <summary>Tarjeta de cada fila en pantallas angostas; sin ella se apilan las celdas con su DataLabel.</summary>
+    [Parameter]
+    public RenderFragment<TItem>? CardTemplate { get; set; }
 
     [Parameter]
     public RenderFragment? ToolBarContent { get; set; }

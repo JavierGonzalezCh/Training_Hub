@@ -45,6 +45,14 @@
         <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
         <MudTd><PaymentVoidAction Payment="context" OnVoided="@(() => _table.RefreshAsync())" /></MudTd>
     </RowTemplate>
+    <CardTemplate>
+        <div class="gsm-card__row">
+            <span class="gsm-card__title">@context.Concept</span>
+            <span class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</span>
+        </div>
+        <div class="gsm-card__meta">@GsmFormat.Instant(context.PaidAt) · @PaymentMethodLabels.Label(context.Method)</div>
+        <div class="gsm-card__actions"><PaymentVoidAction Payment="context" OnVoided="@(() => _table.RefreshAsync())" /></div>
+    </CardTemplate>
 </ServerTable>
 
 @code {

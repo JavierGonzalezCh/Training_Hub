@@ -2671,3 +2671,153 @@ a.gsm-m-card:hover {
   border: 1px solid var(--gsm-border);
   border-radius: 6px;
 }
+
+/* ===== AP2 — Panel adaptable (celular < 960 px) ===== */
+
+/* Barra inferior del panel: reutiliza .gsm-tabbar; "Más" es un botón, no un enlace. */
+.gsm-tabbar--panel {
+    z-index: 1200;
+}
+
+.gsm-tabbar--panel > a,
+.gsm-tabbar__more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    min-height: 56px;
+    padding: 0.5rem 0.25rem;
+    text-decoration: none;
+    color: var(--gsm-text-2);
+    background: transparent;
+    border: 0;
+    border-top: 2px solid transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.gsm-tabbar--panel > a.active {
+    color: var(--gsm-text);
+    border-top-color: var(--gsm-accent);
+}
+
+.gsm-tabbar__more:hover,
+.gsm-tabbar__more.active {
+    color: var(--gsm-text);
+}
+
+.gsm-tabbar__more.active {
+    border-top-color: var(--gsm-accent);
+}
+
+/* Hoja "Más": sube desde la barra inferior. */
+.gsm-more-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1190;
+    background: rgb(0 0 0 / 0.5);
+}
+
+.gsm-more-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+    z-index: 1195;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: var(--gsm-surface);
+    border-top: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg) var(--gsm-radius-lg) 0 0;
+}
+
+.gsm-more-sheet__group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* El contenido no queda tapado por la barra inferior. */
+body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ServerTable en modo tarjeta: una tarjeta por fila, sin cabecera. */
+.gsm-table--cards .mud-table-container {
+    overflow: visible;
+}
+
+.gsm-table--cards .mud-table-body .mud-table-row {
+    height: auto;
+    display: block;
+    margin: 0 0.75rem 0.75rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+}
+
+.gsm-table--cards .gsm-card-cell.mud-table-cell {
+    display: block;
+    padding: 0.75rem 1rem;
+    border-bottom: 0;
+}
+
+.gsm-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.gsm-card__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.gsm-card__title {
+    font-weight: 600;
+}
+
+.gsm-card__meta {
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-card__actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+@media (max-width: 959.95px) {
+    /* Los filtros de una tabla ocupan todo el ancho en vez de desbordar. */
+    .gsm-table .mud-toolbar > * {
+        max-width: 100% !important;
+        flex: 1 1 100%;
+    }
+
+    /* Tabla apilada de MudBlazor (sin CardTemplate): filas de altura libre. */
+    .gsm-table .mud-table-body .mud-table-row {
+        height: auto;
+    }
+}
+
+/* Diálogos a pantalla completa en el celular (PanelDialogProvider pone la clase por ancho). */
+.gsm-dialogs--fullscreen .mud-dialog:not(:has(.mud-message-box)) {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+}
+
+.gsm-dialogs--fullscreen .mud-dialog:not(:has(.mud-message-box)) .mud-dialog-content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+}

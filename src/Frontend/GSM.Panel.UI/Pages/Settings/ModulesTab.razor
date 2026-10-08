@@ -1,0 +1,148 @@
+@* Pestaña "Módulos" de la configuración (la registra GymsPanelModule). *@
+@inject IGymClient Gym
+@inject SessionService Session
+@inject ISnackbar Snackbar
+
+@if (_loadingFlags)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <p class="gsm-modules-intro">Activa o desactiva lo que ven tus miembros en su app. Lo que apagues deja de mostrarse; no se borra ningún dato.</p>
+
+    <section class="gsm-module-section" aria-labelledby="mod-ops">
+        <h2 id="mod-ops" class="gsm-module-section__title">Acceso</h2>
+        <div class="gsm-module-grid">
+            @ModuleCard(Icons.Material.Outlined.QrCodeScanner, "Check-in con QR",
+                "Los miembros registran su entrada escaneando el QR del gimnasio con su teléfono.",
+                _flagsModel.CheckinQr, v => _flagsModel.CheckinQr = v)
+        </div>
+    </section>
+
+    <section class="gsm-module-section" aria-labelledby="mod-train">
+        <h2 id="mod-train" class="gsm-module-section__title">Entrenamiento</h2>
+        <div class="gsm-module-grid">
+            @ModuleCard(Icons.Material.Outlined.FitnessCenter, "Rutinas",
+                "Cada miembro ve su rutina asignada y registra lo que entrena por ejercicio.",
+                _flagsModel.ShowRoutines, v => _flagsModel.ShowRoutines = v)
+            @ModuleCard(Icons.Material.Outlined.EditNote, "Rutinas propias",
+                "Los miembros pueden crear su propia rutina sin esperar a que el staff se la arme.",
+                _flagsModel.MembersCanCreateRoutines, v => _flagsModel.MembersCanCreateRoutines = v)
+            @ModuleCard(Icons.Material.Outlined.CalendarMonth, "Clases",
+                "Horario semanal de clases grupales, con reservas y cupos desde la app.",
+                _flagsModel.ShowClasses, v => _flagsModel.ShowClasses = v)
+            @ModuleCard(Icons.Material.Outlined.Timeline, "Progreso",
+                "Racha de asistencia y evolución del miembro a lo largo del tiempo.",
+                _flagsModel.ShowProgress, v => _flagsModel.ShowProgress = v)
+        </div>
+    </section>
+
+    <section class="gsm-module-section" aria-labelledby="mod-engage">
+        <h2 id="mod-engage" class="gsm-module-section__title">Motivación y comunidad</h2>
+        <div class="gsm-module-grid">
+            @ModuleCard(Icons.Material.Outlined.EmojiEvents, "Logros",
+                "Insignias que el miembro desbloquea por constancia, visitas y clases.",
+                _flagsModel.ShowGamification, v => _flagsModel.ShowGamification = v)
+            @ModuleCard(Icons.Material.Outlined.Forum, "Comunidad",
+                "Espacio social del gimnasio para publicar y compartir entre miembros.",
+                _flagsModel.ShowCommunity, v => _flagsModel.ShowCommunity = v)
+            @ModuleCard(Icons.Material.Outlined.ChatBubbleOutline, "Comentarios",
+                "Permite responder y comentar las publicaciones de la comunidad.",
+                _flagsModel.CommunityComments, v => _flagsModel.CommunityComments = v)
+        </div>
+    </section>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveFlagsAsync" Disabled="_savingFlags" Class="mt-2">
+        @(_savingFlags ? "Guardando..." : "Guardar cambios")
+    </MudButton>
+}
+
+@code {
+    private readonly FlagsModel _flagsModel = new();
+
+    private bool _loadingFlags = true;
+    private bool _savingFlags;
+
+    protected override Task OnInitializedAsync() => LoadFlagsAsync();
+
+    private async Task LoadFlagsAsync()
+    {
+        _loadingFlags = true;
+        try
+        {
+            var flags = await Gym.FeatureFlagsGETAsync();
+            _flagsModel.ShowRoutines = flags.ShowRoutines;
+            _flagsModel.ShowClasses = flags.ShowClasses;
+            _flagsModel.ShowProgress = flags.ShowProgress;
+            _flagsModel.ShowGamification = flags.ShowGamification;
+            _flagsModel.ShowCommunity = flags.ShowCommunity;
+            _flagsModel.CheckinQr = flags.CheckinQr;
+            _flagsModel.CommunityComments = flags.CommunityComments;
+            _flagsModel.MembersCanCreateRoutines = flags.MembersCanCreateRoutines;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loadingFlags = false;
+        }
+    }
+
+    private async Task SaveFlagsAsync()
+    {
+        _savingFlags = true;
+        try
+        {
+            await Gym.FeatureFlagsPUTAsync(new UpdateFeatureFlagsRequest
+            {
+                ShowRoutines = _flagsModel.ShowRoutines,
+                ShowClasses = _flagsModel.ShowClasses,
+                ShowProgress = _flagsModel.ShowProgress,
+                ShowGamification = _flagsModel.ShowGamification,
+                ShowCommunity = _flagsModel.ShowCommunity,
+                CheckinQr = _flagsModel.CheckinQr,
+                CommunityComments = _flagsModel.CommunityComments,
+                MembersCanCreateRoutines = _flagsModel.MembersCanCreateRoutines,
+            });
+            await Session.BootstrapAsync();
+            Snackbar.Add("Módulos actualizados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _savingFlags = false;
+        }
+    }
+
+    // Tarjeta de módulo: icono, nombre, qué hace y el interruptor. El interruptor lleva el nombre del
+    // módulo como etiqueta accesible y toda la tarjeta cambia de aspecto cuando está apagado.
+    private RenderFragment ModuleCard(string icon, string title, string description, bool value, Action<bool> set) => __builder =>
+    {
+        <div class="gsm-module-card @(value ? "is-on" : "is-off")">
+            <span class="gsm-module-card__icon" aria-hidden="true"><MudIcon Icon="@icon" /></span>
+            <div class="gsm-module-card__body">
+                <div class="gsm-module-card__title">@title</div>
+                <p class="gsm-module-card__desc">@description</p>
+            </div>
+            <MudSwitch T="bool" Value="value" ValueChanged="set" Color="Color.Primary" aria-label="@title" />
+        </div>
+    };
+
+    private sealed class FlagsModel
+    {
+        public bool ShowRoutines { get; set; }
+        public bool ShowClasses { get; set; }
+        public bool ShowProgress { get; set; }
+        public bool ShowGamification { get; set; }
+        public bool ShowCommunity { get; set; }
+        public bool CheckinQr { get; set; }
+        public bool CommunityComments { get; set; }
+        public bool MembersCanCreateRoutines { get; set; }
+    }
+}
