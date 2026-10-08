@@ -59,9 +59,12 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_status", new[] { "pending", "held", "sent", "failed", "cancelled", "skipped" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "difficulty", new[] { "beginner", "intermediate", "advanced" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "equipment", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "cardio" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "exercise_type", new[] { "strength", "cardio", "mobility", "stretching", "plyometrics" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "traps", "obliques", "adductors", "abductors" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "schedule_mode", new[] { "rotating", "weekly" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "tracking_type", new[] { "reps_weight", "reps", "time", "distance", "time_distance" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("GSM.Domain.Achievements.Achievement", b =>
@@ -1706,10 +1709,22 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("description");
 
+                    b.Property<Difficulty>("Difficulty")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("routines.difficulty")
+                        .HasDefaultValue(Difficulty.Intermediate)
+                        .HasColumnName("difficulty");
+
                     b.PrimitiveCollection<List<Equipment>>("Equipment")
                         .IsRequired()
                         .HasColumnType("routines.equipment[]")
                         .HasColumnName("equipment");
+
+                    b.Property<ExerciseType>("ExerciseType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("routines.exercise_type")
+                        .HasDefaultValue(ExerciseType.Strength)
+                        .HasColumnName("exercise_type");
 
                     b.Property<Guid?>("GymId")
                         .HasColumnType("uuid")
@@ -1726,6 +1741,12 @@ namespace GSM.Infrastructure.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsUnilateral")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_unilateral");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -1740,6 +1761,12 @@ namespace GSM.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("routines.muscle[]")
                         .HasColumnName("secondary_muscles");
+
+                    b.Property<TrackingType>("TrackingType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("routines.tracking_type")
+                        .HasDefaultValue(TrackingType.RepsWeight)
+                        .HasColumnName("tracking_type");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1761,6 +1788,42 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_exercises_gym_id_name");
 
                     b.ToTable("exercises", "routines");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.GymHiddenExercise", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("exercise_id");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_gym_hidden_exercises");
+
+                    b.HasIndex("ExerciseId")
+                        .HasDatabaseName("ix_gym_hidden_exercises_exercise_id");
+
+                    b.HasIndex("GymId", "ExerciseId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_gym_hidden_exercises_gym_id_exercise_id");
+
+                    b.ToTable("gym_hidden_exercises", "routines");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.Routine", b =>
@@ -2589,6 +2652,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_notification_deliveries_notifications_notification_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.GymHiddenExercise", b =>
+                {
+                    b.HasOne("GSM.Domain.Routines.Exercise", null)
+                        .WithMany()
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_gym_hidden_exercises_exercises_exercise_id");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.RoutineDay", b =>

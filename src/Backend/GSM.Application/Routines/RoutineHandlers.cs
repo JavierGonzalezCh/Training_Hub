@@ -75,7 +75,7 @@ internal static class RoutineDrafting
     public static async Task<RoutineResponse> BuildResponseAsync(
         IExerciseRepository exercises, Routine routine, CancellationToken cancellationToken)
     {
-        var names = await exercises.GetVisibleNamesAsync(RoutineMapper.ExerciseIds(routine), cancellationToken);
+        var names = await exercises.GetVisibleSummariesAsync(RoutineMapper.ExerciseIds(routine), cancellationToken);
         return RoutineMapper.ToResponse(routine, names);
     }
 }
@@ -332,7 +332,7 @@ public sealed class GetMyRoutineHandler(
             return new MyRoutineResponse(null, null);
         }
 
-        var names = await exercises.GetVisibleNamesAsync(
+        var names = await exercises.GetVisibleSummariesAsync(
             RoutineMapper.ExerciseIds(routine), cancellationToken);
         var response = RoutineMapper.ToResponse(routine, names);
 
@@ -349,7 +349,8 @@ public sealed class GetMyRoutineHandler(
                 day.IsRest,
                 day.Exercises.OrderBy(e => e.Order)
                     .Select(e => RoutineMapper.ToExerciseResponse(e, names)).ToList(),
-                IsoWeekDay.Of(today));
+                IsoWeekDay.Of(today),
+                RoutineMapper.MuscleGroupsOf(day, names));
 
         return new MyRoutineResponse(response, todayView);
     }

@@ -35,7 +35,20 @@ public sealed class Exercise : BaseEntity
 
     public string? ImageUrl { get; private set; }
 
+    public ExerciseType ExerciseType { get; private set; } = ExerciseType.Strength;
+
+    /// <summary>Qué se mide en cada serie. Sugerido por <see cref="ExerciseType"/> y editable.</summary>
+    public TrackingType TrackingType { get; private set; } = TrackingType.RepsWeight;
+
+    /// <summary>Se hace por lado: las repeticiones planeadas y registradas son por lado.</summary>
+    public bool IsUnilateral { get; private set; }
+
+    public Difficulty Difficulty { get; private set; } = Difficulty.Intermediate;
+
     public bool IsActive { get; private set; } = true;
+
+    /// <summary>Zona del cuerpo, derivada del músculo principal; no se guarda.</summary>
+    public MuscleGroup MuscleGroup => MuscleGroups.Of(PrimaryMuscle);
 
     /// <summary>Del catálogo del sistema (sin gym dueño).</summary>
     public bool IsSystem => GymId is null;
@@ -48,14 +61,19 @@ public sealed class Exercise : BaseEntity
         IEnumerable<Muscle>? secondaryMuscles,
         IEnumerable<Equipment>? equipment,
         string? videoUrl,
-        string? imageUrl)
+        string? imageUrl,
+        ExerciseType exerciseType = ExerciseType.Strength,
+        TrackingType? trackingType = null,
+        bool isUnilateral = false,
+        Difficulty difficulty = Difficulty.Intermediate)
     {
         var exercise = new Exercise
         {
             GymId = gymId == Guid.Empty ? null : gymId,
         };
 
-        exercise.Apply(name, description, primaryMuscle, secondaryMuscles, equipment, videoUrl, imageUrl);
+        exercise.Apply(name, description, primaryMuscle, secondaryMuscles, equipment, videoUrl, imageUrl,
+            exerciseType, trackingType, isUnilateral, difficulty);
         return exercise;
     }
 
@@ -66,8 +84,13 @@ public sealed class Exercise : BaseEntity
         IEnumerable<Muscle>? secondaryMuscles,
         IEnumerable<Equipment>? equipment,
         string? videoUrl,
-        string? imageUrl)
-        => Apply(name, description, primaryMuscle, secondaryMuscles, equipment, videoUrl, imageUrl);
+        string? imageUrl,
+        ExerciseType exerciseType = ExerciseType.Strength,
+        TrackingType? trackingType = null,
+        bool isUnilateral = false,
+        Difficulty difficulty = Difficulty.Intermediate)
+        => Apply(name, description, primaryMuscle, secondaryMuscles, equipment, videoUrl, imageUrl,
+            exerciseType, trackingType, isUnilateral, difficulty);
 
     public void Deactivate() => IsActive = false;
 
@@ -80,8 +103,18 @@ public sealed class Exercise : BaseEntity
         IEnumerable<Muscle>? secondaryMuscles,
         IEnumerable<Equipment>? equipment,
         string? videoUrl,
-        string? imageUrl)
+        string? imageUrl,
+        ExerciseType exerciseType,
+        TrackingType? trackingType,
+        bool isUnilateral,
+        Difficulty difficulty)
     {
+        if (!Enum.IsDefined(exerciseType) || !Enum.IsDefined(difficulty)
+            || (trackingType is { } t && !Enum.IsDefined(t)))
+        {
+            throw new ValidationDomainException("Tipo, medición o nivel del ejercicio no válidos.");
+        }
+
         var secondary = (secondaryMuscles ?? []).Distinct().ToList();
         if (secondary.Contains(primaryMuscle))
         {
@@ -96,7 +129,16 @@ public sealed class Exercise : BaseEntity
         Equipment = (equipment ?? []).Distinct().ToList();
         VideoUrl = Clean(videoUrl, 2048);
         ImageUrl = Clean(imageUrl, 2048);
+        ExerciseType = exerciseType;
+        TrackingType = trackingType ?? ExerciseDefaults.SuggestedTracking(exerciseType);
+        IsUnilateral = isUnilateral;
+        Difficulty = difficulty;
     }
+
+    /// <summary>Copia del ejercicio para un gym: todos los campos y las mismas URLs de medios.</summary>
+    public Exercise DuplicateFor(Guid gymId, string name)
+        => Create(gymId, name, Description, PrimaryMuscle, SecondaryMuscles, Equipment, VideoUrl, ImageUrl,
+            ExerciseType, TrackingType, IsUnilateral, Difficulty);
 
     private static string NormalizeName(string name)
     {

@@ -1,0 +1,68 @@
+@inject IExercisesClient Exercises
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudText Class="mb-3">
+            Se crea una copia de <strong>@ExerciseName</strong> en tu gimnasio, con los mismos datos y los mismos archivos de medios.
+            Es la forma de adaptar un ejercicio del sistema.
+        </MudText>
+        @if (IsSystem)
+        {
+            <MudCheckBox T="bool" @bind-Value="_hideOriginal" Color="Color.Primary" data-testid="hide-original"
+                         Label="Ocultar el original (el gimnasio queda solo con su versión)" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Duplicando..." : "Duplicar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid ExerciseId { get; set; }
+
+    [Parameter]
+    public string ExerciseName { get; set; } = string.Empty;
+
+    /// <summary>Solo un ejercicio del sistema se puede ocultar; uno del gym se desactiva.</summary>
+    [Parameter]
+    public bool IsSystem { get; set; }
+
+    private bool _hideOriginal;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _submitting = true;
+        try
+        {
+            var copy = await Exercises.DuplicateAsync(ExerciseId, new DuplicateExerciseRequest
+            {
+                HideOriginal = IsSystem && _hideOriginal,
+            });
+            MudDialog.Close(DialogResult.Ok(copy));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -57,7 +57,13 @@
                     </select>
                 </label>
             }
-            <MudTextField T="string" @bind-Value="day.Name" Placeholder="Nombre del día (p. ej. Pierna)" Style="max-width:260px" />
+            @* Sin nombre, las zonas que trabaja el día sirven de nombre sugerido ("Tren superior · Core"). *@
+            <MudTextField T="string" @bind-Value="day.Name" Placeholder="@(day.SuggestedName ?? "Nombre del día (p. ej. Pierna)")"
+                          Style="max-width:260px" data-testid="@($"day-name-{index}")" />
+            @if (day.SuggestedName is { } groups)
+            {
+                <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono" data-testid="@($"day-groups-{index}")">@groups</MudChip>
+            }
             @if (!Draft.IsWeekly)
             {
                 <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Descanso" Color="Color.Primary" />
@@ -124,5 +130,5 @@
 
     private async Task<IEnumerable<ExerciseResponse>> SearchExercisesAsync(string search, CancellationToken cancellationToken)
         => await ExercisesApi.ExercisesAllAsync(
-            string.IsNullOrWhiteSpace(search) ? null : search, null, null, false, cancellationToken);
+            string.IsNullOrWhiteSpace(search) ? null : search, null, null, false, cancellationToken: cancellationToken);
 }

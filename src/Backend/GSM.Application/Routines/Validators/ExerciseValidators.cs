@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using GSM.Application.Routines.Contracts;
 
 namespace GSM.Application.Routines.Validators;
@@ -14,6 +14,9 @@ public sealed class CreateExerciseRequestValidator : AbstractValidator<CreateExe
         RuleFor(x => x.PrimaryMuscle).IsInEnum();
         RuleForEach(x => x.SecondaryMuscles).IsInEnum();
         RuleForEach(x => x.Equipment).IsInEnum();
+        RuleFor(x => x.ExerciseType).IsInEnum().When(x => x.ExerciseType is not null);
+        RuleFor(x => x.TrackingType).IsInEnum().When(x => x.TrackingType is not null);
+        RuleFor(x => x.Difficulty).IsInEnum().When(x => x.Difficulty is not null);
     }
 }
 
@@ -28,5 +31,9 @@ public sealed class UpdateExerciseRequestValidator : AbstractValidator<UpdateExe
         RuleFor(x => x.PrimaryMuscle).IsInEnum();
         RuleForEach(x => x.SecondaryMuscles).IsInEnum();
         RuleForEach(x => x.Equipment).IsInEnum();
+        RuleFor(x => x.ExerciseType).IsInEnum().When(x => x.ExerciseType is not null);
+        RuleFor(x => x.TrackingType).IsInEnum().When(x => x.TrackingType is not null);
+        RuleFor(x => x.Difficulty).IsInEnum().When(x => x.Difficulty is not null);
     }
 }
+

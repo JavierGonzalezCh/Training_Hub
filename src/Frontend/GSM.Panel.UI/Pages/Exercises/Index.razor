@@ -14,24 +14,69 @@
     </MudButton>
 </div>
 
-<div class="d-flex flex-wrap mb-4" style="gap:1rem">
+<div class="d-flex flex-wrap align-end mb-4" style="gap:1rem">
     <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Placeholder="Buscar"
                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
                   DebounceInterval="400" Style="max-width:260px" />
-    <MudSelect T="string" Value="_muscle" ValueChanged="OnMuscleChangedAsync" Label="Músculo" Style="max-width:200px">
-        <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
-        @foreach (var (value, label) in RoutineLabels.Muscles)
-        {
-            <MudSelectItem Value="@value.ToString()">@label</MudSelectItem>
-        }
-    </MudSelect>
-    <MudSelect T="string" Value="_equipment" ValueChanged="OnEquipmentChangedAsync" Label="Equipo" Style="max-width:200px">
-        <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
-        @foreach (var (value, label) in RoutineLabels.Equipment)
-        {
-            <MudSelectItem Value="@value.ToString()">@label</MudSelectItem>
-        }
-    </MudSelect>
+    @* Filtro en dos pasos: primero la zona del cuerpo, después solo los músculos de esa zona. *@
+    <label class="gsm-native-field">
+        <span>Zona</span>
+        <select data-testid="filter-group" @onchange="OnGroupChangedAsync">
+            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_group)">Todas</option>
+            @foreach (var (value, label) in RoutineLabels.MuscleGroups)
+            {
+                <option value="@value" selected="@(_group == value.ToString())">@label</option>
+            }
+        </select>
+    </label>
+    <label class="gsm-native-field">
+        <span>Músculo</span>
+        <select data-testid="filter-muscle" disabled="@FilterValues.IsAll(_group)" @onchange="OnMuscleChangedAsync">
+            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_muscle)">Todos</option>
+            @if (!FilterValues.IsAll(_group))
+            {
+                @foreach (var (value, label) in RoutineLabels.MusclesOfGroup(int.Parse(_group)))
+                {
+                    <option value="@value" selected="@(_muscle == value.ToString())">@label</option>
+                }
+            }
+        </select>
+    </label>
+    <label class="gsm-native-field">
+        <span>Tipo</span>
+        <select data-testid="filter-type" @onchange="OnTypeChangedAsync">
+            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_type)">Todos</option>
+            @foreach (var (value, label) in RoutineLabels.ExerciseTypes)
+            {
+                <option value="@value" selected="@(_type == value.ToString())">@label</option>
+            }
+        </select>
+    </label>
+    <label class="gsm-native-field">
+        <span>Nivel</span>
+        <select data-testid="filter-difficulty" @onchange="OnDifficultyChangedAsync">
+            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_difficulty)">Todos</option>
+            @foreach (var (value, label) in RoutineLabels.Difficulties)
+            {
+                <option value="@value" selected="@(_difficulty == value.ToString())">@label</option>
+            }
+        </select>
+    </label>
+    <label class="gsm-native-field">
+        <span>Equipo</span>
+        <select data-testid="filter-equipment" @onchange="OnEquipmentChangedAsync">
+            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_equipment)">Todos</option>
+            @foreach (var (value, label) in RoutineLabels.Equipment)
+            {
+                <option value="@value" selected="@(_equipment == value.ToString())">@label</option>
+            }
+        </select>
+    </label>
+    <label class="d-flex align-center" style="gap:.5rem">
+        <input type="checkbox" data-testid="filter-hidden" checked="@_showHidden"
+               @onchange="@(e => OnShowHiddenChangedAsync(e.Value is true))" />
+        <span>Mostrar ocultos</span>
+    </label>
 </div>
 
 @if (_loading)
@@ -48,13 +93,35 @@ else
         <HeaderContent>
             <MudTh>Nombre</MudTh>
             <MudTh>Músculo</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Nivel</MudTh>
             <MudTh>Equipo</MudTh>
             <MudTh>Origen</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Nombre">@context.Name</MudTd>
-            <MudTd DataLabel="Músculo">@RoutineLabels.MuscleLabel(context.PrimaryMuscle)</MudTd>
+            <MudTd DataLabel="Nombre">
+                <span style="@(context.IsHidden ? "opacity:.55" : null)">@context.Name</span>
+                @if (context.IsUnilateral)
+                {
+                    <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono ml-2">POR LADO</MudChip>
+                }
+                @if (context.IsHidden)
+                {
+                    <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono ml-2" Color="Color.Warning">OCULTO</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Músculo">
+                @RoutineLabels.MuscleLabel(context.PrimaryMuscle)
+                <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="ml-2" data-testid="group-chip">
+                    @RoutineLabels.MuscleGroupLabel(context.MuscleGroup)
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Tipo">
+                @RoutineLabels.ExerciseTypeLabel(context.ExerciseType)
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@RoutineLabels.TrackingTypeLabel(context.TrackingType)</MudText>
+            </MudTd>
+            <MudTd DataLabel="Nivel">@RoutineLabels.DifficultyLabel(context.Difficulty)</MudTd>
             <MudTd DataLabel="Equipo">@string.Join(", ", context.Equipment.Select(RoutineLabels.EquipmentLabel))</MudTd>
             <MudTd DataLabel="Origen">
                 <MudChip T="string" Color="@(context.IsSystem ? Color.Default : Color.Info)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
@@ -66,6 +133,18 @@ else
                 {
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" title="Editar" />
                 }
+                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" OnClick="@(() => OpenDuplicateAsync(context))" title="Duplicar" />
+                @if (context.IsSystem)
+                {
+                    @if (context.IsHidden)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="@(() => ShowAsync(context))" title="Mostrar" />
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small" OnClick="@(() => HideAsync(context))" title="Ocultar" />
+                    }
+                }
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -75,10 +154,16 @@ else
     private List<ExerciseResponse> _exercises = [];
     private bool _loading = true;
     private string _search = string.Empty;
+    private string _group = FilterValues.All;
     private string _muscle = FilterValues.All;
+    private string _type = FilterValues.All;
+    private string _difficulty = FilterValues.All;
     private string _equipment = FilterValues.All;
+    private bool _showHidden;
 
     protected override Task OnInitializedAsync() => LoadAsync();
+
+    private static int? ToFilter(string value) => FilterValues.IsAll(value) ? null : int.Parse(value);
 
     private async Task LoadAsync()
     {
@@ -87,9 +172,13 @@ else
         {
             var result = await Exercises.ExercisesAllAsync(
                 string.IsNullOrWhiteSpace(_search) ? null : _search,
-                FilterValues.IsAll(_muscle) ? null : int.Parse(_muscle),
-                FilterValues.IsAll(_equipment) ? null : int.Parse(_equipment),
-                false);
+                ToFilter(_muscle),
+                ToFilter(_equipment),
+                false,
+                ToFilter(_group),
+                ToFilter(_type),
+                ToFilter(_difficulty),
+                _showHidden);
             _exercises = result.ToList();
         }
         catch (GsmApiException ex)
@@ -108,15 +197,40 @@ else
         await LoadAsync();
     }
 
-    private async Task OnMuscleChangedAsync(string value)
+    private async Task OnGroupChangedAsync(ChangeEventArgs e)
     {
-        _muscle = value;
+        _group = e.Value?.ToString() ?? FilterValues.All;
+        _muscle = FilterValues.All; // el músculo elegido puede no ser de la zona nueva
         await LoadAsync();
     }
 
-    private async Task OnEquipmentChangedAsync(string value)
+    private async Task OnMuscleChangedAsync(ChangeEventArgs e)
     {
-        _equipment = value;
+        _muscle = e.Value?.ToString() ?? FilterValues.All;
+        await LoadAsync();
+    }
+
+    private async Task OnTypeChangedAsync(ChangeEventArgs e)
+    {
+        _type = e.Value?.ToString() ?? FilterValues.All;
+        await LoadAsync();
+    }
+
+    private async Task OnDifficultyChangedAsync(ChangeEventArgs e)
+    {
+        _difficulty = e.Value?.ToString() ?? FilterValues.All;
+        await LoadAsync();
+    }
+
+    private async Task OnEquipmentChangedAsync(ChangeEventArgs e)
+    {
+        _equipment = e.Value?.ToString() ?? FilterValues.All;
+        await LoadAsync();
+    }
+
+    private async Task OnShowHiddenChangedAsync(bool value)
+    {
+        _showHidden = value;
         await LoadAsync();
     }
 
@@ -140,6 +254,51 @@ else
         {
             Snackbar.Add("Ejercicio actualizado.", Severity.Success);
             await LoadAsync();
+        }
+    }
+
+    private async Task OpenDuplicateAsync(ExerciseResponse exercise)
+    {
+        var parameters = new DialogParameters<DuplicateExerciseDialog>
+        {
+            { x => x.ExerciseId, exercise.Id },
+            { x => x.ExerciseName, exercise.Name },
+            { x => x.IsSystem, exercise.IsSystem },
+        };
+        var dialog = await Dialogs.ShowAsync<DuplicateExerciseDialog>("Duplicar ejercicio", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Ejercicio duplicado. Ya puedes editar tu copia.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task HideAsync(ExerciseResponse exercise)
+    {
+        try
+        {
+            await Exercises.HideAsync(exercise.Id);
+            Snackbar.Add("Ejercicio oculto. Las rutinas que lo usan no cambian.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task ShowAsync(ExerciseResponse exercise)
+    {
+        try
+        {
+            await Exercises.ShowAsync(exercise.Id);
+            Snackbar.Add("Ejercicio visible de nuevo.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
     }
 }

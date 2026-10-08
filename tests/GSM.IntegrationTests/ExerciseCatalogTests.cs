@@ -29,7 +29,12 @@ public sealed class ExerciseCatalogTests(ApiFactory factory) : IClassFixture<Api
             .Select(e => e.PrimaryMuscle).Distinct().ToListAsync();
 
         Assert.True(systemCount >= 40, $"esperaba >= 40 ejercicios del sistema, hay {systemCount}");
-        Assert.Equal(Enum.GetValues<Muscle>().Length, muscles.Count);
+
+        // R3: los músculos nuevos (oblicuos, aductores, abductores) y el cuello aún no tienen ejercicio del
+        // sistema —es trabajo de contenido—; todos los demás sí.
+        var withoutSystemExercise = Enum.GetValues<Muscle>().Except(muscles).ToList();
+        Assert.All(withoutSystemExercise, m => Assert.Contains(
+            m, new[] { Muscle.Neck, Muscle.Obliques, Muscle.Adductors, Muscle.Abductors }));
     }
 
     [Fact]

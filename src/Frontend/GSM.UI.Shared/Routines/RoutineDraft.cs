@@ -101,7 +101,14 @@ public sealed class RoutineDraft
             Exercises = d.Exercises.Select(e => new DraftExercise
             {
                 Id = e.Id,
-                Exercise = new ExerciseResponse { Id = e.ExerciseId, Name = e.ExerciseName },
+                Exercise = new ExerciseResponse
+                {
+                    Id = e.ExerciseId,
+                    Name = e.ExerciseName,
+                    MuscleGroup = e.MuscleGroup ?? "FullBody",
+                    TrackingType = e.TrackingType ?? "RepsWeight",
+                    IsUnilateral = e.IsUnilateral ?? false,
+                },
                 TargetSets = e.TargetSets,
                 TargetReps = e.TargetReps,
                 TargetWeightKg = e.TargetWeightKg is { } w ? (decimal)w : null,
@@ -172,6 +179,17 @@ public sealed class DraftDay
     /// <summary>Modo semanal: 1 = lunes … 7 = domingo.</summary>
     public int? DayOfWeek { get; set; }
     public List<DraftExercise> Exercises { get; set; } = [];
+
+    /// <summary>Zonas del cuerpo que trabaja el día (<c>UpperBody</c>…), sin repetir y en orden de aparición.</summary>
+    public IReadOnlyList<string> MuscleGroups
+        => Exercises
+            .Where(e => !string.IsNullOrEmpty(e.Exercise?.MuscleGroup))
+            .Select(e => e.Exercise!.MuscleGroup)
+            .Distinct()
+            .ToList();
+
+    /// <summary>"Tren superior · Core": nombre sugerido cuando el día no tiene nombre; <c>null</c> sin ejercicios.</summary>
+    public string? SuggestedName => GSM.UI.Shared.Formatting.RoutineLabels.MuscleGroupsSummary(MuscleGroups);
 }
 
 public sealed class DraftExercise
