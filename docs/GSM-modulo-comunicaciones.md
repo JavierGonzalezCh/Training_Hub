@@ -6,6 +6,158 @@
 
 ---
 
+## Replanteamiento v2 — en revisión (2026-10-07)
+
+> Nada de esta sección está construido. Lo que viene después de ella describe **la v1, que es lo
+> construido hoy**. Donde las dos se contradicen, manda esta sección una vez aprobada.
+
+### Decisiones tomadas
+
+| Tema | Decisión |
+|---|---|
+| Audiencia de un anuncio | **Segmentos**: todos, o por estado comercial, plan, clase o etiqueta (§A). |
+| WhatsApp | **Enlaces desde el panel** con mensaje listo; el sistema no envía nada solo (§B). |
+| Preferencias del miembro | **Por categoría y por canal** (§C). |
+| Extras | **Imagen en anuncios**, **programar publicación**, **saludo de cumpleaños** y **horario sin avisos** (§D–§G). |
+
+Heredadas: publicación automática en Novedades al crear una clase (`GSM-modulo-classes.md`, v2);
+recordatorio de vencimiento alineado con la gracia (`GSM-modulo-memberships.md` §14); correo a los
+Owners por máquina insegura (`GSM-modulo-equipment.md` §7). Los avisos **push** los entrega el módulo
+nuevo Notifications (`GSM-modulo-notifications.md`); este módulo decide el contenido y la audiencia.
+
+### A. Anuncios con audiencia
+
+- El anuncio suma **`Audience`**: "Todos los miembros" o una combinación de filtros:
+  - **estado comercial** (al día, por vencer, en gracia, vencidos, congelados, sin plan), que calcula
+    Memberships;
+  - **plan** (los que tienen hoy ese plan);
+  - **clase** (con reserva o asistencia en esa clase en los últimos 30 días), de Classes;
+  - **etiqueta** de la ficha (Members).
+- Los filtros se combinan con "y": "vencidos **y** con etiqueta *natación*".
+- Antes de publicar se ve **"Llegará a 84 miembros"**, con la lista si se quiere revisar.
+- **Los destinatarios se fijan al publicar** (tabla `announcement_recipients`). Si un miembro renueva
+  al día siguiente, el anuncio de "vencidos" que ya le llegó no desaparece de su feed, y quien se
+  inscribe después no lo ve.
+- El anuncio suma también **`Category`**: `gym_news` (novedades) o `promotions` (promociones). Define
+  qué preferencia se respeta (§C). La publicación automática de clase nueva es `gym_news`.
+- Los dados de baja nunca están en la audiencia.
+
+### B. WhatsApp por enlace
+
+- **Botón de WhatsApp** en la ficha del miembro, en la tarjeta de recepción y en las listas de "por
+  vencer" y "vencidos". Abre `wa.me` en el WhatsApp del staff con un **mensaje listo para editar**. El
+  sistema **no envía nada por su cuenta** y no tiene costo.
+- **Plantillas por gym**, editables en Configuración → Comunicaciones, con variables (`{nombre}`,
+  `{gym}`, `{vence}`, `{gracia_hasta}`, `{enlace}`):
+  - Por vencer: "Hola {nombre}, tu plan en {gym} vence el {vence}. ¿Te lo renovamos?"
+  - Vencido / en gracia: "Hola {nombre}, tu plan venció el {vence}. Si renuevas antes del
+    {gracia_hasta} conservas tu fecha."
+  - Invitación a la app: el enlace de registro de Identity (`GSM-modulo-identity.md` §4).
+  - Cumpleaños (§F).
+- **Se registra el clic** ("Ana contactó por WhatsApp · plantilla *por vencer* · hace 2 días"), y las
+  listas lo muestran para no escribirle dos veces a la misma persona. El sistema no sabe si el mensaje
+  realmente se envió.
+- Sin teléfono válido en la ficha, el botón aparece deshabilitado con "Falta el celular".
+- **Envío automático por WhatsApp Business API:** para después (exige cuenta verificada de Meta,
+  plantillas aprobadas y costo por conversación).
+
+### C. Preferencias por categoría y canal
+
+| Categoría | Qué incluye | Push | Correo | Por defecto |
+|---|---|---|---|---|
+| **Mi membresía** | Por vencer, en gracia, renovación | ✓ | ✓ | Encendido |
+| **Mis clases** | Recordatorio de 10 min, lista de espera, cancelaciones, penalización | ✓ | ✓ | Encendido |
+| **Mi progreso** | Logros, premios, ranking | ✓ | ✓ | Encendido |
+| **Novedades del gym** | Anuncios `gym_news`, clase nueva, cumpleaños | ✓ | ✓ | Encendido |
+| **Promociones** | Anuncios `promotions` | ✓ | ✓ | **Apagado** hasta que el miembro lo acepte |
+
+- **Las notificaciones dentro de la app** (la bandeja) **siempre** reciben todo: apagar una categoría
+  solo apaga su push y su correo. Así, lo de "mi membresía" y "mis clases" nunca se pierde del todo.
+- **Promociones empieza apagado:** los mensajes comerciales necesitan la autorización previa del
+  miembro. Se ofrece aceptarlo en el registro y en el perfil.
+- **No son preferencias** (siempre se envían): los correos de seguridad y de cuenta (códigos, enlaces,
+  bloqueo) y el aviso "se registró tu entrada con tu documento".
+- Tabla `member_notification_preferences` (`MemberId`, `Category`, `Push`, `Email`). Reemplaza al
+  interruptor único `EmailOptOut`.
+- **Migración:** quien tenía `EmailOptOut = true` queda con el correo apagado en todas las categorías.
+- El enlace de baja de los correos apaga **el correo de esa categoría**, no todos.
+- La pantalla vive en "Mi perfil" de la app (`GSM-modulo-identity.md` §9).
+
+### D. Imagen en anuncios
+
+- Una imagen por anuncio (JPG, PNG o WebP, hasta 5 MB), subida a R2. Se ve en el feed, en el correo y,
+  donde el teléfono lo permita, en el push.
+- Depende de configurar R2.
+
+### E. Programar la publicación
+
+- El anuncio suma `ScheduledFor` y un estado nuevo, `scheduled`. Se puede editar o cancelar hasta que
+  se publique.
+- Lo publica la tarea periódica: **puede salir unos minutos después de la hora elegida**, nunca antes.
+- La audiencia se calcula **al publicar**, no al programar.
+- Si la hora elegida cae dentro del horario sin avisos (§G), el anuncio se publica a esa hora pero su
+  push espera a que termine.
+
+### F. Cumpleaños
+
+- El gym lo enciende en Configuración, con su texto ("¡Feliz cumpleaños, {nombre}! Hoy tu entrenamiento
+  va por cuenta de la casa 🎉"), que puede incluir un regalo.
+- Se envía el día del cumpleaños **a las 8:00 a. m.**, como notificación en la app y push (categoría
+  "Novedades del gym"). Los nacidos el 29 de febrero lo reciben el 28 en años no bisiestos.
+- Solo a miembros activos.
+- **Panel:** el dashboard muestra "Cumpleaños de hoy" y la tarjeta de recepción muestra "Hoy cumple
+  años", para que el staff lo salude en persona. El botón de WhatsApp ofrece la plantilla de cumpleaños.
+
+### G. Horario sin avisos
+
+- Por gym, **21:00 a 7:00 por defecto** (configurable).
+- Aplica a los push de **Novedades del gym, Promociones y cumpleaños**: los que caen en ese horario se
+  guardan y salen al terminar.
+- **No aplica** a lo que tiene hora propia o es urgente: recordatorio de clase, oferta de la lista de
+  espera, avisos al staff (máquina insegura, intentos rechazados) y los de seguridad.
+- Los correos de novedades y promociones también esperan.
+- **Nota legal:** en Colombia, la Ley 2300 de 2023 limita los horarios y la frecuencia de los contactos
+  de cobranza y publicidad. Cómo aplica a un gimnasio debe confirmarlo un abogado; este horario es una
+  base, no una garantía de cumplimiento.
+
+### H. Recordatorios de vencimiento
+
+Se alinean con la gracia de Memberships. Categoría "Mi membresía":
+
+1. **N días antes del vencimiento** (`ReminderDaysBefore`, 3 por defecto, como hoy).
+2. **El día que vence:** "Tu plan vence hoy".
+3. **El último día de gracia:** "Hoy es tu último día para renovar sin perder tu fecha".
+
+No se envían a tiqueteras sin gracia en el paso 3. Siguen siendo idempotentes por miembro, tipo y
+referencia.
+
+### Lo que cambia en otros módulos
+
+- **Memberships, Classes, Members:** se leen para calcular las audiencias (`IMembershipReader`,
+  `IClassReader`, `IMemberReader`).
+- **Notifications:** entrega los push respetando preferencias y horario sin avisos.
+- **Attendance:** la tarjeta de recepción muestra el botón de WhatsApp y "Hoy cumple años".
+- **Identity:** la plantilla de invitación usa su enlace; los correos de seguridad no pasan por
+  preferencias.
+
+### Propuesta de sub-etapas
+
+| Sub-etapa | Qué |
+|---|---|
+| **CO1** | Preferencias por categoría y canal, con migración de `EmailOptOut`; categoría de anuncio. |
+| **CO2** | Audiencia por segmentos, destinatarios fijados al publicar. |
+| **CO3** | WhatsApp por enlace: botones, plantillas por gym, registro de contacto. |
+| **CO4** | Imagen y programación de anuncios. |
+| **CO5** | Cumpleaños. |
+| **CO6** | Horario sin avisos (con Notifications). |
+| **CO7** | Recordatorios de vencimiento alineados con la gracia. |
+
+### Pendiente de decidir
+
+- Nada por ahora.
+
+---
+
 ## 1. Qué resuelve
 
 El gym necesita hablar con sus miembros: horarios de festivos, una máquina nueva, un evento, un cambio de tarifa. Hoy no hay ningún canal dentro del producto. Además, el sistema ya produce hechos que el miembro debería conocer y que nadie le cuenta: su clase se canceló, su membresía está por vencer, ganó un logro.

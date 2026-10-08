@@ -129,7 +129,7 @@ Ninguna.
 1. **`GetAdminDashboardHandler`** — compone `ISubscriptionReader`, `IMemberReader`, `IAttendanceReader` y `IPaymentReader`, siguiendo el patrón del dashboard de la etapa 8.
 2. **Cartera** — recuento por estado efectivo y los que vencen en 15 días.
 3. **Ingresos, dos cifras:** contratado (suma de `monthly_price` de los no suspendidos ni inhabilitados) y cobrado (suma de pagos del mes, con el mes anterior al lado).
-4. **Uso por gym** — socios activos, check-ins del mes y último movimiento de cada cliente.
+4. **Uso por gym** — miembros activos, check-ins del mes y último movimiento de cada cliente.
 5. **Totales de plataforma** — agregados de todos los gyms.
 
 > **Agrupar por día de negocio, no por rango UTC.** Es exactamente el defecto que se encontró y corrigió en la etapa 5 (`GetMonthlyRevenueAsync`); repetirlo aquí sería fácil. Usar `IClock.BusinessDayRange`.

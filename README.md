@@ -141,4 +141,4 @@ Nada de esto impide desarrollar, pero conviene saber en qué estado está:
   no arranca sin ella; en desarrollo viene en `appsettings.Development.json`. En producción hay que definirla.
 
 Para probar el check-in con QR en local, entra como staff y abre `https://localhost:7220/kiosk`: muestra el QR del gym;
-el enlace que lleva abre `/app/checkin` en la app del socio.
+el enlace que lleva abre `/app/checkin` en la app del miembro.

@@ -1,15 +1,15 @@
 # GSM — Plan de construcción del frontend
 
-> **Estado (septiembre de 2026):** **F0–F8 hechas — el frontend planeado está completo.** Panel del gym (F6), app del socio (F7: web `/app` verificada; `GSM.Mobile` en MAUI compila para Android/Windows pero sin probar en emulador — este entorno no tiene SDK de Android) y panel SuperAdmin (F8: cartera, ficha, operaciones, dashboard de plataforma e impersonación, todo verificado en vivo). Queda pendiente el despliegue y los módulos sin planificar (Community, Reports, Locations).
+> **Estado (septiembre de 2026):** **F0–F8 hechas — el frontend planeado está completo.** Panel del gym (F6), app del miembro (F7: web `/app` verificada; `GSM.Mobile` en MAUI compila para Android/Windows pero sin probar en emulador — este entorno no tiene SDK de Android) y panel SuperAdmin (F8: cartera, ficha, operaciones, dashboard de plataforma e impersonación, todo verificado en vivo). Queda pendiente el despliegue y los módulos sin planificar (Community, Reports, Locations).
 
 ## Contexto
-El backend está completo (etapas 0–7, 9 Routines, 10 Classes, 11 SuperAdmin; 111 tests), pero no hay ningún cliente: hoy el sistema solo se usa desde Scalar. Para vender, el gym tiene que poder operar (socios, cobros, asistencia) y el socio tiene que tener su app. Este documento define **las etapas de frontend F0–F8** con el mismo método que el backend: incremental y **una etapa (o sub-etapa) cada vez, con confirmación entre una y otra**.
+El backend está completo (etapas 0–7, 9 Routines, 10 Classes, 11 SuperAdmin; 111 tests), pero no hay ningún cliente: hoy el sistema solo se usa desde Scalar. Para vender, el gym tiene que poder operar (miembros, cobros, asistencia) y el miembro tiene que tener su app. Este documento define **las etapas de frontend F0–F8** con el mismo método que el backend: incremental y **una etapa (o sub-etapa) cada vez, con confirmación entre una y otra**.
 
 Decisiones tomadas:
-- **Stack:** Blazor WebAssembly para el panel del gym y el panel SuperAdmin, y .NET MAUI para la app del socio, como ya preveía `docs/GSM-especificacion-tecnica.md` §1.
-- **El socio puede usar la app desde el navegador, y funciona igual.** Por eso la app del socio es **MAUI Blazor Hybrid** y no una UI nativa en XAML. Sus pantallas viven en una librería Razor compartida (`GSM.Member.UI`) que se aloja tanto en la web como en el contenedor MAUI. El código, las pantallas y las reglas son los mismos. Por plataforma solo cambian unos pocos servicios, que van detrás de interfaces: el almacén de tokens, abrir enlaces y, más adelante, las notificaciones push.
+- **Stack:** Blazor WebAssembly para el panel del gym y el panel SuperAdmin, y .NET MAUI para la app del miembro, como ya preveía `docs/GSM-especificacion-tecnica.md` §1.
+- **El miembro puede usar la app desde el navegador, y funciona igual.** Por eso la app del miembro es **MAUI Blazor Hybrid** y no una UI nativa en XAML. Sus pantallas viven en una librería Razor compartida (`GSM.Member.UI`) que se aloja tanto en la web como en el contenedor MAUI. El código, las pantallas y las reglas son los mismos. Por plataforma solo cambian unos pocos servicios, que van detrás de interfaces: el almacén de tokens, abrir enlaces y, más adelante, las notificaciones push.
 - **UI kit:** MudBlazor.
-- **Orden:** primero el panel del gym, luego la app del socio y por último el panel SuperAdmin.
+- **Orden:** primero el panel del gym, luego la app del miembro y por último el panel SuperAdmin.
 - **El backend está cerrado y no se toca**, salvo los huecos que se listan abajo. Cada hueco se decide en la etapa que lo necesita.
 
 ## Huecos de backend detectados (se deciden en su etapa, no antes)
@@ -26,11 +26,11 @@ Decisiones tomadas:
 src/Frontend/
   GSM.Client/        → librería net10.0: cliente HTTP tipado (generado de OpenAPI), auth y errores. La usan todos los demás proyectos.
   GSM.UI.Shared/     → Razor Class Library: tema por gym, banner de suscripción, manejo de errores, formato de COP y fechas, etiquetas de enums.
-  GSM.Member.UI/     → Razor Class Library con TODAS las pantallas del socio (mobile-first). Sin dependencias de plataforma.
-  GSM.Web/           → Blazor WASM: panel del gym, panel SuperAdmin y la app del socio en `/app` (aloja GSM.Member.UI). PWA instalable.
+  GSM.Member.UI/     → Razor Class Library con TODAS las pantallas del miembro (mobile-first). Sin dependencias de plataforma.
+  GSM.Web/           → Blazor WASM: panel del gym, panel SuperAdmin y la app del miembro en `/app` (aloja GSM.Member.UI). PWA instalable.
   GSM.Mobile/        → .NET MAUI Blazor Hybrid (Android primero, iOS después): aloja GSM.Member.UI en un BlazorWebView.
 tests/
-  GSM.Web.Tests/     → bUnit para los componentes con lógica: formularios, guardas de rol, banner y pantallas del socio.
+  GSM.Web.Tests/     → bUnit para los componentes con lógica: formularios, guardas de rol, banner y pantallas del miembro.
 ```
 
 **Un solo SPA web con tres áreas por rol:**
@@ -41,7 +41,7 @@ tests/
 Las tres áreas comparten el login, el cliente y el tema, y después del login cada usuario va al área de su rol. Hacer tres SPAs duplicaría la autenticación y el despliegue.
 
 **Cómo se consigue que funcione igual en el navegador y en el móvil:**
-- Las pantallas del socio se escriben **una sola vez**, en `GSM.Member.UI`, que solo depende de `GSM.Client` y `GSM.UI.Shared`. Ni `GSM.Web` ni `GSM.Mobile` tienen pantallas propias del socio: solo las alojan.
+- Las pantallas del miembro se escriben **una sola vez**, en `GSM.Member.UI`, que solo depende de `GSM.Client` y `GSM.UI.Shared`. Ni `GSM.Web` ni `GSM.Mobile` tienen pantallas propias del miembro: solo las alojan.
 - Lo que cambia según la plataforma va detrás de interfaces declaradas en `GSM.Client`, con una implementación por host:
   | Interfaz | Web (WASM) | Móvil (MAUI) |
   |---|---|---|
@@ -49,8 +49,8 @@ Las tres áreas comparten el login, el cliente y el tema, y después del login c
   | `IAppPlatform` (abrir enlaces, compartir, subir el brillo al mostrar el QR) | JS interop o no-op | APIs de MAUI |
   | Push (futuro) | no disponible | FCM |
 - Regla de revisión: si una pantalla de `GSM.Member.UI` necesita un `#if ANDROID` o una API de MAUI, está en el sitio equivocado. Eso tiene que ir detrás de una interfaz.
-- La web es una **PWA** (manifest y service worker), así que el socio puede instalarla desde el navegador del móvil sin pasar por la tienda. No tiene modo offline de datos: todo sale de la API.
-- MudBlazor se usa en los dos hosts. Las pantallas del socio se diseñan mobile-first; en un PC se muestran en una columna centrada.
+- La web es una **PWA** (manifest y service worker), así que el miembro puede instalarla desde el navegador del móvil sin pasar por la tienda. No tiene modo offline de datos: todo sale de la API.
+- MudBlazor se usa en los dos hosts. Las pantallas del miembro se diseñan mobile-first; en un PC se muestran en una columna centrada.
 
 ### Contratos: un cliente generado desde OpenAPI, sin referenciar `GSM.Application`
 Los `*Contracts.cs` de Application importan enums de `GSM.Domain` y tipos de la propia Application (por ejemplo, `AttendanceContracts.cs` usa `Achievements.Public`). Si WASM o MAUI referenciaran `GSM.Application`, arrastrarían Domain, FluentValidation y Mapperly al cliente y se rompería la separación. Por eso:
@@ -132,32 +132,32 @@ Cada etapa termina con tres cosas:
 - Un token vencido se refresca sin perder la página.
 - Un gym `Disabled` queda en solo lectura y uno `Suspended` no puede entrar.
 
-### F2 — Socios
+### F2 — Miembros
 - **Listado** paginado en el servidor, con búsqueda y filtro de estado (`GET /api/members`, `ListMembersQuery`).
 - **Alta y edición** con `CreateMemberRequest` y `UpdateMemberRequest`. Un 409 significa que el documento ya existe.
 - **Desactivar:** el `DELETE` es una baja lógica.
 - **Ficha** (`MemberDetail`): membresía vigente y últimos 5 pagos, más la racha. Tiene pestañas paginadas de pagos (`/api/members/{id}/payments`) y de asistencia (`/attendance`).
 - **Foto:** `POST /photo`, multipart con el campo `file`. Mientras R2 no esté configurado, responde 500; la pantalla tiene que dar un mensaje claro.
-- **Código QR** del socio, dibujado en el cliente.
-- **Generar invitación** (`POST /invite`): devuelve un código válido 7 días para dárselo al socio.
+- **Código QR** del miembro, dibujado en el cliente.
+- **Generar invitación** (`POST /invite`): devuelve un código válido 7 días para dárselo al miembro.
 
 ### F3 — Planes, membresías y pagos
 - **Planes** (`/api/membership-plans`): el Staff los consulta y **solo el Owner** los crea, edita y desactiva.
-- **Membresías:** asignarlas desde la ficha del socio (`POST /api/members/{id}/memberships`), con su historial, y ver las que están por vencer (`/api/memberships/expiring?days`).
-- **Pagos:** registrar un pago (`POST /api/payments`) y listarlos con filtros por fecha, método y socio (`ListPaymentsQuery`).
+- **Membresías:** asignarlas desde la ficha del miembro (`POST /api/members/{id}/memberships`), con su historial, y ver las que están por vencer (`/api/memberships/expiring?days`).
+- **Pagos:** registrar un pago (`POST /api/payments`) y listarlos con filtros por fecha, método y miembro (`ListPaymentsQuery`).
 - **Cierre de caja** diario (`/api/cash-register/daily?date`). La fecha es un `DateOnly` de negocio y no se convierte entre zonas.
 
 ### F4 — Recepción: check-in y asistencia
-- **Pantalla de recepción:** el socio se identifica con el QR (cámara por JS interop, o un lector de código de barras USB que "teclea" el código) o buscándolo a mano. La pantalla llama a `POST /api/attendance/checkin` con el `QrCode` o el `MemberId` y el `Method`.
+- **Pantalla de recepción:** el miembro se identifica con el QR (cámara por JS interop, o un lector de código de barras USB que "teclea" el código) o buscándolo a mano. La pantalla llama a `POST /api/attendance/checkin` con el `QrCode` o el `MemberId` y el `Method`.
 - **Resultado en grande:**
   - 201: entrada nueva.
-  - 200 con `alreadyCheckedInToday`: el socio ya había entrado hoy.
+  - 200 con `alreadyCheckedInToday`: el miembro ya había entrado hoy.
   - `membershipExpired`: aviso en rojo. No bloquea la entrada, solo avisa.
   - Los logros que se hayan desbloqueado.
 - **Listado de asistencia** (`GET /api/attendance`) y gráfico de horas pico (`/peak-hours`).
 
 ### F5 — Dashboard y configuración del gym
-- **Inicio** con `GET /api/dashboard`: socios activos, check-ins de hoy, ingresos del mes frente al anterior, y membresías vencidas o por vencer con enlace a la ficha.
+- **Inicio** con `GET /api/dashboard`: miembros activos, check-ins de hoy, ingresos del mes frente al anterior, y membresías vencidas o por vencer con enlace a la ficha.
 - **Configuración** (solo Owner): datos del gym y branding (`PUT /api/gym`), logo (`POST /api/gym/logo`) y feature flags (`/api/gym/feature-flags`).
 - **Logros del gym** (solo Owner): CRUD e icono sobre `/api/achievements`.
 - **Gestión de staff:** solo si se aprueba H1. Si no, F5 sale sin ella.
@@ -173,7 +173,7 @@ Cada etapa termina con tres cosas:
 
 — *Aquí el panel del gym está completo: es el punto natural para empezar un piloto con un gym real.* —
 
-### F7 — App del socio (web `/app` + MAUI Blazor Hybrid)
+### F7 — App del miembro (web `/app` + MAUI Blazor Hybrid)
 Cada sub-etapa se construye en `GSM.Member.UI` y se verifica **en los dos hosts**: el navegador (`GSM.Web/app`) y el emulador de Android (`GSM.Mobile`). Una sub-etapa que solo funciona en uno de los dos no está terminada.
 
 Sub-etapas:
@@ -241,7 +241,7 @@ Va de la mano con la etapa 8.4 del backend (Railway), que sigue pendiente.
   - El staff no ve la configuración.
   - Un gym bloqueado ve la pantalla de bloqueo.
   - La impersonación no deja escribir.
-- La app del socio se prueba **con el mismo guion en los dos hosts**, que en la práctica son tres entornos:
+- La app del miembro se prueba **con el mismo guion en los dos hosts**, que en la práctica son tres entornos:
   - el navegador del PC (`https://localhost:7220/app`);
   - un navegador móvil emulado (`resize_window` con el preset mobile);
   - el emulador de Android contra la API local (`10.0.2.2:5175`).

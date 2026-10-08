@@ -49,21 +49,21 @@ Etapas 0–8 completas salvo el despliegue (etapa 8, punto 4). 17 tests de integ
 
 # 9.2 — Rutinas, días y ejercicios
 
-**Objetivo:** el entrenador arma la rutina de un socio y el socio la ve.
+**Objetivo:** el entrenador arma la rutina de un miembro y el miembro la ve.
 
 ### Trabajo
 
 1. **Domain** — `Routine`, `RoutineDay`, `RoutineExercise`. Invariantes: al menos un día por rutina; `position` consecutiva desde 1; un día con `is_rest = true` no admite ejercicios; `target_sets >= 1`.
 2. **Infrastructure** — configuraciones con FK internas en cascada e índices `(routine_id, position)` y `(routine_day_id, order)`.
 3. **Application**
-   - `AssignRoutineHandler` — crea rutina, días y líneas **en una transacción** (`IUnitOfWork.ExecuteInTransactionAsync`). Valida el socio contra `IMemberReader` y **cada** `exercise_id` contra el catálogo visible del gym. `assigned_by` de `ICurrentUserService`, `self_assigned = false`, `starts_on = clock.Today`.
+   - `AssignRoutineHandler` — crea rutina, días y líneas **en una transacción** (`IUnitOfWork.ExecuteInTransactionAsync`). Valida el miembro contra `IMemberReader` y **cada** `exercise_id` contra el catálogo visible del gym. `assigned_by` de `ICurrentUserService`, `self_assigned = false`, `starts_on = clock.Today`.
    - `UpdateRoutineHandler` — reemplaza días y líneas, también transaccional.
    - `DeactivateRoutineHandler` — baja lógica, fija `deactivated_on`.
    - `GetRoutineHandler`, `ListMemberRoutinesHandler`.
-   - `GetMyRoutineHandler` — rutina activa del socio **con qué toca hoy**, resolviendo la posición del ciclo.
+   - `GetMyRoutineHandler` — rutina activa del miembro **con qué toca hoy**, resolviendo la posición del ciclo.
 4. **Cálculo del ciclo** — `RoutineCycle.PositionOn(startsOn, cycleLength, date)`, función pura y sin estado, en Application. Aritmética de módulo que maneje correctamente fechas anteriores a `starts_on`.
 5. **API** — `RoutinesController` y `MemberRoutinesController`. `MeController` gana `GET /api/me/routines`.
-6. **Feature flag** — con `show_routines = false`, los endpoints del socio responden `403`; los de staff siguen abiertos.
+6. **Feature flag** — con `show_routines = false`, los endpoints del miembro responden `403`; los de staff siguen abiertos.
 
 ### Migración
 `Etapa09_2_Routines` — `routines.routines`, `routines.routine_days`, `routines.routine_exercises`.
@@ -71,14 +71,14 @@ Etapas 0–8 completas salvo el despliegue (etapa 8, punto 4). 17 tests de integ
 ### Aceptación
 - Crear una rutina cuya línea referencia un ejercicio de otro gym falla y **no deja rutina a medias** (test de rollback, como el de alta de gym).
 - Con ciclo `[D1·D2·D3·descanso]` empezando un lunes: lunes→D1, jueves→D1 otra vez, miércoles→D3, y el domingo de la segunda vuelta cae en día de entrenamiento (el ciclo se desplaza, es lo esperado).
-- Un socio con `show_routines = false` recibe `403`; el staff no.
-- Un `member` no puede ver la rutina de otro socio.
+- Un miembro con `show_routines = false` recibe `403`; el staff no.
+- Un `member` no puede ver la rutina de otro miembro.
 
 ---
 
-# 9.3 — Seguimiento del socio
+# 9.3 — Seguimiento del miembro
 
-**Objetivo:** el socio marca lo que hace y, si quiere, anota la carga.
+**Objetivo:** el miembro marca lo que hace y, si quiere, anota la carga.
 
 ### Trabajo
 
@@ -88,7 +88,7 @@ Etapas 0–8 completas salvo el despliegue (etapa 8, punto 4). 17 tests de integ
    - `LogRoutineExerciseHandler` — marcar y registrar son la misma operación. **Idempotente por día:** si ya existe registro para esa fecha, actualiza. `performed_on = clock.Today`.
    - `UnlogRoutineExerciseHandler` — borra el registro de una fecha.
    - `GetMyRoutineHistoryHandler` — rango de fechas, con proyección explícita.
-   - Publicar `RoutineSessionLogged` **solo la primera vez** que el socio registra algo en un día dado: comprobar si ya había registros suyos con ese `performed_on` antes de insertar.
+   - Publicar `RoutineSessionLogged` **solo la primera vez** que el miembro registra algo en un día dado: comprobar si ya había registros suyos con ese `performed_on` antes de insertar.
 4. **API** — endpoints de log bajo `/api/routine-exercises/{id}/log` y el histórico en `MeController`.
 
 ### Migración
@@ -122,10 +122,10 @@ Etapas 0–8 completas salvo el despliegue (etapa 8, punto 4). 17 tests de integ
 Ninguna.
 
 ### Aceptación
-- Ciclo `[D1·D2·D3·descanso]`, el socio entrena los tres días y no va el de descanso: **4 días de racha por ciclo**; dos ciclos completos → racha 8.
+- Ciclo `[D1·D2·D3·descanso]`, el miembro entrena los tres días y no va el de descanso: **4 días de racha por ciclo**; dos ciclos completos → racha 8.
 - Faltar a un día de entrenamiento corta la racha (todavía sin congeladores).
 - Hoy es día de entrenamiento y aún no ha ido → misma racha que ayer.
-- Un socio **sin** rutina conserva exactamente la racha de antes: los tests de racha del MVP pasan sin modificarse.
+- Un miembro **sin** rutina conserva exactamente la racha de antes: los tests de racha del MVP pasan sin modificarse.
 
 ---
 
@@ -135,7 +135,7 @@ Ninguna.
 
 ### Trabajo
 
-1. **Domain (schema `achievements`)** — `StreakFreeze`: `granted_on`, `used_on` nullable. Vive aquí, no en Routines, porque **aplica también a socios sin rutina**.
+1. **Domain (schema `achievements`)** — `StreakFreeze`: `granted_on`, `used_on` nullable. Vive aquí, no en Routines, porque **aplica también a miembros sin rutina**.
 2. **Infrastructure** — índice `(member_id, used_on)` y **único parcial** `(member_id, used_on) WHERE used_on IS NOT NULL`: es lo que hace idempotente el consumo.
 3. **Application**
    - Saldo = `count(used_on IS NULL)`, tope 2.
@@ -144,7 +144,7 @@ Ninguna.
    - Exponerlo por `IAchievementService` (ya existe como escritura cruzada documentada).
 4. **API** — `GET /api/me/streak` devuelve racha y congeladores disponibles.
 
-> **Nota de diseño asumida:** consultar la racha puede escribir. Es deliberado — sin proceso diario no hay otro momento donde detectar que un socio faltó, precisamente porque no vino. Los índices únicos garantizan que sea idempotente.
+> **Nota de diseño asumida:** consultar la racha puede escribir. Es deliberado — sin proceso diario no hay otro momento donde detectar que un miembro faltó, precisamente porque no vino. Los índices únicos garantizan que sea idempotente.
 
 ### Migración
 `Etapa09_5_StreakFreezes` — `achievements.streak_freezes`.
@@ -159,7 +159,7 @@ Ninguna.
 
 # 9.6 — Gamificación y auto-servicio
 
-**Objetivo:** las sesiones puntúan y cada gym decide si sus socios se arman rutinas.
+**Objetivo:** las sesiones puntúan y cada gym decide si sus miembros se arman rutinas.
 
 ### Trabajo
 
@@ -201,7 +201,7 @@ Además de re-correr los 17 existentes en cada sub-etapa:
 - **Rollback** al crear una rutina inválida.
 - **Ciclo rotativo** — posición correcta a lo largo de dos vueltas.
 - **Idempotencia** del registro diario y de la publicación del evento.
-- **Racha con calendario** — ciclo completo, fallo, día en curso, socio sin rutina.
+- **Racha con calendario** — ciclo completo, fallo, día en curso, miembro sin rutina.
 - **Congelador** — consume, agota, no se gasta dos veces por la misma fecha.
 - **Exclusión** de rutinas auto-asignadas de la gamificación.
 
@@ -211,4 +211,4 @@ Además de re-correr los 17 existentes en cada sub-etapa:
 9.1 catálogo ──> 9.2 rutinas ──> 9.3 seguimiento ──> 9.4 racha ──> 9.5 congelador ──> 9.6 gamificación
 ```
 
-Estrictamente secuencial. El corte natural para pausar es **al final de 9.3**: en ese punto el módulo ya es usable de cara al socio (ve su rutina y registra lo que hace) y todo lo que sigue es gamificación.
+Estrictamente secuencial. El corte natural para pausar es **al final de 9.3**: en ese punto el módulo ya es usable de cara al miembro (ve su rutina y registra lo que hace) y todo lo que sigue es gamificación.

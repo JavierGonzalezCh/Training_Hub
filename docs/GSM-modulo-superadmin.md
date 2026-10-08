@@ -8,6 +8,184 @@ Este es el módulo que gestiona los gimnasios **como clientes del SaaS**. Es el 
 
 ---
 
+## Replanteamiento v2 — en revisión (2026-10-07)
+
+> Nada de esta sección está construido. Lo que viene después de ella describe **la v1, que es lo
+> construido hoy**. Donde las dos se contradicen, manda esta sección una vez aprobada.
+
+### Decisiones tomadas
+
+| Tema | Decisión |
+|---|---|
+| Planes del SaaS | **Definen un límite de miembros.** Todos los planes tienen todos los módulos (§V1). |
+| Prueba gratis | **Opcional, por gym.** Al crear el gym, el SuperAdmin decide si tiene prueba y cuántos días. Al terminar la prueba, el gym tiene **3 días** para que se confirme el pago; si no, **se inhabilita** (§V2). |
+| Avisos al gym | **Correo y push a los Owners** antes y después del vencimiento (§V3). |
+| Métricas | **Foto mensual** de las métricas del SaaS (§V4). |
+| Mora | Los días antes de inhabilitar son **configurables por cliente** (§V2). |
+| SuperAdmin | **Uno solo**, con permiso para todo (§V5). |
+| Impersonación | Lectura o escritura, **en silencio**: el gym nunca se entera (§V6). |
+
+Heredadas: alta con invitación al Owner y "Reenviar acceso" / "Copiar enlace" / "Omitir onboarding"
+(`GSM-modulo-gyms.md` §4–§5); agregar y quitar Owners (Gyms §6); catálogos del sistema (§V7); métodos de
+pago de Colombia (`GSM-modulo-payments.md` §3).
+
+### V1. Planes con límite de miembros
+
+- Tabla nueva `superadmin.saas_plans`: `Name`, `MemberLimit` (nulo = sin límite), `SuggestedPrice`
+  (orientativo; el precio real sigue siendo el de cada suscripción), `IsActive`. La edita el SuperAdmin.
+  Reemplaza al enum fijo `gym_plan` (`basic`/`pro`/`enterprise`), que migra a tres filas con esos
+  nombres.
+- **Límites iniciales** (aprobados 2026-10-07): Basic 150, Pro 500, Enterprise sin límite.
+- `GymSubscription` suma `MemberLimitOverride` (nulo = el del plan): el SuperAdmin puede darle a un
+  cliente un límite distinto sin cambiarle el plan.
+- **Qué cuenta:** miembros con una membresía que los cubre hoy (al día, por vencer, en gracia o
+  congelados). Una ficha sin plan o vencida no cuenta.
+- **Qué se bloquea al llegar al límite:** **dar una membresía a alguien que hoy no cuenta** (un miembro
+  nuevo o uno que vuelve). **Renovar a quien ya cuenta nunca se bloquea**: no se le puede negar la
+  renovación a un miembro actual.
+  - Mensaje al staff: "Llegaste al límite de 150 miembros activos de tu plan. Habla con GSM para
+    ampliarlo".
+- **Avisos:** al 90 % del límite, a los Owners ("Te quedan 15 cupos") y al SuperAdmin; al llegar al
+  límite, a ambos. Ver §V3.
+- El panel del SuperAdmin muestra el uso del límite de cada gym ("142 / 150").
+
+### V2. Prueba gratis opcional, mora configurable
+
+**Al crear el gym**, el SuperAdmin elige:
+
+- **Con prueba:** cuántos días (por ejemplo, 15 o 30). El gym nace en `trial` hasta `trial_ends_on`.
+- **Sin prueba:** el formulario **exige el primer pago** (monto, método y periodo que cubre). El gym
+  nace `active` hasta esa fecha. No existe un gym sin prueba y sin pago (confirmado 2026-10-07).
+
+**Al terminar la prueba:**
+
+| Estado | Cuándo | Qué puede hacer el gym |
+|---|---|---|
+| `trial` | Hasta `trial_ends_on` | Todo |
+| **`trial_ended`** (nuevo, derivado) | Los **3 días** siguientes al fin de la prueba, sin pago confirmado | Todo, con un letrero: "Tu prueba terminó. Confirma tu pago para seguir usando GSM" |
+| `disabled` | Pasados esos 3 días sin pago | Solo consultar |
+
+- Registrar el primer pago (confirmación manual del SuperAdmin) lo pasa a `active` en ese momento,
+  como hoy.
+- Los 3 días son el valor por defecto; se pueden cambiar por cliente (`TrialGraceDays`).
+
+**Mora de un gym que ya pagaba:** igual que hoy (`overdue` → `disabled`), pero los 15 días pasan a ser
+un campo por cliente (`OverdueGraceDays`, 15 por defecto).
+
+Regla de estados actualizada:
+
+```
+si Gym.Status == suspended                         → suspended
+si está en prueba y hoy <= trial_ends_on            → trial
+si nunca pagó y hoy <= trial_ends_on + TrialGrace   → trial_ended
+si hoy <= paid_through                              → active
+si ya pagó alguna vez y hoy <= paid_through + OverdueGrace → overdue
+en otro caso                                        → disabled
+```
+
+### V3. Avisos de la suscripción a los Owners
+
+Por correo y push a **todos los Owners** del gym, además del letrero del panel (Notifications):
+
+| Aviso | Cuándo |
+|---|---|
+| Tu prueba termina pronto | 3 días antes de `trial_ends_on` |
+| Tu prueba terminó | El día siguiente: "Tienes 3 días para confirmar tu pago" |
+| Tu suscripción vence pronto | 5 días antes de `paid_through` |
+| Tu suscripción vence hoy | El día |
+| Tu gym entró en mora | El día siguiente al vencimiento |
+| Tu gym se inhabilitará pronto | 3 días antes de inhabilitarse |
+| Tu gym fue inhabilitado / suspendido / reactivado | Al pasar |
+| Pago registrado | Al registrar un pago: "Recibimos tu pago; tu suscripción va hasta el 30 nov" |
+| Límite de miembros | Al 90 % y al llegar al límite (§V1) |
+
+El SuperAdmin ve en su panel los gyms con prueba terminada, en mora y por inhabilitarse.
+
+### V4. Métricas mensuales
+
+- Al cerrar cada mes (lo hace la tarea periódica en su primera ejecución del mes siguiente; es
+  idempotente por mes), se guarda una foto en `superadmin.monthly_metrics`:
+  - **MRR** (ingreso recurrente mensual: suma de los precios de las suscripciones activas);
+  - **cobrado** en el mes;
+  - **gyms**: nuevos, en prueba, convertidos de prueba a pago, perdidos (inhabilitados o suspendidos
+    en el mes), activos al cierre;
+  - **churn** (gyms perdidos ÷ activos al inicio del mes);
+  - **miembros activos** y **entradas** de toda la plataforma.
+- El panel muestra la evolución de los últimos 12 meses.
+- **Lo que no se guardó no se recupera**: la serie empieza el primer mes después de construirlo.
+
+### V5. Un solo SuperAdmin
+
+Decidido 2026-10-07: **hay una sola cuenta de SuperAdmin y puede hacer todo.**
+
+- `AppUser.IsSuperAdmin` sigue siendo un booleano y **solo una cuenta puede tenerlo**. La base lo
+  garantiza con un índice único parcial (`WHERE is_super_admin`).
+- No hay roles ni equipo de plataforma.
+- **Riesgo a tener presente:** es la cuenta más poderosa del sistema y un único punto de falla. Si se
+  pierde el acceso, se recupera por "olvidé mi contraseña" con su correo; si se pierde el correo, solo
+  queda una intervención directa en la base. El doble factor se descartó para esta versión
+  (`GSM-modulo-identity.md` §2); conviene reconsiderarlo solo para esta cuenta.
+
+### V6. Impersonación en silencio
+
+- Al entrar a un gym se elige **lectura** o **escritura**. Se pide un motivo, que queda en la auditoría
+  de la plataforma.
+- **El gym nunca se entera** (decidido 2026-10-07): no hay aviso a los Owners, ni letrero, ni rastro
+  visible en las pantallas del gym por **leer**.
+  - Las consultas del SuperAdmin a datos de salud **no** se anotan en el registro de consultas que ve
+    el Owner (`GSM-modulo-members.md` §10). Van a la auditoría de la plataforma, que solo ve el
+    SuperAdmin.
+- **Permiso para todo**, en los dos modos: datos de salud, notas internas, finanzas, Owners, staff,
+  permisos, anonimizar.
+- **Las escrituras sí quedan firmadas.** Un pago, una membresía o un cambio de ficha hechos por el
+  SuperAdmin quedan registrados como hechos por **"GSM"** en el historial del gym. Ocultar quién hizo un
+  cambio de datos rompería la trazabilidad de la caja y de los historiales; leer es silencioso, cambiar
+  no puede serlo del todo.
+- **Auditoría de la plataforma** (`superadmin.impersonation_sessions` + `superadmin.impersonation_actions`):
+  sesión, motivo, modo, y cada consulta y cada escritura con endpoint, resumen y hora. Solo la ve el
+  SuperAdmin.
+- El token sigue durando 15 minutos y conserva la identidad real en `sub`.
+
+### V7. Catálogos del sistema
+
+Hoy no hay pantalla para ninguno (en F8 no se alcanzó a abrir el catálogo de ejercicios al SuperAdmin).
+Sección **"Catálogos"** en `/admin`, solo para el SuperAdmin:
+
+- **Ejercicios del sistema**: los 55 actuales y nuevos, con tipo, `tracking_type`, músculos, nivel,
+  unilateral, imagen y video (`GSM-modulo-routines.md`, catálogo v2).
+- **Alternativas recomendadas** entre ejercicios del sistema.
+- **Máquinas del catálogo** (`EquipmentModel`, ~40) con su imagen de referencia
+  (`GSM-modulo-equipment.md` §3.2).
+- **Ejercicio ↔ máquina** del sistema (`routines.exercise_equipment_models`).
+- Para resolver el problema de F8 (un SuperAdmin no tiene gym), estas pantallas usan endpoints propios
+  `/api/admin/catalog/*` que trabajan solo con filas `gym_id IS NULL`, sin pasar por el contexto de gym.
+
+### Propuesta de sub-etapas
+
+| Sub-etapa | Qué |
+|---|---|
+| **S1** | Prueba opcional en el alta, estado `trial_ended`, días de gracia por cliente, primer pago en el alta sin prueba. (Con Gyms G1.) |
+| **S2** | Planes con límite de miembros: tabla de planes, override por cliente, bloqueo al dar membresías nuevas, uso en el panel. |
+| **S3** | Avisos de la suscripción a los Owners (depende de Notifications). |
+| **S4** | Catálogos del sistema en `/admin`. Necesario antes de E1 (máquinas del catálogo) y de R3/R5 (catálogo de ejercicios v2). |
+| **S5** | Cuenta única de SuperAdmin (índice único) y permiso total. |
+| **S6** | Impersonación con escritura y en silencio; auditoría de la plataforma por consulta y por cambio. |
+| **S7** | Métricas mensuales y su evolución en el panel. |
+
+### Decisiones abiertas de la v1, resueltas
+
+1. Los 15 días de gracia → configurables por cliente (§V2).
+2. Aviso de vencimiento por correo → avisos a los Owners (§V3).
+3. Facturación electrónica → sigue fuera.
+4. Métricas SaaS → foto mensual (§V4).
+5. Notificar al gym su propio estado → §V3.
+
+### Pendiente de decidir
+
+- Nada por ahora.
+
+---
+
 ## Decisiones de producto
 
 1. **Cinco estados**, tres de ellos automáticos: `trial`, `active`, `overdue`, `disabled`, `suspended`.
@@ -174,9 +352,9 @@ Un endpoint, un response, compuesto de los `Public/I{Módulo}Reader` existentes 
 
 La diferencia entre ambas es la cartera pendiente, y es la cifra que de verdad se mira.
 
-**Uso por gym:** socios activos, check-ins del mes y último movimiento de cada cliente, vía `IMemberReader`, `IAttendanceReader` y `IPaymentReader`. Es lo que delata al gym que dejó de usar el sistema **antes** de que pida la baja.
+**Uso por gym:** miembros activos, check-ins del mes y último movimiento de cada cliente, vía `IMemberReader`, `IAttendanceReader` y `IPaymentReader`. Es lo que delata al gym que dejó de usar el sistema **antes** de que pida la baja.
 
-**Totales de plataforma:** socios y check-ins agregados de todos los gyms.
+**Totales de plataforma:** miembros y check-ins agregados de todos los gyms.
 
 > El superadmin no tiene `gym_id`, así que el Global Query Filter ya está desactivado para él y estas agregaciones ven todo sin trucos. Van con proyección explícita (`Select` con `SUM`/`COUNT`), nunca cargando entidades: aquí se recorre la base entera, no un tenant.
 
@@ -210,7 +388,7 @@ Todos bajo `[Authorize(Policy = RequireSuperAdmin)]`. `POST /api/gyms` (alta, et
 
 **Gyms (2)** — **sin migración**. Se reutilizan `gym_status` y `gym_plan` tal como están; el estado efectivo se calcula encima. `GET /api/gym` gana el bloque `subscription`.
 
-**Payments (5)** — se reutiliza el enum `payment_method`. **Nada más se comparte:** los pagos del gym a sus socios y los del gym al SaaS son dinero de bolsillos distintos y no deben mezclarse en la misma tabla ni en el mismo cierre de caja.
+**Payments (5)** — se reutiliza el enum `payment_method`. **Nada más se comparte:** los pagos del gym a sus miembros y los del gym al SaaS son dinero de bolsillos distintos y no deben mezclarse en la misma tabla ni en el mismo cierre de caja.
 
 **Identity (1)** — `JwtTokenService` emite el token de impersonación (vida corta, claims extra). El resto no cambia.
 

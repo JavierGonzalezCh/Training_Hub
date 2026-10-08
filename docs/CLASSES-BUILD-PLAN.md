@@ -59,14 +59,14 @@ MVP (etapas 0–7) y Routines (etapa 9) completos. Convenciones que este módulo
 
 # 10.2 — Horario proyectado y sesiones (`ClassSession`)
 
-**Objetivo:** el staff y el socio ven el horario de un rango de fechas; una ocurrencia puntual se puede cancelar.
+**Objetivo:** el staff y el miembro ven el horario de un rango de fechas; una ocurrencia puntual se puede cancelar.
 
 ### Trabajo
 
 1. **Domain** — `ClassSession` (`ITenantEntity`), enum `class_session_status` (`scheduled` · `cancelled`). Campos copiados de la definición al materializar (`start_time`, `duration_minutes`, `instructor_name`, `capacity`). `Cancel(reason)`.
 2. **Application**
    - `ClassSchedule` — función pura: para `[from, to]` combina las ocurrencias calculadas (recurrentes por `days_of_week` entre `starts_on` y `deactivated_on`; puntuales por `scheduled_date`) con las sesiones ya materializadas, **que mandan siempre**.
-   - `GetScheduleHandler` (staff) y `GetMyClassesHandler` (socio, con `show_classes` gate y el estado de sus reservas — reservas llegan en 10.3, de momento sin estado).
+   - `GetScheduleHandler` (staff) y `GetMyClassesHandler` (miembro, con `show_classes` gate y el estado de sus reservas — reservas llegan en 10.3, de momento sin estado).
    - `MaterializeSession` — helper compartido: crea la fila `ClassSession` copiando la definición solo cuando hace falta (idempotente por `(class_id, session_date)`).
    - `CancelSessionHandler` — materializa con `status = cancelled`, publica `ClassSessionCancelled`. Las reservas afectadas se tratan en 10.3.
 3. **Infrastructure** — `ClassSessionConfiguration` (índice único `(class_id, session_date)`), `ClassSessionRepository`.
@@ -84,21 +84,21 @@ MVP (etapas 0–7) y Routines (etapa 9) completos. Convenciones que este módulo
 
 # 10.3 — Reservas y asistencia (`ClassBooking`)
 
-**Objetivo:** el socio reserva y cancela; el staff pasa lista. Se integra con Attendance por evento.
+**Objetivo:** el miembro reserva y cancela; el staff pasa lista. Se integra con Attendance por evento.
 
 ### Trabajo
 
 1. **Domain** — `ClassBooking` (`ITenantEntity`), enum `class_booking_status` (`booked` · `cancelled` · `attended` · `no_show`). Transiciones: `Book` (reactiva desde `cancelled`), `Cancel`, `MarkAttended`, `MarkNoShow`. Índice único `(session_id, member_id)`.
 2. **Application**
-   - `BookClassHandler` — sin cupo (`capacity = null`) → 422. Con cupo, si `count(booked) == capacity` → 409. Materializa la sesión. Valida el socio contra `IMemberReader`. `membershipExpired` en la respuesta vía `IMembershipReader` (no bloquea). Gate `show_classes`.
+   - `BookClassHandler` — sin cupo (`capacity = null`) → 422. Con cupo, si `count(booked) == capacity` → 409. Materializa la sesión. Valida el miembro contra `IMemberReader`. `membershipExpired` en la respuesta vía `IMembershipReader` (no bloquea). Gate `show_classes`.
    - `CancelBookingHandler` — permitido hasta la hora de inicio de la sesión.
    - `GetRosterHandler` (staff) — reservas y asistencia de una sesión.
-   - `MarkAttendanceHandler` (staff) — reservados → `attended` / `no_show`; en clase sin cupo añade socios directamente en `attended`. Publica `ClassAttendanceRegistered(MemberId, GymId, SessionDate)` por cada asistente.
-   - `GetMyClassHistoryHandler` (socio).
+   - `MarkAttendanceHandler` (staff) — reservados → `attended` / `no_show`; en clase sin cupo añade miembros directamente en `attended`. Publica `ClassAttendanceRegistered(MemberId, GymId, SessionDate)` por cada asistente.
+   - `GetMyClassHistoryHandler` (miembro).
    - `CancelSessionHandler` (de 10.2) pasa las reservas `booked` a `cancelled`.
 3. **Attendance** — `IDomainEventHandler<ClassAttendanceRegistered>` que registra el check-in del día (idempotente por día, ya lo es desde la etapa 6). Attendance **no** referencia Classes: solo añade el handler.
 4. **Public** — `Classes/Public/IClassReader`: `GetAttendedCountAsync(memberId)`, `GetUpcomingBookingsAsync(memberId, limit)`, `GetTodaySessionCountAsync(gymId)`.
-5. **API** — `POST/DELETE /api/classes/{id}/sessions/{date}/book`, `GET /api/classes/{id}/sessions/{date}/roster`, `POST /api/classes/{id}/sessions/{date}/attendance`, `GET /api/me/classes/history`. `MeController` gana los endpoints del socio; `MemberSelfAccess` reutilizado.
+5. **API** — `POST/DELETE /api/classes/{id}/sessions/{date}/book`, `GET /api/classes/{id}/sessions/{date}/roster`, `POST /api/classes/{id}/sessions/{date}/attendance`, `GET /api/me/classes/history`. `MeController` gana los endpoints del miembro; `MemberSelfAccess` reutilizado.
 
 ### Migración
 `Etapa10_3_ClassBookings` — enum `class_booking_status`, tabla `classes.class_bookings`.
@@ -108,8 +108,8 @@ MVP (etapas 0–7) y Routines (etapa 9) completos. Convenciones que este módulo
 - Cupo 10, 10 reservas activas → la 11.ª recibe 409; si una cancela, vuelve a haber sitio.
 - Clase sin cupo: reservar → 422; marcar asistencia funciona.
 - Cancelar la ocurrencia pasa sus reservas a `cancelled`.
-- Marcar asistencia registra el check-in del día; si el socio ya había fichado, no se duplica.
-- Con `show_classes = false` el socio recibe 403 y el staff sigue operando.
+- Marcar asistencia registra el check-in del día; si el miembro ya había fichado, no se duplica.
+- Con `show_classes = false` el miembro recibe 403 y el staff sigue operando.
 - Aislamiento entre gyms en clases, sesiones y reservas.
 
 ---
