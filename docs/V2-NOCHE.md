@@ -32,6 +32,10 @@
 | AP1 | **Unida** (269d85d) | Verificada en el navegador: login, dashboard, miembros, configuración, clases y pagos cargan sin errores de consola |
 | LG1 | **Unida** (522275b + 8a09bb2) | Ver preguntas 1–3 (para LG4). Hizo falta un arreglo al unir (ver §4) |
 | R1 | **Unida** (7de0916) | Corrige B1. Suite 183 + 74 en verde |
+| T1 | En curso | — |
+| I2 | En curso | camino crítico |
+| P1 | En curso | — |
+| R2 | En curso | — |
 | S5 | **Retenida** | depende de I2 (ver §4) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -72,6 +76,7 @@ Las del plan §4 (ninguna se hace esta noche):
 ## 5. Registro cronológico
 
 - Línea base: 160 + 68 en verde.
+- Lanzadas T1, I2, P1 y R2 (4 agentes).
 - AP1 unida y verificada en el navegador. LG1 unida (con arreglo del `.gitignore`); 175 + 73. R1 unida; 183 + 74. B1 marcado corregido en `BUGS.md`.
 - X0 unida (b2249ce); suite 162 + 68 en verde. Lanzadas AP1 y LG1 en paralelo (`gsm_test_ap1`, `gsm_test_lg1`).
 - Inicio. Leídos `CLAUDE.md`, `docs/V2-BUILD-PLAN.md`, `docs/BUGS.md`. Creada `gsm_test_x0`.
