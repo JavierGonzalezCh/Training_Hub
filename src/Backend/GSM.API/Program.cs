@@ -71,6 +71,7 @@ app.UseCors(CorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<ImpersonationAuditMiddleware>();
 
 app.MapControllers();
 

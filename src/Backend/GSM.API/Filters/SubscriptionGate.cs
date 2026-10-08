@@ -30,21 +30,23 @@ public static class SubscriptionGate
     /// <param name="hasGym">Si la petición no trae gym en contexto no hay estado que evaluar.</param>
     /// <param name="isReadMethod"><c>GET</c>/<c>HEAD</c>.</param>
     /// <param name="isExempt">Endpoint marcado con <see cref="SubscriptionGateExemptAttribute"/>.</param>
+    /// <param name="impersonationCanWrite">Sesión de impersonación en modo <c>write</c> (S6): admite todos los métodos.</param>
     public static Decision Evaluate(
         EffectiveSubscriptionStatus? status,
         bool isSuperAdmin,
         bool isImpersonating,
         bool hasGym,
         bool isReadMethod,
-        bool isExempt)
+        bool isExempt,
+        bool impersonationCanWrite = false)
     {
         if (isExempt)
         {
             return Decision.Allow;
         }
 
-        // La impersonación es solo lectura, y manda sobre la exención del superadmin.
-        if (isImpersonating && !isReadMethod)
+        // La impersonación en modo lectura es solo GET, y manda sobre la exención del superadmin.
+        if (isImpersonating && !isReadMethod && !impersonationCanWrite)
         {
             return Decision.BlockedImpersonation;
         }

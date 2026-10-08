@@ -52,4 +52,14 @@ public sealed class AdminImpersonationController : ControllerBase
         [FromServices] ListImpersonationsHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(gymId, limit, cancellationToken));
+
+    /// <summary>Detalle de una sesión: cada consulta y cada escritura hechas con su token.</summary>
+    [HttpGet("impersonations/{sessionId:guid}/actions")]
+    [ProducesResponseType<IReadOnlyList<ImpersonationActionItem>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<ImpersonationActionItem>>> Actions(
+        Guid sessionId,
+        [FromServices] ListImpersonationActionsHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(sessionId, cancellationToken));
 }

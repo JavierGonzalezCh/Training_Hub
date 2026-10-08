@@ -25,7 +25,8 @@ public sealed record ImpersonationTokenRequest(
     Guid SuperAdminUserId,
     string SuperAdminName,
     Guid GymId,
-    Guid SessionId);
+    Guid SessionId,
+    bool CanWrite = false);
 
 /// <param name="Value">JWT compacto firmado.</param>
 /// <param name="ExpiresAtUtc">Instante de expiración del access token.</param>

@@ -12,6 +12,7 @@ using GSM.Domain.Memberships;
 using GSM.Domain.Notifications;
 using GSM.Domain.Payments;
 using GSM.Domain.Routines;
+using GSM.Domain.SuperAdmin;
 using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -69,6 +70,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "traps", "obliques", "adductors", "abductors" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "schedule_mode", new[] { "rotating", "weekly" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "tracking_type", new[] { "reps_weight", "reps", "time", "distance", "time_distance" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "superadmin", "impersonation_mode", new[] { "read", "write" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("GSM.Domain.Achievements.Achievement", b =>
@@ -2154,6 +2156,60 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("gym_subscriptions", "superadmin");
                 });
 
+            modelBuilder.Entity("GSM.Domain.SuperAdmin.ImpersonationAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("endpoint");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("method");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<int>("StatusCode")
+                        .HasColumnType("integer")
+                        .HasColumnName("status_code");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("summary");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_impersonation_actions");
+
+                    b.HasIndex("SessionId", "OccurredAt")
+                        .HasDatabaseName("ix_impersonation_actions_session_id_occurred_at");
+
+                    b.ToTable("impersonation_actions", "superadmin");
+                });
+
             modelBuilder.Entity("GSM.Domain.SuperAdmin.ImpersonationSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2172,6 +2228,12 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
                         .HasColumnName("gym_id");
+
+                    b.Property<ImpersonationMode>("Mode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("superadmin.impersonation_mode")
+                        .HasDefaultValue(ImpersonationMode.Read)
+                        .HasColumnName("mode");
 
                     b.Property<string>("Reason")
                         .IsRequired()
@@ -2830,6 +2892,16 @@ namespace GSM.Infrastructure.Migrations
                         });
 
                     b.Navigation("Sets");
+                });
+
+            modelBuilder.Entity("GSM.Domain.SuperAdmin.ImpersonationAction", b =>
+                {
+                    b.HasOne("GSM.Domain.SuperAdmin.ImpersonationSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_impersonation_actions_impersonation_session_session_id");
                 });
 
             modelBuilder.Entity("GSM.Infrastructure.Identity.GymAccess", b =>

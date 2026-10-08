@@ -37,7 +37,8 @@ public static class AuthSetup
 
         var authorization = services.AddAuthorizationBuilder()
             .AddPolicy(AuthPolicies.RequireSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin))
-            .AddPolicy(AuthPolicies.RequireOwner, p => p.RequireRole(RoleName.Owner))
+            .AddPolicy(AuthPolicies.RequireOwner, p => p.RequireAssertion(ctx =>
+                ctx.User.IsInRole(RoleName.Owner) || IsImpersonating(ctx.User)))
             .AddPolicy(AuthPolicies.RequireStaff, p => p.RequireAssertion(ctx =>
                 ctx.User.IsInRole(RoleName.Owner) || ctx.User.IsInRole(RoleName.Staff) || IsImpersonating(ctx.User)))
             .AddPolicy(AuthPolicies.RequireStaffOrSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin, RoleName.Owner, RoleName.Staff))
@@ -58,8 +59,9 @@ public static class AuthSetup
     /// Superadmin con token de impersonación: entra en los endpoints del gym visitado como si fuera
     /// staff, porque su token lleva el rol real (<c>superadmin</c>) y sin esto recibiría 403 en todo el
     /// gym. Solo lectura: <c>SubscriptionGateFilter</c> corta cualquier método distinto de GET con ese
-    /// token, así que abrir la política no abre escrituras. <c>RequireOwner</c> no se abre: no protege
-    /// ningún GET.
+    /// token en modo lectura, así que abrir la política no abre escrituras; en modo escritura (S6) sí
+    /// pasan, con permiso para todo. <c>RequireOwner</c> se abre igual: soporte tiene permiso para todo
+    /// (Owners, staff, ajustes del gym) y, en modo lectura, el filtro sigue cortando todo lo que no sea GET.
     /// </summary>
     private static bool IsImpersonating(ClaimsPrincipal user)
         => user.IsInRole(RoleName.SuperAdmin)

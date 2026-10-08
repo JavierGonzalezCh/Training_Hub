@@ -42,17 +42,24 @@ public sealed class OpenImpersonationHandler(
             throw new NotFoundException("El gym no existe.");
         }
 
-        var session = ImpersonationSession.Open(superAdminId, gymId, request.Reason, clock.UtcNow);
+        if (!ImpersonationModeName.TryParse(request.Mode, out var mode))
+        {
+            throw new ValidationDomainException("El modo de la impersonación debe ser \"read\" o \"write\".");
+        }
+
+        var session = ImpersonationSession.Open(superAdminId, gymId, request.Reason, mode, clock.UtcNow);
         sessions.Add(session);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var token = jwtTokens.CreateImpersonationToken(
-            new ImpersonationTokenRequest(superAdminId, superAdmin.FullName, gymId, session.Id));
+            new ImpersonationTokenRequest(
+                superAdminId, superAdmin.FullName, gymId, session.Id, mode == ImpersonationMode.Write));
 
         logger.LogInformation(
-            "Impersonación {SessionId} abierta: superadmin {UserId} → gym {GymId}. Motivo: {Reason}",
-            session.Id, superAdminId, gymId, session.Reason);
+            "Impersonación {SessionId} ({Mode}) abierta: superadmin {UserId} → gym {GymId}. Motivo: {Reason}",
+            session.Id, ImpersonationModeName.ToClaim(mode), superAdminId, gymId, session.Reason);
 
-        return new ImpersonationTokenResponse(token.Value, token.ExpiresAtUtc, session.Id, gymId);
+        return new ImpersonationTokenResponse(
+            token.Value, token.ExpiresAtUtc, session.Id, gymId, ImpersonationModeName.ToClaim(mode));
     }
 }
