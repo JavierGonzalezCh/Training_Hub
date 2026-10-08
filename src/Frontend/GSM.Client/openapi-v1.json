@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7330/"
+      "url": "http://localhost:7310/"
     }
   ],
   "paths": {
@@ -2245,6 +2245,95 @@
             "content": {
               "text/plain": {
                 "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/select-gym": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectGymRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectGymRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectGymRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
                   "$ref": "#/components/schemas/AuthTokensResponse"
                 }
               },
@@ -2276,6 +2365,133 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/switch-gym": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchGymRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchGymRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchGymRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/accesses": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymAccessOption"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymAccessOption"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymAccessOption"
+                  }
                 }
               }
             }
@@ -5956,6 +6172,26 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -8618,6 +8854,50 @@
           }
         }
       },
+      "GymAccessOption": {
+        "required": [
+          "accessId",
+          "gymId",
+          "gymName",
+          "logoUrl",
+          "role",
+          "lastUsedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "accessId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gymId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gymName": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
       "GymDetailResponse": {
         "required": [
           "gymId",
@@ -8986,6 +9266,42 @@
           },
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "LoginResponse": {
+        "required": [
+          "requiresGymSelection"
+        ],
+        "type": "object",
+        "properties": {
+          "requiresGymSelection": {
+            "type": "boolean"
+          },
+          "tokens": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AuthTokensResponse"
+              }
+            ]
+          },
+          "selectionToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accesses": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/GymAccessOption"
+            }
           }
         }
       },
@@ -10656,7 +10972,10 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "password": {
             "type": "string"
@@ -10666,7 +10985,8 @@
       "RegisterMemberResponse": {
         "required": [
           "memberId",
-          "userId"
+          "userId",
+          "session"
         ],
         "type": "object",
         "properties": {
@@ -10677,6 +10997,9 @@
           "userId": {
             "type": "string",
             "format": "uuid"
+          },
+          "session": {
+            "$ref": "#/components/schemas/AuthTokensResponse"
           }
         }
       },
@@ -11538,6 +11861,22 @@
           }
         }
       },
+      "SelectGymRequest": {
+        "required": [
+          "selectionToken",
+          "accessId"
+        ],
+        "type": "object",
+        "properties": {
+          "selectionToken": {
+            "type": "string"
+          },
+          "accessId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "SetResponse": {
         "required": [
           "number",
@@ -11759,6 +12098,24 @@
         "properties": {
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "SwitchGymRequest": {
+        "required": [
+          "accessId"
+        ],
+        "type": "object",
+        "properties": {
+          "accessId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "refreshToken": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

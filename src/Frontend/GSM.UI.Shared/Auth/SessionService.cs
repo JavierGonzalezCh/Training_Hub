@@ -14,24 +14,94 @@ public sealed class SessionService(
     GsmAuthenticationStateProvider authState,
     GymContext gymContext)
 {
-    /// <summary>Login + bootstrap. Devuelve el <see cref="MeResponse"/> para redirigir por rol.</summary>
-    public async Task<MeResponse> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Login. Con un solo gym entra directo (<see cref="LoginOutcome.Me"/>). Con varios no hay sesión
+    /// todavía: devuelve la selección (<see cref="LoginOutcome.Selection"/>) y hay que llamar a
+    /// <see cref="SelectGymAsync"/> con el acceso elegido.
+    /// </summary>
+    public async Task<LoginOutcome> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
-        AuthTokensResponse tokens;
+        LoginResponse response;
         try
         {
-            tokens = await auth.LoginAsync(new LoginRequest { Email = email, Password = password }, cancellationToken);
+            response = await auth.LoginAsync(new LoginRequest { Email = email, Password = password }, cancellationToken);
         }
         catch (GsmApiException ex)
         {
             throw new ApiErrorException(ApiError.FromException(ex));
         }
 
+        if (response.RequiresGymSelection)
+        {
+            return new LoginOutcome(null, new GymSelection(response.SelectionToken!, response.Accesses!.ToList()));
+        }
+
+        return new LoginOutcome(await StartSessionAsync(response.Tokens!, cancellationToken), null);
+    }
+
+    /// <summary>Segundo paso del login con varios gyms: con el boleto y el acceso elegido abre la sesión.</summary>
+    public async Task<MeResponse> SelectGymAsync(
+        GymSelection selection, Guid accessId, CancellationToken cancellationToken = default)
+    {
+        AuthTokensResponse tokens;
+        try
+        {
+            tokens = await auth.SelectGymAsync(
+                new SelectGymRequest { SelectionToken = selection.Ticket, AccessId = accessId }, cancellationToken);
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
+
+        return await StartSessionAsync(tokens, cancellationToken);
+    }
+
+    /// <summary>
+    /// Guarda los tokens de una sesión recién emitida (login, registro del miembro, cambio de gym) y
+    /// carga el contexto del gym.
+    /// </summary>
+    public async Task<MeResponse> StartSessionAsync(AuthTokensResponse tokens, CancellationToken cancellationToken = default)
+    {
         await tokenStore.SetAsync(
             new AuthTokens(tokens.AccessToken, tokens.RefreshToken, tokens.ExpiresAtUtc), cancellationToken);
         authState.NotifyChanged();
 
         return await BootstrapAsync(cancellationToken);
+    }
+
+    /// <summary>Los accesos de la persona (gym y rol), para "Cambiar de gym". Vacío si falla o no tiene.</summary>
+    public async Task<IReadOnlyList<GymAccessOption>> GetAccessesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return (await auth.AccessesAsync(cancellationToken)).ToList();
+        }
+        catch (GsmApiException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Cambia a otro acceso (otro gym, o el otro modo del mismo gym) sin pedir contraseña. Quien llama
+    /// debe recargar la app (<c>forceLoad</c>) para descartar el estado del gym anterior.
+    /// </summary>
+    public async Task<MeResponse> SwitchGymAsync(Guid accessId, CancellationToken cancellationToken = default)
+    {
+        var current = await tokenStore.GetAsync(cancellationToken);
+        AuthTokensResponse tokens;
+        try
+        {
+            tokens = await auth.SwitchGymAsync(
+                new SwitchGymRequest { AccessId = accessId, RefreshToken = current?.RefreshToken }, cancellationToken);
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
+
+        return await StartSessionAsync(tokens, cancellationToken);
     }
 
     /// <summary>Relee <c>/api/auth/me</c> y refresca el <see cref="GymContext"/>.</summary>
@@ -99,3 +169,9 @@ public sealed class SessionService(
         }
     }
 }
+
+/// <summary>Resultado del login: o ya hay sesión (<see cref="Me"/>) o falta elegir gym (<see cref="Selection"/>).</summary>
+public sealed record LoginOutcome(MeResponse? Me, GymSelection? Selection);
+
+/// <summary>Boleto del login y los accesos entre los que elegir (el último usado, primero).</summary>
+public sealed record GymSelection(string Ticket, IReadOnlyList<GymAccessOption> Accesses);

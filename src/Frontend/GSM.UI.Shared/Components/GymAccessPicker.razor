@@ -1,0 +1,36 @@
+@* Lista de accesos de una persona (gym + rol) para elegir a cuál entrar. La usan el login con varios
+   gyms y "Cambiar de gimnasio". El último usado llega primero (lo ordena la API). *@
+<div class="gsm-access-picker" role="list">
+    @foreach (var access in Accesses)
+    {
+        <button type="button" class="gsm-access-picker__item" role="listitem" data-testid="gym-access"
+                disabled="@(Busy || access.IsCurrent == true)" @onclick="@(() => OnSelect.InvokeAsync(access))">
+            @if (!string.IsNullOrWhiteSpace(access.LogoUrl))
+            {
+                <img src="@access.LogoUrl" alt="" class="gsm-access-picker__logo" />
+            }
+            else
+            {
+                <span class="gsm-avatar" aria-hidden="true">@GymBrand.Initial(access.GymName)</span>
+            }
+            <span class="gsm-access-picker__text">
+                <span class="gsm-access-picker__gym">@access.GymName</span>
+                <span class="gsm-user-card__meta">
+                    @GymAccessLabels.Role(access.Role)@(access.IsCurrent == true ? " · actual" : string.Empty)
+                </span>
+            </span>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<GymAccessOption> Accesses { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<GymAccessOption> OnSelect { get; set; }
+
+    /// <summary>Mientras se emite la sesión no se admite otro clic.</summary>
+    [Parameter]
+    public bool Busy { get; set; }
+}
