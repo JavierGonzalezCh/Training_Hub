@@ -1,6 +1,6 @@
 @page "/members/{Id:guid}"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
-@using GSM.Web.Pages.Payments
+@using GSM.Panel.UI.Pages.Payments
 @inject IMembersClient Members
 @inject IMemberAttendanceClient MemberAttendance
 @inject IMemberPaymentsClient MemberPayments

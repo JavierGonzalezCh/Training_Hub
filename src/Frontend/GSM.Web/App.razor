@@ -1,8 +1,8 @@
 ﻿<CascadingAuthenticationState>
-    <Router AppAssembly="@typeof(App).Assembly" AdditionalAssemblies="new[] { typeof(GSM.Member.UI.MemberLayout).Assembly }"
+    <Router AppAssembly="@typeof(App).Assembly" AdditionalAssemblies="new[] { typeof(GSM.Member.UI.MemberLayout).Assembly, typeof(GSM.Panel.UI.Layout.MainLayout).Assembly }"
             NotFoundPage="typeof(Pages.NotFound)">
         <Found Context="routeData">
-            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(GSM.Panel.UI.Layout.MainLayout)">
                 <NotAuthorized>
                     <RoleRedirect />
                 </NotAuthorized>

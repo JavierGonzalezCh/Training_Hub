@@ -32,6 +32,7 @@ public static class MauiProgram
         builder.Services.AddGsmUiShared();
         builder.Services.AddGsmMemberUi();
         builder.Services.AddSingleton<IQrScanner, ZxingQrScanner>();
+        builder.Services.AddSingleton<GSM.UI.Shared.IClipboard, MauiClipboard>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

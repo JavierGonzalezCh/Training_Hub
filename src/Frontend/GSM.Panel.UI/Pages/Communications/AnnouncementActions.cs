@@ -1,7 +1,7 @@
 using GSM.Client.Generated;
 using MudBlazor;
 
-namespace GSM.Web.Pages.Communications;
+namespace GSM.Panel.UI.Pages.Communications;
 
 internal static class AnnouncementActions
 {
