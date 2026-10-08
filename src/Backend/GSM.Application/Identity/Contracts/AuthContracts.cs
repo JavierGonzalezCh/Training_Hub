@@ -12,6 +12,23 @@ public sealed record ForgotPasswordRequest(string Email);
 
 public sealed record ResetPasswordRequest(string Email, string Token, string NewPassword);
 
+/// <summary>
+/// Activar una cuenta invitada con el enlace <c>/activar?email=…&amp;code=…</c>: <c>Code</c> es el del enlace.
+/// </summary>
+public sealed record ActivateAccountRequest(string Email, string Code, string NewPassword);
+
+/// <summary>
+/// Cambiar la contraseña con la sesión iniciada. <c>RefreshToken</c> es el de la sesión actual: es la única
+/// que sobrevive; las demás sesiones de la persona (en todos sus gyms) se cierran. Sin él se cierran todas.
+/// </summary>
+public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword, string? RefreshToken = null);
+
+/// <summary>Un enlace listo para copiar. <c>RequiresLogin</c>: la persona ya tiene contraseña y el enlace la lleva a entrar.</summary>
+public sealed record AccountLinkResponse(string Url, bool RequiresLogin, DateTimeOffset? ExpiresAt);
+
+/// <summary>Owner de un gym, para la ficha del SuperAdmin. <c>IsActivated</c>: ya definió su contraseña.</summary>
+public sealed record GymOwnerResponse(Guid UserId, string Email, string FullName, bool IsActive, bool IsActivated);
+
 /// <summary>Par de tokens que devuelven login, refresh, selección de gym y cambio de gym.</summary>
 public sealed record AuthTokensResponse(
     string AccessToken,

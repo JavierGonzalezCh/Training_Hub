@@ -62,6 +62,18 @@ public sealed class StaffController : ControllerBase
         return CreatedAtAction(nameof(List), staff);
     }
 
+    /// <summary>
+    /// "Copiar enlace": un enlace de activación nuevo (72 h) para mandarlo por WhatsApp; si la persona ya tiene
+    /// contraseña, el enlace la lleva a entrar. Queda registrado quién lo copió (historial). 409 si está desactivada.
+    /// </summary>
+    [HttpPost("{id:guid}/link")]
+    [ProducesResponseType<AccountLinkResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AccountLinkResponse>> CopyLink(
+        Guid id, [FromServices] CopyStaffLinkHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
     /// <summary>Desactiva la cuenta (no la borra) y revoca sus refresh tokens. Idempotente.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

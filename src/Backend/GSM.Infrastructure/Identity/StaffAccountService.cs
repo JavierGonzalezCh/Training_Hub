@@ -77,7 +77,7 @@ public sealed class StaffAccountService(UserManager<AppUser> userManager, GsmDbC
             IsActive = true,
         };
 
-        // Sin contraseña: no puede iniciar sesión hasta que la defina con el código.
+        // Sin contraseña: no puede iniciar sesión hasta que la defina con el enlace de activación (72 h).
         var result = await userManager.CreateAsync(user);
         if (!result.Succeeded)
         {
@@ -87,7 +87,8 @@ public sealed class StaffAccountService(UserManager<AppUser> userManager, GsmDbC
 
         await AddAccessAsync(user, gymId, profile, actorUserId, cancellationToken);
 
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var token = await userManager.GenerateUserTokenAsync(
+            user, ActivationTokenProvider.ProviderName, ActivationTokenProvider.Purpose);
         return new StaffInvitationTicket(ToAccount(user, true, profile), token);
     }
 

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using GSM.Application.Common.Abstractions;
 using GSM.Application.Identity;
 using GSM.Application.Identity.Abstractions;
 using GSM.Infrastructure.Persistence;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace GSM.Infrastructure.Identity;
 
-public sealed class RefreshTokenService(GsmDbContext dbContext, IOptions<JwtOptions> options)
+public sealed class RefreshTokenService(GsmDbContext dbContext, IOptions<JwtOptions> options, IClock clock)
     : IRefreshTokenService
 {
     private readonly int _lifetimeDays = options.Value.RefreshTokenDays;
@@ -66,6 +67,24 @@ public sealed class RefreshTokenService(GsmDbContext dbContext, IOptions<JwtOpti
         }
 
         token.Revoke(DateTimeOffset.UtcNow);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RevokeAllForUserAsync(
+        Guid userId, string? keepPlaintextToken = null, CancellationToken cancellationToken = default)
+    {
+        var keepHash = string.IsNullOrWhiteSpace(keepPlaintextToken) ? null : Hash(keepPlaintextToken);
+        var now = clock.UtcNow;
+
+        var tokens = await dbContext.RefreshTokens
+            .Where(t => t.UserId == userId && t.RevokedAt == null && (keepHash == null || t.TokenHash != keepHash))
+            .ToListAsync(cancellationToken);
+
+        foreach (var token in tokens)
+        {
+            token.Revoke(now);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 

@@ -44,7 +44,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "reaction_kind", new[] { "like", "celebrate", "strong" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_access_audit_action", new[] { "invited", "profile_changed", "permission_granted", "permission_revoked" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_access_audit_action", new[] { "invited", "profile_changed", "permission_granted", "permission_revoked", "link_copied" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_permission", new[] { "view_member_health", "trainer", "manage_attendance", "void_payments", "view_finances" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_profile", new[] { "reception", "trainer", "administrator" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "user_role", new[] { "superadmin", "owner", "staff", "member" });

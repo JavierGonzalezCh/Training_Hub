@@ -18,3 +18,23 @@ public sealed class ResetPasswordRequestValidator : AbstractValidator<ResetPassw
         RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(10).MaximumLength(256);
     }
 }
+
+public sealed class ActivateAccountRequestValidator : AbstractValidator<ActivateAccountRequest>
+{
+    public ActivateAccountRequestValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.Code).NotEmpty();
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(10).MaximumLength(256);
+    }
+}
+
+public sealed class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
+{
+    public ChangePasswordRequestValidator()
+    {
+        RuleFor(x => x.CurrentPassword).NotEmpty().MaximumLength(256);
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(10).MaximumLength(256);
+        RuleFor(x => x.RefreshToken).MaximumLength(512);
+    }
+}

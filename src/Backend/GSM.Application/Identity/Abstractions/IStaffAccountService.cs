@@ -14,7 +14,7 @@ public interface IStaffAccountService
 
     /// <summary>
     /// Da acceso de staff en el gym con ese perfil. Si el email no tiene cuenta, la crea sin contraseña y
-    /// devuelve un código de restablecimiento para que la defina. Si ya tiene cuenta, solo agrega el
+    /// devuelve un código de activación (72 h, para el enlace <c>/activar</c>) para que la defina. Si ya tiene cuenta, solo agrega el
     /// acceso (<c>Token = null</c>). <c>ConflictException</c> si ya tiene un acceso de equipo en ese gym.
     /// Deja el registro de auditoría (quién invitó, con qué perfil).
     /// </summary>
@@ -68,7 +68,7 @@ public sealed record StaffAccount(
     bool IsAdjusted,
     IReadOnlyList<StaffPermission> Permissions);
 
-/// <param name="Token">Código para definir la contraseña; <c>null</c> si la persona ya tenía cuenta.</param>
+/// <param name="Token">Código de activación para definir la contraseña; <c>null</c> si la persona ya tenía cuenta.</param>
 public sealed record StaffInvitationTicket(StaffAccount Account, string? Token);
 
 public sealed record StaffAuditEntry(
