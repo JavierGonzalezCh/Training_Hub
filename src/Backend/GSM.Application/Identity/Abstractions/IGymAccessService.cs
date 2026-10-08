@@ -18,6 +18,13 @@ public interface IGymAccessService
     Task<GymAccessRecord?> FindActiveAsync(
         Guid userId, Guid gymId, UserRole role, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Permisos efectivos del acceso (§5): todos si es owner; el perfil + agregados − quitados si es
+    /// staff; ninguno si es miembro. Es lo que viaja en el claim <c>perm</c> al emitir la sesión.
+    /// </summary>
+    Task<IReadOnlySet<StaffPermission>> GetEffectivePermissionsAsync(
+        GymAccessRecord access, CancellationToken cancellationToken = default);
+
     Task MarkUsedAsync(Guid accessId, DateTimeOffset now, CancellationToken cancellationToken = default);
 }
 

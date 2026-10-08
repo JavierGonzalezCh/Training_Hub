@@ -42,7 +42,9 @@ public sealed class SessionIssuer(
             throw new ForbiddenDomainException("La cuenta del gimnasio está suspendida. Contacta con soporte.");
         }
 
-        var user = new AuthenticatedUser(account.Id, account.Email, account.FullName, access.Role, access.GymId);
+        var permissions = await accesses.GetEffectivePermissionsAsync(access, cancellationToken);
+        var user = new AuthenticatedUser(
+            account.Id, account.Email, account.FullName, access.Role, access.GymId, permissions);
         var accessToken = jwtTokens.CreateAccessToken(user);
         var refreshToken = await refreshTokens.IssueAsync(account.Id, access.Id, cancellationToken);
         await accesses.MarkUsedAsync(access.Id, clock.UtcNow, cancellationToken);

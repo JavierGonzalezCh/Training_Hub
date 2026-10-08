@@ -37,6 +37,33 @@ public sealed class GymAccessService(GsmDbContext dbContext) : IGymAccessService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlySet<StaffPermission>> GetEffectivePermissionsAsync(
+        GymAccessRecord access, CancellationToken cancellationToken = default)
+    {
+        switch (access.Role)
+        {
+            case UserRole.Owner:
+                return new HashSet<StaffPermission>(StaffPermissions.All);
+            case UserRole.Staff:
+                var profile = await dbContext.GymAccesses
+                    .AsNoTracking()
+                    .Where(a => a.Id == access.Id)
+                    .Select(a => a.Profile)
+                    .FirstOrDefaultAsync(cancellationToken);
+                var adjustments = await dbContext.GymAccessPermissions
+                    .AsNoTracking()
+                    .Where(p => p.GymAccessId == access.Id)
+                    .Select(p => new { p.Permission, p.Granted })
+                    .ToListAsync(cancellationToken);
+
+                // Un staff sin perfil (no debería existir tras la migración) no tiene permisos especiales.
+                return StaffPermissions.Effective(
+                    profile ?? StaffProfile.Reception, adjustments.Select(a => (a.Permission, a.Granted)));
+            default:
+                return new HashSet<StaffPermission>();
+        }
+    }
+
     public async Task MarkUsedAsync(Guid accessId, DateTimeOffset now, CancellationToken cancellationToken = default)
         => await dbContext.GymAccesses
             .Where(a => a.Id == accessId)

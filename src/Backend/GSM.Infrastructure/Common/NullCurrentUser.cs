@@ -24,4 +24,6 @@ public sealed class NullCurrentUser : ICurrentUserService
     public bool IsImpersonating => false;
 
     public Guid? ImpersonationSessionId => null;
+
+    public bool HasPermission(StaffPermission permission) => false;
 }

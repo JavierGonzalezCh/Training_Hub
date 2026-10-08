@@ -20,8 +20,16 @@ public sealed class MutableCurrentUser : ICurrentUserService
 
     public Guid? ImpersonationSessionId { get; private set; }
 
+    /// <summary>Permisos de un staff fijado a mano (el owner y el superadmin impersonando los tienen todos).</summary>
+    public HashSet<StaffPermission> Permissions { get; } = [];
+
+    public bool HasPermission(StaffPermission permission)
+        => IsAuthenticated
+           && (Role == UserRole.Owner || IsImpersonating || Permissions.Contains(permission));
+
     public void ActAsSystem()
     {
+        Permissions.Clear();
         IsAuthenticated = false;
         UserId = null;
         GymId = null;
@@ -32,6 +40,7 @@ public sealed class MutableCurrentUser : ICurrentUserService
 
     public void ActAs(Guid userId, Guid? gymId, UserRole role)
     {
+        Permissions.Clear();
         IsAuthenticated = true;
         UserId = userId;
         GymId = gymId;

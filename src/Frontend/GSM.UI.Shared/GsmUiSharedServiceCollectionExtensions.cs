@@ -20,6 +20,13 @@ public static class GsmUiSharedServiceCollectionExtensions
             options.AddPolicy(GsmPolicies.RequireStaffOrSuperAdmin, policy =>
                 policy.RequireAssertion(ctx =>
                     ctx.User.IsInRole(GsmRoles.Owner) || ctx.User.IsInRole(GsmRoles.Staff) || ctx.User.IsInRole(GsmRoles.SuperAdmin)));
+
+            // Una política por permiso especial de staff (Identity §5): para preguntar desde las pantallas.
+            foreach (var permission in GsmPermissions.All)
+            {
+                options.AddPolicy(GsmPolicies.ForPermission(permission), policy =>
+                    policy.RequireAssertion(ctx => ctx.User.HasPermission(permission)));
+            }
         });
         services.AddScoped<GsmAuthenticationStateProvider>();
         services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<GsmAuthenticationStateProvider>());

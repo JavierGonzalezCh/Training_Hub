@@ -8,12 +8,20 @@
     "¿Olvidaste tu contraseña?" → restablecer. Desactivar no borra la cuenta: puedes reactivarla después.
 </MudText>
 
-<MudGrid Class="mb-4" Style="max-width:720px">
-    <MudItem xs="12" sm="5">
+<MudGrid Class="mb-4" Style="max-width:900px">
+    <MudItem xs="12" sm="3">
         <MudTextField T="string" @bind-Value="_fullName" Label="Nombre completo" Dense="true" />
     </MudItem>
-    <MudItem xs="12" sm="5">
+    <MudItem xs="12" sm="3">
         <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Dense="true" />
+    </MudItem>
+    <MudItem xs="12" sm="2">
+        <MudSelect T="string" @bind-Value="_profile" Label="Perfil" Dense="true">
+            @foreach (var (value, label) in StaffLabels.Profiles)
+            {
+                <MudSelectItem T="string" Value="@value">@label</MudSelectItem>
+            }
+        </MudSelect>
     </MudItem>
     <MudItem xs="12" sm="2" Class="d-flex align-end">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" Disabled="_creating" FullWidth="true">
@@ -36,18 +44,22 @@ else
         <HeaderContent>
             <MudTh>Nombre</MudTh>
             <MudTh>Email</MudTh>
+            <MudTh>Perfil</MudTh>
             <MudTh>Estado</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Nombre">@context.FullName</MudTd>
             <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Perfil">@StaffLabels.ProfileLabel(context.Profile, context.IsAdjusted)</MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                     @(context.IsActive ? "ACTIVO" : "INACTIVO")
                 </MudChip>
             </MudTd>
             <MudTd>
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => EditPermissionsAsync(context))">Permisos</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ShowAuditAsync(context.Id))">Historial</MudButton>
                 @if (context.IsActive)
                 {
                     <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="@(() => DeactivateAsync(context))">Desactivar</MudButton>
@@ -67,6 +79,43 @@ else
     private string _email = string.Empty;
     private bool _loading = true;
     private bool _creating;
+    private string _profile = "reception";
+    private List<StaffProfileInfo> _profiles = [];
+
+    private async Task EditPermissionsAsync(StaffResponse staff)
+    {
+        try
+        {
+            if (_profiles.Count == 0)
+            {
+                _profiles = (await StaffApi.ProfilesAsync()).ToList();
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            return;
+        }
+
+        var dialog = await Dialogs.ShowAsync<StaffPermissionsDialog>(
+            $"Perfil y permisos de {staff.FullName}",
+            new DialogParameters<StaffPermissionsDialog>
+            {
+                { x => x.Staff, staff },
+                { x => x.Profiles, _profiles },
+            });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task ShowAuditAsync(Guid userId)
+        => await Dialogs.ShowAsync<StaffAuditDialog>(
+            "Historial de cambios",
+            new DialogParameters<StaffAuditDialog> { { x => x.UserId, userId } },
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -98,7 +147,7 @@ else
         _creating = true;
         try
         {
-            var created = await StaffApi.StaffPOSTAsync(new CreateStaffRequest { FullName = _fullName, Email = _email });
+            var created = await StaffApi.StaffPOSTAsync(new CreateStaffRequest { FullName = _fullName, Email = _email, Profile = _profile });
             Snackbar.Add($"{created.FullName} dado de alta. Le enviamos el código a {created.Email}.", Severity.Success);
             _fullName = string.Empty;
             _email = string.Empty;

@@ -12,6 +12,7 @@ using GSM.Domain.Memberships;
 using GSM.Domain.Notifications;
 using GSM.Domain.Payments;
 using GSM.Domain.Routines;
+using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -43,6 +44,9 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "reaction_kind", new[] { "like", "celebrate", "strong" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_access_audit_action", new[] { "invited", "profile_changed", "permission_granted", "permission_revoked" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_permission", new[] { "view_member_health", "trainer", "manage_attendance", "void_payments", "view_finances" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_profile", new[] { "reception", "trainer", "administrator" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "user_role", new[] { "superadmin", "owner", "staff", "member" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "document_type", new[] { "cc", "ti", "ce", "pa", "ppt", "nit", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "gender", new[] { "female", "male", "other", "undisclosed" });
@@ -2401,6 +2405,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_used_at");
 
+                    b.Property<StaffProfile?>("Profile")
+                        .HasColumnType("identity.staff_profile")
+                        .HasColumnName("profile");
+
                     b.Property<UserRole>("Role")
                         .HasColumnType("identity.user_role")
                         .HasColumnName("role");
@@ -2424,6 +2432,43 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_gym_accesses_user_id_gym_id_is_team");
 
                     b.ToTable("gym_accesses", "identity");
+                });
+
+            modelBuilder.Entity("GSM.Infrastructure.Identity.GymAccessPermission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Granted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("granted");
+
+                    b.Property<Guid>("GymAccessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_access_id");
+
+                    b.Property<StaffPermission>("Permission")
+                        .HasColumnType("identity.staff_permission")
+                        .HasColumnName("permission");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_gym_access_permissions");
+
+                    b.HasIndex("GymAccessId", "Permission")
+                        .IsUnique()
+                        .HasDatabaseName("ix_gym_access_permissions_gym_access_id_permission");
+
+                    b.ToTable("gym_access_permissions", "identity");
                 });
 
             modelBuilder.Entity("GSM.Infrastructure.Identity.RefreshToken", b =>
@@ -2477,6 +2522,64 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_refresh_tokens_user_id");
 
                     b.ToTable("refresh_tokens", "identity");
+                });
+
+            modelBuilder.Entity("GSM.Infrastructure.Identity.StaffAccessAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<StaffAccessAuditAction>("Action")
+                        .HasColumnType("identity.staff_access_audit_action")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymAccessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_access_id");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("new_value");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("old_value");
+
+                    b.Property<StaffPermission?>("Permission")
+                        .HasColumnType("identity.staff_permission")
+                        .HasColumnName("permission");
+
+                    b.Property<Guid>("TargetUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_user_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_staff_access_audits");
+
+                    b.HasIndex("GymId", "TargetUserId", "CreatedAt")
+                        .HasDatabaseName("ix_staff_access_audits_gym_id_target_user_id_created_at");
+
+                    b.ToTable("staff_access_audits", "identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -2737,6 +2840,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_gym_accesses_users_user_id");
+                });
+
+            modelBuilder.Entity("GSM.Infrastructure.Identity.GymAccessPermission", b =>
+                {
+                    b.HasOne("GSM.Infrastructure.Identity.GymAccess", null)
+                        .WithMany()
+                        .HasForeignKey("GymAccessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_gym_access_permissions_gym_accesses_gym_access_id");
                 });
 
             modelBuilder.Entity("GSM.Infrastructure.Identity.RefreshToken", b =>

@@ -18,6 +18,37 @@ public sealed class StaffController : ControllerBase
         [FromServices] ListStaffHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>Los perfiles predefinidos (recepción, entrenador, administrador) con los permisos que traen.</summary>
+    [HttpGet("profiles")]
+    [ProducesResponseType<IReadOnlyList<StaffProfileInfo>>(StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<StaffProfileInfo>> Profiles([FromServices] ListStaffProfilesHandler handler)
+        => Ok(handler.Handle());
+
+    /// <summary>
+    /// Auditoría de cambios de perfil y permisos de staff (quién, a quién, qué, cuándo), la más
+    /// reciente primero; de una persona si se pasa <c>userId</c>.
+    /// </summary>
+    [HttpGet("audit")]
+    [ProducesResponseType<IReadOnlyList<StaffAuditResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<StaffAuditResponse>>> Audit(
+        [FromQuery] Guid? userId, [FromServices] ListStaffAuditHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(userId, cancellationToken));
+
+    /// <summary>
+    /// Fija el perfil y los permisos efectivos de un staff. Los que difieren del perfil quedan como
+    /// ajustes. Quitar un permiso cierra las sesiones de esa persona en este gym; agregar aplica en la
+    /// próxima renovación del token.
+    /// </summary>
+    [HttpPut("{id:guid}/permissions")]
+    [ProducesResponseType<StaffResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StaffResponse>> UpdatePermissions(
+        Guid id,
+        UpdateStaffPermissionsRequest request,
+        [FromServices] UpdateStaffPermissionsHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
     /// <summary>Crea la cuenta sin contraseña y envía por email el código para definirla. 409 si el email ya existe.</summary>
     [HttpPost]
     [ProducesResponseType<StaffResponse>(StatusCodes.Status201Created)]

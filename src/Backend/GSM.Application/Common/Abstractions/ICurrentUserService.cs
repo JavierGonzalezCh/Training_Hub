@@ -30,4 +30,11 @@ public interface ICurrentUserService
 
     /// <summary>Id de la sesión de auditoría de impersonación, cuando <see cref="IsImpersonating"/>.</summary>
     Guid? ImpersonationSessionId { get; }
+
+    /// <summary>
+    /// <c>true</c> si el usuario tiene el permiso especial de staff. El Owner los tiene todos siempre y
+    /// un SuperAdmin impersonando también (<c>GSM-modulo-superadmin.md</c> §V6); un staff, los de su
+    /// perfil más sus ajustes (claim <c>perm</c>). Miembros y contextos sin petición, ninguno.
+    /// </summary>
+    bool HasPermission(StaffPermission permission);
 }
