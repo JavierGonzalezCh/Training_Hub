@@ -24,7 +24,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GSM.Infrastructure.Migrations
 {
     [DbContext(typeof(GsmDbContext))]
-    [Migration("20261008143837_V2_S7_MonthlyMetrics")]
+    [Migration("20261008144249_V2_S7_MonthlyMetrics")]
     partial class V2_S7_MonthlyMetrics
     {
         /// <inheritdoc />
@@ -2241,7 +2241,7 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<Dictionary<string, string>>("GymStates")
+                    b.Property<string>("GymStates")
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("gym_states");

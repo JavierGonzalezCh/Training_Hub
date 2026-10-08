@@ -2238,7 +2238,7 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<Dictionary<string, string>>("GymStates")
+                    b.Property<string>("GymStates")
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("gym_states");

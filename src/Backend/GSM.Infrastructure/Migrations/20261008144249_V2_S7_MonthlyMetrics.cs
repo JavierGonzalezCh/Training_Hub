@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -30,7 +29,7 @@ namespace GSM.Infrastructure.Migrations
                     churn = table.Column<decimal>(type: "numeric(7,4)", nullable: true),
                     active_members = table.Column<int>(type: "integer", nullable: false),
                     check_ins = table.Column<int>(type: "integer", nullable: false),
-                    gym_states = table.Column<Dictionary<string, string>>(type: "jsonb", nullable: false),
+                    gym_states = table.Column<string>(type: "jsonb", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
