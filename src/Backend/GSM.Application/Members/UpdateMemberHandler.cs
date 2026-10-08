@@ -8,7 +8,9 @@ namespace GSM.Application.Members;
 
 public sealed class UpdateMemberHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IMemberRepository members,
+    MemberChangeRecorder changes,
     IUnitOfWork unitOfWork,
     ILogger<UpdateMemberHandler> logger)
 {
@@ -20,25 +22,28 @@ public sealed class UpdateMemberHandler(
         var member = await members.GetByIdAsync(memberId, cancellationToken)
             ?? throw new NotFoundException("Miembro no encontrado.");
 
-        var documentNumber = request.DocumentNumber.Trim();
-        if (await members.DocumentExistsAsync(documentNumber, excludeMemberId: memberId, cancellationToken))
+        var profile = MemberMapper.ToProfile(request);
+        var documentNumber = profile.DocumentNumber.Trim();
+        if (await members.DocumentExistsAsync(profile.DocumentType, documentNumber, excludeMemberId: memberId, cancellationToken))
         {
             throw new ConflictException($"Ya hay otro miembro con el documento '{documentNumber}'.");
         }
 
-        member.UpdateProfile(
-            request.FirstName,
-            request.LastName,
-            documentNumber,
-            request.Phone,
-            request.Email,
-            request.BirthDate,
-            request.EmergencyContact,
-            request.PhotoUrl);
+        if (profile.ReferredByMemberId is { } referrerId
+            && referrerId != member.ReferredByMemberId
+            && !await members.ExistsAsync(referrerId, cancellationToken))
+        {
+            throw new ValidationDomainException("El miembro que lo refirió no existe en este gimnasio.");
+        }
+
+        var today = clock.Today;
+        var fieldChanges = member.UpdateProfile(profile, request.JoinedAt, today);
+        changes.Record(member, fieldChanges);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Miembro {MemberId} actualizado", memberId);
+        logger.LogInformation(
+            "Miembro {MemberId} actualizado ({ChangedFields} campos)", memberId, fieldChanges.Count);
 
-        return MemberMapper.ToDetail(member);
+        return MemberMapper.ToDetail(member, today);
     }
 }

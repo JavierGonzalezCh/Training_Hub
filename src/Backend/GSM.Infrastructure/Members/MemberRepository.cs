@@ -22,6 +22,12 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
             q = q.Where(m => m.Status == status);
         }
 
+        if (!string.IsNullOrWhiteSpace(query.Tag))
+        {
+            var tag = query.Tag.Trim();
+            q = q.Where(m => m.Tags.Contains(tag));
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var term = $"%{query.Search.Trim()}%";
@@ -43,12 +49,45 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
     }
 
     public Task<bool> DocumentExistsAsync(
-        string documentNumber, Guid? excludeMemberId, CancellationToken cancellationToken = default)
+        DocumentType documentType, string documentNumber, Guid? excludeMemberId,
+        CancellationToken cancellationToken = default)
         => Members.AnyAsync(
-            m => m.DocumentNumber == documentNumber && (excludeMemberId == null || m.Id != excludeMemberId),
+            m => m.DocumentType == documentType && m.DocumentNumber == documentNumber
+                && (excludeMemberId == null || m.Id != excludeMemberId),
             cancellationToken);
 
+    public Task<bool> ExistsAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => Members.AnyAsync(m => m.Id == memberId, cancellationToken);
+
     public void Add(Member member) => Members.Add(member);
+
+    // --- Historial de cambios ---
+
+    public void Add(MemberChange change) => dbContext.Set<MemberChange>().Add(change);
+
+    public async Task<(IReadOnlyList<MemberChange> Items, int Total)> GetChangesPageAsync(
+        Guid memberId, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var q = dbContext.Set<MemberChange>().Where(c => c.MemberId == memberId);
+        var total = await q.CountAsync(cancellationToken);
+        var items = await q
+            .OrderByDescending(c => c.ChangedAt).ThenByDescending(c => c.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return (items, total);
+    }
+
+    // --- Notas internas ---
+
+    public void Add(MemberNote note) => dbContext.Set<MemberNote>().Add(note);
+
+    public async Task<IReadOnlyList<MemberNote>> GetNotesAsync(
+        Guid memberId, CancellationToken cancellationToken = default)
+        => await dbContext.Set<MemberNote>()
+            .Where(n => n.MemberId == memberId)
+            .OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.Id)
+            .ToListAsync(cancellationToken);
 
     // --- Invitaciones ---
 

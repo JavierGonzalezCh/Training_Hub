@@ -1,0 +1,12 @@
+<div class="d-flex justify-space-between align-start py-1" style="gap:1rem">
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@Label</MudText>
+    <MudText Typo="Typo.body2" Align="Align.Right">@(string.IsNullOrWhiteSpace(Value) ? "—" : Value)</MudText>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Value { get; set; }
+}

@@ -12052,7 +12052,7 @@ namespace GSM.Client.Generated
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PagedResultOfMemberListItem> MembersGETAsync(string? search = null, int? status = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResultOfMemberListItem> MembersGETAsync(string? search = null, int? status = null, string? tag = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>Created</returns>
@@ -12073,6 +12073,26 @@ namespace GSM.Client.Generated
         /// <returns>No Content</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task MembersDELETEAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<MemberDetail> ReactivateMemberAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<PagedResultOfMemberChangeItem> ChangesAsync(System.Guid id, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<MemberNoteItem>> NotesAllAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>Created</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<MemberNoteItem> NotesAsync(System.Guid id, AddMemberNoteRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
@@ -12126,7 +12146,7 @@ namespace GSM.Client.Generated
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PagedResultOfMemberListItem> MembersGETAsync(string? search = null, int? status = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResultOfMemberListItem> MembersGETAsync(string? search = null, int? status = null, string? tag = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -12149,6 +12169,10 @@ namespace GSM.Client.Generated
                     if (status != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("Status")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(status, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (tag != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("Tag")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(tag, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (page != null)
                     {
@@ -12448,6 +12472,26 @@ namespace GSM.Client.Generated
                             return objectResponse_.Object;
                         }
                         else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
                         {
                             var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
                             throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
@@ -12515,6 +12559,378 @@ namespace GSM.Client.Generated
                         if (status_ == 204)
                         {
                             return;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<MemberDetail> ReactivateMemberAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/members/{id}/reactivate"
+                    urlBuilder_.Append("api/members/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/reactivate");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<MemberDetail>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<PagedResultOfMemberChangeItem> ChangesAsync(System.Guid id, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/members/{id}/changes"
+                    urlBuilder_.Append("api/members/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/changes");
+                    urlBuilder_.Append('?');
+                    if (page != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("Page")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(page, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (pageSize != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("PageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<PagedResultOfMemberChangeItem>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<MemberNoteItem>> NotesAllAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/members/{id}/notes"
+                    urlBuilder_.Append("api/members/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/notes");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<MemberNoteItem>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>Created</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<MemberNoteItem> NotesAsync(System.Guid id, AddMemberNoteRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (body == null)
+                throw new System.ArgumentNullException("body");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/members/{id}/notes"
+                    urlBuilder_.Append("api/members/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/notes");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<MemberNoteItem>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -16259,6 +16675,24 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AddMemberNoteRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AdminDashboardResponse
     {
 
@@ -16964,8 +17398,20 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("lastName")]
         public string LastName { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("documentType")]
+        public string? DocumentType { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("documentNumber")]
         public string DocumentNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("birthDate")]
+        public System.DateOnly? BirthDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("gender")]
+        public string? Gender { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("photoUrl")]
+        public string? PhotoUrl { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("phone")]
         public string? Phone { get; set; } = default!;
@@ -16973,14 +17419,50 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("birthDate")]
-        public System.DateOnly? BirthDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("address")]
+        public string? Address { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("emergencyContact")]
-        public string? EmergencyContact { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("city")]
+        public string? City { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("photoUrl")]
-        public string? PhotoUrl { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactName")]
+        public string? EmergencyContactName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactRelationship")]
+        public string? EmergencyContactRelationship { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactPhone")]
+        public string? EmergencyContactPhone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        public string? Source { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("referredByMemberId")]
+        public System.Guid? ReferredByMemberId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("goal")]
+        public string? Goal { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tags")]
+        public System.Collections.Generic.ICollection<string>? Tags { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianName")]
+        public string? GuardianName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianDocumentType")]
+        public string? GuardianDocumentType { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianDocumentNumber")]
+        public string? GuardianDocumentNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianPhone")]
+        public string? GuardianPhone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianRelationship")]
+        public string? GuardianRelationship { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("joinedAt")]
+        public System.DateOnly? JoinedAt { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -17843,6 +18325,51 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MemberChangeItem
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("field")]
+        public string Field { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("oldValue")]
+        public string? OldValue { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("newValue")]
+        public string? NewValue { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("changedByUserId")]
+        public System.Guid? ChangedByUserId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("changedByName")]
+        public string? ChangedByName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("changedByRole")]
+        public string ChangedByRole { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        public string Source { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("changedAt")]
+        public System.DateTimeOffset ChangedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isSensitive")]
+        public bool IsSensitive { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class MemberCurrentMembership
     {
 
@@ -17891,8 +18418,20 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("lastName")]
         public string LastName { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("documentType")]
+        public string DocumentType { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("documentNumber")]
         public string DocumentNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("birthDate")]
+        public System.DateOnly? BirthDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("gender")]
+        public string? Gender { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("photoUrl")]
+        public string? PhotoUrl { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("phone")]
         public string? Phone { get; set; } = default!;
@@ -17900,14 +18439,47 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("birthDate")]
-        public System.DateOnly? BirthDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("address")]
+        public string? Address { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("photoUrl")]
-        public string? PhotoUrl { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("city")]
+        public string? City { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("emergencyContact")]
-        public string? EmergencyContact { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactName")]
+        public string? EmergencyContactName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactRelationship")]
+        public string? EmergencyContactRelationship { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactPhone")]
+        public string? EmergencyContactPhone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        public string? Source { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("referredByMemberId")]
+        public System.Guid? ReferredByMemberId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("goal")]
+        public string? Goal { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tags")]
+        public System.Collections.Generic.ICollection<string> Tags { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianName")]
+        public string? GuardianName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianDocumentType")]
+        public string? GuardianDocumentType { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianDocumentNumber")]
+        public string? GuardianDocumentNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianPhone")]
+        public string? GuardianPhone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianRelationship")]
+        public string? GuardianRelationship { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public string Status { get; set; } = default!;
@@ -17917,6 +18489,12 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
         public System.DateTimeOffset CreatedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isMinor")]
+        public bool IsMinor { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isProfileIncomplete")]
+        public bool IsProfileIncomplete { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("currentMembership")]
         public MemberCurrentMembership? CurrentMembership { get; set; } = default!;
@@ -17948,6 +18526,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("lastName")]
         public string LastName { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("documentType")]
+        public string DocumentType { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("documentNumber")]
         public string DocumentNumber { get; set; } = default!;
 
@@ -17959,6 +18540,42 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("joinedAt")]
         public System.DateOnly JoinedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tags")]
+        public System.Collections.Generic.ICollection<string> Tags { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("isProfileIncomplete")]
+        public bool IsProfileIncomplete { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MemberNoteItem
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("authorUserId")]
+        public System.Guid? AuthorUserId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("authorName")]
+        public string? AuthorName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
+        public System.DateTimeOffset CreatedAt { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -18286,6 +18903,36 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("items")]
         public System.Collections.Generic.ICollection<FeedItem> Items { get; set; } = new System.Collections.ObjectModel.Collection<FeedItem>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("page")]
+        public int Page { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("total")]
+        public int Total { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalPages")]
+        public int? TotalPages { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PagedResultOfMemberChangeItem
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public System.Collections.Generic.ICollection<MemberChangeItem> Items { get; set; } = new System.Collections.ObjectModel.Collection<MemberChangeItem>();
 
         [System.Text.Json.Serialization.JsonPropertyName("page")]
         public int Page { get; set; } = default!;
@@ -20033,8 +20680,20 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("lastName")]
         public string LastName { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("documentType")]
+        public string? DocumentType { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("documentNumber")]
         public string DocumentNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("birthDate")]
+        public System.DateOnly? BirthDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("gender")]
+        public string? Gender { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("photoUrl")]
+        public string? PhotoUrl { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("phone")]
         public string? Phone { get; set; } = default!;
@@ -20042,14 +20701,50 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("birthDate")]
-        public System.DateOnly? BirthDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("address")]
+        public string? Address { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("emergencyContact")]
-        public string? EmergencyContact { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("city")]
+        public string? City { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("photoUrl")]
-        public string? PhotoUrl { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactName")]
+        public string? EmergencyContactName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactRelationship")]
+        public string? EmergencyContactRelationship { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("emergencyContactPhone")]
+        public string? EmergencyContactPhone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        public string? Source { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("referredByMemberId")]
+        public System.Guid? ReferredByMemberId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("goal")]
+        public string? Goal { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tags")]
+        public System.Collections.Generic.ICollection<string>? Tags { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianName")]
+        public string? GuardianName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianDocumentType")]
+        public string? GuardianDocumentType { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianDocumentNumber")]
+        public string? GuardianDocumentNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianPhone")]
+        public string? GuardianPhone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guardianRelationship")]
+        public string? GuardianRelationship { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("joinedAt")]
+        public System.DateOnly? JoinedAt { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

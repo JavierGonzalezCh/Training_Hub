@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7340/"
+      "url": "http://localhost:7320/"
     }
   ],
   "paths": {
@@ -5541,6 +5541,13 @@
             }
           },
           {
+            "name": "Tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Page",
             "in": "query",
             "schema": {
@@ -5770,6 +5777,46 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -5791,6 +5838,318 @@
         "responses": {
           "204": {
             "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/members/{id}/reactivate": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "operationId": "ReactivateMember",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{id}/changes": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberChangeItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberChangeItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberChangeItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{id}/notes": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberNoteItem"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberNoteItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberNoteItem"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberNoteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberNoteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberNoteItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberNoteItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberNoteItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -7302,6 +7661,17 @@
           }
         }
       },
+      "AddMemberNoteRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "AdminDashboardResponse": {
         "required": [
           "portfolio",
@@ -8129,12 +8499,28 @@
         "required": [
           "firstName",
           "lastName",
+          "documentType",
           "documentNumber",
+          "birthDate",
+          "gender",
+          "photoUrl",
           "phone",
           "email",
-          "birthDate",
-          "emergencyContact",
-          "photoUrl"
+          "address",
+          "city",
+          "emergencyContactName",
+          "emergencyContactRelationship",
+          "emergencyContactPhone",
+          "source",
+          "referredByMemberId",
+          "goal",
+          "tags",
+          "guardianName",
+          "guardianDocumentType",
+          "guardianDocumentNumber",
+          "guardianPhone",
+          "guardianRelationship",
+          "joinedAt"
         ],
         "type": "object",
         "properties": {
@@ -8144,8 +8530,33 @@
           "lastName": {
             "type": "string"
           },
+          "documentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "documentNumber": {
             "type": "string"
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gender": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "phone": {
             "type": [
@@ -8159,24 +8570,100 @@
               "string"
             ]
           },
-          "birthDate": {
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referredByMemberId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "goal": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "guardianName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "joinedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date"
-          },
-          "emergencyContact": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "photoUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -9235,6 +9722,68 @@
           }
         }
       },
+      "MemberChangeItem": {
+        "required": [
+          "id",
+          "field",
+          "oldValue",
+          "newValue",
+          "changedByUserId",
+          "changedByName",
+          "changedByRole",
+          "source",
+          "changedAt",
+          "isSensitive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "field": {
+            "type": "string"
+          },
+          "oldValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "changedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changedByRole": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isSensitive": {
+            "type": "boolean"
+          }
+        }
+      },
       "MemberCurrentMembership": {
         "required": [
           "membershipId",
@@ -9273,15 +9822,32 @@
           "userId",
           "firstName",
           "lastName",
+          "documentType",
           "documentNumber",
+          "birthDate",
+          "gender",
+          "photoUrl",
           "phone",
           "email",
-          "birthDate",
-          "photoUrl",
-          "emergencyContact",
+          "address",
+          "city",
+          "emergencyContactName",
+          "emergencyContactRelationship",
+          "emergencyContactPhone",
+          "source",
+          "referredByMemberId",
+          "goal",
+          "tags",
+          "guardianName",
+          "guardianDocumentType",
+          "guardianDocumentNumber",
+          "guardianPhone",
+          "guardianRelationship",
           "status",
           "joinedAt",
-          "createdAt"
+          "createdAt",
+          "isMinor",
+          "isProfileIncomplete"
         ],
         "type": "object",
         "properties": {
@@ -9306,8 +9872,30 @@
           "lastName": {
             "type": "string"
           },
+          "documentType": {
+            "type": "string"
+          },
           "documentNumber": {
             "type": "string"
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gender": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "phone": {
             "type": [
@@ -9321,20 +9909,86 @@
               "string"
             ]
           },
-          "birthDate": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date"
-          },
-          "photoUrl": {
+          "address": {
             "type": [
               "null",
               "string"
             ]
           },
-          "emergencyContact": {
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referredByMemberId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "goal": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "guardianName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianRelationship": {
             "type": [
               "null",
               "string"
@@ -9350,6 +10004,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "isMinor": {
+            "type": "boolean"
+          },
+          "isProfileIncomplete": {
+            "type": "boolean"
           },
           "currentMembership": {
             "oneOf": [
@@ -9374,10 +10034,13 @@
           "id",
           "firstName",
           "lastName",
+          "documentType",
           "documentNumber",
           "phone",
           "status",
-          "joinedAt"
+          "joinedAt",
+          "tags",
+          "isProfileIncomplete"
         ],
         "type": "object",
         "properties": {
@@ -9389,6 +10052,9 @@
             "type": "string"
           },
           "lastName": {
+            "type": "string"
+          },
+          "documentType": {
             "type": "string"
           },
           "documentNumber": {
@@ -9406,6 +10072,51 @@
           "joinedAt": {
             "type": "string",
             "format": "date"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isProfileIncomplete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MemberNoteItem": {
+        "required": [
+          "id",
+          "text",
+          "authorUserId",
+          "authorName",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "authorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "authorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -9861,6 +10572,55 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FeedItem"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PagedResultOfMemberChangeItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberChangeItem"
             }
           },
           "page": {
@@ -12118,12 +12878,28 @@
         "required": [
           "firstName",
           "lastName",
+          "documentType",
           "documentNumber",
+          "birthDate",
+          "gender",
+          "photoUrl",
           "phone",
           "email",
-          "birthDate",
-          "emergencyContact",
-          "photoUrl"
+          "address",
+          "city",
+          "emergencyContactName",
+          "emergencyContactRelationship",
+          "emergencyContactPhone",
+          "source",
+          "referredByMemberId",
+          "goal",
+          "tags",
+          "guardianName",
+          "guardianDocumentType",
+          "guardianDocumentNumber",
+          "guardianPhone",
+          "guardianRelationship",
+          "joinedAt"
         ],
         "type": "object",
         "properties": {
@@ -12133,8 +12909,33 @@
           "lastName": {
             "type": "string"
           },
+          "documentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "documentNumber": {
             "type": "string"
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gender": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "phone": {
             "type": [
@@ -12148,24 +12949,100 @@
               "string"
             ]
           },
-          "birthDate": {
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referredByMemberId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "goal": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "guardianName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "joinedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date"
-          },
-          "emergencyContact": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "photoUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },

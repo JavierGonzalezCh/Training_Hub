@@ -16,7 +16,7 @@ public sealed class ListMembersHandler(ICurrentUserService currentUser, IMemberR
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
         var (items, total) = await members.GetPageAsync(
-            new MemberPageQuery(query.Search?.Trim(), query.Status, page, pageSize), cancellationToken);
+            new MemberPageQuery(query.Search?.Trim(), query.Status, query.Tag?.Trim(), page, pageSize), cancellationToken);
 
         return new PagedResult<MemberListItem>(
             items.Select(MemberMapper.ToListItem).ToList(), page, pageSize, total);

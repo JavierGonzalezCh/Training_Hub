@@ -12,6 +12,7 @@ namespace GSM.Application.Members;
 public sealed class DeactivateMemberHandler(
     ICurrentUserService currentUser,
     IMemberRepository members,
+    MemberChangeRecorder changes,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<DeactivateMemberHandler> logger)
@@ -29,6 +30,7 @@ public sealed class DeactivateMemberHandler(
         }
 
         member.Deactivate();
+        changes.RecordStatus(member, MemberStatus.Active, MemberStatus.Inactive);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Miembro {MemberId} desactivado", memberId);

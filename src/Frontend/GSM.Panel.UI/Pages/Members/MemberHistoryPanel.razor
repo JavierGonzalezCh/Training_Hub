@@ -1,0 +1,35 @@
+@* Historial de cambios de la ficha (Members v2, §4): una fila por campo, quién y cuándo. Solo lectura. *@
+@inject IMembersClient Members
+
+<ServerTable TItem="MemberChangeItem" Load="LoadAsync" Class="mt-4">
+    <HeaderContent>
+        <MudTh>Fecha</MudTh>
+        <MudTh>Campo</MudTh>
+        <MudTh>Antes</MudTh>
+        <MudTh>Ahora</MudTh>
+        <MudTh>Quién</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.ChangedAt)</MudTd>
+        <MudTd DataLabel="Campo">@MemberLabels.FieldLabel(context.Field)</MudTd>
+        <MudTd DataLabel="Antes">@(context.Field == "created" ? string.Empty : MemberLabels.ChangeValue(context.Field, context.OldValue))</MudTd>
+        <MudTd DataLabel="Ahora">@(context.Field == "created" ? string.Empty : MemberLabels.ChangeValue(context.Field, context.NewValue))</MudTd>
+        <MudTd DataLabel="Quién">
+            @(context.ChangedByName ?? MemberLabels.ChangeRole(context.ChangedByRole))
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+                @MemberLabels.ChangeRole(context.ChangedByRole) · @MemberLabels.ChangeSource(context.Source)
+            </MudText>
+        </MudTd>
+    </RowTemplate>
+</ServerTable>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private async Task<ServerTablePage<MemberChangeItem>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var result = await Members.ChangesAsync(MemberId, page, pageSize, cancellationToken);
+        return new ServerTablePage<MemberChangeItem>(result.Items.ToList(), result.Total);
+    }
+}

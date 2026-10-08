@@ -46,6 +46,12 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "user_role", new[] { "superadmin", "owner", "staff", "member" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "document_type", new[] { "cc", "ti", "ce", "pa", "ppt", "nit", "other" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "gender", new[] { "female", "male", "other", "undisclosed" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_change_role", new[] { "member", "staff", "owner", "superadmin", "system" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_change_source", new[] { "panel", "app", "import", "system" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_goal", new[] { "weight_loss", "muscle_gain", "fitness", "health", "sport", "other" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_source", new[] { "walk_in", "referral", "social_media", "google", "flyer", "corporate", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_status", new[] { "active", "inactive" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "memberships", "membership_status", new[] { "active", "expired", "paused", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
@@ -1104,9 +1110,19 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address");
+
                     b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("date")
                         .HasColumnName("birth_date");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("city");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1118,21 +1134,67 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("document_number");
 
+                    b.Property<DocumentType>("DocumentType")
+                        .HasColumnType("members.document_type")
+                        .HasColumnName("document_type");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("email");
 
-                    b.Property<string>("EmergencyContact")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("emergency_contact");
+                    b.Property<string>("EmergencyContactName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("emergency_contact_name");
+
+                    b.Property<string>("EmergencyContactPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("emergency_contact_phone");
+
+                    b.Property<string>("EmergencyContactRelationship")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("emergency_contact_relationship");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("first_name");
+
+                    b.Property<Gender?>("Gender")
+                        .HasColumnType("members.gender")
+                        .HasColumnName("gender");
+
+                    b.Property<MemberGoal?>("Goal")
+                        .HasColumnType("members.member_goal")
+                        .HasColumnName("goal");
+
+                    b.Property<string>("GuardianDocumentNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("guardian_document_number");
+
+                    b.Property<DocumentType?>("GuardianDocumentType")
+                        .HasColumnType("members.document_type")
+                        .HasColumnName("guardian_document_type");
+
+                    b.Property<string>("GuardianName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("guardian_name");
+
+                    b.Property<string>("GuardianPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("guardian_phone");
+
+                    b.Property<string>("GuardianRelationship")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("guardian_relationship");
 
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
@@ -1158,9 +1220,22 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(2048)")
                         .HasColumnName("photo_url");
 
+                    b.Property<Guid?>("ReferredByMemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("referred_by_member_id");
+
+                    b.Property<MemberSource?>("Source")
+                        .HasColumnType("members.member_source")
+                        .HasColumnName("source");
+
                     b.Property<MemberStatus>("Status")
                         .HasColumnType("members.member_status")
                         .HasColumnName("status");
+
+                    b.PrimitiveCollection<string[]>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tags");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1173,17 +1248,96 @@ namespace GSM.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_members");
 
+                    b.HasIndex("ReferredByMemberId")
+                        .HasDatabaseName("ix_members_referred_by_member_id");
+
+                    b.HasIndex("Tags")
+                        .HasDatabaseName("ix_members_tags");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Tags"), "gin");
+
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_members_user_id");
-
-                    b.HasIndex("GymId", "DocumentNumber")
-                        .IsUnique()
-                        .HasDatabaseName("ix_members_gym_id_document_number");
 
                     b.HasIndex("GymId", "Status")
                         .HasDatabaseName("ix_members_gym_id_status");
 
+                    b.HasIndex("GymId", "DocumentType", "DocumentNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_members_gym_id_document_type_document_number");
+
                     b.ToTable("members", "members");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<MemberChangeRole>("ChangedByRole")
+                        .HasColumnType("members.member_change_role")
+                        .HasColumnName("changed_by_role");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Field")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("field");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<bool>("IsSensitive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_sensitive");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("new_value");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("old_value");
+
+                    b.Property<MemberChangeSource>("Source")
+                        .HasColumnType("members.member_change_source")
+                        .HasColumnName("source");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_member_changes");
+
+                    b.HasIndex("GymId")
+                        .HasDatabaseName("ix_member_changes_gym_id");
+
+                    b.HasIndex("MemberId", "ChangedAt")
+                        .HasDatabaseName("ix_member_changes_member_id_changed_at");
+
+                    b.ToTable("member_changes", "members");
                 });
 
             modelBuilder.Entity("GSM.Domain.Members.MemberInvitation", b =>
@@ -1238,6 +1392,51 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_invitations_member_id");
 
                     b.ToTable("member_invitations", "members");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AuthorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_member_notes");
+
+                    b.HasIndex("GymId")
+                        .HasDatabaseName("ix_member_notes_gym_id");
+
+                    b.HasIndex("MemberId", "CreatedAt")
+                        .HasDatabaseName("ix_member_notes_member_id_created_at");
+
+                    b.ToTable("member_notes", "members");
                 });
 
             modelBuilder.Entity("GSM.Domain.Memberships.Membership", b =>
@@ -2217,6 +2416,25 @@ namespace GSM.Infrastructure.Migrations
                         .HasConstraintName("fk_gym_feature_flags_gyms_gym_id");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Members.Member", b =>
+                {
+                    b.HasOne("GSM.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("ReferredByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_members_members_referred_by_member_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberChange", b =>
+                {
+                    b.HasOne("GSM.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_member_changes_member_member_id");
+                });
+
             modelBuilder.Entity("GSM.Domain.Members.MemberInvitation", b =>
                 {
                     b.HasOne("GSM.Domain.Members.Member", null)
@@ -2225,6 +2443,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_member_invitations_members_member_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberNote", b =>
+                {
+                    b.HasOne("GSM.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_member_notes_members_member_id");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.RoutineDay", b =>
