@@ -11,14 +11,21 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace GSM.IntegrationTests;
 
 /// <summary>
-/// Levanta la API real contra la base de datos local <c>gsm_test</c>. Entorno "Testing":
+/// Levanta la API real contra la base de datos de tests (<c>GSM_TEST_DATABASE</c>, por defecto <c>gsm_test</c>). Entorno "Testing":
 /// el seeder de desarrollo no corre. Sustituye <see cref="ICurrentUserService"/> por
 /// <see cref="MutableCurrentUser"/> para poder fijar la identidad en cada test.
 /// </summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>
 {
-    private const string TestConnectionString =
-        "Host=localhost;Port=5432;Database=gsm_test;Username=gsm;Password=gsm";
+    /// <summary>
+    /// Base de datos de los tests: variable de entorno <c>GSM_TEST_DATABASE</c> (una por carril de
+    /// trabajo, ver <c>scripts/new-lane.ps1</c>) o <c>gsm_test</c> por defecto.
+    /// </summary>
+    public static string TestDatabaseName { get; } =
+        Environment.GetEnvironmentVariable("GSM_TEST_DATABASE") is { Length: > 0 } name ? name : "gsm_test";
+
+    private static readonly string TestConnectionString =
+        $"Host=localhost;Port=5432;Database={TestDatabaseName};Username=gsm;Password=gsm";
 
     private bool _migrated;
 

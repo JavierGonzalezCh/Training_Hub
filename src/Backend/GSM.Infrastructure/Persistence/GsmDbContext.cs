@@ -26,37 +26,17 @@ namespace GSM.Infrastructure.Persistence;
 /// <c>IHttpContextAccessor</c>): el modelo de EF se compila una sola vez y captura esta
 /// referencia, pero sus getters leen el contexto de la petición vigente en cada query.
 /// </remarks>
-public class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserService currentUser)
+public partial class GsmDbContext(DbContextOptions<GsmDbContext> options, ICurrentUserService currentUser)
     : IdentityUserContext<AppUser, Guid>(options)
 {
     private readonly ICurrentUserService _currentUser = currentUser;
-
-    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.HasPostgresEnum<UserRole>("identity", "user_role", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GymPlan>("gyms", "gym_plan", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GymStatus>("gyms", "gym_status", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<MemberStatus>("members", "member_status", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<MembershipStatus>("memberships", "membership_status", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<PaymentMethod>("payments", "payment_method", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<AttendanceMethod>("attendance", "attendance_method", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<CheckinMode>("attendance", "checkin_mode", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<CheckinRejectionReason>("attendance", "checkin_rejection_reason", SnakeCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<AchievementConditionType>("achievements", "condition_type", SnakeCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<Muscle>("routines", "muscle", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<Equipment>("routines", "equipment", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassDayOfWeek>("classes", "day_of_week", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassSessionStatus>("classes", "class_session_status", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Classes.ClassBookingStatus>("classes", "class_booking_status", SnakeCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Communications.AnnouncementStatus>("communications", "announcement_status", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Communications.ReactionKind>("communications", "reaction_kind", LowerCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Communications.NotificationType>("communications", "notification_type", SnakeCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Communications.EmailKind>("communications", "email_kind", SnakeCaseNameTranslator.Instance);
-        modelBuilder.HasPostgresEnum<GSM.Domain.Communications.EmailStatus>("communications", "email_status", LowerCaseNameTranslator.Instance);
+        // Enums nativos de Postgres: cada módulo declara los suyos (IModuleEnums).
+        PgEnumMappings.ConfigureModel(modelBuilder);
 
         // Tablas satélite de Identity → schema y nombres del proyecto.
         modelBuilder.Entity<AppUser>().ToTable("users", "identity");
