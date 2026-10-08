@@ -39,7 +39,10 @@
 | M1 | **Unida** | Ver pregunta 9. Snapshot rehecho al unir |
 | R2 | **Unida** (merge de R2) | Suite 198 + 87. Ver pregunta 6 |
 | R3 | **Unida** (174ff30) | Ver pregunta 10 (clasificación del catálogo). Suite 260 + 116 |
-| S5 | **Retenida** | depende de I2 (ver §4) |
+| S5 | En curso (I2 ya unida) | — |
+| I3 | En curso | — |
+| MS1 | En curso | incluye un "Dejar pasar" mínimo en recepción; la recepción en dos pasos completa sigue siendo A1 |
+| AP2 | En curso | — |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -91,6 +94,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- Lanzadas I3, MS1, AP2 y S5.
 - I2, N1, M1 y R3 unidas (en ese orden). Cliente regenerado desde la API unida: idéntico al unido salvo `openapi-v1.json`; el parche de `DaysOfWeek` del script fallaba con CRLF y se arregló. Suite 260 + 116.
 - R2 unida (conflicto trivial en un comentario de `RoutineForm.razor`); 198 + 87. Incidente: el agente de R2 corrió una vez sus tests contra `gsm_test` (sin la variable), aplicándole V2_R2 y truncando tablas de prueba; sin daño (la migración quedó igual en `v2`). Lanzada R3.
 - P1 unida (186 + 80). Lanzada M1.
