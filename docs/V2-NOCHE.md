@@ -28,9 +28,11 @@
 
 | Tarea | Estado | Notas |
 |---|---|---|
-| X0 | En curso | — |
+| X0 | **Unida** (b2249ce) | 162 integración + 68 bUnit en verde |
+| AP1 | En curso | — |
+| LG1 | En curso | — |
 
-Línea base antes de empezar: ver §5.
+Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
 ## 2. Preguntas para el dueño
 
@@ -50,8 +52,12 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 4. Riesgos y desvíos aceptados al unir
 
-_Ninguno todavía._
+- **Nombres de rama:** el plan §2.4 propone `v2/<id>-<nombre>`, pero Git no admite `v2/...` si existe la rama `v2`. Se usa **`v2-<id>-<nombre>`**. Conviene corregir §2.4 del plan.
+- **X0, enums por módulo:** en lugar de `GsmDbContext.{Módulo}.cs` con el mapeo de enums, cada módulo declara sus enums en `Infrastructure/{Módulo}/{Módulo}Enums.cs` (`IModuleEnums`), descubiertos por reflexión; una sola fuente para el modelo, el proveedor y el factory de diseño. Solo hay un parcial (`GsmDbContext.Identity.cs`) porque solo había un `DbSet`. La migración de comprobación salió vacía.
+- **Worktrees:** los agentes trabajan en worktrees creados por la herramienta (`.claude/worktrees/`, ignorado por git), no en `../gsm-lanes/`. `scripts/new-lane.ps1 -SkipWorktree` sirve para crear solo las bases.
 
 ## 5. Registro cronológico
 
+- Línea base: 160 + 68 en verde.
+- X0 unida (b2249ce); suite 162 + 68 en verde. Lanzadas AP1 y LG1 en paralelo (`gsm_test_ap1`, `gsm_test_lg1`).
 - Inicio. Leídos `CLAUDE.md`, `docs/V2-BUILD-PLAN.md`, `docs/BUGS.md`. Creada `gsm_test_x0`.
