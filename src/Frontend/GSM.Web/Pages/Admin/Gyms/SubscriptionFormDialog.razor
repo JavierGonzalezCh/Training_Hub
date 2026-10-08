@@ -12,7 +12,7 @@
                 <MudSelectItem Value="value">@label</MudSelectItem>
             }
         </MudSelect>
-        <MudNumericField T="decimal" @bind-Value="_price" Label="Precio mensual (COP)" Min="0" />
+        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_price" Label="Precio mensual (COP)" Min="0" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>

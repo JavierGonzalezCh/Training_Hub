@@ -10,7 +10,11 @@ namespace GSM.UI.Shared.Formatting;
 /// </summary>
 public static class GsmFormat
 {
-    private static readonly CultureInfo Colombia = CultureInfo.GetCultureInfo("es-CO");
+    /// <summary>Cultura de toda la UI de dinero y fechas; no depende de la del navegador.</summary>
+    public static CultureInfo Colombia { get; } = CultureInfo.GetCultureInfo("es-CO");
+
+    /// <summary>Formato de los campos numericos de dinero (<c>MudNumericField.Format</c>), con separador de miles.</summary>
+    public const string MoneyFieldFormat = "N0";
 
     private static readonly TimeZoneInfo GymZone = ResolveBogota();
 

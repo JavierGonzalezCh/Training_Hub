@@ -21,10 +21,10 @@
             else
             {
                 <MudForm @ref="_form">
-                    <MudSelect T="Guid" Value="_planId" ValueChanged="OnPlanChanged" Label="Plan" Required="true" Class="mb-3">
+                    <MudSelect T="Guid" Value="_planId" ValueChanged="OnPlanChanged" ToStringFunc="PlanLabel" Label="Plan" Required="true" Class="mb-3">
                         @foreach (var plan in _plans)
                         {
-                            <MudSelectItem Value="plan.Id">@plan.Name — @GsmFormat.Money((decimal)plan.Price) · @plan.DurationDays días</MudSelectItem>
+                            <MudSelectItem Value="plan.Id">@PlanLabel(plan.Id)</MudSelectItem>
                         }
                     </MudSelect>
                     <MudDatePicker Label="Fecha de inicio (opcional, hoy por defecto)" Date="_startDate" DateChanged="d => _startDate = d" Class="mb-4" />
@@ -32,7 +32,7 @@
                     <MudSwitch T="bool" @bind-Value="_charge" Color="Color.Primary" Label="Cobrar ahora" Class="mb-2" />
                     @if (_charge)
                     {
-                        <MudNumericField T="decimal" @bind-Value="_amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3"
+                        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3"
                                          HelperText="El precio del plan; cámbialo si hay descuento." />
                         <MudSelect T="int" @bind-Value="_method" Label="Método" Required="true">
                             @foreach (var (value, label) in PaymentMethodLabels.All)
@@ -97,6 +97,11 @@
             _loading = false;
         }
     }
+
+    private string PlanLabel(Guid planId)
+        => _plans.FirstOrDefault(p => p.Id == planId) is { } plan
+            ? $"{plan.Name} — {GsmFormat.Money((decimal)plan.Price)} · {plan.DurationDays} días"
+            : string.Empty;
 
     private void OnPlanChanged(Guid planId)
     {

@@ -24,7 +24,7 @@
                     }
                 </MudSelect>
             }
-            <MudNumericField T="decimal" @bind-Value="_model.Amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3" />
+            <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_model.Amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3" />
             <MudSelect T="int" @bind-Value="_model.Method" Label="Método" Required="true" Class="mb-3">
                 @foreach (var (value, label) in PaymentMethodLabels.All)
                 {
