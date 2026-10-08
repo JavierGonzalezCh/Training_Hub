@@ -411,8 +411,6 @@ public sealed class RoutineWeeklyTests(ApiFactory factory) : IClassFixture<ApiFa
             NormalizedEmail = $"{local}@TEST.LOCAL",
             EmailConfirmed = true,
             FullName = local,
-            Role = role,
-            GymId = gymId,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

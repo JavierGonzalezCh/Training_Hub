@@ -185,8 +185,6 @@ public sealed class PaymentMethodsTests(ApiFactory factory) : IClassFixture<ApiF
             NormalizedEmail = "STAFF@METH.LOCAL",
             EmailConfirmed = true,
             FullName = "Methods Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };
