@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7310/"
+      "url": "http://localhost:7299/"
     }
   ],
   "paths": {
@@ -2150,70 +2150,6 @@
         }
       }
     },
-    "/api/attendance/attempts/pending-count": {
-      "get": {
-        "tags": [
-          "Attendance"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PendingAttemptCountResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PendingAttemptCountResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PendingAttemptCountResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/attendance/attempts/{id}/acknowledge": {
-      "post": {
-        "tags": [
-          "Attendance"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    },
-    "/api/attendance/attempts/acknowledge-all": {
-      "post": {
-        "tags": [
-          "Attendance"
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -3521,6 +3457,35 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "muscleGroup",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          {
+            "name": "exerciseType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ExerciseType"
+            }
+          },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Difficulty"
+            }
+          },
+          {
+            "name": "includeHidden",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -3818,6 +3783,172 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/duplicate": {
+      "post": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateExerciseRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateExerciseRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateExerciseRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/hide": {
+      "post": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/show": {
+      "post": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -5757,6 +5888,13 @@
             }
           },
           {
+            "name": "Tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Page",
             "in": "query",
             "schema": {
@@ -5986,6 +6124,46 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -6007,6 +6185,318 @@
         "responses": {
           "204": {
             "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/members/{id}/reactivate": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "operationId": "ReactivateMember",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{id}/changes": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberChangeItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberChangeItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberChangeItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{id}/notes": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberNoteItem"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberNoteItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberNoteItem"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberNoteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberNoteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberNoteItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberNoteItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberNoteItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -7479,6 +7969,235 @@
           }
         }
       }
+    },
+    "/api/staff/notifications": {
+      "get": {
+        "tags": [
+          "StaffNotifications"
+        ],
+        "parameters": [
+          {
+            "name": "openOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfStaffNotificationItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfStaffNotificationItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfStaffNotificationItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/notifications/open-count": {
+      "get": {
+        "tags": [
+          "StaffNotifications"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotificationCount"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotificationCount"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotificationCount"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/notifications/{id}/resolve": {
+      "post": {
+        "tags": [
+          "StaffNotifications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotificationItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotificationItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotificationItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/notifications/resolve-all": {
+      "post": {
+        "tags": [
+          "StaffNotifications"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/staff/notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "StaffNotifications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7535,6 +8254,17 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "AddMemberNoteRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
           }
         }
       },
@@ -8278,6 +9008,42 @@
               "null",
               "string"
             ]
+          },
+          "exerciseType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExerciseType"
+              }
+            ]
+          },
+          "trackingType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TrackingType"
+              }
+            ]
+          },
+          "isUnilateral": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "difficulty": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Difficulty"
+              }
+            ]
           }
         }
       },
@@ -8365,12 +9131,28 @@
         "required": [
           "firstName",
           "lastName",
+          "documentType",
           "documentNumber",
+          "birthDate",
+          "gender",
+          "photoUrl",
           "phone",
           "email",
-          "birthDate",
-          "emergencyContact",
-          "photoUrl"
+          "address",
+          "city",
+          "emergencyContactName",
+          "emergencyContactRelationship",
+          "emergencyContactPhone",
+          "source",
+          "referredByMemberId",
+          "goal",
+          "tags",
+          "guardianName",
+          "guardianDocumentType",
+          "guardianDocumentNumber",
+          "guardianPhone",
+          "guardianRelationship",
+          "joinedAt"
         ],
         "type": "object",
         "properties": {
@@ -8380,8 +9162,33 @@
           "lastName": {
             "type": "string"
           },
+          "documentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "documentNumber": {
             "type": "string"
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gender": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "phone": {
             "type": [
@@ -8395,24 +9202,100 @@
               "string"
             ]
           },
-          "birthDate": {
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referredByMemberId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "goal": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "guardianName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "joinedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date"
-          },
-          "emergencyContact": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "photoUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -8596,6 +9479,18 @@
           }
         }
       },
+      "Difficulty": {
+        "type": "integer"
+      },
+      "DuplicateExerciseRequest": {
+        "type": "object",
+        "properties": {
+          "hideOriginal": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
       "EmailAudienceResponse": {
         "required": [
           "recipients"
@@ -8657,11 +9552,17 @@
           "name",
           "description",
           "primaryMuscle",
+          "muscleGroup",
           "secondaryMuscles",
           "equipment",
+          "exerciseType",
+          "trackingType",
+          "isUnilateral",
+          "difficulty",
           "videoUrl",
           "imageUrl",
           "isActive",
+          "isHidden",
           "createdAt"
         ],
         "type": "object",
@@ -8692,6 +9593,9 @@
           "primaryMuscle": {
             "type": "string"
           },
+          "muscleGroup": {
+            "type": "string"
+          },
           "secondaryMuscles": {
             "type": "array",
             "items": {
@@ -8703,6 +9607,18 @@
             "items": {
               "type": "string"
             }
+          },
+          "exerciseType": {
+            "type": "string"
+          },
+          "trackingType": {
+            "type": "string"
+          },
+          "isUnilateral": {
+            "type": "boolean"
+          },
+          "difficulty": {
+            "type": "string"
           },
           "videoUrl": {
             "type": [
@@ -8719,11 +9635,17 @@
           "isActive": {
             "type": "boolean"
           },
+          "isHidden": {
+            "type": "boolean"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
           }
         }
+      },
+      "ExerciseType": {
+        "type": "integer"
       },
       "ExpiringMemberRow": {
         "required": [
@@ -9551,6 +10473,68 @@
           }
         }
       },
+      "MemberChangeItem": {
+        "required": [
+          "id",
+          "field",
+          "oldValue",
+          "newValue",
+          "changedByUserId",
+          "changedByName",
+          "changedByRole",
+          "source",
+          "changedAt",
+          "isSensitive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "field": {
+            "type": "string"
+          },
+          "oldValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "changedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changedByRole": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isSensitive": {
+            "type": "boolean"
+          }
+        }
+      },
       "MemberCurrentMembership": {
         "required": [
           "membershipId",
@@ -9589,15 +10573,32 @@
           "userId",
           "firstName",
           "lastName",
+          "documentType",
           "documentNumber",
+          "birthDate",
+          "gender",
+          "photoUrl",
           "phone",
           "email",
-          "birthDate",
-          "photoUrl",
-          "emergencyContact",
+          "address",
+          "city",
+          "emergencyContactName",
+          "emergencyContactRelationship",
+          "emergencyContactPhone",
+          "source",
+          "referredByMemberId",
+          "goal",
+          "tags",
+          "guardianName",
+          "guardianDocumentType",
+          "guardianDocumentNumber",
+          "guardianPhone",
+          "guardianRelationship",
           "status",
           "joinedAt",
-          "createdAt"
+          "createdAt",
+          "isMinor",
+          "isProfileIncomplete"
         ],
         "type": "object",
         "properties": {
@@ -9622,8 +10623,30 @@
           "lastName": {
             "type": "string"
           },
+          "documentType": {
+            "type": "string"
+          },
           "documentNumber": {
             "type": "string"
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gender": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "phone": {
             "type": [
@@ -9637,20 +10660,86 @@
               "string"
             ]
           },
-          "birthDate": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date"
-          },
-          "photoUrl": {
+          "address": {
             "type": [
               "null",
               "string"
             ]
           },
-          "emergencyContact": {
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referredByMemberId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "goal": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "guardianName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianRelationship": {
             "type": [
               "null",
               "string"
@@ -9666,6 +10755,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "isMinor": {
+            "type": "boolean"
+          },
+          "isProfileIncomplete": {
+            "type": "boolean"
           },
           "currentMembership": {
             "oneOf": [
@@ -9690,10 +10785,13 @@
           "id",
           "firstName",
           "lastName",
+          "documentType",
           "documentNumber",
           "phone",
           "status",
-          "joinedAt"
+          "joinedAt",
+          "tags",
+          "isProfileIncomplete"
         ],
         "type": "object",
         "properties": {
@@ -9705,6 +10803,9 @@
             "type": "string"
           },
           "lastName": {
+            "type": "string"
+          },
+          "documentType": {
             "type": "string"
           },
           "documentNumber": {
@@ -9722,6 +10823,51 @@
           "joinedAt": {
             "type": "string",
             "format": "date"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isProfileIncomplete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MemberNoteItem": {
+        "required": [
+          "id",
+          "text",
+          "authorUserId",
+          "authorName",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "authorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "authorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -9931,6 +11077,9 @@
         }
       },
       "Muscle": {
+        "type": "integer"
+      },
+      "MuscleGroup": {
         "type": "integer"
       },
       "MyRoutineResponse": {
@@ -10213,6 +11362,55 @@
           }
         }
       },
+      "PagedResultOfMemberChangeItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberChangeItem"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "PagedResultOfMemberListItem": {
         "required": [
           "items",
@@ -10360,6 +11558,55 @@
           }
         }
       },
+      "PagedResultOfStaffNotificationItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffNotificationItem"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "PaymentMethod": {
         "type": "integer"
       },
@@ -10451,22 +11698,6 @@
             ],
             "format": "int32"
           },
-          "count": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
-      "PendingAttemptCountResponse": {
-        "required": [
-          "count"
-        ],
-        "type": "object",
-        "properties": {
           "count": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
@@ -11229,6 +12460,15 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "dayOfWeek": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -11264,6 +12504,24 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RoutineExerciseResponse"
+            }
+          },
+          "dayOfWeek": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "muscleGroups": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
             }
           }
         }
@@ -11394,6 +12652,18 @@
               "null",
               "string"
             ]
+          },
+          "trackingType": {
+            "type": "string",
+            "default": "RepsWeight"
+          },
+          "isUnilateral": {
+            "type": "boolean",
+            "default": false
+          },
+          "muscleGroup": {
+            "type": "string",
+            "default": "FullBody"
           }
         }
       },
@@ -11478,7 +12748,8 @@
           "startsOn",
           "isActive",
           "deactivatedOn",
-          "cycleLength"
+          "cycleLength",
+          "scheduleMode"
         ],
         "type": "object",
         "properties": {
@@ -11510,6 +12781,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "scheduleMode": {
+            "type": "string"
           }
         }
       },
@@ -11595,7 +12869,8 @@
           "isActive",
           "deactivatedOn",
           "cycleLength",
-          "days"
+          "days",
+          "scheduleMode"
         ],
         "type": "object",
         "properties": {
@@ -11650,6 +12925,9 @@
             "items": {
               "$ref": "#/components/schemas/RoutineDayResponse"
             }
+          },
+          "scheduleMode": {
+            "type": "string"
           }
         }
       },
@@ -11746,6 +13024,12 @@
             "items": {
               "$ref": "#/components/schemas/RoutineDayInput"
             }
+          },
+          "scheduleMode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -11910,6 +13194,97 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "StaffNotificationCount": {
+        "required": [
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "StaffNotificationItem": {
+        "required": [
+          "id",
+          "type",
+          "title",
+          "body",
+          "link",
+          "priority",
+          "requiresAction",
+          "createdAt",
+          "readAt",
+          "resolvedAt",
+          "resolvedBy",
+          "resolvedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "link": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "priority": {
+            "type": "string"
+          },
+          "requiresAction": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "resolvedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "resolvedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -12125,7 +13500,8 @@
           "position",
           "dayName",
           "isRest",
-          "exercises"
+          "exercises",
+          "dayOfWeek"
         ],
         "type": "object",
         "properties": {
@@ -12152,8 +13528,28 @@
             "items": {
               "$ref": "#/components/schemas/RoutineExerciseResponse"
             }
+          },
+          "dayOfWeek": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "muscleGroups": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
+      },
+      "TrackingType": {
+        "type": "integer"
       },
       "UnlockedAchievement": {
         "required": [
@@ -12373,6 +13769,42 @@
               "null",
               "string"
             ]
+          },
+          "exerciseType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExerciseType"
+              }
+            ]
+          },
+          "trackingType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TrackingType"
+              }
+            ]
+          },
+          "isUnilateral": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "difficulty": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Difficulty"
+              }
+            ]
           }
         }
       },
@@ -12475,12 +13907,28 @@
         "required": [
           "firstName",
           "lastName",
+          "documentType",
           "documentNumber",
+          "birthDate",
+          "gender",
+          "photoUrl",
           "phone",
           "email",
-          "birthDate",
-          "emergencyContact",
-          "photoUrl"
+          "address",
+          "city",
+          "emergencyContactName",
+          "emergencyContactRelationship",
+          "emergencyContactPhone",
+          "source",
+          "referredByMemberId",
+          "goal",
+          "tags",
+          "guardianName",
+          "guardianDocumentType",
+          "guardianDocumentNumber",
+          "guardianPhone",
+          "guardianRelationship",
+          "joinedAt"
         ],
         "type": "object",
         "properties": {
@@ -12490,8 +13938,33 @@
           "lastName": {
             "type": "string"
           },
+          "documentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "documentNumber": {
             "type": "string"
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gender": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "phone": {
             "type": [
@@ -12505,24 +13978,100 @@
               "string"
             ]
           },
-          "birthDate": {
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referredByMemberId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "goal": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "guardianName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianDocumentNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardianRelationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "joinedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date"
-          },
-          "emergencyContact": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "photoUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -12682,6 +14231,9 @@
     },
     {
       "name": "Staff"
+    },
+    {
+      "name": "StaffNotifications"
     }
   ]
 }

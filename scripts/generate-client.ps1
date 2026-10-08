@@ -49,16 +49,16 @@ finally {
 # Hoy solo afecta a ClassListItem/ClassResponse.DaysOfWeek — si el diff de esta regeneración trae
 # otra ICollection<int> nueva en una respuesta (no en un request), sospecha lo mismo.
 $genFile = Join-Path $clientDir "Generated/GsmApiClient.g.cs"
-$content = Get-Content $genFile -Raw
-$before = '        [System.Text.Json.Serialization.JsonPropertyName("daysOfWeek")]
-        public System.Collections.Generic.ICollection<int> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<int>();'
-$after = '        [System.Text.Json.Serialization.JsonPropertyName("daysOfWeek")]
-        public System.Collections.Generic.ICollection<string> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<string>();'
-$occurrences = ([regex]::Matches($content, [regex]::Escape($before))).Count
+$content = [System.IO.File]::ReadAllText($genFile)
+# Tolera LF y CRLF: el fin de línea del script y el del archivo generado pueden no coincidir.
+$pattern = '(\[System\.Text\.Json\.Serialization\.JsonPropertyName\("daysOfWeek"\)\]\r?\n\s+)public System\.Collections\.Generic\.ICollection<int> DaysOfWeek \{ get; set; \} = new System\.Collections\.ObjectModel\.Collection<int>\(\);'
+$replacement = '${1}public System.Collections.Generic.ICollection<string> DaysOfWeek { get; set; } = new System.Collections.ObjectModel.Collection<string>();'
+$occurrences = ([regex]::Matches($content, $pattern)).Count
 if ($occurrences -gt 0) {
     Write-Host "Aplicando el parche de DaysOfWeek ($occurrences ocurrencia(s)) ..."
-    $content = $content.Replace($before, $after)
-    Set-Content -Path $genFile -Value $content -NoNewline
+    $content = [regex]::Replace($content, $pattern, $replacement)
+    # UTF-8 sin BOM, también en Windows PowerShell 5.1 (Set-Content escribiría en ANSI).
+    [System.IO.File]::WriteAllText($genFile, $content, (New-Object System.Text.UTF8Encoding($false)))
 }
 else {
     Write-Warning "El parche de DaysOfWeek no encontró nada que reemplazar: revisa a mano si ClassListItem/ClassResponse siguen usando ICollection<int>."
