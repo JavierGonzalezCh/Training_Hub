@@ -42,7 +42,31 @@ public sealed class UpdateGymRequestValidator : AbstractValidator<UpdateGymReque
         RuleFor(x => x.PrimaryColor).NotEmpty().Matches(GymRules.HexColorPattern);
         RuleFor(x => x.SecondaryColor).NotEmpty().Matches(GymRules.HexColorPattern);
         RuleFor(x => x.Capacity).InclusiveBetween(1, GSM.Domain.Gyms.Gym.MaxCapacity).When(x => x.Capacity is not null);
+
+        RuleFor(x => x.LegalName).MaximumLength(200);
+        RuleFor(x => x.Address).NotEmpty().MaximumLength(300).WithMessage("La dirección es obligatoria.");
+        RuleFor(x => x.City).NotEmpty().MaximumLength(100).WithMessage("La ciudad es obligatoria.");
+        RuleFor(x => x.Latitude).InclusiveBetween(-90, 90).When(x => x.Latitude is not null);
+        RuleFor(x => x.Longitude).InclusiveBetween(-180, 180).When(x => x.Longitude is not null);
+        RuleFor(x => x.Longitude).NotNull().When(x => x.Latitude is not null)
+            .WithMessage("La longitud es obligatoria si indicas la latitud.");
+        RuleFor(x => x.Latitude).NotNull().When(x => x.Longitude is not null)
+            .WithMessage("La latitud es obligatoria si indicas la longitud.");
+        RuleFor(x => x.GeofenceRadiusMeters)
+            .InclusiveBetween(GSM.Domain.Gyms.Gym.MinGeofenceRadiusMeters, GSM.Domain.Gyms.Gym.MaxGeofenceRadiusMeters)
+            .When(x => x.GeofenceRadiusMeters is not null);
+        RuleFor(x => x.InstagramUrl).Must(IsUrl).When(x => !string.IsNullOrWhiteSpace(x.InstagramUrl))
+            .WithMessage("La URL de Instagram debe empezar por http:// o https://.");
+        RuleFor(x => x.FacebookUrl).Must(IsUrl).When(x => !string.IsNullOrWhiteSpace(x.FacebookUrl))
+            .WithMessage("La URL de Facebook debe empezar por http:// o https://.");
+        RuleFor(x => x.TikTokUrl).Must(IsUrl).When(x => !string.IsNullOrWhiteSpace(x.TikTokUrl))
+            .WithMessage("La URL de TikTok debe empezar por http:// o https://.");
+        RuleFor(x => x.WebsiteUrl).Must(IsUrl).When(x => !string.IsNullOrWhiteSpace(x.WebsiteUrl))
+            .WithMessage("La URL del sitio web debe empezar por http:// o https://.");
+        RuleFor(x => x.WhatsAppPhone).MaximumLength(30);
     }
+
+    private static bool IsUrl(string? value) => GSM.Domain.Gyms.Gym.IsValidUrl(value);
 }
 
 public sealed class UpdateFeatureFlagsRequestValidator : AbstractValidator<UpdateFeatureFlagsRequest>

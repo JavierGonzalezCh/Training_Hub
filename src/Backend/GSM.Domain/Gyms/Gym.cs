@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using GSM.Domain.Common;
 using GSM.Domain.Common.Exceptions;
+using GSM.Domain.Members;
 
 namespace GSM.Domain.Gyms;
 
@@ -19,8 +20,12 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
 
     public string Slug { get; private set; } = string.Empty;
 
+    /// <summary>Razón social, para recibos.</summary>
+    public string? LegalName { get; private set; }
+
     public string? Nit { get; private set; }
 
+    /// <summary>Teléfono en E.164 (<c>+573001234567</c>).</summary>
     public string? Phone { get; private set; }
 
     public string? Email { get; private set; }
@@ -36,6 +41,34 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
     /// aún no lo ha dicho. Base para la tasa de ocupación en tiempo real.
     /// </summary>
     public int? Capacity { get; private set; }
+
+    public string? Address { get; private set; }
+
+    public string? City { get; private set; }
+
+    public double? Latitude { get; private set; }
+
+    public double? Longitude { get; private set; }
+
+    /// <summary>Radio de la geocerca en metros. Lo usará Attendance (A6).</summary>
+    public int GeofenceRadiusMeters { get; private set; } = DefaultGeofenceRadiusMeters;
+
+    public string? InstagramUrl { get; private set; }
+
+    public string? FacebookUrl { get; private set; }
+
+    public string? TikTokUrl { get; private set; }
+
+    public string? WebsiteUrl { get; private set; }
+
+    /// <summary>WhatsApp del gym en E.164, para abrir el chat con <c>wa.me</c>.</summary>
+    public string? WhatsAppPhone { get; private set; }
+
+    public const int DefaultGeofenceRadiusMeters = 150;
+
+    public const int MinGeofenceRadiusMeters = 20;
+
+    public const int MaxGeofenceRadiusMeters = 2000;
 
     public bool IsActive { get; private set; } = true;
 
@@ -69,7 +102,7 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
             Name = NormalizeName(name),
             Slug = NormalizeSlug(slug),
             Nit = Trim(nit),
-            Phone = Trim(phone),
+            Phone = NormalizePhone(phone, "El teléfono"),
             Email = Trim(email),
             PrimaryColor = NormalizeColor(primaryColor, DefaultPrimaryColor),
             SecondaryColor = NormalizeColor(secondaryColor, DefaultSecondaryColor),
@@ -94,12 +127,95 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
         OwnerId = ownerId;
     }
 
-    public void UpdateProfile(string name, string? nit, string? phone, string? email)
+    public void UpdateProfile(string name, string? nit, string? phone, string? email, string? legalName = null)
     {
         Name = NormalizeName(name);
+        LegalName = Trim(legalName);
         Nit = Trim(nit);
-        Phone = Trim(phone);
+        Phone = NormalizePhone(phone, "El teléfono");
         Email = Trim(email);
+    }
+
+    /// <summary>
+    /// Ubicación del gym. Dirección y ciudad son opcionales en el dominio (los gyms anteriores no las
+    /// tienen); el formulario las exige. Las coordenadas van juntas o ninguna.
+    /// </summary>
+    public void UpdateLocation(
+        string? address, string? city, double? latitude, double? longitude, int? geofenceRadiusMeters = null)
+    {
+        if (latitude is null != longitude is null)
+        {
+            throw new ValidationDomainException("La latitud y la longitud van juntas: indica las dos o ninguna.");
+        }
+
+        if (latitude is < -90 or > 90 || latitude is double.NaN)
+        {
+            throw new ValidationDomainException("La latitud debe estar entre -90 y 90.");
+        }
+
+        if (longitude is < -180 or > 180 || longitude is double.NaN)
+        {
+            throw new ValidationDomainException("La longitud debe estar entre -180 y 180.");
+        }
+
+        var radius = geofenceRadiusMeters ?? GeofenceRadiusMeters;
+        if (radius is < MinGeofenceRadiusMeters or > MaxGeofenceRadiusMeters)
+        {
+            throw new ValidationDomainException(
+                $"El radio de la geocerca debe estar entre {MinGeofenceRadiusMeters} y {MaxGeofenceRadiusMeters} metros.");
+        }
+
+        Address = Trim(address);
+        City = Trim(city);
+        Latitude = latitude;
+        Longitude = longitude;
+        GeofenceRadiusMeters = radius;
+    }
+
+    /// <summary>Redes y contacto de marca que ve el miembro. Las URL deben ser http(s) absolutas.</summary>
+    public void UpdateSocial(
+        string? instagramUrl, string? facebookUrl, string? tikTokUrl, string? websiteUrl, string? whatsAppPhone)
+    {
+        InstagramUrl = NormalizeUrl(instagramUrl, "La URL de Instagram");
+        FacebookUrl = NormalizeUrl(facebookUrl, "La URL de Facebook");
+        TikTokUrl = NormalizeUrl(tikTokUrl, "La URL de TikTok");
+        WebsiteUrl = NormalizeUrl(websiteUrl, "La URL del sitio web");
+        WhatsAppPhone = NormalizePhone(whatsAppPhone, "El WhatsApp");
+    }
+
+    /// <summary>Una URL absoluta http(s) de hasta 2048 caracteres, o <c>null</c> si viene vacía.</summary>
+    public static bool IsValidUrl(string? value)
+        => Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri)
+           && uri.Scheme is "http" or "https"
+           && value!.Trim().Length <= 2048;
+
+    private static string? NormalizeUrl(string? value, string label)
+    {
+        var trimmed = Trim(value);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
+        if (!IsValidUrl(trimmed))
+        {
+            throw new ValidationDomainException($"{label} no es válida: debe empezar por http:// o https://.");
+        }
+
+        return trimmed;
+    }
+
+    private static string? NormalizePhone(string? value, string label)
+    {
+        var trimmed = Trim(value);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
+        return PhoneNumber.TryNormalize(trimmed)
+            ?? throw new ValidationDomainException(
+                $"{label} no es un número válido. Escríbelo con indicativo, por ejemplo +573001234567.");
     }
 
     public const int MaxCapacity = 5000;

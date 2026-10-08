@@ -23,6 +23,18 @@ public sealed class GymConfiguration : IEntityTypeConfiguration<Gym>
         builder.Property(g => g.OwnerId).IsRequired();
         builder.Property(g => g.Capacity);
 
+        builder.Property(g => g.LegalName).HasMaxLength(200);
+        builder.Property(g => g.Address).HasMaxLength(300);
+        builder.Property(g => g.City).HasMaxLength(100);
+        builder.Property(g => g.Latitude);
+        builder.Property(g => g.Longitude);
+        builder.Property(g => g.GeofenceRadiusMeters).HasDefaultValue(Gym.DefaultGeofenceRadiusMeters);
+        builder.Property(g => g.InstagramUrl).HasMaxLength(2048);
+        builder.Property(g => g.FacebookUrl).HasMaxLength(2048);
+        builder.Property(g => g.TikTokUrl).HasMaxLength(2048);
+        builder.Property(g => g.WebsiteUrl).HasMaxLength(2048);
+        builder.Property(g => g.WhatsAppPhone).HasMaxLength(20);
+
         builder.Property(g => g.Plan).HasColumnName("plan");
         builder.Property(g => g.Status).HasColumnName("status");
 
