@@ -28,26 +28,7 @@ public sealed class GsmDbContextFactory : IDesignTimeDbContextFactory<GsmDbConte
             .UseNpgsql(connectionString, npgsql =>
             {
                 npgsql.MigrationsAssembly(typeof(GsmDbContext).Assembly.FullName);
-                npgsql.MapEnum<UserRole>("user_role", "identity", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<GymPlan>("gym_plan", "gyms", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<GymStatus>("gym_status", "gyms", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<MemberStatus>("member_status", "members", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<MembershipStatus>("membership_status", "memberships", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<PaymentMethod>("payment_method", "payments", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<AttendanceMethod>("attendance_method", "attendance", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<CheckinMode>("checkin_mode", "attendance", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<CheckinRejectionReason>("checkin_rejection_reason", "attendance", SnakeCaseNameTranslator.Instance);
-                npgsql.MapEnum<AchievementConditionType>("condition_type", "achievements", SnakeCaseNameTranslator.Instance);
-                npgsql.MapEnum<Muscle>("muscle", "routines", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Classes.ClassDayOfWeek>("day_of_week", "classes", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Classes.ClassSessionStatus>("class_session_status", "classes", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Classes.ClassBookingStatus>("class_booking_status", "classes", SnakeCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Communications.AnnouncementStatus>("announcement_status", "communications", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Communications.ReactionKind>("reaction_kind", "communications", LowerCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Communications.NotificationType>("notification_type", "communications", SnakeCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Communications.EmailKind>("email_kind", "communications", SnakeCaseNameTranslator.Instance);
-                npgsql.MapEnum<GSM.Domain.Communications.EmailStatus>("email_status", "communications", LowerCaseNameTranslator.Instance);
+                PgEnumMappings.ConfigureProvider(npgsql);
             })
             .UseSnakeCaseNamingConvention()
             .Options;
