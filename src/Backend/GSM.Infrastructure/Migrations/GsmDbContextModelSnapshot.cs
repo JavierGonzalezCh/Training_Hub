@@ -2199,6 +2199,84 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("impersonation_sessions", "superadmin");
                 });
 
+            modelBuilder.Entity("GSM.Domain.SuperAdmin.MonthlyMetric", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ActiveGymsAtClose")
+                        .HasColumnType("integer")
+                        .HasColumnName("active_gyms_at_close");
+
+                    b.Property<int>("ActiveGymsAtStart")
+                        .HasColumnType("integer")
+                        .HasColumnName("active_gyms_at_start");
+
+                    b.Property<int>("ActiveMembers")
+                        .HasColumnType("integer")
+                        .HasColumnName("active_members");
+
+                    b.Property<int>("CheckIns")
+                        .HasColumnType("integer")
+                        .HasColumnName("check_ins");
+
+                    b.Property<decimal?>("Churn")
+                        .HasColumnType("decimal(7,4)")
+                        .HasColumnName("churn");
+
+                    b.Property<decimal>("Collected")
+                        .HasColumnType("decimal(14,2)")
+                        .HasColumnName("collected");
+
+                    b.Property<int>("ConvertedGyms")
+                        .HasColumnType("integer")
+                        .HasColumnName("converted_gyms");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Dictionary<string, string>>("GymStates")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("gym_states");
+
+                    b.Property<int>("LostGyms")
+                        .HasColumnType("integer")
+                        .HasColumnName("lost_gyms");
+
+                    b.Property<DateOnly>("Month")
+                        .HasColumnType("date")
+                        .HasColumnName("month");
+
+                    b.Property<decimal>("Mrr")
+                        .HasColumnType("decimal(14,2)")
+                        .HasColumnName("mrr");
+
+                    b.Property<int>("NewGyms")
+                        .HasColumnType("integer")
+                        .HasColumnName("new_gyms");
+
+                    b.Property<int>("TrialGymsAtClose")
+                        .HasColumnType("integer")
+                        .HasColumnName("trial_gyms_at_close");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_monthly_metrics");
+
+                    b.HasIndex("Month")
+                        .IsUnique()
+                        .HasDatabaseName("ix_monthly_metrics_month");
+
+                    b.ToTable("monthly_metrics", "superadmin");
+                });
+
             modelBuilder.Entity("GSM.Domain.SuperAdmin.SubscriptionPayment", b =>
                 {
                     b.Property<Guid>("Id")

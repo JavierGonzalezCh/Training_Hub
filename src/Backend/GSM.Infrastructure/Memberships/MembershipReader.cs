@@ -84,4 +84,11 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
                 && m.EndDate >= today && m.EndDate <= limit,
             cancellationToken);
     }
+
+    public Task<int> GetCoveredMemberCountAsync(DateOnly day, CancellationToken cancellationToken = default)
+        => Memberships
+            .Where(m => m.Status == MembershipStatus.Active && m.StartDate <= day && day <= m.EndDate)
+            .Select(m => m.MemberId)
+            .Distinct()
+            .CountAsync(cancellationToken);
 }

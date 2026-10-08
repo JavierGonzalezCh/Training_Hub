@@ -23,6 +23,12 @@ public interface IMembershipReader
     /// <summary>¿La membresía existe y pertenece a ese miembro? (validación al registrar un pago).</summary>
     Task<bool> BelongsToMemberAsync(
         Guid membershipId, Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Miembros distintos, en toda la plataforma, con una membresía <c>Active</c> que cubre <paramref name="day"/>
+    /// (<c>start_date &lt;= day &lt;= end_date</c>). Para las métricas mensuales del SaaS (sin usuario: ve todos los gyms).
+    /// </summary>
+    Task<int> GetCoveredMemberCountAsync(DateOnly day, CancellationToken cancellationToken = default);
 }
 
 public sealed record ActiveMembershipView(

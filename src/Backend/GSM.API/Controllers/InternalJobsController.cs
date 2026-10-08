@@ -5,6 +5,7 @@ using GSM.Application.Common.Logs;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
 using GSM.Application.Notifications;
+using GSM.Application.SuperAdmin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,6 +33,7 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
     public async Task<ActionResult<CommunicationsJobResult>> RunCommunications(
         [FromServices] RunCommunicationsJobHandler handler,
         [FromServices] PurgeNotificationsHandler purge,
+        [FromServices] RunMonthlyMetricsHandler monthlyMetrics,
         [FromServices] LoggedJobRunner runner,
         CancellationToken cancellationToken)
     {
@@ -46,6 +48,12 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
                 await handler.HandleAsync(cancellationToken),
                 await purge.HandleAsync(cancellationToken)),
             r => (r.RemindersPublished + r.NotificationsPurged, 0));
+
+        // Foto mensual del SaaS: solo hace algo en la primera ejecucion de cada mes (idempotente por mes).
+        await runner.RunAsync(
+            "monthly_metrics",
+            () => monthlyMetrics.HandleAsync(cancellationToken),
+            created => (created, 0));
         return Ok(result);
     }
 

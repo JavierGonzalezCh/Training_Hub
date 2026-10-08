@@ -147,3 +147,20 @@ public sealed record ImpersonationItem(
     string Reason,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt);
+
+/// <summary>Una foto mensual. Month es el primer día del mes; Churn es null sin gyms activos al inicio.</summary>
+public sealed record MonthlyMetricItem(
+    DateOnly Month,
+    decimal Mrr,
+    decimal Collected,
+    int NewGyms,
+    int TrialGymsAtClose,
+    int ConvertedGyms,
+    int LostGyms,
+    int ActiveGymsAtStart,
+    int ActiveGymsAtClose,
+    decimal? Churn,
+    int ActiveMembers,
+    int CheckIns);
+
+public sealed record MonthlyMetricsResponse(IReadOnlyList<MonthlyMetricItem> Months);
