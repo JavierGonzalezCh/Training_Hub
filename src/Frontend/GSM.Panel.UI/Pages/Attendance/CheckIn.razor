@@ -1,7 +1,10 @@
-@page "/attendance/checkin"
+﻿@page "/attendance/checkin"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@using GSM.Panel.UI.Pages.Members
 @inject IAttendanceClient Attendance
 @inject IMembersClient Members
+@inject IMemberMembershipsClient MemberMemberships
+@inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
 <PageTitle>Recepción — GSM</PageTitle>
@@ -25,7 +28,39 @@
     </MudItem>
 
     <MudItem xs="12" md="5">
-        @if (_result is not null)
+        @if (_blocked is { } blocked)
+        {
+            <MudPaper Class="pa-6" Elevation="0" Style="border:1px solid var(--gsm-red-hot)" id="blocked-card">
+                <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Large" Color="Color.Error" Class="mb-2" />
+                <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
+                    <MudText Typo="Typo.h5">@blocked.Member.FirstName @blocked.Member.LastName</MudText>
+                    <CommercialStatusChip Status="@blocked.Access.Commercial" />
+                </div>
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4" role="alert">
+                    @(blocked.Access.BlockMessage ?? "No puede entrar.")
+                </MudAlert>
+
+                @if (_askReason)
+                {
+                    <MudTextField T="string" @bind-Value="_reason" Label="Motivo para dejarlo pasar" Required="true" MaxLength="500"
+                                  Class="mt-4" HelperText="Queda registrado con tu nombre (por ejemplo: paga mañana, cortesía)." AutoFocus="true" />
+                    <div class="d-flex mt-3" style="gap:0.5rem">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LetThroughAsync" Disabled="_submitting">
+                            Confirmar entrada
+                        </MudButton>
+                        <MudButton OnClick="@(() => _askReason = false)">Volver</MudButton>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-wrap mt-4" style="gap:0.5rem">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RenewAsync">Renovar y cobrar</MudButton>
+                        <MudButton Variant="Variant.Outlined" OnClick="@(() => _askReason = true)">Dejar pasar</MudButton>
+                    </div>
+                }
+            </MudPaper>
+        }
+        else if (_result is not null)
         {
             <MudPaper Class="pa-6 text-center" Elevation="0"
                       Style="@ResultStyle()">
@@ -34,27 +69,18 @@
                 <MudText Typo="Typo.h4">@_result.MemberName</MudText>
                 <MudText Typo="Typo.body1" Class="gsm-mono mt-1">@GsmFormat.Instant(_result.CheckedInAt)</MudText>
 
+                @if (_result.Authorized == true)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-4">Entrada autorizada por recepción.</MudAlert>
+                }
+                @if (!string.IsNullOrEmpty(_result.Notice))
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4" role="status" id="access-notice">@_result.Notice</MudAlert>
+                }
                 @if (_result.AlreadyCheckedInToday)
                 {
                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">Ya había entrado hoy.</MudAlert>
                 }
-                @if (_result.MembershipExpired)
-                {
-                    @if (_result.GraceDaysLeft is { } left)
-                    {
-                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">
-                            Dentro de la gracia: le @(left == 1 ? "queda 1 día" : $"quedan {left} días").
-                            Venció el @(_result.MembershipEndsOn is { } e ? GsmFormat.Day(e) : "—").
-                        </MudAlert>
-                    }
-                    else
-                    {
-                        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">
-                            Membresía vencida@(_result.MembershipEndsOn is { } e2 ? $" el {GsmFormat.Day(e2)}" : " o inexistente"). La entrada quedó registrada igual.
-                        </MudAlert>
-                    }
-                }
-
                 @if (_result.UnlockedAchievements is { Count: > 0 } achievements)
                 {
                     <MudDivider Class="my-4" />
@@ -77,7 +103,12 @@
 
 @code {
     private CheckInResponse? _result;
+    private BlockedMember? _blocked;
+    private bool _askReason;
+    private string? _reason;
     private bool _submitting;
+
+    private sealed record BlockedMember(MemberListItem Member, AccessStatusResponse Access);
 
     private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
     {
@@ -86,7 +117,7 @@
             return [];
         }
 
-        var result = await Members.MembersGETAsync(search, null, null, 1, 10, cancellationToken);
+        var result = await Members.MembersGETAsync(search, null, null, null, 1, 10, cancellationToken);
         return result.Items;
     }
 
@@ -97,19 +128,79 @@
             return;
         }
 
+        _result = null;
+        _blocked = null;
+        _askReason = false;
+        _reason = null;
+
+        // Primero el estado: si no puede entrar, recepción decide entre renovar y dejarlo pasar.
+        try
+        {
+            var access = await MemberMemberships.AccessAsync(member.Id);
+            if (!access.CanEnter)
+            {
+                _blocked = new BlockedMember(member, access);
+                return;
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            return;
+        }
+
         await SubmitAsync(new CheckInRequest { MemberId = member.Id });
     }
 
-    private async Task SubmitAsync(CheckInRequest request)
+    private async Task LetThroughAsync()
+    {
+        if (_blocked is not { } blocked)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_reason) || _reason.Trim().Length < 3)
+        {
+            Snackbar.Add("Indica el motivo para dejarlo pasar (mínimo 3 caracteres).", Severity.Warning);
+            return;
+        }
+
+        if (await SubmitAsync(new CheckInRequest { MemberId = blocked.Member.Id, AuthorizationReason = _reason.Trim() }))
+        {
+            _blocked = null;
+            _askReason = false;
+        }
+    }
+
+    private async Task RenewAsync()
+    {
+        if (_blocked is not { } blocked)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<AssignMembershipDialog> { { x => x.MemberId, blocked.Member.Id } };
+        var dialog = await Dialogs.ShowAsync<AssignMembershipDialog>("Asignar membresía", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Membresía renovada. Vuelve a elegir al miembro para registrar la entrada.", Severity.Success);
+            _blocked = null;
+        }
+    }
+
+    private async Task<bool> SubmitAsync(CheckInRequest request)
     {
         _submitting = true;
         try
         {
             _result = await Attendance.CheckinAsync(request);
+            return true;
         }
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            return false;
         }
         finally
         {

@@ -1,4 +1,4 @@
-@inject IMemberMembershipsClient MemberMemberships
+﻿@inject IMemberMembershipsClient MemberMemberships
 @inject IMembershipPlansClient Plans
 @inject IPaymentsClient Payments
 
@@ -27,7 +27,21 @@
                             <MudSelectItem Value="plan.Id">@plan.Name — @GsmFormat.Money((decimal)plan.Price) · @plan.DurationDays días</MudSelectItem>
                         }
                     </MudSelect>
-                    <MudDatePicker Label="Fecha de inicio (opcional, hoy por defecto)" Date="_startDate" DateChanged="d => _startDate = d" Class="mb-4" />
+                    <MudDatePicker Label="Cambiar la fecha de inicio (opcional)" Date="_startDate" DateChanged="OnStartChanged" Class="mb-2" />
+
+                    @if (_preview is { } preview)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" role="status" id="renewal-preview">
+                            <strong>Empieza el @GsmFormat.DayShort(preview.StartDate) · vence el @GsmFormat.DayShort(preview.EndDate)</strong>
+                            <div>@KindText(preview)</div>
+                        </MudAlert>
+                        @if (preview.StartDateChanged && preview.Kind != "new")
+                        {
+                            <MudTextField T="string" @bind-Value="_startReason" Label="Motivo del cambio de fecha" Required="true"
+                                          MaxLength="500" Class="mb-3"
+                                          HelperText="El sistema calcula el inicio según la situación del miembro; cambiarlo exige un motivo." />
+                        }
+                    }
 
                     <MudSwitch T="bool" @bind-Value="_charge" Color="Color.Primary" Label="Cobrar ahora" Class="mb-2" />
                     @if (_charge)
@@ -69,6 +83,8 @@
     private List<PlanResponse> _plans = [];
     private Guid _planId;
     private DateTime? _startDate;
+    private string? _startReason;
+    private RenewalPreviewResponse? _preview;
     private bool _charge = true;
     private decimal _amount;
     private int _method;
@@ -85,7 +101,15 @@
             _plans = plans.ToList();
             if (_plans.Count > 0)
             {
-                OnPlanChanged(_plans[0].Id);
+                // Se propone el plan que el miembro ya tenía (la última membresía que no se canceló).
+                var history = await MemberMemberships.MembershipsAllAsync(MemberId);
+                var lastPlanId = history
+                    .Where(m => m.Status != "Cancelled")
+                    .OrderByDescending(m => m.StartDate)
+                    .Select(m => (Guid?)m.PlanId)
+                    .FirstOrDefault();
+                var proposed = _plans.FirstOrDefault(p => p.Id == lastPlanId) ?? _plans[0];
+                await OnPlanChanged(proposed.Id);
             }
         }
         catch (GsmApiException ex)
@@ -98,14 +122,45 @@
         }
     }
 
-    private void OnPlanChanged(Guid planId)
+    private async Task OnPlanChanged(Guid planId)
     {
         _planId = planId;
         if (_plans.FirstOrDefault(p => p.Id == planId) is { } plan)
         {
             _amount = (decimal)plan.Price;
         }
+
+        await LoadPreviewAsync();
     }
+
+    private async Task OnStartChanged(DateTime? date)
+    {
+        _startDate = date;
+        await LoadPreviewAsync();
+    }
+
+    // La vista previa usa el mismo cálculo que "asignar": lo que se muestra es lo que se crea.
+    private async Task LoadPreviewAsync()
+    {
+        try
+        {
+            _preview = await MemberMemberships.PreviewAsync(
+                MemberId, _planId, _startDate is { } d ? DateOnly.FromDateTime(d) : null);
+        }
+        catch (GsmApiException ex)
+        {
+            _preview = null;
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+
+    private static string KindText(RenewalPreviewResponse preview) => preview.Kind switch
+    {
+        "early" => $"Renueva antes de vencer: empieza al terminar la anterior ({(preview.PreviousEndDate is { } e ? GsmFormat.DayShort(e) : "—")}).",
+        "in_grace" => "Venció dentro de la gracia: conserva su fecha de ciclo.",
+        "after_grace" => "Venció hace más que la gracia: empieza el día en que paga.",
+        _ => "Primera membresía.",
+    };
 
     // Dos llamadas, no una operación atómica: asignar es de Memberships y cobrar de Payments, y la
     // regla del proyecto es no escribir en otro módulo. Si el cobro falla, la membresía ya existe
@@ -127,6 +182,7 @@
             {
                 PlanId = _planId,
                 StartDate = _startDate is { } d ? DateOnly.FromDateTime(d) : null,
+                StartDateReason = string.IsNullOrWhiteSpace(_startReason) ? null : _startReason.Trim(),
             });
         }
         catch (GsmApiException ex)

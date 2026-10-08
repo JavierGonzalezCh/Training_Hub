@@ -1,4 +1,4 @@
-@page "/members/{Id:guid}"
+﻿@page "/members/{Id:guid}"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Payments
 @inject IMembersClient Members
@@ -48,7 +48,14 @@ else if (_member is not null)
         <div style="flex:1; min-width:220px">
             <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
                 <MudText Typo="Typo.h4">@_member.FirstName @_member.LastName</MudText>
-                <StatusChip Status="@_member.Status" />
+                @if (_member.Status == "Inactive")
+                {
+                    <MudChip T="string" Color="Color.Default" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">DADO DE BAJA</MudChip>
+                }
+                else
+                {
+                    <CommercialStatusChip Status="@_member.CommercialStatus" />
+                }
             </div>
             <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">
                 @MemberLabels.DocumentShort(_member.DocumentType) @_member.DocumentNumber · ingresó @GsmFormat.Day(_member.JoinedAt)
@@ -97,6 +104,10 @@ else if (_member is not null)
                 else
                 {
                     <MudText Color="Color.Secondary">Sin membresía activa.</MudText>
+                }
+                @if (!string.IsNullOrEmpty(_member.AccessNotice))
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2" role="status">@_member.AccessNotice</MudAlert>
                 }
             </MudPaper>
         </MudItem>

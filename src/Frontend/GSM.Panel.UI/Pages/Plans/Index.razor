@@ -1,4 +1,4 @@
-@page "/plans"
+﻿@page "/plans"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembershipPlansClient Plans
 @inject IDialogService Dialogs
@@ -62,6 +62,11 @@ else
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
                                        OnClick="@(() => DeactivateAsync(context))" title="Desactivar" />
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Restore"
+                                   OnClick="@(() => ReactivateAsync(context))">Reactivar</MudButton>
                     }
                 </RequireRole>
             </MudTd>
@@ -137,6 +142,20 @@ else
         {
             await Plans.MembershipPlansDELETEAsync(plan.Id);
             Snackbar.Add("Plan desactivado.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task ReactivateAsync(PlanResponse plan)
+    {
+        try
+        {
+            await Plans.ReactivateMembershipPlanAsync(plan.Id);
+            Snackbar.Add("Plan reactivado.", Severity.Success);
             await LoadAsync();
         }
         catch (GsmApiException ex)

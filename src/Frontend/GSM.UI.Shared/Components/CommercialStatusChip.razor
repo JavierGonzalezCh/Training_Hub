@@ -1,0 +1,9 @@
+@* Insignia del estado comercial del miembro (al día, por vencer, en gracia, vencido, congelado, sin plan). *@
+<MudChip T="string" Color="@CommercialStatusLabels.Color(Status)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+    @CommercialStatusLabels.Label(Status).ToUpperInvariant()
+</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public string? Status { get; set; }
+}

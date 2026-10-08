@@ -1,6 +1,7 @@
-@* Pestaña "Check-in" de la configuración: tipo de QR del gym, días de gracia y regeneración del
+﻿@* Pestaña "Check-in" de la configuración: tipo de QR del gym, días de gracia y regeneración del
    cartel impreso. Solo Owner. Ver docs/CHECKIN-QR-BUILD-PLAN.md. *@
 @inject IAttendanceClient Attendance
+@inject IMembershipSettingsClient MembershipSettings
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
@@ -32,7 +33,10 @@ else
         </fieldset>
 
         <MudNumericField T="int" @bind-Value="_graceDays" Label="Días de gracia" Min="0" Max="30"
-                         HelperText="Días después de vencer la membresía en que la entrada aún se registra, con aviso. Pasado ese plazo se rechaza y el gym recibe la alerta."
+                         HelperText="Días después de vencer la membresía en que el miembro aún entra, con letrero. Pasado ese plazo se rechaza y el gym recibe la alerta; recepción puede dejarlo pasar con motivo."
+                         Class="mb-4" Style="max-width:420px" />
+        <MudNumericField T="int" @bind-Value="_expiringDays" Label="Días para 'por vencer'" Min="1" Max="60"
+                         HelperText="Con estos días o menos para vencer, el miembro figura 'por vencer' y ve un letrero al entrar."
                          Class="mb-4" Style="max-width:420px" />
 
         <div class="d-flex flex-wrap" style="gap:0.75rem">
@@ -61,6 +65,7 @@ else
     private string _mode = Rotating;
     private string _savedMode = Rotating;
     private int _graceDays = 3;
+    private int _expiringDays = 7;
 
     protected override async Task OnInitializedAsync()
     {
@@ -68,7 +73,9 @@ else
         {
             var settings = await Attendance.SettingsGETAsync();
             _mode = _savedMode = settings.Mode;
-            _graceDays = settings.GraceDays;
+            var membership = await MembershipSettings.MembershipSettingsGETAsync();
+            _graceDays = membership.GraceDays;
+            _expiringDays = membership.ExpiringDays;
         }
         catch (GsmApiException ex)
         {
@@ -85,9 +92,13 @@ else
         _saving = true;
         try
         {
-            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode, GraceDays = _graceDays });
+            // La gracia ya no es de Attendance: vive en los ajustes de membresías (dos llamadas, cada una a su módulo).
+            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode });
+            var membership = await MembershipSettings.MembershipSettingsPUTAsync(
+                new UpdateMembershipSettingsRequest { GraceDays = _graceDays, ExpiringDays = _expiringDays });
             _mode = _savedMode = saved.Mode;
-            _graceDays = saved.GraceDays;
+            _graceDays = membership.GraceDays;
+            _expiringDays = membership.ExpiringDays;
             Snackbar.Add("Ajustes de check-in guardados.", Severity.Success);
         }
         catch (GsmApiException ex)

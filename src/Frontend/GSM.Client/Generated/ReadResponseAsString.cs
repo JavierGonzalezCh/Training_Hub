@@ -154,3 +154,8 @@ public partial class StaffNotificationsClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class MembershipSettingsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
