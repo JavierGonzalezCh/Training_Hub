@@ -75,6 +75,80 @@ Solo web.
 | Evolución | 12 meses: MRR, gyms activos, bajas, miembros totales (SuperAdmin §V4) |
 | Plataforma | Totales de miembros y entradas |
 
-## 4. Pendiente de decidir
+## 4. Reglas comunes
+
+- **Los dashboards no son un módulo de negocio.** No tienen tablas ni escriben nada: son compositores,
+  como `GSM.Application/MemberStreak/`. Viven en `GSM.Application/Dashboard/` (ya existe para el panel
+  actual) y leen **solo** por los `I{Módulo}Reader` de cada módulo. Si un bloque necesita un dato que
+  ningún reader ofrece, se añade un método de lectura al reader del dueño (§6); nunca se consulta su
+  `DbContext`.
+- **Un endpoint por dashboard**, que devuelve todos los bloques de una vez. Un bloque que quien entra no
+  puede ver **no viaja** (queda `null`), no responde 403: el panel lo oculta. Los permisos son los de
+  `GSM-modulo-identity.md` §5 (`ViewFinances`, `VoidPayments`, `Trainer`).
+- **Un bloque que falla no tumba el dashboard.** Si un reader lanza, el bloque vuelve `null` con su
+  error registrado en `logs.errors` (`GSM-logs.md` §4.1), y el resto se muestra.
+- **Días y meses de negocio** con `IClock.Today` y `IClock.BusinessDayRange`, nunca rangos UTC (es el
+  origen de B2 y de otros dos defectos del proyecto).
+- **Sin caché ni tiempo real.** Se recalcula al abrir la página y con "Actualizar". Excepción: el
+  indicador de "personas adentro ahora" y la caja abierta se refrescan solos cada 60 s mientras la
+  página está visible. Si una consulta resulta lenta, `logs.slow_requests` lo dirá antes de cachear.
+- **Los listados del dashboard son cortos** (máximo 5–10 filas) con "Ver todos", que lleva a la pantalla
+  del módulo con el filtro ya puesto. El dashboard no pagina.
+- **Impersonación:** el SuperAdmin impersonando ve el panel del gym como un Owner.
+
+## 5. Contratos
+
+| Endpoint | Quién | Sustituye |
+|---|---|---|
+| `GET /api/dashboard` | Owner y staff del gym | El mismo endpoint de hoy; la respuesta cambia de forma (bloques opcionales del §1) |
+| `GET /api/me/home` | Miembro | Nuevo; hoy la pantalla junta varias llamadas (`/api/me/streak`, rutina, clases, feed) |
+| `GET /api/admin/dashboard` | SuperAdmin | El mismo endpoint de hoy, ampliado con los bloques del §3 |
+
+- La respuesta de cada uno es un objeto con una propiedad por bloque (`attention`, `indicators`,
+  `today`, `finances`, `myMembers`…), todas anulables. Los enums sueltos o en colección viajan como
+  `string` en los DTOs (defectos de NSwag de F6 y de la etapa 12).
+- Los parámetros de la vista se reducen al mínimo: `GET /api/dashboard` no recibe filtros; la afluencia
+  usa siempre los últimos 30 días.
+
+## 6. Lo que cambia en el resto
+
+Lecturas nuevas que cada módulo dueño expone en su `Public/` (solo lectura; cada sub-etapa del §7 añade
+las que necesita, y si ya las añadió la tarea del módulo, las reutiliza):
+
+| Módulo | Lectura |
+|---|---|
+| Memberships | Conteo por estado comercial (al día, por vencer, en gracia, vencidos); lista corta de por vencer y vencidos |
+| Attendance | Entradas de hoy, personas adentro y % del aforo, rechazos de hoy, afluencia por hora de 30 días, últimas entradas |
+| Payments | Cobrado en un rango de días de negocio; solicitudes de anulación pendientes; cajas abiertas y olvidadas |
+| Equipment | Máquinas fuera de servicio y reportes abiertos, inseguras primero |
+| Classes | Sesiones de hoy con reservas, cupo y lista de espera; próxima reserva del miembro; ofertas de lista de espera por confirmar |
+| Communications | Cumpleaños de hoy; último contacto por WhatsApp de un miembro; anuncio fijado y no leídos |
+| Routines | Entrenamiento de hoy del miembro; rutinas por revisar y miembros sin rutina de un entrenador |
+| Achievements | Racha, congeladores, posición en el ranking, premios por reclamar |
+| Gyms | Abierto/cerrado y próxima apertura o cierre (`IGymReader.IsOpenAt`), pasos de onboarding pendientes |
+| SuperAdmin | Estado de la suscripción y límite de miembros (bloque `subscription` actual); métricas mensuales (§V4) |
+
+Frontend: el dashboard del panel vive en `GSM.Panel.UI` y el inicio del miembro en `GSM.Member.UI`,
+con el orden de celular y de escritorio de los §1–§2 (`GSM-apps-y-vistas.md` §5–§6).
+
+## 7. Propuesta de sub-etapas
+
+Van en la Ola 5 (`V2-BUILD-PLAN.md`), cuando ya existen casi todos los datos que muestran. Un bloque
+cuyo módulo no esté construido todavía **no se inventa**: se deja fuera y queda anotado en la entrega.
+
+| Sub-etapa | Qué | Depende de |
+|---|---|---|
+| **D1** | Panel del gym: `GET /api/dashboard` por bloques y permisos, orden de celular, refresco de 60 s del aforo y la caja. Reutiliza el comparativo de ingresos corregido en P3 (B2) con su test. | MS1, A5, P2–P3, E4, C4, CO3, CO5, G3, G5, I3, AP2 |
+| **D2** | Inicio del miembro: `GET /api/me/home`, ocho bloques del §2 en una llamada, dos columnas en escritorio; sale "Últimas visitas". | MS1, G3, A5, C4, L5, L6, R8, MS8 + L7, AP6 |
+| **D3** | Panel del SuperAdmin: bloques del §3, alerta de inactividad (7 días sin entradas), "Reenviar acceso" desde Arranque, evolución de 12 meses. | S1–S3, S7, G1, G5 |
+
+Criterios de aceptación comunes, cada uno con su test:
+
+1. Un usuario sin el permiso de un bloque recibe ese bloque en `null`, no un 403.
+2. Un reader que lanza deja su bloque en `null` y el resto de la respuesta llega.
+3. Los conteos por día se calculan en la zona del gym (test con `IClock` a las 20:00 hora de Colombia).
+4. Los datos de otro gym nunca aparecen (multi-tenancy), salvo en D3.
+
+## 8. Pendiente de decidir
 
 - Nada por ahora.

@@ -158,7 +158,7 @@ Agentes simultáneos por ola: entre 6 y 9. Tamaño: **S** (horas), **M** (un dí
 | Rutinas | **R7** Progreso y récords → **L3** Logros de récords y volumen → **R8** Fecha de revisión → **R9** Salud en el editor → **R6** Subida de imagen y video | Routines v2; Achievements §3.2 |
 | Gyms | **G5** Onboarding obligatorio → **G6** Configuración ordenada | Gyms §5, §7 |
 | Apps | **AP6** Miembro en escritorio → **AP7** Pulir para celular lo no diario → **MS8 + L7** Historial de membresías y "Mi progreso" en la app | Apps §6; Memberships §11; Achievements §8 |
-| Dashboards | **D1** Panel del gym → **D2** Inicio del miembro → **D3** Panel del SuperAdmin | `GSM-dashboards.md` |
+| Dashboards | **D1** Panel del gym → **D2** Inicio del miembro → **D3** Panel del SuperAdmin | `GSM-dashboards.md` §4–§7. **D2 espera a que el carril Apps una AP6 y MS8 + L7** |
 | Plataforma | **S4** Catálogos del sistema en `/admin` (ejercicios v2, alternativas, máquinas, ligados) | SuperAdmin §V7 |
 | Logs | **LG5** Alertas al SuperAdmin | `GSM-logs.md` §8 |
 | Comunicaciones | **CO6** Horario sin avisos aplicado a anuncios y correos (si no quedó completo en N4) | Comunicaciones v2 §G |
