@@ -11,10 +11,12 @@ public sealed record RoutineDraft(
     bool SelfAssigned,
     IReadOnlyList<RoutineDayDraft> Days);
 
+/// <summary><c>Id</c> nulo = día nuevo; con valor = el día existente que se actualiza.</summary>
 public sealed record RoutineDayDraft(
     string? Name,
     bool IsRest,
-    IReadOnlyList<RoutineExerciseDraft> Exercises);
+    IReadOnlyList<RoutineExerciseDraft> Exercises,
+    Guid? Id = null);
 
 public sealed record RoutineExerciseDraft(
     Guid ExerciseId,
@@ -22,4 +24,5 @@ public sealed record RoutineExerciseDraft(
     string TargetReps,
     decimal? TargetWeightKg,
     int? RestSeconds,
-    string? Notes);
+    string? Notes,
+    Guid? Id = null);

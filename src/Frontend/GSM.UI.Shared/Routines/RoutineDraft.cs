@@ -20,10 +20,12 @@ public sealed class RoutineDraft
         Notes = routine.Notes,
         Days = routine.Days.Select(d => new DraftDay
         {
+            Id = d.Id,
             Name = d.Name,
             IsRest = d.IsRest,
             Exercises = d.Exercises.Select(e => new DraftExercise
             {
+                Id = e.Id,
                 Exercise = new ExerciseResponse { Id = e.ExerciseId, Name = e.ExerciseName },
                 TargetSets = e.TargetSets,
                 TargetReps = e.TargetReps,
@@ -44,12 +46,14 @@ public sealed class RoutineDraft
         Notes = Notes,
         Days = Days.Select(d => new RoutineDayInput
         {
+            Id = d.Id,
             Name = string.IsNullOrWhiteSpace(d.Name) ? null : d.Name,
             IsRest = d.IsRest,
             Exercises = d.IsRest
                 ? []
                 : d.Exercises.Where(e => e.Exercise is not null).Select(e => new RoutineExerciseInput
                 {
+                    Id = e.Id,
                     ExerciseId = e.Exercise!.Id,
                     TargetSets = e.TargetSets,
                     TargetReps = e.TargetReps,
@@ -63,6 +67,8 @@ public sealed class RoutineDraft
 
 public sealed class DraftDay
 {
+    /// <summary>Id del día en el servidor al editar; <c>null</c> = día nuevo. Se reenvía para que la edición sea en el lugar.</summary>
+    public Guid? Id { get; set; }
     public string? Name { get; set; }
     public bool IsRest { get; set; }
     public List<DraftExercise> Exercises { get; set; } = [];
@@ -70,6 +76,8 @@ public sealed class DraftDay
 
 public sealed class DraftExercise
 {
+    /// <summary>Id de la línea en el servidor al editar; <c>null</c> = línea nueva. Conservarlo mantiene su historial.</summary>
+    public Guid? Id { get; set; }
     public ExerciseResponse? Exercise { get; set; }
     public int TargetSets { get; set; } = 3;
     public string TargetReps { get; set; } = "8-12";

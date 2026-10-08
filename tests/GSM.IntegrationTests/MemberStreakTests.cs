@@ -101,7 +101,7 @@ public sealed class MemberStreakTests(ApiFactory factory) : IClassFixture<ApiFac
 
         await db.Database.ExecuteSqlRawAsync(
             "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members, attendance.attendances restart identity cascade;");
-        await db.Database.ExecuteSqlRawAsync("delete from routines.routines;");
+        await db.Database.ExecuteSqlRawAsync("delete from routines.routine_exercise_logs; delete from routines.routines;");
 
         var slug = $"strk-{Guid.NewGuid():N}"[..12];
         var gym = Gym.Create("Streak Gym", slug);

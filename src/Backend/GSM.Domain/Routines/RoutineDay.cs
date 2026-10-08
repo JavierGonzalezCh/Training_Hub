@@ -26,19 +26,37 @@ public sealed class RoutineDay : BaseEntity, ITenantEntity
 
     public bool IsRest { get; private set; }
 
-    public IReadOnlyList<RoutineExercise> Exercises => _exercises;
+    /// <summary>Día de negocio en que el día salió de la rutina; no se borra, sus registros siguen ligados.</summary>
+    public DateOnly? RetiredOn { get; private set; }
 
-    internal static RoutineDay Create(Guid gymId, int position, RoutineDayDraft draft)
+    /// <summary>Líneas vigentes (las retiradas no cuentan).</summary>
+    public IReadOnlyList<RoutineExercise> Exercises => _exercises.Where(e => e.RetiredOn is null).ToList();
+
+    internal static RoutineDay Create(Guid gymId, int position, RoutineDayDraft draft, DateOnly today)
     {
-        var day = new RoutineDay
-        {
-            GymId = gymId,
-            Position = position,
-            Name = string.IsNullOrWhiteSpace(draft.Name) ? null : draft.Name.Trim(),
-            IsRest = draft.IsRest,
-        };
+        var day = new RoutineDay { GymId = gymId };
+        day.Apply(position, draft, today);
+        return day;
+    }
 
-        if (day.Name is { Length: > 60 })
+    internal void Update(int position, RoutineDayDraft draft, DateOnly today) => Apply(position, draft, today);
+
+    internal void Retire(DateOnly on)
+    {
+        RetiredOn ??= on;
+        foreach (var exercise in _exercises)
+        {
+            exercise.Retire(on);
+        }
+    }
+
+    private void Apply(int position, RoutineDayDraft draft, DateOnly today)
+    {
+        Position = position;
+        Name = string.IsNullOrWhiteSpace(draft.Name) ? null : draft.Name.Trim();
+        IsRest = draft.IsRest;
+
+        if (Name is { Length: > 60 })
         {
             throw new ValidationDomainException("El nombre del día no puede exceder 60 caracteres.");
         }
@@ -48,12 +66,35 @@ public sealed class RoutineDay : BaseEntity, ITenantEntity
             throw new ValidationDomainException("Un día de descanso no admite ejercicios.");
         }
 
+        var current = _exercises.Where(e => e.RetiredOn is null).ToDictionary(e => e.Id);
+        var kept = new HashSet<Guid>();
         var order = 1;
         foreach (var exerciseDraft in draft.Exercises)
         {
-            day._exercises.Add(RoutineExercise.Create(gymId, order++, exerciseDraft));
+            if (exerciseDraft.Id is { } id)
+            {
+                if (!current.TryGetValue(id, out var existing))
+                {
+                    throw new ValidationDomainException(
+                        "El body referencia una línea que no existe en este día de la rutina.");
+                }
+
+                if (!kept.Add(id))
+                {
+                    throw new ValidationDomainException("Una línea de la rutina viene repetida en el body.");
+                }
+
+                existing.Update(order++, exerciseDraft);
+            }
+            else
+            {
+                _exercises.Add(RoutineExercise.Create(GymId, order++, exerciseDraft));
+            }
         }
 
-        return day;
+        foreach (var removed in current.Values.Where(e => !kept.Contains(e.Id)))
+        {
+            removed.Retire(today);
+        }
     }
 }

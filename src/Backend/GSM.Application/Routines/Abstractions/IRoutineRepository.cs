@@ -5,7 +5,7 @@ namespace GSM.Application.Routines.Abstractions;
 /// <summary>Acceso a las entidades del módulo Routines. Sin <c>SaveChanges</c>.</summary>
 public interface IRoutineRepository
 {
-    /// <summary>Rutina con sus días y líneas, rastreada (para editar/reemplazar).</summary>
+    /// <summary>Rutina con sus días y líneas, rastreada (para editar en el lugar). Solo trae días y líneas vigentes.</summary>
     Task<Routine?> GetWithDaysAsync(Guid routineId, CancellationToken cancellationToken = default);
 
     Task<Routine?> GetActiveForMemberWithDaysAsync(Guid memberId, CancellationToken cancellationToken = default);
@@ -18,6 +18,9 @@ public interface IRoutineRepository
 
     void Add(Routine routine);
 
-    /// <summary>Marca para borrado los días (y líneas) actuales de la rutina. Para reemplazarlos en un PUT.</summary>
-    void RemoveDaysOf(Routine routine);
+    /// <summary>
+    /// Tras editar en el lugar: los días y líneas nuevos del agregado traen su id (UUID v7 del dominio) y EF
+    /// los daría por existentes; esto los marca como nuevos para que se inserten.
+    /// </summary>
+    void TrackNewChildren(Routine routine);
 }

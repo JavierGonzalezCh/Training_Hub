@@ -36,10 +36,11 @@ public sealed class Routine : BaseEntity, ITenantEntity
 
     public DateOnly? DeactivatedOn { get; private set; }
 
-    public IReadOnlyList<RoutineDay> Days => _days;
+    /// <summary>Días vigentes (los retirados no cuentan).</summary>
+    public IReadOnlyList<RoutineDay> Days => _days.Where(d => d.RetiredOn is null).ToList();
 
     /// <summary>Longitud del ciclo = número de días.</summary>
-    public int CycleLength => _days.Count;
+    public int CycleLength => _days.Count(d => d.RetiredOn is null);
 
     public static Routine Assign(
         Guid gymId, Guid memberId, DateOnly startsOn, RoutineDraft draft)
@@ -58,12 +59,16 @@ public sealed class Routine : BaseEntity, ITenantEntity
             StartsOn = startsOn,
         };
 
-        routine.ApplyHeaderAndDays(draft);
+        routine.ApplyHeaderAndDays(draft, startsOn);
         return routine;
     }
 
-    /// <summary>Reemplaza cabecera, días y líneas. No cambia <see cref="StartsOn"/>: es el ancla histórica del ciclo.</summary>
-    public void Replace(RoutineDraft draft) => ApplyHeaderAndDays(draft);
+    /// <summary>
+    /// Edita en el lugar: lo que trae id se actualiza y conserva su id (y sus registros), lo que no trae
+    /// id se crea y lo que ya no viene se retira con <paramref name="today"/> sin borrarse. No cambia
+    /// <see cref="StartsOn"/>: es el ancla histórica del ciclo.
+    /// </summary>
+    public void Replace(RoutineDraft draft, DateOnly today) => ApplyHeaderAndDays(draft, today);
 
     public void Deactivate(DateOnly on)
     {
@@ -76,21 +81,46 @@ public sealed class Routine : BaseEntity, ITenantEntity
         DeactivatedOn = on;
     }
 
-    private void ApplyHeaderAndDays(RoutineDraft draft)
+    private void ApplyHeaderAndDays(RoutineDraft draft, DateOnly today)
     {
-        Name = NormalizeName(draft.Name);
-        Notes = string.IsNullOrWhiteSpace(draft.Notes) ? null : draft.Notes.Trim();
+        var name = NormalizeName(draft.Name);
 
         if (draft.Days.Count < 1)
         {
             throw new ValidationDomainException("La rutina necesita al menos un día.");
         }
 
-        _days.Clear();
+        Name = name;
+        Notes = string.IsNullOrWhiteSpace(draft.Notes) ? null : draft.Notes.Trim();
+
+        var current = _days.Where(d => d.RetiredOn is null).ToDictionary(d => d.Id);
+        var kept = new HashSet<Guid>();
         var position = 1;
         foreach (var dayDraft in draft.Days)
         {
-            _days.Add(RoutineDay.Create(GymId, position++, dayDraft));
+            if (dayDraft.Id is { } id)
+            {
+                if (!current.TryGetValue(id, out var existing))
+                {
+                    throw new ValidationDomainException("El body referencia un día que no existe en esta rutina.");
+                }
+
+                if (!kept.Add(id))
+                {
+                    throw new ValidationDomainException("Un día de la rutina viene repetido en el body.");
+                }
+
+                existing.Update(position++, dayDraft, today);
+            }
+            else
+            {
+                _days.Add(RoutineDay.Create(GymId, position++, dayDraft, today));
+            }
+        }
+
+        foreach (var removed in current.Values.Where(d => !kept.Contains(d.Id)))
+        {
+            removed.Retire(today);
         }
     }
 

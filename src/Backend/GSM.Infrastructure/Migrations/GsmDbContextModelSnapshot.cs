@@ -1602,6 +1602,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("position");
 
+                    b.Property<DateOnly?>("RetiredOn")
+                        .HasColumnType("date")
+                        .HasColumnName("retired_on");
+
                     b.Property<Guid>("RoutineId")
                         .HasColumnType("uuid")
                         .HasColumnName("routine_id");
@@ -1614,7 +1618,6 @@ namespace GSM.Infrastructure.Migrations
                         .HasName("pk_routine_days");
 
                     b.HasIndex("RoutineId", "Position")
-                        .IsUnique()
                         .HasDatabaseName("ix_routine_days_routine_id_position");
 
                     b.ToTable("routine_days", "routines");
@@ -1651,6 +1654,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<int?>("RestSeconds")
                         .HasColumnType("integer")
                         .HasColumnName("rest_seconds");
+
+                    b.Property<DateOnly?>("RetiredOn")
+                        .HasColumnType("date")
+                        .HasColumnName("retired_on");
 
                     b.Property<Guid>("RoutineDayId")
                         .HasColumnType("uuid")
@@ -1699,6 +1706,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("exercise_id");
+
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
                         .HasColumnName("gym_id");
@@ -1740,6 +1751,9 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_routine_exercise_logs");
+
+                    b.HasIndex("MemberId", "ExerciseId")
+                        .HasDatabaseName("ix_routine_exercise_logs_member_id_exercise_id");
 
                     b.HasIndex("MemberId", "PerformedOn")
                         .HasDatabaseName("ix_routine_exercise_logs_member_id_performed_on");
@@ -2238,7 +2252,7 @@ namespace GSM.Infrastructure.Migrations
                     b.HasOne("GSM.Domain.Routines.RoutineExercise", null)
                         .WithMany()
                         .HasForeignKey("RoutineExerciseId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_routine_exercise_logs_routine_exercises_routine_exercise_id");
 

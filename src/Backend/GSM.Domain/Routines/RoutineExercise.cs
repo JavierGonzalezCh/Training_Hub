@@ -29,7 +29,25 @@ public sealed class RoutineExercise : BaseEntity, ITenantEntity
 
     public string? Notes { get; private set; }
 
+    /// <summary>
+    /// Día de negocio en que la línea salió de la rutina. Una línea retirada no se borra: sus registros
+    /// de entrenamiento siguen ligados a ella.
+    /// </summary>
+    public DateOnly? RetiredOn { get; private set; }
+
     internal static RoutineExercise Create(Guid gymId, int order, RoutineExerciseDraft draft)
+    {
+        var exercise = new RoutineExercise { GymId = gymId };
+        exercise.Apply(order, draft);
+        return exercise;
+    }
+
+    /// <summary>Actualiza la línea en el lugar: conserva el id (y por tanto sus registros).</summary>
+    internal void Update(int order, RoutineExerciseDraft draft) => Apply(order, draft);
+
+    internal void Retire(DateOnly on) => RetiredOn ??= on;
+
+    private void Apply(int order, RoutineExerciseDraft draft)
     {
         if (draft.ExerciseId == Guid.Empty)
         {
@@ -57,16 +75,12 @@ public sealed class RoutineExercise : BaseEntity, ITenantEntity
             throw new ValidationDomainException("rest_seconds no puede ser negativo.");
         }
 
-        return new RoutineExercise
-        {
-            GymId = gymId,
-            ExerciseId = draft.ExerciseId,
-            Order = order,
-            TargetSets = draft.TargetSets,
-            TargetReps = reps,
-            TargetWeightKg = draft.TargetWeightKg,
-            RestSeconds = draft.RestSeconds,
-            Notes = string.IsNullOrWhiteSpace(draft.Notes) ? null : draft.Notes.Trim(),
-        };
+        ExerciseId = draft.ExerciseId;
+        Order = order;
+        TargetSets = draft.TargetSets;
+        TargetReps = reps;
+        TargetWeightKg = draft.TargetWeightKg;
+        RestSeconds = draft.RestSeconds;
+        Notes = string.IsNullOrWhiteSpace(draft.Notes) ? null : draft.Notes.Trim();
     }
 }
