@@ -8,6 +8,12 @@ public static class GsmClaims
     public const string Role = "role";
     public const string Name = "name";
 
+    /// <summary>
+    /// Permiso especial de staff (<see cref="PermissionName"/>); el claim aparece una vez por permiso.
+    /// El token de un Owner los lleva todos.
+    /// </summary>
+    public const string Permission = "perm";
+
     /// <summary>Presente y "true" solo en tokens de impersonación (soporte de solo lectura).</summary>
     public const string Impersonating = "impersonating";
 

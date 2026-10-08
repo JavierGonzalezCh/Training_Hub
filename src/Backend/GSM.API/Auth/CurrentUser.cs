@@ -31,4 +31,7 @@ public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICur
 
     public Guid? ImpersonationSessionId =>
         Guid.TryParse(Principal?.FindFirstValue(GsmClaims.ImpersonationSession), out var id) ? id : null;
+
+    public bool HasPermission(StaffPermission permission)
+        => Principal is { } principal && PermissionRules.Has(principal, permission);
 }

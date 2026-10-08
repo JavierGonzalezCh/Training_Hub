@@ -11,4 +11,8 @@ public partial class GsmDbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<GymAccess> GymAccesses => Set<GymAccess>();
+
+    public DbSet<GymAccessPermission> GymAccessPermissions => Set<GymAccessPermission>();
+
+    public DbSet<StaffAccessAudit> StaffAccessAudits => Set<StaffAccessAudit>();
 }

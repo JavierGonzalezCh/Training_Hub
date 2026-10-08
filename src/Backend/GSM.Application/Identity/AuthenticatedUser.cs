@@ -10,11 +10,13 @@ public sealed record AccountIdentity(Guid Id, string Email, string FullName, boo
 
 /// <summary>
 /// Identidad con la que se emite un access token: la persona vista desde un acceso concreto
-/// (gym + rol). Para el SuperAdmin, <c>Role = SuperAdmin</c> y <c>GymId = null</c>.
+/// (gym + rol). Para el SuperAdmin, <c>Role = SuperAdmin</c> y <c>GymId = null</c>. <c>Permissions</c>
+/// son los permisos efectivos de staff (todos, si es owner); viajan en el claim <c>perm</c>.
 /// </summary>
 public sealed record AuthenticatedUser(
     Guid Id,
     string Email,
     string FullName,
     UserRole Role,
-    Guid? GymId);
+    Guid? GymId,
+    IReadOnlyCollection<StaffPermission>? Permissions = null);

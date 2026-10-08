@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using GSM.Application.Identity;
+using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -34,13 +35,21 @@ public static class AuthSetup
                 };
             });
 
-        services.AddAuthorizationBuilder()
+        var authorization = services.AddAuthorizationBuilder()
             .AddPolicy(AuthPolicies.RequireSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin))
             .AddPolicy(AuthPolicies.RequireOwner, p => p.RequireRole(RoleName.Owner))
             .AddPolicy(AuthPolicies.RequireStaff, p => p.RequireAssertion(ctx =>
                 ctx.User.IsInRole(RoleName.Owner) || ctx.User.IsInRole(RoleName.Staff) || IsImpersonating(ctx.User)))
             .AddPolicy(AuthPolicies.RequireStaffOrSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin, RoleName.Owner, RoleName.Staff))
             .AddPolicy(AuthPolicies.RequireMember, p => p.RequireRole(RoleName.Member));
+
+        // Una política por permiso especial de staff (Identity §5): `[RequirePermission(...)]`.
+        foreach (var permission in StaffPermissions.All)
+        {
+            authorization.AddPolicy(
+                AuthPolicies.ForPermission(permission),
+                p => p.RequireAssertion(ctx => PermissionRules.Has(ctx.User, permission)));
+        }
 
         return services;
     }
@@ -64,4 +73,7 @@ public static class AuthPolicies
     public const string RequireStaff = "RequireStaff";
     public const string RequireStaffOrSuperAdmin = "RequireStaffOrSuperAdmin";
     public const string RequireMember = "RequireMember";
+
+    /// <summary>Política que exige un permiso especial de staff (<see cref="RequirePermissionAttribute"/>).</summary>
+    public static string ForPermission(StaffPermission permission) => "Permission:" + PermissionName.ToClaim(permission);
 }

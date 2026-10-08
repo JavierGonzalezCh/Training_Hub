@@ -29,6 +29,12 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
             claims[GsmClaims.GymId] = gymId.ToString();
         }
 
+        // Un claim por permiso (arreglo JSON en el token; el middleware lo expande a varios claims).
+        if (user.Permissions is { Count: > 0 } permissions)
+        {
+            claims[GsmClaims.Permission] = permissions.Select(PermissionName.ToClaim).ToArray();
+        }
+
         return Issue(claims, _options.AccessTokenMinutes);
     }
 
