@@ -1309,6 +1309,44 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
     color: var(--gsm-text-2);
 }
 
+.gsm-bell-item.is-closed .gsm-bell-item__name {
+    color: var(--gsm-text-2);
+    font-weight: 400;
+}
+
+.gsm-bell-item.is-urgent {
+    border-left: 3px solid var(--gsm-danger);
+}
+
+.gsm-bell-item__resolved {
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-bell-item__action,
+.gsm-bell-panel__all {
+    justify-self: start;
+    margin-top: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    min-height: 32px;
+    border: 1px solid var(--gsm-border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--gsm-text);
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.gsm-bell-item__action:hover,
+.gsm-bell-panel__all:hover {
+    border-color: var(--gsm-text-2);
+}
+
+.gsm-bell-panel__all {
+    margin: 0.5rem 1rem 0.25rem;
+}
+
 /* Kiosco: pantalla completa, legible a distancia. */
 .gsm-kiosk-shell {
     min-height: 100vh;

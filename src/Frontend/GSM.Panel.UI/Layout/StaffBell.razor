@@ -1,8 +1,7 @@
-@* Campana de intentos de entrada rechazados (membresía vencida fuera de la gracia o sin membresía).
-   Consulta el contador cada 30 s; no hay push, así que el aviso vive dentro del panel. *@
+@* Campana del panel: la bandeja general del staff (avisos de acción del gym, como un intento de entrada
+   rechazado, e informativos propios). Consulta el contador cada 30 s; el push llega en N2. *@
 @implements IDisposable
-@inject IAttendanceClient Attendance
-@inject NavigationManager Navigation
+@inject IStaffNotificationsClient Notifications
 
 <AuthorizeView Policy="@GsmPolicies.RequireStaff">
     <Authorized>
@@ -17,28 +16,7 @@
                 </button>
             </ActivatorContent>
             <ChildContent>
-                <div class="gsm-bell-panel">
-                    <div class="gsm-bell-panel__title">Entradas rechazadas</div>
-                    @if (_items.Count == 0)
-                    {
-                        <div class="gsm-bell-panel__empty">Nada pendiente.</div>
-                    }
-                    else
-                    {
-                        <ul class="gsm-bell-list">
-                            @foreach (var item in _items)
-                            {
-                                <li class="gsm-bell-item">
-                                    <a href="@($"/members/{item.MemberId}")" class="gsm-bell-item__name">@item.MemberName</a>
-                                    <span class="gsm-bell-item__meta">
-                                        @ReasonText(item) · @GsmFormat.Time(item.AttemptedAt)@(item.AttemptCount > 1 ? $" · {item.AttemptCount} intentos" : "")
-                                    </span>
-                                </li>
-                            }
-                        </ul>
-                        <MudMenuItem Icon="@Icons.Material.Outlined.DoneAll" OnClick="AcknowledgeAllAsync">Marcar como vistos</MudMenuItem>
-                    }
-                </div>
+                <StaffNotificationList Items="_items" OnResolve="ResolveAsync" OnRead="ReadAsync" OnResolveAll="ResolveAllAsync" />
             </ChildContent>
         </MudMenu>
         <span class="gsm-visually-hidden" role="status" aria-live="polite">@Announcement</span>
@@ -47,12 +25,12 @@
 
 @code {
     private readonly CancellationTokenSource _cts = new();
-    private List<CheckinAttemptItem> _items = [];
+    private List<StaffNotificationItem> _items = [];
     private int _count;
     private int _announced;
     private PeriodicTimer? _timer;
 
-    private string Label => $"Intentos de entrada rechazados: {_count}";
+    private string Label => $"Avisos sin atender: {_count}";
 
     private string Announcement => _announced > 0 ? Label : string.Empty;
 
@@ -84,7 +62,7 @@
     {
         try
         {
-            _count = (await Attendance.PendingCountAsync(_cts.Token)).Count;
+            _count = (await Notifications.OpenCountAsync(_cts.Token)).Count;
         }
         catch (GsmApiException)
         {
@@ -100,33 +78,62 @@
         }
     }
 
+    // Abierta o cerrada, la lista trae primero lo abierto y después lo atendido (con quién y cuándo).
     private async Task LoadListAsync()
     {
         try
         {
-            _items = (await Attendance.AttemptsAsync(null, null, true, 1, 8)).Items.ToList();
+            _items = (await Notifications.Notifications2Async(false, 1, 8)).Items.ToList();
         }
         catch (GsmApiException)
         {
         }
     }
 
-    private async Task AcknowledgeAllAsync()
+    private async Task ResolveAsync(StaffNotificationItem item)
     {
         try
         {
-            await Attendance.AcknowledgeAllAsync();
-            _items = [];
-            _count = 0;
+            await Notifications.ResolveAsync(item.Id);
         }
         catch (GsmApiException)
         {
         }
+
+        await ReloadAsync();
     }
 
-    private static string ReasonText(CheckinAttemptItem item)
-        => item.Reason == "NoMembership" ? "Sin membresía"
-            : item.MembershipEndedOn is { } ended ? $"Venció el {GsmFormat.DayCompact(ended)}" : "Membresía vencida";
+    private async Task ReadAsync(StaffNotificationItem item)
+    {
+        try
+        {
+            await Notifications.Read2Async(item.Id);
+        }
+        catch (GsmApiException)
+        {
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task ResolveAllAsync()
+    {
+        try
+        {
+            await Notifications.ResolveAllAsync();
+        }
+        catch (GsmApiException)
+        {
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        await LoadListAsync();
+        await RefreshCountAsync();
+    }
 
     public void Dispose()
     {
