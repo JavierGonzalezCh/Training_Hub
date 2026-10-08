@@ -46,6 +46,8 @@
 | AP2 | **Unida** (9cf3061) | **Verificada en el navegador** a 1280 y 375 px: menú igual en escritorio, barra inferior, hoja "Más", diálogo a pantalla completa. También verificado el login de I2. Suite 272 + 134 |
 | S6 | En curso | — |
 | B3 | **Unida** | Causa: nada fijaba la cultura y el selector no tenía `ToStringFunc`. Marcado corregido en `BUGS.md`. bUnit 135 |
+| G2 | En curso | — |
+| E1 | En curso | — |
 | I1 | En curso | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -104,7 +106,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
-- S7 y MS1 unidas (300 + 141). En MS1 hubo que combinar a mano el diálogo de asignar con el arreglo de B3. Lanzada G2.
+- S7 y MS1 unidas (300 + 141). En MS1 hubo que combinar a mano el diálogo de asignar con el arreglo de B3. Lanzadas G2 y E1.
 - B3 unida. Lanzada I1.
 - I3 y AP2 unidas (272 + 134); AP2 y el login de I2 verificados en el navegador con una base temporal `gsm_dev_integ` (ya borrada). Lanzadas S6 y B3.
 - Segundo corte por límite de uso (reinicio 8:00): I3, MS1, AP2 y S7 quedaron a medias. Reanudadas por la mañana; el worktree de S7 se había perdido sin nada commiteado y se rehace desde cero.
