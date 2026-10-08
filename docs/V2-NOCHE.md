@@ -78,6 +78,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- Los cuatro agentes en curso (I2, P1, R2, N1) se cortaron por el límite de uso de la API (reinicio 21:50); reanudados con su contexto y su worktree intactos.
 - T1 unida (183 + 74). **Ola 0 cerrada**; `CLAUDE.md` actualizado (§6.3). Lanzada N1. Decisión de alcance del integrador: N1 no mueve los correos de cuenta de Identity (los toca I1) para no chocar con I2.
 - AP1 unida y verificada en el navegador. LG1 unida (con arreglo del `.gitignore`); 175 + 73. R1 unida; 183 + 74. B1 marcado corregido en `BUGS.md`.
 - X0 unida (b2249ce); suite 162 + 68 en verde. Lanzadas AP1 y LG1 en paralelo (`gsm_test_ap1`, `gsm_test_lg1`).
