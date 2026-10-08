@@ -35,7 +35,8 @@
 | T1 | **Unida** (f62d2f5) | 67 archivos; no había datos sembrados con "socio". **Ola 0 cerrada**; `CLAUDE.md` actualizado |
 | N1 | En curso | — |
 | I2 | En curso | camino crítico |
-| P1 | En curso | — |
+| P1 | **Unida** (12e6e24) | 8 métodos; el JSON los saca en PascalCase (`BankTransfer`), como el resto de enums. Suite 186 + 80 |
+| M1 | En curso | incluye `MemberNote` mínima (ver §4) |
 | R2 | En curso | — |
 | S5 | **Retenida** | depende de I2 (ver §4) |
 
@@ -72,12 +73,15 @@ Las del plan §4 (ninguna se hace esta noche):
 - **`.gitignore` ignoraba las carpetas `Logs/`** (regla `[Ll]ogs/` de la plantilla de Visual Studio): el código de LG1 en `Application/Common/Logs` e `Infrastructure/Logs` no entró en la rama del agente. Se agregó la excepción `!src/**/[Ll]ogs/` y se copiaron los archivos (8a09bb2).
 - **`scripts/generate-client.ps1` exigía `pwsh`** (`-SkipCertificateCheck`); en esta máquina solo hay Windows PowerShell 5.1. Ahora funciona en los dos.
 - **R1:** el índice `(routine_id, position)` de `routine_days` deja de ser único (reordenar días chocaba fila por fila; el dominio garantiza 1..N entre los vigentes). Los tests viejos que borraban rutinas ahora borran antes los registros (por `Restrict`). No existe DELETE de rutinas, así que `Restrict` no rompe ningún flujo.
+- **M1 incluye las notas internas (`MemberNote`, §3.3 de Members)** aunque ninguna sub-etapa las nombra: la migración de §9 copia el contacto de emergencia viejo a una nota interna, así que hacen falta en M1.
+- **P1:** el enum `PaymentMethod` cambia su numeración (0..7 en el orden de la spec); los filtros por entero del cliente se actualizaron con él. En la base viaja por nombre, así que no afecta a los datos.
 - **Worktrees:** los agentes trabajan en worktrees creados por la herramienta (`.claude/worktrees/`, ignorado por git), no en `../gsm-lanes/`. `scripts/new-lane.ps1 -SkipWorktree` sirve para crear solo las bases.
 
 ## 5. Registro cronológico
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- P1 unida (186 + 80). Lanzada M1.
 - Los cuatro agentes en curso (I2, P1, R2, N1) se cortaron por el límite de uso de la API (reinicio 21:50); reanudados con su contexto y su worktree intactos.
 - T1 unida (183 + 74). **Ola 0 cerrada**; `CLAUDE.md` actualizado (§6.3). Lanzada N1. Decisión de alcance del integrador: N1 no mueve los correos de cuenta de Identity (los toca I1) para no chocar con I2.
 - AP1 unida y verificada en el navegador. LG1 unida (con arreglo del `.gitignore`); 175 + 73. R1 unida; 183 + 74. B1 marcado corregido en `BUGS.md`.
