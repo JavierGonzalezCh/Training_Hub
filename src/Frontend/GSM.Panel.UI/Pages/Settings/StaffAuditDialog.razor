@@ -1,0 +1,57 @@
+@* Historial de cambios de perfil y permisos de staff. Solo Owner. *@
+@inject IStaffClient StaffApi
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_rows.Count == 0)
+        {
+            <MudText Color="Color.Secondary">Todavía no hay cambios registrados.</MudText>
+        }
+        else
+        {
+            <MudList T="string" Dense="true">
+                @foreach (var row in _rows)
+                {
+                    <MudListItem T="string">
+                        <MudText Typo="Typo.body2">@StaffLabels.AuditText(row.Action, row.ActorName, row.TargetName, row.Permission, row.OldValue, row.NewValue)</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@GsmFormat.Instant(row.At)</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="@(() => MudDialog.Close())">Cerrar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid? UserId { get; set; }
+
+    private List<StaffAuditResponse> _rows = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _rows = (await StaffApi.AuditAsync(UserId)).ToList();
+        }
+        catch (GsmApiException)
+        {
+            _rows = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

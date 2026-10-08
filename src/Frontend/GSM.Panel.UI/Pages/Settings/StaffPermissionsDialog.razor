@@ -1,0 +1,110 @@
+@* Diálogo para cambiar el perfil de un staff y marcar/desmarcar permisos sueltos. Solo Owner. *@
+@inject IStaffClient StaffApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Perfil</MudText>
+        <MudRadioGroup T="string" Value="_profile" ValueChanged="OnProfileChanged">
+            @foreach (var (value, label) in StaffLabels.Profiles)
+            {
+                <MudRadio T="string" Value="@value" Color="Color.Primary">@label</MudRadio>
+            }
+        </MudRadioGroup>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Permisos</MudText>
+        @foreach (var (value, label, help) in StaffLabels.Permissions)
+        {
+            var permission = value;
+            <div>
+                <MudCheckBox T="bool" Value="_selected.Contains(permission)"
+                             ValueChanged="@((bool on) => Toggle(permission, on))"
+                             Label="@label" Color="Color.Primary" Dense="true" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="margin:-6px 0 4px 32px">@help</MudText>
+            </div>
+        }
+
+        @if (RemovesPermissions)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" id="revoke-warning">
+                Quitar permisos cierra las sesiones de @Staff.FullName en este gimnasio: tendrá que volver a entrar.
+            </MudAlert>
+        }
+        else if (Changed)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-3">
+                Los permisos nuevos le aplican cuando se renueve su sesión (hasta 60 minutos).
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@(!Changed || _saving)">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public StaffResponse Staff { get; set; } = null!;
+
+    /// <summary>Los perfiles con los permisos que traen (<c>GET api/gym/staff/profiles</c>).</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<StaffProfileInfo> Profiles { get; set; } = [];
+
+    private string _profile = string.Empty;
+    private HashSet<string> _selected = [];
+    private bool _saving;
+
+    protected override void OnInitialized()
+    {
+        _profile = Staff.Profile;
+        _selected = Staff.Permissions.ToHashSet();
+    }
+
+    private bool Changed => _profile != Staff.Profile || !_selected.SetEquals(Staff.Permissions);
+
+    private bool RemovesPermissions => Staff.Permissions.Any(p => !_selected.Contains(p));
+
+    private void OnProfileChanged(string profile)
+    {
+        _profile = profile;
+
+        // Al cambiar de perfil las casillas parten de lo que ese perfil trae.
+        _selected = Profiles.FirstOrDefault(p => p.Profile == profile)?.Permissions.ToHashSet() ?? [];
+    }
+
+    private void Toggle(string permission, bool on)
+    {
+        if (on)
+        {
+            _selected.Add(permission);
+        }
+        else
+        {
+            _selected.Remove(permission);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var updated = await StaffApi.PermissionsAsync(
+                Staff.Id, new UpdateStaffPermissionsRequest { Profile = _profile, Permissions = _selected.ToList() });
+            Snackbar.Add($"Permisos de {updated.FullName} actualizados.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(updated));
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

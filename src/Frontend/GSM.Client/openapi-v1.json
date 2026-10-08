@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7299/"
+      "url": "http://localhost:7310/"
     }
   ],
   "paths": {
@@ -7867,6 +7867,172 @@
         }
       }
     },
+    "/api/gym/staff/profiles": {
+      "get": {
+        "tags": [
+          "Staff"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffProfileInfo"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffProfileInfo"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffProfileInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/staff/audit": {
+      "get": {
+        "tags": [
+          "Staff"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffAuditResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffAuditResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffAuditResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/staff/{id}/permissions": {
+      "put": {
+        "tags": [
+          "Staff"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gym/staff/{id}": {
       "delete": {
         "tags": [
@@ -9359,6 +9525,12 @@
           },
           "fullName": {
             "type": "string"
+          },
+          "profile": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -13197,6 +13369,66 @@
           }
         }
       },
+      "StaffAuditResponse": {
+        "required": [
+          "id",
+          "targetUserId",
+          "targetName",
+          "actorUserId",
+          "actorName",
+          "action",
+          "permission",
+          "oldValue",
+          "newValue",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "permission": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "oldValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "StaffNotificationCount": {
         "required": [
           "count"
@@ -13288,12 +13520,33 @@
           }
         }
       },
+      "StaffProfileInfo": {
+        "required": [
+          "profile",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "StaffResponse": {
         "required": [
           "id",
           "email",
           "fullName",
-          "isActive"
+          "isActive",
+          "profile",
+          "isAdjusted",
+          "permissions"
         ],
         "type": "object",
         "properties": {
@@ -13309,6 +13562,18 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "isAdjusted": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -14108,6 +14373,24 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "UpdateStaffPermissionsRequest": {
+        "required": [
+          "profile",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

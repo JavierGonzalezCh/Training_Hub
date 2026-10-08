@@ -15,6 +15,9 @@ public sealed class GsmAuthenticationStateProvider(ITokenStore tokenStore) : Aut
 {
     public const string AuthenticationType = "gsm-jwt";
 
+    /// <summary>Claim de cada permiso especial de staff del token (<see cref="GsmPermissions"/>).</summary>
+    public const string PermissionClaim = "perm";
+
     private static readonly AuthenticationState Anonymous =
         new(new ClaimsPrincipal(new ClaimsIdentity()));
 
@@ -49,6 +52,11 @@ public sealed class GsmAuthenticationStateProvider(ITokenStore tokenStore) : Aut
             claims.Add(new Claim("impersonating", "true"));
         }
 
+        foreach (var permission in payload.Permissions ?? [])
+        {
+            claims.Add(new Claim(PermissionClaim, permission));
+        }
+
         var identity = new ClaimsIdentity(claims, AuthenticationType, ClaimTypes.Name, ClaimTypes.Role);
         return new AuthenticationState(new ClaimsPrincipal(identity));
     }
@@ -62,6 +70,18 @@ public static class GsmClaimsPrincipalExtensions
 {
     public static bool IsImpersonating(this ClaimsPrincipal user)
         => user.HasClaim("impersonating", "true");
+
+    /// <summary>
+    /// ¿Tiene este permiso especial de staff (<see cref="GsmPermissions"/>)? El Owner y un SuperAdmin
+    /// impersonando los tienen todos (mismo criterio que el servidor); un staff, los de su token.
+    /// Es solo para pintar la UI: el servidor decide.
+    /// </summary>
+    public static bool HasPermission(this ClaimsPrincipal user, string permission)
+        => user.Identity?.IsAuthenticated == true
+           && (user.IsInRole(GsmRoles.Owner)
+               || (user.IsInRole(GsmRoles.SuperAdmin) && user.IsImpersonating())
+               || (user.IsInRole(GsmRoles.Staff)
+                   && user.HasClaim(GsmAuthenticationStateProvider.PermissionClaim, permission)));
 
     public static Guid? GymId(this ClaimsPrincipal user)
         => Guid.TryParse(user.FindFirst("gym_id")?.Value, out var id) ? id : null;
