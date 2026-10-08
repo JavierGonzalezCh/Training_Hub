@@ -11,7 +11,7 @@ se decide cambiar va en la especificación del módulo.
 |---|---|---|---|---|
 | B1 | Routines | Editar una rutina borra todo el historial de entrenamiento del miembro | Alta | **Corregido en R1** (v2) |
 | B2 | Dashboard | "Ingresos del mes" compara el mes en curso contra el mes anterior completo | Media | Abierto |
-| B3 | Memberships (UI) | El precio del plan sale con formato distinto según la pantalla | Baja | Por confirmar |
+| B3 | Memberships (UI) | El precio del plan sale con formato distinto según la pantalla | Baja | **Corregido** (v2, tarea B3) |
 | B4 | Gyms (UI) | El campo "Aforo" promete medir qué tan lleno está el gym en tiempo real, y nada lo usa | Baja | Abierto |
 
 ---
@@ -55,6 +55,11 @@ se decide cambiar va en la especificación del módulo.
 - **Por confirmar:** el código de la opción usa `GsmFormat.Money`, igual que la ficha. La diferencia
   puede venir de cómo `MudSelect` pinta el valor elegido, o de la cultura con que se formatea.
   Reproducir antes de arreglar.
+- **Reproducido y corregido (2026-10-08, rama `v2`):** nada fijaba la cultura, así que cada campo usaba
+  la del navegador. `MudNumericField` formateaba sin separadores (o con los de `en-US`), y el `MudSelect`
+  del plan no tenía `ToStringFunc`, así que el valor elegido no pasaba por `GsmFormat.Money`. Arreglo:
+  los campos de dinero usan `Culture = GsmFormat.Colombia` y `Format = "N0"`, y el selector usa
+  `GsmFormat.Money`. Test: `MoneyFormatUiTests` (con la cultura del hilo en `en-US`).
 
 ## B4 — El aforo promete una función que no existe
 
