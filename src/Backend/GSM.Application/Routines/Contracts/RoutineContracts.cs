@@ -32,6 +32,11 @@ public sealed record SaveRoutineRequest(
     IReadOnlyList<RoutineDayInput> Days,
     string? ScheduleMode = null);
 
+/// <summary>
+/// <c>TrackingType</c> (qué se mide: <c>RepsWeight</c>, <c>Reps</c>, <c>Time</c>, <c>Distance</c>, <c>TimeDistance</c>),
+/// <c>IsUnilateral</c> y <c>MuscleGroup</c> (<c>UpperBody</c>, <c>LowerBody</c>, <c>Core</c>, <c>FullBody</c>) los hereda
+/// la línea de su ejercicio. En R3 solo se exponen; el uso real en series es R4.
+/// </summary>
 public sealed record RoutineExerciseResponse(
     Guid Id,
     Guid ExerciseId,
@@ -41,7 +46,10 @@ public sealed record RoutineExerciseResponse(
     string TargetReps,
     decimal? TargetWeightKg,
     int? RestSeconds,
-    string? Notes);
+    string? Notes,
+    string TrackingType = "RepsWeight",
+    bool IsUnilateral = false,
+    string MuscleGroup = "FullBody");
 
 public sealed record RoutineDayResponse(
     Guid Id,
@@ -49,7 +57,8 @@ public sealed record RoutineDayResponse(
     string Name,
     bool IsRest,
     IReadOnlyList<RoutineExerciseResponse> Exercises,
-    int? DayOfWeek = null);
+    int? DayOfWeek = null,
+    IReadOnlyList<string>? MuscleGroups = null);
 
 /// <summary>
 /// <c>ScheduleMode</c>: <c>"rotating"</c> o <c>"weekly"</c> (texto, no enum: el generador de NSwag tipa los enums
@@ -93,4 +102,5 @@ public sealed record TodayView(
     string DayName,
     bool IsRest,
     IReadOnlyList<RoutineExerciseResponse> Exercises,
-    int DayOfWeek);
+    int DayOfWeek,
+    IReadOnlyList<string>? MuscleGroups = null);

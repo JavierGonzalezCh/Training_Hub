@@ -15,13 +15,45 @@
             <MudForm @ref="_form" Model="_model">
                 <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
                 <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Lines="2" Class="mb-3" />
-                <MudSelect T="int" @bind-Value="_model.PrimaryMuscle" Label="Músculo principal" Required="true" Class="mb-3">
+                <div class="d-flex flex-wrap mb-3" style="gap:1rem">
+                    <label class="gsm-native-field">
+                        <span>Tipo de ejercicio</span>
+                        <select data-testid="exercise-type" @onchange="OnTypeChanged">
+                            @foreach (var (value, label) in RoutineLabels.ExerciseTypes)
+                            {
+                                <option value="@value" selected="@(_model.ExerciseType == value)">@label</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="gsm-native-field">
+                        <span>Qué se mide</span>
+                        <select data-testid="tracking-type" @onchange="OnTrackingChanged">
+                            @foreach (var (value, label) in RoutineLabels.TrackingTypes)
+                            {
+                                <option value="@value" selected="@(_model.TrackingType == value)">@label</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="gsm-native-field">
+                        <span>Nivel</span>
+                        <select data-testid="difficulty" @onchange="@(e => _model.Difficulty = ToInt(e.Value, 1))">
+                            @foreach (var (value, label) in RoutineLabels.Difficulties)
+                            {
+                                <option value="@value" selected="@(_model.Difficulty == value)">@label</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                <MudSwitch T="bool" @bind-Value="_model.IsUnilateral" Color="Color.Primary" Class="mb-2"
+                           Label="Se hace por lado (las repeticiones son por lado)" data-testid="unilateral" />
+                <MudSelect T="int" @bind-Value="_model.PrimaryMuscle" Label="Músculo principal" Required="true" Class="mb-1"
+                           HelperText="@GroupHelper">
                     @foreach (var (value, label) in RoutineLabels.Muscles)
                     {
                         <MudSelectItem Value="value">@label</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_secondaryMuscles" Label="Músculos secundarios" Class="mb-3">
+                <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_secondaryMuscles" Label="Músculos secundarios" Class="mb-3 mt-3">
                     @foreach (var (value, label) in RoutineLabels.Muscles)
                     {
                         <MudSelectItem Value="value">@label</MudSelectItem>
@@ -61,6 +93,23 @@
     private bool _submitting;
     private string? _error;
 
+    /// <summary>
+    /// Una vez que la persona elige "qué se mide" a mano, cambiar el tipo ya no lo pisa. Al editar un ejercicio
+    /// existente nunca se sobrescribe.
+    /// </summary>
+    private bool _trackingTouched;
+
+    /// <summary>La zona del cuerpo se deriva del músculo principal; aquí solo se muestra.</summary>
+    private string GroupHelper
+    {
+        get
+        {
+            var group = RoutineLabels.MuscleGroups
+                .FirstOrDefault(g => RoutineLabels.MusclesOfGroup(g.Value).Any(m => m.Value == _model.PrimaryMuscle));
+            return group.Label is null ? string.Empty : $"Zona: {group.Label}";
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (ExerciseId is not { } id)
@@ -74,9 +123,14 @@
             var exercise = await Exercises.ExercisesGETAsync(id);
             _model.Name = exercise.Name;
             _model.Description = exercise.Description;
-            _model.PrimaryMuscle = RoutineLabels.Muscles.First(m => m.Label == RoutineLabels.MuscleLabel(exercise.PrimaryMuscle)).Value;
-            _secondaryMuscles = exercise.SecondaryMuscles.Select(ToMuscleValue).ToList();
+            _model.PrimaryMuscle = RoutineLabels.MuscleValue(exercise.PrimaryMuscle);
+            _secondaryMuscles = exercise.SecondaryMuscles.Select(RoutineLabels.MuscleValue).ToList();
             _equipment = exercise.Equipment.Select(ToEquipmentValue).ToList();
+            _model.ExerciseType = RoutineLabels.ExerciseTypeValue(exercise.ExerciseType);
+            _model.TrackingType = RoutineLabels.TrackingTypeValue(exercise.TrackingType);
+            _model.Difficulty = RoutineLabels.DifficultyValue(exercise.Difficulty);
+            _model.IsUnilateral = exercise.IsUnilateral;
+            _trackingTouched = true;
             _model.VideoUrl = exercise.VideoUrl;
             _model.ImageUrl = exercise.ImageUrl;
         }
@@ -90,12 +144,22 @@
         }
     }
 
-    private static int ToMuscleValue(string name) => name switch
+    private void OnTypeChanged(ChangeEventArgs e)
     {
-        "Chest" => 0, "Back" => 1, "Shoulders" => 2, "Biceps" => 3, "Triceps" => 4, "Forearms" => 5,
-        "Quadriceps" => 6, "Hamstrings" => 7, "Glutes" => 8, "Calves" => 9, "Abs" => 10,
-        "Lower_back" => 11, "Neck" => 12, "Full_body" => 13, "Cardio" => 14, _ => 0,
-    };
+        _model.ExerciseType = ToInt(e.Value, 0);
+        if (!_trackingTouched)
+        {
+            _model.TrackingType = RoutineLabels.SuggestedTracking(_model.ExerciseType);
+        }
+    }
+
+    private void OnTrackingChanged(ChangeEventArgs e)
+    {
+        _model.TrackingType = ToInt(e.Value, 0);
+        _trackingTouched = true;
+    }
+
+    private static int ToInt(object? value, int fallback) => int.TryParse(value?.ToString(), out var n) ? n : fallback;
 
     private static int ToEquipmentValue(string name) => name switch
     {
@@ -128,6 +192,10 @@
                     Equipment = _equipment.ToList(),
                     VideoUrl = _model.VideoUrl,
                     ImageUrl = _model.ImageUrl,
+                    ExerciseType = _model.ExerciseType,
+                    TrackingType = _model.TrackingType,
+                    IsUnilateral = _model.IsUnilateral,
+                    Difficulty = _model.Difficulty,
                 });
             }
             else
@@ -141,6 +209,10 @@
                     Equipment = _equipment.ToList(),
                     VideoUrl = _model.VideoUrl,
                     ImageUrl = _model.ImageUrl,
+                    ExerciseType = _model.ExerciseType,
+                    TrackingType = _model.TrackingType,
+                    IsUnilateral = _model.IsUnilateral,
+                    Difficulty = _model.Difficulty,
                 });
             }
 
@@ -158,11 +230,15 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private sealed class FormModel
+    internal sealed class FormModel
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int PrimaryMuscle { get; set; }
+        public int ExerciseType { get; set; }
+        public int TrackingType { get; set; }
+        public int Difficulty { get; set; } = 1;
+        public bool IsUnilateral { get; set; }
         public string? VideoUrl { get; set; }
         public string? ImageUrl { get; set; }
     }

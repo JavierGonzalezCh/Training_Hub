@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7340/"
+      "url": "http://localhost:7330/"
     }
   ],
   "paths": {
@@ -3305,6 +3305,35 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "muscleGroup",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          {
+            "name": "exerciseType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ExerciseType"
+            }
+          },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Difficulty"
+            }
+          },
+          {
+            "name": "includeHidden",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -3602,6 +3631,172 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/duplicate": {
+      "post": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateExerciseRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateExerciseRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateExerciseRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/hide": {
+      "post": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/show": {
+      "post": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -8042,6 +8237,42 @@
               "null",
               "string"
             ]
+          },
+          "exerciseType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExerciseType"
+              }
+            ]
+          },
+          "trackingType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TrackingType"
+              }
+            ]
+          },
+          "isUnilateral": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "difficulty": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Difficulty"
+              }
+            ]
           }
         }
       },
@@ -8360,6 +8591,18 @@
           }
         }
       },
+      "Difficulty": {
+        "type": "integer"
+      },
+      "DuplicateExerciseRequest": {
+        "type": "object",
+        "properties": {
+          "hideOriginal": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
       "EmailAudienceResponse": {
         "required": [
           "recipients"
@@ -8421,11 +8664,17 @@
           "name",
           "description",
           "primaryMuscle",
+          "muscleGroup",
           "secondaryMuscles",
           "equipment",
+          "exerciseType",
+          "trackingType",
+          "isUnilateral",
+          "difficulty",
           "videoUrl",
           "imageUrl",
           "isActive",
+          "isHidden",
           "createdAt"
         ],
         "type": "object",
@@ -8456,6 +8705,9 @@
           "primaryMuscle": {
             "type": "string"
           },
+          "muscleGroup": {
+            "type": "string"
+          },
           "secondaryMuscles": {
             "type": "array",
             "items": {
@@ -8467,6 +8719,18 @@
             "items": {
               "type": "string"
             }
+          },
+          "exerciseType": {
+            "type": "string"
+          },
+          "trackingType": {
+            "type": "string"
+          },
+          "isUnilateral": {
+            "type": "boolean"
+          },
+          "difficulty": {
+            "type": "string"
           },
           "videoUrl": {
             "type": [
@@ -8483,11 +8747,17 @@
           "isActive": {
             "type": "boolean"
           },
+          "isHidden": {
+            "type": "boolean"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
           }
         }
+      },
+      "ExerciseType": {
+        "type": "integer"
       },
       "ExpiringMemberRow": {
         "required": [
@@ -9615,6 +9885,9 @@
         }
       },
       "Muscle": {
+        "type": "integer"
+      },
+      "MuscleGroup": {
         "type": "integer"
       },
       "MyRoutineResponse": {
@@ -10960,6 +11233,15 @@
               "string"
             ],
             "format": "int32"
+          },
+          "muscleGroups": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -11089,6 +11371,18 @@
               "null",
               "string"
             ]
+          },
+          "trackingType": {
+            "type": "string",
+            "default": "RepsWeight"
+          },
+          "isUnilateral": {
+            "type": "boolean",
+            "default": false
+          },
+          "muscleGroup": {
+            "type": "string",
+            "default": "FullBody"
           }
         }
       },
@@ -11836,8 +12130,20 @@
               "string"
             ],
             "format": "int32"
+          },
+          "muscleGroups": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
+      },
+      "TrackingType": {
+        "type": "integer"
       },
       "UnlockedAchievement": {
         "required": [
@@ -12056,6 +12362,42 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "exerciseType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExerciseType"
+              }
+            ]
+          },
+          "trackingType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TrackingType"
+              }
+            ]
+          },
+          "isUnilateral": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "difficulty": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Difficulty"
+              }
             ]
           }
         }

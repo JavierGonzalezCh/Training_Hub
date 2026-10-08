@@ -92,7 +92,7 @@
             <div class="gsm-m-card__body">
                 <span class="gsm-m-card__kicker">Tu entrenamiento de hoy</span>
                 <h2 class="gsm-m-card__title">@_today.DayName</h2>
-                <p class="gsm-m-card__text">@(_today.IsRest ? "Día de descanso: recupérate." : $"{_today.Exercises.Count} ejercicios")</p>
+                <p class="gsm-m-card__text">@(_today.IsRest ? "Día de descanso: recupérate." : $"{_today.Exercises.Count} ejercicios{(RoutineLabels.MuscleGroupsSummary(_today.MuscleGroups) is { } groups ? $" · {groups}" : "")}")</p>
             </div>
             <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
         </a>

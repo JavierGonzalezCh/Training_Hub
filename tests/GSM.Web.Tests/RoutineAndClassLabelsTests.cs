@@ -20,7 +20,7 @@ public class RoutineAndClassLabelsTests
     [Fact]
     public void Muscles_and_equipment_catalogs_match_the_closed_backend_enums()
     {
-        Assert.Equal(15, RoutineLabels.Muscles.Length);
+        Assert.Equal(18, RoutineLabels.Muscles.Length); // R3: sin cardio, con trapecio, oblicuos, aductores y abductores
         Assert.Equal(16, RoutineLabels.Equipment.Length);
     }
 

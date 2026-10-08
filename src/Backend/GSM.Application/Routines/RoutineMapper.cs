@@ -1,3 +1,4 @@
+using GSM.Application.Routines.Abstractions;
 using GSM.Application.Routines.Contracts;
 using GSM.Domain.Routines;
 
@@ -9,7 +10,7 @@ namespace GSM.Application.Routines;
 /// </summary>
 public static class RoutineMapper
 {
-    public static RoutineResponse ToResponse(Routine routine, IReadOnlyDictionary<Guid, string> exerciseNames)
+    public static RoutineResponse ToResponse(Routine routine, IReadOnlyDictionary<Guid, ExerciseSummary> exercises)
         => new(
             routine.Id,
             routine.MemberId,
@@ -21,31 +22,48 @@ public static class RoutineMapper
             routine.IsActive,
             routine.DeactivatedOn,
             routine.CycleLength,
-            routine.Days.OrderBy(d => d.Position).Select(d => ToDayResponse(d, exerciseNames)).ToList(),
+            routine.Days.OrderBy(d => d.Position).Select(d => ToDayResponse(d, exercises)).ToList(),
             RoutineSchedule.ModeToText(routine.ScheduleMode));
 
     public static RoutineDayResponse ToDayResponse(
-        RoutineDay day, IReadOnlyDictionary<Guid, string> exerciseNames)
+        RoutineDay day, IReadOnlyDictionary<Guid, ExerciseSummary> exercises)
         => new(
             day.Id,
             day.Position,
             DayName(day),
             day.IsRest,
-            day.Exercises.OrderBy(e => e.Order).Select(e => ToExerciseResponse(e, exerciseNames)).ToList(),
-            day.DayOfWeek);
+            day.Exercises.OrderBy(e => e.Order).Select(e => ToExerciseResponse(e, exercises)).ToList(),
+            day.DayOfWeek,
+            MuscleGroupsOf(day, exercises));
+
+    /// <summary>Grupos musculares que trabaja el día, sin repetir y en orden de aparición.</summary>
+    public static IReadOnlyList<string> MuscleGroupsOf(
+        RoutineDay day, IReadOnlyDictionary<Guid, ExerciseSummary> exercises)
+        => day.Exercises.OrderBy(e => e.Order)
+            .Select(e => exercises.TryGetValue(e.ExerciseId, out var x) ? (MuscleGroup?)MuscleGroups.Of(x.PrimaryMuscle) : null)
+            .Where(g => g is not null)
+            .Select(g => g!.Value.ToString())
+            .Distinct()
+            .ToList();
 
     public static RoutineExerciseResponse ToExerciseResponse(
-        RoutineExercise exercise, IReadOnlyDictionary<Guid, string> exerciseNames)
-        => new(
+        RoutineExercise exercise, IReadOnlyDictionary<Guid, ExerciseSummary> exercises)
+    {
+        exercises.TryGetValue(exercise.ExerciseId, out var info);
+        return new(
             exercise.Id,
             exercise.ExerciseId,
-            exerciseNames.GetValueOrDefault(exercise.ExerciseId, "?"),
+            info?.Name ?? "?",
             exercise.Order,
             exercise.TargetSets,
             exercise.TargetReps,
             exercise.TargetWeightKg,
             exercise.RestSeconds,
-            exercise.Notes);
+            exercise.Notes,
+            (info?.TrackingType ?? TrackingType.RepsWeight).ToString(),
+            info?.IsUnilateral ?? false,
+            (info is null ? MuscleGroup.FullBody : MuscleGroups.Of(info.PrimaryMuscle)).ToString());
+    }
 
     private static readonly string[] WeekDayNames =
         ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];

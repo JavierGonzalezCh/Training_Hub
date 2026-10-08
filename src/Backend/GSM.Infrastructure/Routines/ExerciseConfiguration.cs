@@ -27,10 +27,42 @@ public sealed class ExerciseConfiguration : IEntityTypeConfiguration<Exercise>
             .HasColumnName("equipment")
             .HasColumnType("routines.equipment[]");
 
+        builder.Property(e => e.ExerciseType)
+            .HasColumnName("exercise_type")
+            .HasColumnType("routines.exercise_type")
+            .HasDefaultValue(ExerciseType.Strength);
+
+        builder.Property(e => e.TrackingType)
+            .HasColumnName("tracking_type")
+            .HasColumnType("routines.tracking_type")
+            .HasDefaultValue(TrackingType.RepsWeight);
+
+        builder.Property(e => e.Difficulty)
+            .HasColumnName("difficulty")
+            .HasColumnType("routines.difficulty")
+            .HasDefaultValue(Difficulty.Intermediate);
+
+        builder.Property(e => e.IsUnilateral).HasDefaultValue(false);
+
         builder.Property(e => e.IsActive).HasDefaultValue(true);
 
         // Filtrado híbrido explícito (ver ExerciseRepository); sin Global Query Filter.
         builder.HasIndex(e => new { e.GymId, e.Name }).IsUnique();
         builder.HasIndex(e => e.PrimaryMuscle);
+    }
+}
+
+public sealed class GymHiddenExerciseConfiguration : IEntityTypeConfiguration<GymHiddenExercise>
+{
+    public void Configure(EntityTypeBuilder<GymHiddenExercise> builder)
+    {
+        builder.ToTable("gym_hidden_exercises", "routines");
+
+        builder.HasOne<Exercise>()
+            .WithMany()
+            .HasForeignKey(h => h.ExerciseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(h => new { h.GymId, h.ExerciseId }).IsUnique();
     }
 }

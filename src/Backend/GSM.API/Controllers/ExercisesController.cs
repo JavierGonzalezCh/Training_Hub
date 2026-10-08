@@ -25,9 +25,16 @@ public sealed class ExercisesController : ControllerBase
         [FromQuery] Equipment? equipment,
         [FromQuery] bool includeInactive,
         [FromServices] ListExercisesHandler handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] MuscleGroup? muscleGroup = null,
+        [FromQuery] ExerciseType? exerciseType = null,
+        [FromQuery] Difficulty? difficulty = null,
+        [FromQuery] bool includeHidden = false)
         => Ok(await handler.HandleAsync(
-            new ExerciseFilter(search, primaryMuscle, equipment, includeInactive), cancellationToken));
+            new ExerciseFilter(
+                search, primaryMuscle, equipment, includeInactive,
+                muscleGroup, exerciseType, difficulty, includeHidden),
+            cancellationToken));
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<ExerciseResponse>(StatusCodes.Status200OK)]
@@ -67,6 +74,44 @@ public sealed class ExercisesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Deactivate(
         Guid id, [FromServices] DeactivateExerciseHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Copia del ejercicio para el gym del staff (todos los campos y los mismos archivos de medios).</summary>
+    [HttpPost("{id:guid}/duplicate")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<ExerciseResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ExerciseResponse>> Duplicate(
+        Guid id,
+        [FromServices] DuplicateExerciseHandler handler,
+        CancellationToken cancellationToken,
+        [FromBody] DuplicateExerciseRequest? request = null)
+    {
+        var exercise = await handler.HandleAsync(id, request ?? new DuplicateExerciseRequest(), cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = exercise.Id }, exercise);
+    }
+
+    /// <summary>Oculta un ejercicio del sistema para el gym. Uno del gym → 422.</summary>
+    [HttpPost("{id:guid}/hide")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Hide(
+        Guid id, [FromServices] HideExerciseHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Vuelve a mostrar un ejercicio del sistema que el gym había ocultado.</summary>
+    [HttpPost("{id:guid}/show")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Show(
+        Guid id, [FromServices] ShowExerciseHandler handler, CancellationToken cancellationToken)
     {
         await handler.HandleAsync(id, cancellationToken);
         return NoContent();

@@ -16,6 +16,8 @@ public sealed class ExerciseRepository(GsmDbContext dbContext, ICurrentUserServi
 {
     private DbSet<Exercise> Exercises => dbContext.Set<Exercise>();
 
+    private DbSet<GymHiddenExercise> HiddenRows => dbContext.Set<GymHiddenExercise>();
+
     private IQueryable<Exercise> VisibleToCurrentGym()
     {
         var gymId = currentUser.GymId;
@@ -40,9 +42,32 @@ public sealed class ExerciseRepository(GsmDbContext dbContext, ICurrentUserServi
             q = q.Where(e => e.PrimaryMuscle == muscle);
         }
 
+        if (filter.MuscleGroup is { } group)
+        {
+            var groupMuscles = MuscleGroups.MusclesOf(group).ToList();
+            q = q.Where(e => groupMuscles.Contains(e.PrimaryMuscle));
+        }
+
+        if (filter.ExerciseType is { } type)
+        {
+            q = q.Where(e => e.ExerciseType == type);
+        }
+
+        if (filter.Difficulty is { } difficulty)
+        {
+            q = q.Where(e => e.Difficulty == difficulty);
+        }
+
         if (filter.Equipment is { } equipment)
         {
             q = q.Where(e => e.Equipment.Contains(equipment));
+        }
+
+        // Los ocultos del gym no salen salvo que se pida. Solo hay ocultos de ejercicios del sistema.
+        if (!filter.IncludeHidden && currentUser.GymId is { } hidingGymId)
+        {
+            var hidden = HiddenRows.Where(h => h.GymId == hidingGymId).Select(h => h.ExerciseId);
+            q = q.Where(e => !hidden.Contains(e.Id));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
@@ -81,18 +106,50 @@ public sealed class ExerciseRepository(GsmDbContext dbContext, ICurrentUserServi
         return found.ToHashSet();
     }
 
-    public async Task<IReadOnlyDictionary<Guid, string>> GetVisibleNamesAsync(
+    public async Task<IReadOnlyDictionary<Guid, ExerciseSummary>> GetVisibleSummariesAsync(
         IReadOnlyCollection<Guid> exerciseIds, CancellationToken cancellationToken = default)
     {
         if (exerciseIds.Count == 0)
         {
-            return new Dictionary<Guid, string>();
+            return new Dictionary<Guid, ExerciseSummary>();
         }
 
-        return await VisibleToCurrentGym()
+        var rows = await VisibleToCurrentGym()
             .Where(e => exerciseIds.Contains(e.Id))
-            .ToDictionaryAsync(e => e.Id, e => e.Name, cancellationToken);
+            .Select(e => new { e.Id, e.Name, e.PrimaryMuscle, e.TrackingType, e.IsUnilateral })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(
+            r => r.Id,
+            r => new ExerciseSummary(r.Name, r.PrimaryMuscle, r.TrackingType, r.IsUnilateral));
     }
+
+    public async Task<IReadOnlySet<Guid>> GetHiddenIdsAsync(
+        IReadOnlyCollection<Guid> exerciseIds, CancellationToken cancellationToken = default)
+    {
+        if (currentUser.GymId is not { } gymId || exerciseIds.Count == 0)
+        {
+            return new HashSet<Guid>();
+        }
+
+        var ids = await HiddenRows
+            .Where(h => h.GymId == gymId && exerciseIds.Contains(h.ExerciseId))
+            .Select(h => h.ExerciseId)
+            .ToListAsync(cancellationToken);
+
+        return ids.ToHashSet();
+    }
+
+    public Task<GymHiddenExercise?> GetHiddenAsync(Guid exerciseId, CancellationToken cancellationToken = default)
+    {
+        var gymId = currentUser.GymId;
+        return HiddenRows.FirstOrDefaultAsync(
+            h => h.GymId == gymId && h.ExerciseId == exerciseId, cancellationToken);
+    }
+
+    public void AddHidden(GymHiddenExercise hidden) => HiddenRows.Add(hidden);
+
+    public void RemoveHidden(GymHiddenExercise hidden) => HiddenRows.Remove(hidden);
 
     public void Add(Exercise exercise) => Exercises.Add(exercise);
 }

@@ -50,7 +50,7 @@ else
         <ul class="gsm-routine-week" aria-label="Tu semana de entrenamiento">
             @foreach (var weekday in _response.Routine.Days.Where(d => d.DayOfWeek is not null).OrderBy(d => d.DayOfWeek))
             {
-                <li><strong>@RoutineLabels.IsoWeekdayLabel(weekday.DayOfWeek!.Value)</strong> · @weekday.Name</li>
+                <li><strong>@RoutineLabels.IsoWeekdayLabel(weekday.DayOfWeek!.Value)</strong> · @weekday.Name@(GroupsSuffix(weekday.MuscleGroups))</li>
             }
         </ul>
     }
@@ -59,6 +59,10 @@ else
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
             Hoy: @(_response.Routine.ScheduleMode == "weekly" ? $"{RoutineLabels.IsoWeekdayLabel(today.DayOfWeek)} · " : "")@today.DayName @(today.IsRest && today.DayName != "Descanso" ? "· descanso" : "")
         </MudText>
+        @if (!today.IsRest && RoutineLabels.MuscleGroupsSummary(today.MuscleGroups) is { } todayGroups)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4 d-block" data-testid="today-groups">Hoy trabajas: @todayGroups</MudText>
+        }
 
         @if (!today.IsRest)
         {
@@ -74,7 +78,7 @@ else
                         <span class="gsm-m-ex__title">
                             <span class="gsm-m-ex__name">@exercise.ExerciseName</span>
                             <span class="gsm-m-ex__target">
-                                Meta: @exercise.TargetSets × @exercise.TargetReps@(exercise.TargetWeightKg is { } w ? $" · {w:0.#} kg" : "")
+                                Meta: @exercise.TargetSets × @exercise.TargetReps@(exercise.IsUnilateral == true ? " por lado" : "")@(exercise.TargetWeightKg is { } w ? $" · {w:0.#} kg" : "")
                             </span>
                         </span>
                         <MudIcon Icon="@(state.Open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" />
@@ -131,6 +135,9 @@ else
 }
 
 @code {
+    private static string GroupsSuffix(IEnumerable<string>? groups)
+        => RoutineLabels.MuscleGroupsSummary(groups) is { } summary ? $" ({summary})" : string.Empty;
+
     private MyRoutineResponse? _response;
     private readonly Dictionary<Guid, ExerciseState> _states = [];
 
