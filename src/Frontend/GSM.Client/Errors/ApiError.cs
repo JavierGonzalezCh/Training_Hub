@@ -25,6 +25,15 @@ public sealed class ApiError
 
     public string? Detail { get; init; }
 
+    /// <summary>
+    /// Código de rastreo completo que el servidor pone en el <c>ProblemDetails</c> (<c>traceId</c>); con él se
+    /// encuentra el registro exacto en el panel de errores.
+    /// </summary>
+    public string? TraceId { get; init; }
+
+    /// <summary>El código corto que se le muestra al usuario ("7F3A2C"): los 6 primeros caracteres en mayúsculas.</summary>
+    public string? TraceCode => ShortCode(TraceId);
+
     /// <summary>Errores por campo de un 400 (<c>ValidationProblemDetails.errors</c>), en minúsculas camelCase.</summary>
     public IReadOnlyDictionary<string, string[]> FieldErrors { get; init; } =
         new Dictionary<string, string[]>();
@@ -49,9 +58,29 @@ public sealed class ApiError
         403 => Detail ?? Title ?? "No tienes permiso para esta operación.",
         409 => Detail ?? Title ?? "La operación entra en conflicto con el estado actual.",
         422 => Detail ?? Title ?? "La operación no procede en este estado.",
-        >= 500 => "Ha ocurrido un error en el servidor. Inténtalo más tarde.",
+        >= 500 => TraceCode is { } code
+            ? $"Algo salió mal · código {code}"
+            : "Ha ocurrido un error en el servidor. Inténtalo más tarde.",
         _ => Detail ?? Title ?? "No se ha podido completar la operación.",
     };
+
+    /// <summary>
+    /// Acepta el formato W3C que ASP.NET pone por defecto (<c>00-{traceId}-{spanId}-01</c>) y devuelve solo el
+    /// identificador de rastreo.
+    /// </summary>
+    private static string? NormalizeTraceId(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var parts = value.Split('-');
+        return parts.Length == 4 && parts[1].Length == 32 ? parts[1] : value.Trim();
+    }
+
+    private static string? ShortCode(string? traceId)
+        => string.IsNullOrWhiteSpace(traceId) ? null : traceId[..Math.Min(6, traceId.Length)].ToUpperInvariant();
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -95,6 +124,9 @@ public sealed class ApiError
                 Status = root.TryGetProperty("status", out var s) && s.TryGetInt32(out var code) ? code : status,
                 Title = root.TryGetProperty("title", out var t) ? t.GetString() : null,
                 Detail = root.TryGetProperty("detail", out var d) ? d.GetString() : null,
+                TraceId = root.TryGetProperty("traceId", out var trace) && trace.ValueKind == JsonValueKind.String
+                    ? NormalizeTraceId(trace.GetString())
+                    : null,
                 FieldErrors = fieldErrors,
             };
         }

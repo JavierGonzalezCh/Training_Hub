@@ -5,6 +5,7 @@ using GSM.Infrastructure.Common;
 using GSM.Infrastructure.Communications;
 using GSM.Infrastructure.Gyms;
 using GSM.Infrastructure.Identity;
+using GSM.Infrastructure.Logs;
 using GSM.Infrastructure.Members;
 using GSM.Infrastructure.Memberships;
 using GSM.Infrastructure.Payments;
@@ -27,6 +28,7 @@ public static class DependencyInjection
     {
         return services
             .AddCommonInfrastructure(configuration)
+            .AddLogsInfrastructure(configuration)
             .AddIdentityInfrastructure(configuration)
             .AddGymsInfrastructure(configuration)
             .AddMembersInfrastructure(configuration)

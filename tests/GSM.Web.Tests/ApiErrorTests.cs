@@ -94,4 +94,29 @@ public class ApiErrorTests
         Assert.Equal(422, error.Status);
         Assert.Equal("No procede.", error.Detail);
     }
+
+    [Fact]
+    public void Server_error_shows_the_short_trace_code()
+    {
+        var error = ApiError.Parse(500, """{ "status": 500, "title": "Error", "traceId": "7f3a2cdeadbeef0123456789abcdef01" }""");
+
+        Assert.Equal("7f3a2cdeadbeef0123456789abcdef01", error.TraceId);
+        Assert.Equal("7F3A2C", error.TraceCode);
+        Assert.Equal("Algo salió mal · código 7F3A2C", error.DisplayMessage);
+    }
+
+    [Fact]
+    public void Trace_id_in_w3c_format_is_normalized()
+    {
+        var error = ApiError.Parse(500, """{ "traceId": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01" }""");
+
+        Assert.Equal("0af7651916cd43dd8448eb211c80319c", error.TraceId);
+        Assert.Equal("0AF765", error.TraceCode);
+    }
+
+    [Fact]
+    public void Server_error_without_trace_id_keeps_the_generic_message()
+    {
+        Assert.Contains("error en el servidor", ApiError.Parse(500, null).DisplayMessage);
+    }
 }
