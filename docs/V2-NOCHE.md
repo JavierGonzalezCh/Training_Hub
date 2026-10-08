@@ -40,9 +40,9 @@
 | R2 | **Unida** (merge de R2) | Suite 198 + 87. Ver pregunta 6 |
 | R3 | **Unida** (174ff30) | Ver pregunta 10 (clasificación del catálogo). Suite 260 + 116 |
 | S5 | **Unida** | Índice único parcial; la migración aborta si hay más de un superadmin (no elige cuál queda). El seeder de desarrollo falla si ya hay otro superadmin con otro email. Suite 262 + 116 |
-| S7 | En curso | — |
+| S7 | **Unida** | Ver pregunta 13. Se colgó una vez esperando un proceso; reanudada sin pérdida |
 | I3 | **Unida** (b3d2802) | Perfil como enum fijo; invitar sin perfil = Recepción. Ver pregunta 11. Suite 272 + 123 |
-| MS1 | En curso | incluye un "Dejar pasar" mínimo en recepción; la recepción en dos pasos completa sigue siendo A1 |
+| MS1 | **Unida** | Gracia y "por vencer" en `memberships.membership_settings`; `AccessStatus`; "Dejar pasar" con motivo; renovación con vista previa; estado comercial en lista, ficha, recepción y dashboard. Ver preguntas 14–16. Suite 300 + 141 |
 | AP2 | **Unida** (9cf3061) | **Verificada en el navegador** a 1280 y 375 px: menú igual en escritorio, barra inferior, hoja "Más", diálogo a pantalla completa. También verificado el login de I2. Suite 272 + 134 |
 | S6 | En curso | — |
 | B3 | **Unida** | Causa: nada fijaba la cultura y el selector no tenía `ToStringFunc`. Marcado corregido en `BUGS.md`. bUnit 135 |
@@ -64,6 +64,10 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 10. **R3: clasificación de los 58 ejercicios del sistema** (tipo, qué se mide, unilateral, nivel). La propuso el agente; está en la migración `V2_R3.sql`. Revisar sobre todo: Paseo del granjero = distancia; Salto a la cuerda = cardio/tiempo con músculo pantorrillas; Escaladores = cardio/tiempo; unilaterales: remo a una mano, patada de tríceps, zancadas, sentadilla búlgara, patada de glúteo, subida al cajón. Además: duplicar nombra la copia "{original} (copia)"; un ejercicio oculto sigue siendo asignable por id desde la API (solo sale del buscador y del editor); el SuperAdmin recibe 403 al ocultar/duplicar (no tiene gym).
 11. **I3: un permiso quitado sigue vivo hasta 60 minutos.** Quitar un permiso revoca los refresh tokens de ese acceso (§5.3), pero el access token ya emitido vale hasta 60 min porque no hay lista de revocación. La spec dice "un permiso sensible no puede seguir activo una hora después de quitarlo": hoy queda justo en el límite. Opciones: (a) aceptarlo; (b) bajar la vida del access token (p. ej. 15 min); (c) comprobar el permiso contra la base en los endpoints sensibles (salud, finanzas, anulaciones).
 12. **AP2: "Avisos" en "Más".** El plan pone "Avisos" en la hoja "Más" del celular, pero los avisos son la campana (siempre visible arriba); no hay página de avisos, así que no aparece. ¿Hace falta una página?
+13. **S7: definición de churn.** Se usó la de la spec (gyms perdidos ÷ activos al inicio del mes). Un gym en prueba que nunca pagó y se inhabilita cuenta como perdido pero no estaba en los activos, así que el churn podría pasar del 100 %. ¿Contar solo los perdidos que eran activos al inicio? Además: "activos" = al día + en mora; "convertidos de prueba a pago" es aproximado (no hay historial de pagos que diga cuál fue el primero); para saber el estado de cada gym al inicio del mes, cada fila guarda una foto de los estados al cierre (`gym_states`).
+14. **MS1: membresía cancelada.** La spec dice "la última fue cancelada → `no_plan`". El agente ignora siempre las canceladas, así que *cancelada + una vencida anterior* da `expired`, no `no_plan`. ¿Cuál es la regla?
+15. **MS1: membresía que empieza en el futuro.** Un miembro cuya única membresía empieza mañana queda `no_plan` y bloqueado hoy. La spec no lo define. ¿Debería tener otro estado (p. ej. "programada")?
+16. **MS1/A3: el kiosco todavía muestra nombres.** `/kiosk` sigue mostrando los nombres de pila de las últimas entradas y de los intentos rechazados; la spec (Memberships §5.3) dice que solo muestra el QR, "Bienvenido" y "¿Problemas para ingresar?…". Se dejó para A3 (kiosco con cuenta de dispositivo). ¿Correcto, o se corrige antes?
 6. **R2: decisiones del agente para validar.** (a) Cambiar el modo (semanal ↔ rotativa) por `PUT` crea la rutina nueva, desactiva la anterior y **reinicia `starts_on` a hoy**; (b) en semanal no hay filas de descanso y mandar `dayOfWeek` en una rotativa es 422; (c) en semanal, "duración del ciclo" se muestra como "N días de entrenamiento".
 5. **R1 → R2: racha y días retirados.** Al retirar un día, deja de contar en el calendario de racha **también hacia atrás** (el calendario solo ve los días vigentes). Para el modo semanal (R2) conviene decidir si la racha se calcula con el calendario vigente en cada fecha.
 
@@ -100,6 +104,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- S7 y MS1 unidas (300 + 141). En MS1 hubo que combinar a mano el diálogo de asignar con el arreglo de B3. Lanzada G2.
 - B3 unida. Lanzada I1.
 - I3 y AP2 unidas (272 + 134); AP2 y el login de I2 verificados en el navegador con una base temporal `gsm_dev_integ` (ya borrada). Lanzadas S6 y B3.
 - Segundo corte por límite de uso (reinicio 8:00): I3, MS1, AP2 y S7 quedaron a medias. Reanudadas por la mañana; el worktree de S7 se había perdido sin nada commiteado y se rehace desde cero.
