@@ -727,7 +727,7 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("html_body");
 
-                    b.Property<EmailKind>("Kind")
+                    b.Property<LegacyEmailKind>("Kind")
                         .HasColumnType("communications.email_kind")
                         .HasColumnName("kind");
 
@@ -748,7 +748,7 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
 
-                    b.Property<EmailStatus>("Status")
+                    b.Property<LegacyEmailStatus>("Status")
                         .HasColumnType("communications.email_status")
                         .HasColumnName("status");
 
@@ -907,7 +907,7 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(160)")
                         .HasColumnName("title");
 
-                    b.Property<NotificationType>("Type")
+                    b.Property<LegacyNotificationType>("Type")
                         .HasColumnType("communications.notification_type")
                         .HasColumnName("type");
 

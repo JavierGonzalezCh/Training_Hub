@@ -46,6 +46,13 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
             .Select(m => new MemberContactView(m.Id, m.GymId, m.FirstName, m.Email, m.Status))
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> GetActiveMemberIdsAsync(
+        Guid gymId, CancellationToken cancellationToken = default)
+        => await Members
+            .Where(m => m.GymId == gymId && m.Status == MemberStatus.Active)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+
     private static IQueryable<MemberInfo> Project(IQueryable<Member> source)
         => source.Select(m => new MemberInfo(
             m.Id, m.GymId, m.UserId, m.FirstName, m.LastName, m.Status));

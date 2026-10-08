@@ -2,8 +2,8 @@ using GSM.Application.Attendance.Abstractions;
 using GSM.Application.Attendance.Contracts;
 using GSM.Application.Common;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Events;
 using GSM.Application.Members.Public;
-using GSM.Domain.Common.Exceptions;
 
 namespace GSM.Application.Attendance;
 
@@ -32,45 +32,27 @@ public sealed class ListCheckinAttemptsHandler(
     }
 }
 
-public sealed class GetPendingAttemptCountHandler(
-    ICurrentUserService currentUser, ICheckinAttemptRepository attempts)
+/// <summary>
+/// Cuando el staff atiende el aviso de un intento rechazado (Notifications), el intento queda visto:
+/// así un nuevo intento del miembro, ya atendido, crea fila nueva en vez de sumarse a la anterior.
+/// </summary>
+public sealed class CheckinAttemptResolvedHandler(
+    ICheckinAttemptRepository attempts, IUnitOfWork unitOfWork) : IDomainEventHandler<ActionNoticeResolved>
 {
-    public async Task<PendingAttemptCountResponse> HandleAsync(CancellationToken cancellationToken)
+    public async Task HandleAsync(ActionNoticeResolved domainEvent, CancellationToken cancellationToken = default)
     {
-        _ = currentUser.RequireGymId();
-        return new PendingAttemptCountResponse(await attempts.GetPendingCountAsync(cancellationToken));
-    }
-}
-
-public sealed class AcknowledgeCheckinAttemptHandler(
-    ICurrentUserService currentUser, IClock clock, ICheckinAttemptRepository attempts, IUnitOfWork unitOfWork)
-{
-    public async Task HandleAsync(Guid attemptId, CancellationToken cancellationToken)
-    {
-        _ = currentUser.RequireGymId();
-        var userId = currentUser.UserId ?? throw new UnauthorizedDomainException("Sin usuario en el contexto.");
-
-        var attempt = await attempts.GetByIdAsync(attemptId, cancellationToken)
-            ?? throw new NotFoundException("Intento no encontrado.");
-        attempt.Acknowledge(userId, clock.UtcNow);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-    }
-}
-
-public sealed class AcknowledgeAllCheckinAttemptsHandler(
-    ICurrentUserService currentUser, IClock clock, ICheckinAttemptRepository attempts, IUnitOfWork unitOfWork)
-{
-    public async Task HandleAsync(CancellationToken cancellationToken)
-    {
-        _ = currentUser.RequireGymId();
-        var userId = currentUser.UserId ?? throw new UnauthorizedDomainException("Sin usuario en el contexto.");
-
-        var now = clock.UtcNow;
-        foreach (var attempt in await attempts.GetPendingAsync(cancellationToken))
+        if (domainEvent.Kind != ActionNoticeKinds.CheckinRejected)
         {
-            attempt.Acknowledge(userId, now);
+            return;
         }
 
+        var attempt = await attempts.GetByIdAsync(domainEvent.ReferenceId, cancellationToken);
+        if (attempt is null)
+        {
+            return;
+        }
+
+        attempt.Acknowledge(domainEvent.ResolvedBy, domainEvent.ResolvedAt);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

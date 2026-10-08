@@ -9,6 +9,7 @@ using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
+using GSM.Domain.Notifications;
 using GSM.Domain.Payments;
 using GSM.Domain.Routines;
 using GSM.Infrastructure.Persistence;
@@ -39,15 +40,18 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_session_status", new[] { "scheduled", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "announcement_status", new[] { "draft", "published", "archived" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "email_kind", new[] { "announcement", "class_cancelled", "membership_expiring" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "email_status", new[] { "pending", "sent", "failed" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "reaction_kind", new[] { "like", "celebrate", "strong" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "user_role", new[] { "superadmin", "owner", "staff", "member" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_status", new[] { "active", "inactive" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "memberships", "membership_status", new[] { "active", "expired", "paused", "cancelled" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "delivery_channel", new[] { "push", "email" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "delivery_status", new[] { "pending", "sent", "failed" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_category", new[] { "membership", "classes", "progress", "news", "promotions", "security" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_priority", new[] { "normal", "urgent" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_status", new[] { "pending", "held", "sent", "failed", "cancelled", "skipped" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "transfer", "card", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "equipment", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "cardio" });
@@ -700,92 +704,6 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("settings", "communications");
                 });
 
-            modelBuilder.Entity("GSM.Domain.Communications.EmailOutboxItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<int>("Attempts")
-                        .HasColumnType("integer")
-                        .HasColumnName("attempts");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid>("GymId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("gym_id");
-
-                    b.Property<string>("HtmlBody")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("html_body");
-
-                    b.Property<EmailKind>("Kind")
-                        .HasColumnType("communications.email_kind")
-                        .HasColumnName("kind");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("last_error");
-
-                    b.Property<Guid>("MemberId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("member_id");
-
-                    b.Property<Guid>("ReferenceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("reference_id");
-
-                    b.Property<DateTimeOffset?>("SentAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("sent_at");
-
-                    b.Property<EmailStatus>("Status")
-                        .HasColumnType("communications.email_status")
-                        .HasColumnName("status");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("subject");
-
-                    b.Property<string>("TextBody")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("text_body");
-
-                    b.Property<string>("ToAddress")
-                        .IsRequired()
-                        .HasMaxLength(320)
-                        .HasColumnType("character varying(320)")
-                        .HasColumnName("to_address");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_email_outbox");
-
-                    b.HasIndex("Kind", "ReferenceId")
-                        .HasDatabaseName("ix_email_outbox_kind_reference_id");
-
-                    b.HasIndex("Status", "CreatedAt")
-                        .HasDatabaseName("ix_email_outbox_status_created_at");
-
-                    b.HasIndex("MemberId", "Kind", "ReferenceId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_email_outbox_member_id_kind_reference_id");
-
-                    b.ToTable("email_outbox", "communications");
-                });
-
             modelBuilder.Entity("GSM.Domain.Communications.MemberCommunicationPreferences", b =>
                 {
                     b.Property<Guid>("Id")
@@ -858,74 +776,6 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_feed_states_member_id");
 
                     b.ToTable("member_feed_states", "communications");
-                });
-
-            modelBuilder.Entity("GSM.Domain.Communications.MemberNotification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("body");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid>("GymId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("gym_id");
-
-                    b.Property<string>("Link")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("link");
-
-                    b.Property<Guid>("MemberId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("member_id");
-
-                    b.Property<DateTimeOffset?>("ReadAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("read_at");
-
-                    b.Property<Guid>("ReferenceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("reference_id");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)")
-                        .HasColumnName("title");
-
-                    b.Property<NotificationType>("Type")
-                        .HasColumnType("communications.notification_type")
-                        .HasColumnName("type");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_member_notifications");
-
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("ix_member_notifications_created_at");
-
-                    b.HasIndex("MemberId", "ReadAt")
-                        .HasDatabaseName("ix_member_notifications_member_id_read_at");
-
-                    b.HasIndex("MemberId", "Type", "ReferenceId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_member_notifications_member_id_type_reference_id");
-
-                    b.ToTable("member_notifications", "communications");
                 });
 
             modelBuilder.Entity("GSM.Domain.Gyms.Gym", b =>
@@ -1359,6 +1209,208 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_membership_plans_gym_id_name");
 
                     b.ToTable("membership_plans", "memberships");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Notifications.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("body");
+
+                    b.Property<NotificationCategory?>("Category")
+                        .HasColumnType("notifications.notification_category")
+                        .HasColumnName("category");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("image_url");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("link");
+
+                    b.Property<NotificationPriority>("Priority")
+                        .HasColumnType("notifications.notification_priority")
+                        .HasColumnName("priority");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<Guid?>("RecipientMemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipient_member_id");
+
+                    b.Property<Guid?>("RecipientUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipient_user_id");
+
+                    b.Property<Guid>("ReferenceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reference_id");
+
+                    b.Property<bool>("RequiresAction")
+                        .HasColumnType("boolean")
+                        .HasColumnName("requires_action");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("ResolvedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by");
+
+                    b.Property<DateTimeOffset>("ScheduledFor")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("scheduled_for");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<NotificationStatus>("Status")
+                        .HasColumnType("notifications.notification_status")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("title");
+
+                    b.Property<NotificationType>("Type")
+                        .HasColumnType("notifications.notification_type")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notifications");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_notifications_created_at");
+
+                    b.HasIndex("RecipientMemberId", "ReadAt")
+                        .HasDatabaseName("ix_notifications_recipient_member_id_read_at");
+
+                    b.HasIndex("Status", "ScheduledFor")
+                        .HasDatabaseName("ix_notifications_status_scheduled_for");
+
+                    b.HasIndex("GymId", "RequiresAction", "ResolvedAt")
+                        .HasDatabaseName("ix_notifications_gym_id_requires_action_resolved_at");
+
+                    b.HasIndex("Type", "RecipientUserId", "RecipientMemberId", "ReferenceId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_type_recipient_user_id_recipient_member_id_re");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("Type", "RecipientUserId", "RecipientMemberId", "ReferenceId"), false);
+
+                    b.ToTable("notifications", "notifications", t =>
+                        {
+                            t.HasCheckConstraint("ck_notifications_recipient", "(recipient_user_id IS NULL OR recipient_member_id IS NULL) AND (requires_action OR recipient_user_id IS NOT NULL OR recipient_member_id IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("GSM.Domain.Notifications.NotificationDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DeliveryChannel>("Channel")
+                        .HasColumnType("notifications.delivery_channel")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("HtmlBody")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("html_body");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<DeliveryStatus>("Status")
+                        .HasColumnType("notifications.delivery_status")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("subject");
+
+                    b.Property<string>("TextBody")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text_body");
+
+                    b.Property<string>("ToAddress")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("to_address");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_deliveries");
+
+                    b.HasIndex("NotificationId", "Channel")
+                        .HasDatabaseName("ix_notification_deliveries_notification_id_channel");
+
+                    b.HasIndex("Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_notification_deliveries_status_next_attempt_at");
+
+                    b.ToTable("notification_deliveries", "notifications");
                 });
 
             modelBuilder.Entity("GSM.Domain.Payments.Payment", b =>
@@ -2225,6 +2277,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_member_invitations_members_member_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Notifications.NotificationDelivery", b =>
+                {
+                    b.HasOne("GSM.Domain.Notifications.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_deliveries_notifications_notification_id");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.RoutineDay", b =>

@@ -28,8 +28,6 @@ public sealed record CheckinAttemptItem(
     DateOnly? MembershipEndedOn,
     DateTimeOffset? AcknowledgedAt);
 
-public sealed record PendingAttemptCountResponse(int Count);
-
 public sealed record ListCheckinAttemptsQuery
 {
     public DateOnly? From { get; init; }

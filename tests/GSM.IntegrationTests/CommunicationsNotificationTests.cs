@@ -5,10 +5,11 @@ using GSM.Application.Common.Events;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Abstractions;
 using GSM.Application.Communications.Contracts;
+using GSM.Application.Notifications;
 using GSM.Domain.Achievements;
 using GSM.Domain.Classes;
 using GSM.Domain.Common.Exceptions;
-using GSM.Domain.Communications;
+using GSM.Domain.Notifications;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
@@ -20,7 +21,10 @@ using Xunit;
 
 namespace GSM.IntegrationTests;
 
-/// <summary>Etapas 13.3 y 13.4: avisos por evento, cola de correos, preferencias y tarea periódica.</summary>
+/// <summary>
+/// Etapas 13.3 y 13.4 sobre Notifications (N1): avisos por evento, entregas por correo, preferencias y la
+/// tarea periódica de recordatorios y purga.
+/// </summary>
 public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     private static readonly DateOnly Today = new(2026, 10, 6);
@@ -62,7 +66,7 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
             Assert.Equal("Desbloqueaste «Constante»", item.Title);
         }
 
-        Assert.Equal(0, await CountOutboxAsync(world.GymId));
+        Assert.Equal(0, await CountDeliveriesAsync(world.GymId));
     }
 
     [Fact]
@@ -128,11 +132,11 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
             await scope.ServiceProvider.GetRequiredService<PublishAnnouncementHandler>().HandleAsync(withoutEmail, default);
         }
 
-        Assert.Equal(3, await CountOutboxAsync(world.GymId));
+        Assert.Equal(3, await CountDeliveriesAsync(world.GymId));
     }
 
     [Fact]
-    public async Task The_job_sends_pending_emails_once_and_retries_failures_up_to_three_times()
+    public async Task The_dispatcher_sends_pending_emails_once_and_retries_failures_up_to_three_times()
     {
         var world = await SeedAsync(2);
         var sender = factory.Services.GetRequiredService<CapturingEmailSender>();
@@ -145,39 +149,50 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         }
 
         sender.Clear();
-        await RunJobAsync();
+        await RunDispatcherAsync();
         var mine = sender.Sent.Where(m => world.Members.Any(x => x.Email == m.To)).ToList();
         Assert.Equal(2, mine.Count);
         Assert.Contains("/api/public/unsubscribe?t=", mine[0].HtmlBody);
 
         sender.Clear();
-        await RunJobAsync();
+        await RunDispatcherAsync();
         Assert.DoesNotContain(sender.Sent, m => world.Members.Any(x => x.Email == m.To));
-        Assert.Equal(2, await CountOutboxAsync(world.GymId, EmailStatus.Sent));
+        Assert.Equal(2, await CountDeliveriesAsync(world.GymId, DeliveryStatus.Sent));
 
-        // Un correo que falla siempre queda Failed al tercer intento.
-        Guid failingId;
+        // Un correo que falla siempre queda Failed al tercer intento, con espera creciente entre ellos.
+        Guid failingId, noticeId;
         using (var scope = System())
         {
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
-            var item = EmailOutboxItem.Create(world.GymId, world.Members[0].Id, "falla@test.local", "x", "x", "x",
-                EmailKind.ClassCancelled, Guid.CreateVersion7());
-            db.Add(item);
+            var notice = Notification.CreateForMember(
+                world.GymId, world.Members[0].Id, NotificationType.ClassCancelled, NotificationCategory.Classes,
+                Guid.CreateVersion7(), "x", "x", null, NowOf(Today));
+            var delivery = NotificationDelivery.CreateEmail(
+                world.GymId, notice.Id, "falla@test.local", "x", "x", "x");
+            db.AddRange(notice, delivery);
             await db.SaveChangesAsync();
-            failingId = item.Id;
+            failingId = delivery.Id;
+            noticeId = notice.Id;
         }
 
-        for (var i = 0; i < 3; i++)
-        {
-            await RunJobAsync(failFor: "falla@test.local");
-        }
+        await RunDispatcherAsync(failFor: "falla@test.local");
+        await AssertDeliveryAsync(failingId, DeliveryStatus.Pending, 1);
+
+        // Aún dentro de la espera (2 min): no reintenta.
+        await RunDispatcherAsync(failFor: "falla@test.local");
+        await AssertDeliveryAsync(failingId, DeliveryStatus.Pending, 1);
+
+        await RunDispatcherAsync(failFor: "falla@test.local", minutesLater: 3);
+        await AssertDeliveryAsync(failingId, DeliveryStatus.Pending, 2);
+
+        await RunDispatcherAsync(failFor: "falla@test.local", minutesLater: 10);
+        await AssertDeliveryAsync(failingId, DeliveryStatus.Failed, 3);
 
         using (var scope = System())
         {
-            var item = await scope.ServiceProvider.GetRequiredService<GsmDbContext>()
-                .Set<EmailOutboxItem>().SingleAsync(e => e.Id == failingId);
-            Assert.Equal(EmailStatus.Failed, item.Status);
-            Assert.Equal(3, item.Attempts);
+            var notice = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
+                .SingleAsync(n => n.Id == noticeId);
+            Assert.Equal(NotificationStatus.Failed, notice.Status);
         }
     }
 
@@ -194,7 +209,7 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         await RunJobAsync();
 
         Assert.Equal(1, await CountNotificationsAsync(world.GymId, NotificationType.MembershipExpiring));
-        Assert.Equal(1, await CountOutboxAsync(world.GymId, kind: EmailKind.MembershipExpiring));
+        Assert.Equal(1, await CountDeliveriesAsync(world.GymId, type: NotificationType.MembershipExpiring));
 
         // Con 0 días el gym desactiva los recordatorios.
         var other = await SeedAsync(1);
@@ -248,33 +263,35 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         right.Headers.Add("X-Job-Secret", "integration-tests-jobs-secret-32-bytes-min!!");
         Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(right)).StatusCode);
 
-        // Purga: 91 días se borra, 89 se conserva.
+        // Purga: leído hace 91 días se borra; leído hace 89 se conserva.
         var world = await SeedAsync(1);
         Guid oldId, recentId;
         using (var scope = System())
         {
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
-            var old = MemberNotification.Create(world.GymId, world.Members[0].Id, NotificationType.AchievementUnlocked, Guid.CreateVersion7(), "Viejo", "", null);
-            var recent = MemberNotification.Create(world.GymId, world.Members[0].Id, NotificationType.AchievementUnlocked, Guid.CreateVersion7(), "Reciente", "", null);
+            var old = Notification.CreateForMember(world.GymId, world.Members[0].Id, NotificationType.AchievementUnlocked, NotificationCategory.Progress, Guid.CreateVersion7(), "Viejo", "", null, NowOf(Today));
+            var recent = Notification.CreateForMember(world.GymId, world.Members[0].Id, NotificationType.AchievementUnlocked, NotificationCategory.Progress, Guid.CreateVersion7(), "Reciente", "", null, NowOf(Today));
+            old.MarkRead(NowOf(Today));
+            recent.MarkRead(NowOf(Today));
             db.AddRange(old, recent);
             await db.SaveChangesAsync();
             oldId = old.Id;
             recentId = recent.Id;
             var now = DateTimeOffset.UtcNow;
-            await db.Set<MemberNotification>().Where(n => n.Id == oldId).ExecuteUpdateAsync(s => s.SetProperty(n => n.CreatedAt, now.AddDays(-91)));
-            await db.Set<MemberNotification>().Where(n => n.Id == recentId).ExecuteUpdateAsync(s => s.SetProperty(n => n.CreatedAt, now.AddDays(-89)));
+            await db.Set<Notification>().Where(n => n.Id == oldId).ExecuteUpdateAsync(s => s.SetProperty(n => n.CreatedAt, now.AddDays(-91)));
+            await db.Set<Notification>().Where(n => n.Id == recentId).ExecuteUpdateAsync(s => s.SetProperty(n => n.CreatedAt, now.AddDays(-89)));
         }
 
         using (var scope = System())
         {
             scope.ServiceProvider.GetRequiredService<MutableClock>().Unpin();
-            await scope.ServiceProvider.GetRequiredService<RunCommunicationsJobHandler>().HandleAsync(50, default);
+            await scope.ServiceProvider.GetRequiredService<PurgeNotificationsHandler>().HandleAsync(default);
         }
 
         using (var scope = System())
         {
-            var ids = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<MemberNotification>()
-                .Where(n => n.MemberId == world.Members[0].Id).Select(n => n.Id).ToListAsync();
+            var ids = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
+                .Where(n => n.RecipientMemberId == world.Members[0].Id).Select(n => n.Id).ToListAsync();
             Assert.DoesNotContain(oldId, ids);
             Assert.Contains(recentId, ids);
         }
@@ -282,21 +299,44 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
 
     // ---------- helpers ----------
 
-    private async Task RunJobAsync(string? failFor = null)
+    private static DateTimeOffset NowOf(DateOnly day)
+        => new GSM.Infrastructure.Common.SystemClock(
+                Microsoft.Extensions.Options.Options.Create(new GSM.Infrastructure.Common.ClockOptions { TimeZone = "America/Bogota" }))
+            .BusinessDayRange(day).Start.AddHours(12);
+
+    /// <summary>La tarea de comunicaciones: ahora solo publica los recordatorios como eventos.</summary>
+    private async Task RunJobAsync()
     {
         using var scope = System();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(Today);
+        await scope.ServiceProvider.GetRequiredService<RunCommunicationsJobHandler>().HandleAsync(default);
+    }
+
+    /// <summary>Una vuelta del dispatcher, a mano. <paramref name="minutesLater"/> adelanta el reloj.</summary>
+    private async Task RunDispatcherAsync(string? failFor = null, int minutesLater = 0)
+    {
+        using var scope = System();
+        scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(NowOf(Today).AddMinutes(minutesLater), Today);
         var sender = factory.Services.GetRequiredService<CapturingEmailSender>();
         if (failFor is null)
         {
-            await scope.ServiceProvider.GetRequiredService<RunCommunicationsJobHandler>().HandleAsync(500, default);
+            await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync();
             return;
         }
 
         // Un remitente que falla solo para una dirección; el resto se comporta como el de captura.
-        var handler = ActivatorUtilities.CreateInstance<RunCommunicationsJobHandler>(
-            scope.ServiceProvider, new FailingFor(failFor, sender));
-        await handler.HandleAsync(500, default);
+        var runner = ActivatorUtilities.CreateInstance<NotificationDispatchRunner>(
+            scope.ServiceProvider, (GSM.Application.Common.Abstractions.IEmailSender)new FailingFor(failFor, sender));
+        await runner.RunOnceAsync();
+    }
+
+    private async Task AssertDeliveryAsync(Guid id, DeliveryStatus status, int attempts)
+    {
+        using var scope = System();
+        var delivery = await scope.ServiceProvider.GetRequiredService<GsmDbContext>()
+            .Set<NotificationDelivery>().SingleAsync(d => d.Id == id);
+        Assert.Equal(status, delivery.Status);
+        Assert.Equal(attempts, delivery.Attempts);
     }
 
     private sealed class FailingFor(string address, CapturingEmailSender inner) : GSM.Application.Common.Abstractions.IEmailSender
@@ -323,15 +363,19 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
     private async Task<int> CountNotificationsAsync(Guid gymId, NotificationType type)
     {
         using var scope = System();
-        return await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<MemberNotification>()
+        return await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
             .CountAsync(n => n.GymId == gymId && n.Type == type);
     }
 
-    private async Task<int> CountOutboxAsync(Guid gymId, EmailStatus? status = null, EmailKind? kind = null)
+    private async Task<int> CountDeliveriesAsync(Guid gymId, DeliveryStatus? status = null, NotificationType? type = null)
     {
         using var scope = System();
-        return await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<EmailOutboxItem>()
-            .CountAsync(e => e.GymId == gymId && (status == null || e.Status == status) && (kind == null || e.Kind == kind));
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        return await (
+            from d in db.Set<NotificationDelivery>()
+            join n in db.Set<Notification>() on d.NotificationId equals n.Id
+            where d.GymId == gymId && (status == null || d.Status == status) && (type == null || n.Type == type)
+            select d.Id).CountAsync();
     }
 
     private async Task<Guid> SeedClassAsync(Guid gymId, string name)

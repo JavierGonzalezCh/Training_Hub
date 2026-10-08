@@ -82,31 +82,4 @@ public sealed class AttendanceController : ControllerBase
         [FromServices] ListCheckinAttemptsHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(query, cancellationToken));
-
-    [HttpGet("attempts/pending-count")]
-    [Authorize(Policy = AuthPolicies.RequireStaff)]
-    [ProducesResponseType<PendingAttemptCountResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PendingAttemptCountResponse>> PendingAttemptCount(
-        [FromServices] GetPendingAttemptCountHandler handler, CancellationToken cancellationToken)
-        => Ok(await handler.HandleAsync(cancellationToken));
-
-    [HttpPost("attempts/{id:guid}/acknowledge")]
-    [Authorize(Policy = AuthPolicies.RequireStaff)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> AcknowledgeAttempt(
-        Guid id, [FromServices] AcknowledgeCheckinAttemptHandler handler, CancellationToken cancellationToken)
-    {
-        await handler.HandleAsync(id, cancellationToken);
-        return NoContent();
-    }
-
-    [HttpPost("attempts/acknowledge-all")]
-    [Authorize(Policy = AuthPolicies.RequireStaff)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> AcknowledgeAllAttempts(
-        [FromServices] AcknowledgeAllCheckinAttemptsHandler handler, CancellationToken cancellationToken)
-    {
-        await handler.HandleAsync(cancellationToken);
-        return NoContent();
-    }
 }

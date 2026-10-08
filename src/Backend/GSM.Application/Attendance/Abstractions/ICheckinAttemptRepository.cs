@@ -14,10 +14,6 @@ public interface ICheckinAttemptRepository
     Task<CheckinAttempt?> GetPendingForMemberOnDateAsync(
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<CheckinAttempt>> GetPendingAsync(CancellationToken cancellationToken = default);
-
-    Task<int> GetPendingCountAsync(CancellationToken cancellationToken = default);
-
     Task<(IReadOnlyList<CheckinAttempt> Items, int Total)> GetPageAsync(
         AttemptPageQuery query, CancellationToken cancellationToken = default);
 }

@@ -133,7 +133,8 @@ public sealed class CheckInHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        await events.PublishAsync(new CheckInRejected(attempt.Id, gymId, member.Id, reason), cancellationToken);
+        await events.PublishAsync(new CheckInRejected(
+            attempt.Id, gymId, member.Id, reason, attempt.AttemptCount, attempt.MembershipEndedOn), cancellationToken);
         logger.LogInformation(
             "Check-in rechazado de miembro {MemberId}: {Reason} (intento {AttemptId}, x{Count})",
             member.Id, reason, attempt.Id, attempt.AttemptCount);

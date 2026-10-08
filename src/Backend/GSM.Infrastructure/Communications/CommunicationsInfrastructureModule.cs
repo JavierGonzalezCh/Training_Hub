@@ -14,8 +14,6 @@ public static class CommunicationsInfrastructureRegistration
         services.AddScoped<IAnnouncementRepository, AnnouncementRepository>();
         services.AddScoped<IAnnouncementReactionRepository, AnnouncementReactionRepository>();
         services.AddScoped<IMemberFeedStateRepository, MemberFeedStateRepository>();
-        services.AddScoped<IMemberNotificationRepository, MemberNotificationRepository>();
-        services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
         services.AddScoped<IMemberCommunicationPreferencesRepository, MemberCommunicationPreferencesRepository>();
         services.AddScoped<ICommunicationsSettingsRepository, CommunicationsSettingsRepository>();
         services.AddSingleton<IUnsubscribeLinks, UnsubscribeLinks>();

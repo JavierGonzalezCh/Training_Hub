@@ -20,6 +20,9 @@ public interface IMemberReader
     /// <summary>Miembros activos del gym con email (destinatarios de un anuncio por correo).</summary>
     Task<IReadOnlyList<MemberContactView>> GetEmailContactsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>Ids de los miembros activos del gym (audiencia de un anuncio).</summary>
+    Task<IReadOnlyList<Guid>> GetActiveMemberIdsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Miembros activos por gym, en una sola consulta (panel de SuperAdmin). Un gym sin miembros
     /// activos no aparece.

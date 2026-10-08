@@ -6,6 +6,7 @@ using GSM.Application.Communications.Contracts;
 using GSM.Application.Communications.Events;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Members.Public;
+using GSM.Application.Notifications.Public;
 using GSM.Domain.Communications;
 using GSM.Domain.Common.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ namespace GSM.Application.Communications;
 public sealed class ListAnnouncementsHandler(
     IAnnouncementRepository announcements,
     IAnnouncementReactionRepository reactions,
-    IEmailOutboxRepository outbox)
+    INotificationReader notificationReader)
 {
     public async Task<PagedResult<AnnouncementResponse>> HandleAsync(
         ListAnnouncementsQuery query, CancellationToken cancellationToken)
@@ -27,7 +28,7 @@ public sealed class ListAnnouncementsHandler(
         var (items, total) = await announcements.ListAsync(status, query.Page, query.PageSize, cancellationToken);
         var ids = items.Select(a => a.Id).ToList();
         var counts = await reactions.CountAsync(ids, cancellationToken);
-        var delivery = await outbox.GetDeliveryAsync(ids, cancellationToken);
+        var delivery = await AnnouncementMapper.GetDeliveryAsync(notificationReader, ids, cancellationToken);
         return new PagedResult<AnnouncementResponse>(
             items.Select(a => AnnouncementMapper.ToResponse(
                 a, counts.GetValueOrDefault(a.Id), delivery.GetValueOrDefault(a.Id))).ToList(),
@@ -38,13 +39,13 @@ public sealed class ListAnnouncementsHandler(
 public sealed class GetAnnouncementHandler(
     IAnnouncementRepository announcements,
     IAnnouncementReactionRepository reactions,
-    IEmailOutboxRepository outbox)
+    INotificationReader notificationReader)
 {
     public async Task<AnnouncementResponse> HandleAsync(Guid id, CancellationToken cancellationToken)
     {
         var announcement = await announcements.GetAsync(id, cancellationToken)
             ?? throw new NotFoundException("Anuncio no encontrado.");
-        return await AnnouncementMapper.ToResponseAsync(announcement, reactions, outbox, cancellationToken);
+        return await AnnouncementMapper.ToResponseAsync(announcement, reactions, notificationReader, cancellationToken);
     }
 }
 
@@ -100,9 +101,8 @@ public sealed class PublishAnnouncementHandler(
     IClock clock,
     IAnnouncementRepository announcements,
     IAnnouncementReactionRepository reactions,
-    IEmailOutboxRepository outbox,
+    INotificationReader notificationReader,
     IMemberReader members,
-    MemberNotifier notifier,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<PublishAnnouncementHandler> logger)
@@ -113,25 +113,20 @@ public sealed class PublishAnnouncementHandler(
             ?? throw new NotFoundException("Anuncio no encontrado.");
 
         announcement.Publish(clock.UtcNow, clock.Today);
-
-        // Los correos se encolan en la misma transacción que la publicación: o quedan los dos o
-        // ninguno. Se envían después, desde la tarea periódica.
-        var queued = 0;
-        if (announcement.SendEmail)
-        {
-            var recipients = await members.GetEmailContactsAsync(announcement.GymId, cancellationToken);
-            queued = await notifier.EnqueueAsync(
-                announcement.GymId, recipients, EmailKind.Announcement, announcement.Id,
-                announcement.Title, announcement.Body, cancellationToken);
-        }
-
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // La audiencia (los miembros activos del gym) se calcula aquí; Notifications crea los avisos y los
+        // correos al consumir el evento. Si falla, el anuncio queda publicado igual.
+        var audience = await members.GetActiveMemberIdsAsync(announcement.GymId, cancellationToken);
         await events.PublishAsync(
-            new AnnouncementPublished(announcement.Id, announcement.GymId, announcement.SendEmail), cancellationToken);
+            new AnnouncementPublished(
+                announcement.Id, announcement.GymId, announcement.Title, announcement.Body,
+                announcement.SendEmail, audience),
+            cancellationToken);
 
         logger.LogInformation(
-            "Anuncio {AnnouncementId} publicado ({Queued} correos encolados)", id, queued);
-        return await AnnouncementMapper.ToResponseAsync(announcement, reactions, outbox, cancellationToken);
+            "Anuncio {AnnouncementId} publicado para {Audience} miembros", id, audience.Count);
+        return await AnnouncementMapper.ToResponseAsync(announcement, reactions, notificationReader, cancellationToken);
     }
 }
 
@@ -248,14 +243,23 @@ internal static class AnnouncementMapper
         a.Id, a.Title, a.Body, a.Status.ToString(), a.PublishedAt, a.Pinned, a.ExpiresOn, a.SendEmail, a.CreatedAt,
         reactions ?? ReactionCounts.None, delivery);
 
+    public static async Task<IReadOnlyDictionary<Guid, EmailDelivery>> GetDeliveryAsync(
+        INotificationReader notificationReader, IReadOnlyCollection<Guid> announcementIds, CancellationToken cancellationToken)
+    {
+        var rows = await notificationReader.GetAnnouncementEmailDeliveryAsync(announcementIds, cancellationToken);
+        return rows.ToDictionary(r => r.Key, r => new EmailDelivery(r.Value.Pending, r.Value.Sent, r.Value.Failed));
+    }
+
     public static async Task<AnnouncementResponse> ToResponseAsync(
         Announcement a,
         IAnnouncementReactionRepository reactions,
-        IEmailOutboxRepository? outbox,
+        INotificationReader? notificationReader,
         CancellationToken cancellationToken)
     {
         var counts = await reactions.CountAsync([a.Id], cancellationToken);
-        var delivery = outbox is null ? null : (await outbox.GetDeliveryAsync([a.Id], cancellationToken)).GetValueOrDefault(a.Id);
+        var delivery = notificationReader is null
+            ? null
+            : (await GetDeliveryAsync(notificationReader, [a.Id], cancellationToken)).GetValueOrDefault(a.Id);
         return ToResponse(a, counts.GetValueOrDefault(a.Id), delivery);
     }
 }
