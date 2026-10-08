@@ -83,7 +83,7 @@ Solo web.
   ningún reader ofrece, se añade un método de lectura al reader del dueño (§6); nunca se consulta su
   `DbContext`.
 - **Un endpoint por dashboard**, que devuelve todos los bloques de una vez. Un bloque que quien entra no
-  puede ver **no viaja** (queda `null`), no responde 403: el panel lo oculta. Los permisos son los de
+  puede ver **no viaja** (queda `null`), no responde 403 (decidido 2026-10-08): el panel lo oculta. Los permisos son los de
   `GSM-modulo-identity.md` §5 (`ViewFinances`, `VoidPayments`, `Trainer`).
 - **Un bloque que falla no tumba el dashboard.** Si un reader lanza, el bloque vuelve `null` con su
   error registrado en `logs.errors` (`GSM-logs.md` §4.1), y el resto se muestra.
@@ -91,7 +91,7 @@ Solo web.
   origen de B2 y de otros dos defectos del proyecto).
 - **Sin caché ni tiempo real.** Se recalcula al abrir la página y con "Actualizar". Excepción: el
   indicador de "personas adentro ahora" y la caja abierta se refrescan solos cada 60 s mientras la
-  página está visible. Si una consulta resulta lenta, `logs.slow_requests` lo dirá antes de cachear.
+  página está visible (decidido 2026-10-08). Si una consulta resulta lenta, `logs.slow_requests` lo dirá antes de cachear.
 - **Los listados del dashboard son cortos** (máximo 5–10 filas) con "Ver todos", que lleva a la pantalla
   del módulo con el filtro ya puesto. El dashboard no pagina.
 - **Impersonación:** el SuperAdmin impersonando ve el panel del gym como un Owner.
