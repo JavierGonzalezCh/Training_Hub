@@ -26,7 +26,7 @@ public sealed class PaymentVoidTests(ApiFactory factory) : IClassFixture<ApiFact
         {
             scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(payDay);
             original = await scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>()
-                .HandleAsync(new RecordPaymentRequest(90_000m, PaymentMethod.Transfer, "Mensualidad", null, memberId, null), default);
+                .HandleAsync(new RecordPaymentRequest(90_000m, PaymentMethod.BankTransfer, "Mensualidad", null, memberId, null), default);
         }
 
         PaymentResponse reversal;
@@ -38,7 +38,7 @@ public sealed class PaymentVoidTests(ApiFactory factory) : IClassFixture<ApiFact
         }
 
         Assert.Equal(-90_000m, reversal.Amount);
-        Assert.Equal("Transfer", reversal.Method);
+        Assert.Equal("BankTransfer", reversal.Method);
         Assert.Equal(memberId, reversal.MemberId);
         Assert.Equal(original.Id, reversal.ReversesPaymentId);
         Assert.Equal("Anulación: Mensualidad", reversal.Concept);

@@ -52,7 +52,7 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
 
             await scope.ServiceProvider.GetRequiredService<RegisterSubscriptionPaymentHandler>()
                 .HandleAsync(w.ActiveGym, new RegisterSubscriptionPaymentRequest(
-                    250_000m, PaymentMethod.Transfer, null, null, null, null), default);
+                    250_000m, PaymentMethod.BankTransfer, null, null, null, null), default);
         }
 
         using (var scope = Admin())
@@ -159,7 +159,7 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
             new DateTimeOffset(2026, 10, 1, 3, 0, 0, TimeSpan.Zero)));
         db.Add(Payment.Create(active, member.Id, null, 70_000m, PaymentMethod.Cash, "Mensualidad", null, staff,
             new DateTimeOffset(2026, 10, 1, 6, 0, 0, TimeSpan.Zero)));
-        db.Add(Payment.Create(disabled, beto.Id, null, 20_000m, PaymentMethod.Transfer, "Mensualidad", null, staff,
+        db.Add(Payment.Create(disabled, beto.Id, null, 20_000m, PaymentMethod.BankTransfer, "Mensualidad", null, staff,
             new DateTimeOffset(2026, 9, 15, 15, 0, 0, TimeSpan.Zero)));
 
         await db.SaveChangesAsync();

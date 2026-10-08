@@ -74,7 +74,7 @@ public sealed class DashboardTests(ApiFactory factory) : IClassFixture<ApiFactor
 
         var utcNow = clock.UtcNow;
         db.Add(Payment.Create(gym.Id, active1.Id, null, 80_000m, PaymentMethod.Cash, "Junio", null, staff.Id, utcNow));
-        db.Add(Payment.Create(gym.Id, active2.Id, null, 40_000m, PaymentMethod.Transfer, "Junio", null, staff.Id, utcNow));
+        db.Add(Payment.Create(gym.Id, active2.Id, null, 40_000m, PaymentMethod.BankTransfer, "Junio", null, staff.Id, utcNow));
 
         var may = clock.BusinessDayRange(new DateOnly(2026, 5, 20)).Start.AddHours(10);
         db.Add(Payment.Create(gym.Id, active1.Id, null, 50_000m, PaymentMethod.Cash, "Mayo", null, staff.Id, may));

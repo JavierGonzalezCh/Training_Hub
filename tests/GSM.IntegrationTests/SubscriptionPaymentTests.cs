@@ -33,7 +33,7 @@ public sealed class SubscriptionPaymentTests(ApiFactory factory) : IClassFixture
         {
             result = await scope.ServiceProvider.GetRequiredService<RegisterSubscriptionPaymentHandler>()
                 .HandleAsync(w.GymId, new RegisterSubscriptionPaymentRequest(
-                    150_000m, PaymentMethod.Transfer,
+                    150_000m, PaymentMethod.BankTransfer,
                     CoversFrom: Today.AddDays(-4), CoversThrough: Today.AddDays(25),
                     Reference: "TRF-9911", Notes: null), default);
         }
@@ -126,7 +126,7 @@ public sealed class SubscriptionPaymentTests(ApiFactory factory) : IClassFixture
             await handler.HandleAsync(w.GymId, new RegisterSubscriptionPaymentRequest(
                 100_000m, PaymentMethod.Cash, null, null, null, null), default);
             await handler.HandleAsync(w.GymId, new RegisterSubscriptionPaymentRequest(
-                100_000m, PaymentMethod.Transfer, null, null, null, null), default);
+                100_000m, PaymentMethod.BankTransfer, null, null, null, null), default);
         }
 
         using var scope2 = Admin(w);

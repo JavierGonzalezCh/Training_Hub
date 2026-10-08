@@ -7,6 +7,6 @@ public sealed class PaymentsEnums : IModuleEnums
 {
     public IEnumerable<PgEnumMapping> Enums { get; } =
     [
-        PgEnumMapping.Of<GSM.Domain.Payments.PaymentMethod>("payment_method", "payments", LowerCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Payments.PaymentMethod>("payment_method", "payments", SnakeCaseNameTranslator.Instance),
     ];
 }
