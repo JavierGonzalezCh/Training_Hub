@@ -37,7 +37,8 @@
 | I2 | En curso | camino crítico |
 | P1 | **Unida** (12e6e24) | 8 métodos; el JSON los saca en PascalCase (`BankTransfer`), como el resto de enums. Suite 186 + 80 |
 | M1 | En curso | incluye `MemberNote` mínima (ver §4) |
-| R2 | En curso | — |
+| R2 | **Unida** (merge de R2) | Suite 198 + 87. Ver pregunta 6 |
+| R3 | En curso (Ola 2, carril libre y dependencias unidas) | clasificación de los ejercicios del sistema para revisar |
 | S5 | **Retenida** | depende de I2 (ver §4) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -50,6 +51,7 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 2. **LG1 → LG4: código de rastreo corto.** El `traceId` es de 32 hex y el código que ve el usuario son sus 6 primeros caracteres (§3: "código 7F3A2C"). Dos peticiones pueden compartir el código corto, así que la búsqueda en LG4 va por prefijo y puede devolver más de una. Opciones: (a) aceptarlo (colisiones rarísimas a este volumen); (b) generar un código corto único aparte.
 3. **LG1: tope del payload de eventos.** El agente no recortó el payload a 4 KB (un JSON cortado no se puede reintentar); el tope es 64 KB y por encima se guarda `{"_truncated":true}`. Aceptado provisionalmente; confirmar.
 4. **R1: registrar sobre una línea retirada.** La spec no lo dice; el agente respondió **409**. Y mover una línea de un día a otro conservando su id se rechaza con 422 (hay que retirar y crear). Confirmar ambas.
+6. **R2: decisiones del agente para validar.** (a) Cambiar el modo (semanal ↔ rotativa) por `PUT` crea la rutina nueva, desactiva la anterior y **reinicia `starts_on` a hoy**; (b) en semanal no hay filas de descanso y mandar `dayOfWeek` en una rotativa es 422; (c) en semanal, "duración del ciclo" se muestra como "N días de entrenamiento".
 5. **R1 → R2: racha y días retirados.** Al retirar un día, deja de contar en el calendario de racha **también hacia atrás** (el calendario solo ve los días vigentes). Para el modo semanal (R2) conviene decidir si la racha se calcula con el calendario vigente en cada fecha.
 
 ## 3. Gestiones operativas pendientes
@@ -81,6 +83,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- R2 unida (conflicto trivial en un comentario de `RoutineForm.razor`); 198 + 87. Incidente: el agente de R2 corrió una vez sus tests contra `gsm_test` (sin la variable), aplicándole V2_R2 y truncando tablas de prueba; sin daño (la migración quedó igual en `v2`). Lanzada R3.
 - P1 unida (186 + 80). Lanzada M1.
 - Los cuatro agentes en curso (I2, P1, R2, N1) se cortaron por el límite de uso de la API (reinicio 21:50); reanudados con su contexto y su worktree intactos.
 - T1 unida (183 + 74). **Ola 0 cerrada**; `CLAUDE.md` actualizado (§6.3). Lanzada N1. Decisión de alcance del integrador: N1 no mueve los correos de cuenta de Identity (los toca I1) para no chocar con I2.
