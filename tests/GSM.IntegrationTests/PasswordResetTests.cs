@@ -31,7 +31,10 @@ public sealed class PasswordResetTests(ApiFactory factory) : IClassFixture<ApiFa
 
         var message = emails.LastTo(email);
         Assert.NotNull(message);
-        var token = message!.TextBody!.Split("Código de restablecimiento: ")[1].Trim();
+        var link = EmailLinks.Parse(message!);
+        Assert.Equal("/restablecer", link.Path);
+        Assert.Equal(email, link.Email);
+        var token = link.Code!;
 
         // Reset con el token.
         using (var scope = factory.CreateScopeWithMigration())
