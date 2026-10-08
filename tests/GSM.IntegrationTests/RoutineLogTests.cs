@@ -149,7 +149,7 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
 
         await db.Database.ExecuteSqlRawAsync(
             "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members restart identity cascade;");
-        await db.Database.ExecuteSqlRawAsync("delete from routines.routines;");
+        await db.Database.ExecuteSqlRawAsync("delete from routines.routine_exercise_logs; delete from routines.routines;");
 
         var slug = $"log-{Guid.NewGuid():N}"[..12];
         var gym = Gym.Create("Log Gym", slug);

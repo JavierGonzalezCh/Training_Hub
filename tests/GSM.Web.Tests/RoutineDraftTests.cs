@@ -46,4 +46,42 @@ public sealed class RoutineDraftTests
         Assert.Equal(42.5, only.TargetWeightKg);
         Assert.Empty(request.Days.Last().Exercises);
     }
+
+    [Fact]
+    public void Editing_keeps_day_and_line_ids_and_new_rows_go_without_id()
+    {
+        var dayId = Guid.NewGuid();
+        var lineId = Guid.NewGuid();
+        var exerciseId = Guid.NewGuid();
+        var routine = new RoutineResponse
+        {
+            Name = "Rutina",
+            Days =
+            [
+                new RoutineDayResponse
+                {
+                    Id = dayId,
+                    Name = "D1",
+                    Exercises =
+                    [
+                        new RoutineExerciseResponse
+                        {
+                            Id = lineId, ExerciseId = exerciseId, ExerciseName = "Press", TargetSets = 3, TargetReps = "10",
+                        },
+                    ],
+                },
+            ],
+        };
+
+        var draft = RoutineDraft.From(routine);
+        draft.Days[0].Exercises.Add(new DraftExercise { Exercise = new ExerciseResponse { Id = Guid.NewGuid(), Name = "Remo" } });
+        draft.Days.Add(new DraftDay { Name = "Nuevo" });
+
+        var request = draft.ToRequest();
+
+        Assert.Equal(dayId, request.Days.First().Id);
+        Assert.Equal(lineId, request.Days.First().Exercises.First().Id);
+        Assert.Null(request.Days.First().Exercises.Last().Id);
+        Assert.Null(request.Days.Last().Id);
+    }
 }

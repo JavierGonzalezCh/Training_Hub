@@ -33,6 +33,7 @@ public sealed class RoutineDayConfiguration : IEntityTypeConfiguration<RoutineDa
         builder.ToTable("routine_days", "routines");
 
         builder.Property(d => d.Name).HasMaxLength(60);
+        builder.Property(d => d.RetiredOn).HasColumnType("date");
 
         builder.HasMany(d => d.Exercises)
             .WithOne()
@@ -41,7 +42,9 @@ public sealed class RoutineDayConfiguration : IEntityTypeConfiguration<RoutineDa
 
         builder.Navigation(d => d.Exercises).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasIndex(d => new { d.RoutineId, d.Position }).IsUnique();
+        // No único: al reordenar, EF actualiza fila por fila y un intercambio de posiciones chocaría a
+        // medias; las posiciones de los días vigentes las garantiza el dominio (1..N sin huecos).
+        builder.HasIndex(d => new { d.RoutineId, d.Position });
     }
 }
 
@@ -54,6 +57,7 @@ public sealed class RoutineExerciseConfiguration : IEntityTypeConfiguration<Rout
         builder.Property(e => e.TargetReps).HasMaxLength(30).IsRequired();
         builder.Property(e => e.TargetWeightKg).HasPrecision(6, 2);
         builder.Property(e => e.Notes).HasMaxLength(500);
+        builder.Property(e => e.RetiredOn).HasColumnType("date");
 
         builder.HasIndex(e => new { e.RoutineDayId, e.Order });
     }

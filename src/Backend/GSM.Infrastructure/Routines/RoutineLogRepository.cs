@@ -15,7 +15,9 @@ public sealed class RoutineLogRepository(GsmDbContext dbContext) : IRoutineLogRe
             join day in dbContext.Set<RoutineDay>() on ex.RoutineDayId equals day.Id
             join routine in dbContext.Set<Routine>() on day.RoutineId equals routine.Id
             where ex.Id == routineExerciseId
-            select new RoutineExerciseRef(ex.Id, routine.GymId, routine.MemberId, routine.SelfAssigned))
+            select new RoutineExerciseRef(
+                ex.Id, routine.GymId, routine.MemberId, routine.SelfAssigned, ex.ExerciseId,
+                ex.RetiredOn != null || day.RetiredOn != null))
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<RoutineExerciseLog?> GetAsync(

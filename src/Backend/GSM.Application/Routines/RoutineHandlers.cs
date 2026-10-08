@@ -14,7 +14,25 @@ namespace GSM.Application.Routines;
 /// <summary>Utilidades compartidas por los casos de uso de rutinas.</summary>
 internal static class RoutineDrafting
 {
-    public static RoutineDraft ToDraft(SaveRoutineRequest request, Guid assignedBy, bool selfAssigned)
+    public static RoutineDraft ToDraft(
+        SaveRoutineRequest request, Guid assignedBy, bool selfAssigned, bool keepIds = false)
+    {
+        var draft = BuildDraft(request, assignedBy, selfAssigned);
+        return keepIds ? draft : StripIds(draft);
+    }
+
+    // Al crear, un id en el body no significa nada (no hay nada que actualizar): se descarta.
+    private static RoutineDraft StripIds(RoutineDraft draft)
+        => draft with
+        {
+            Days = draft.Days.Select(d => d with
+            {
+                Id = null,
+                Exercises = d.Exercises.Select(e => e with { Id = null }).ToList(),
+            }).ToList(),
+        };
+
+    private static RoutineDraft BuildDraft(SaveRoutineRequest request, Guid assignedBy, bool selfAssigned)
         => new(
             request.Name,
             request.Notes,
@@ -24,7 +42,8 @@ internal static class RoutineDrafting
                 d.Name,
                 d.IsRest,
                 (d.Exercises ?? []).Select(e => new RoutineExerciseDraft(
-                    e.ExerciseId, e.TargetSets, e.TargetReps, e.TargetWeightKg, e.RestSeconds, e.Notes)).ToList())).ToList());
+                    e.ExerciseId, e.TargetSets, e.TargetReps, e.TargetWeightKg, e.RestSeconds, e.Notes, e.Id)).ToList(),
+                d.Id)).ToList());
 
     public static async Task ValidateExercisesVisibleAsync(
         IExerciseRepository exercises, SaveRoutineRequest request, CancellationToken cancellationToken)
@@ -151,6 +170,7 @@ public sealed class SelfAssignRoutineHandler(
 
 public sealed class UpdateRoutineHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IExerciseRepository exercises,
     IRoutineRepository routines,
     IUnitOfWork unitOfWork,
@@ -166,18 +186,13 @@ public sealed class UpdateRoutineHandler(
 
         await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
 
-        var draft = RoutineDrafting.ToDraft(request, routine.AssignedBy, routine.SelfAssigned);
+        var draft = RoutineDrafting.ToDraft(request, routine.AssignedBy, routine.SelfAssigned, keepIds: true);
 
-        await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
-        {
-            routines.RemoveDaysOf(routine);
-            await unitOfWork.SaveChangesAsync(innerToken);
+        routine.Replace(draft, clock.Today);
+        routines.TrackNewChildren(routine);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            routine.Replace(draft);
-            await unitOfWork.SaveChangesAsync(innerToken);
-        }, cancellationToken);
-
-        logger.LogInformation("Rutina {RoutineId} reemplazada ({Days} días)", routine.Id, routine.CycleLength);
+        logger.LogInformation("Rutina {RoutineId} editada en el lugar ({Days} días)", routine.Id, routine.CycleLength);
         return await RoutineDrafting.BuildResponseAsync(exercises, routine, cancellationToken);
     }
 }

@@ -42,7 +42,7 @@ public sealed class RoutineReader(GsmDbContext dbContext) : IRoutineReader
         }
 
         var routines = await Routines
-            .Include(r => r.Days)
+            .Include(r => r.Days.Where(d => d.RetiredOn == null))
             .Where(r => r.MemberId == memberId
                         && (!onlyAssigned || !r.SelfAssigned)
                         && r.StartsOn <= to

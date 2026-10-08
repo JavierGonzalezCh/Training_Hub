@@ -174,7 +174,7 @@ public sealed class RoutineTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         await db.Database.ExecuteSqlRawAsync(
             "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, members.members restart identity cascade;");
-        await db.Database.ExecuteSqlRawAsync("delete from routines.routines;");
+        await db.Database.ExecuteSqlRawAsync("delete from routines.routine_exercise_logs; delete from routines.routines;");
         await db.Database.ExecuteSqlRawAsync("delete from routines.exercises where gym_id is not null;");
 
         var suffix = Guid.NewGuid().ToString("N")[..8];

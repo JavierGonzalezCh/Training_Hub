@@ -21,6 +21,8 @@ public sealed class RoutineExerciseLogConfiguration : IEntityTypeConfiguration<R
             set.Property(x => x.WeightKg).HasPrecision(6, 2);
         });
 
+        builder.HasIndex(l => new { l.MemberId, l.ExerciseId });
+
         // Un registro por ejercicio por día: repetir actualiza.
         builder.HasIndex(l => new { l.RoutineExerciseId, l.PerformedOn }).IsUnique();
         builder.HasIndex(l => new { l.MemberId, l.PerformedOn });
@@ -28,6 +30,7 @@ public sealed class RoutineExerciseLogConfiguration : IEntityTypeConfiguration<R
         builder.HasOne<RoutineExercise>()
             .WithMany()
             .HasForeignKey(l => l.RoutineExerciseId)
-            .OnDelete(DeleteBehavior.Cascade);
+            // Ninguna edición borra un registro: las líneas con historial se retiran, no se eliminan (B1).
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

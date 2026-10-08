@@ -21,6 +21,12 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
 
     public Guid RoutineExerciseId { get; private set; }
 
+    /// <summary>
+    /// Ejercicio del catálogo que se hizo, copiado de la línea al registrar. Permite consultar el
+    /// historial de un ejercicio aunque la línea se haya retirado o la rutina haya cambiado.
+    /// </summary>
+    public Guid ExerciseId { get; private set; }
+
     /// <summary>Día de negocio, no UTC.</summary>
     public DateOnly PerformedOn { get; private set; }
 
@@ -48,6 +54,7 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
         Guid gymId,
         Guid memberId,
         Guid routineExerciseId,
+        Guid exerciseId,
         DateOnly performedOn,
         DateTimeOffset completedAt,
         int? setsDone,
@@ -56,7 +63,7 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
         string? notes,
         IReadOnlyList<RoutineSetEntry>? sets = null)
     {
-        if (gymId == Guid.Empty || memberId == Guid.Empty || routineExerciseId == Guid.Empty)
+        if (gymId == Guid.Empty || memberId == Guid.Empty || routineExerciseId == Guid.Empty || exerciseId == Guid.Empty)
         {
             throw new ValidationDomainException("Datos de registro incompletos.");
         }
@@ -66,6 +73,7 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
             GymId = gymId,
             MemberId = memberId,
             RoutineExerciseId = routineExerciseId,
+            ExerciseId = exerciseId,
             PerformedOn = performedOn,
             CompletedAt = completedAt,
         };

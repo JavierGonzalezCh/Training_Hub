@@ -50,6 +50,11 @@ public sealed class LogRoutineExerciseHandler(
             throw new ForbiddenDomainException("No puedes registrar sobre la rutina de otro socio.");
         }
 
+        if (reference.IsRetired)
+        {
+            throw new ConflictException("Ese ejercicio ya no forma parte de la rutina.");
+        }
+
         var today = clock.Today;
         var now = clock.UtcNow;
         var sets = request.Sets?.Select(s => new RoutineSetEntry(0, s.Reps, s.WeightKg)).ToList();
@@ -71,7 +76,7 @@ public sealed class LogRoutineExerciseHandler(
         else
         {
             log = RoutineExerciseLog.Record(
-                reference.GymId, memberId, routineExerciseId, today, now,
+                reference.GymId, memberId, routineExerciseId, reference.ExerciseId, today, now,
                 request.SetsDone, request.RepsDone, request.WeightKg, request.Notes, sets);
             logs.Add(log);
         }

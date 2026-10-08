@@ -6,13 +6,19 @@ public sealed record RoutineExerciseInput(
     string TargetReps,
     decimal? TargetWeightKg,
     int? RestSeconds,
-    string? Notes);
+    string? Notes,
+    Guid? Id = null);
 
 public sealed record RoutineDayInput(
     string? Name,
     bool IsRest,
-    IReadOnlyList<RoutineExerciseInput> Exercises);
+    IReadOnlyList<RoutineExerciseInput> Exercises,
+    Guid? Id = null);
 
+/// <summary>
+/// <c>Id</c> en un día o una línea = existente que se actualiza; sin <c>Id</c> = nuevo. Lo que existía y no
+/// viene en el body se retira (sus registros se conservan). Solo aplica a <c>PUT</c>; al crear se ignoran.
+/// </summary>
 public sealed record SaveRoutineRequest(
     string Name,
     string? Notes,

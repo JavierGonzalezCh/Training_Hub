@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "https://localhost:7219/"
+      "url": "http://localhost:7330/"
     }
   ],
   "paths": {
@@ -10899,6 +10899,13 @@
             "items": {
               "$ref": "#/components/schemas/RoutineExerciseInput"
             }
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -10987,6 +10994,13 @@
               "null",
               "string"
             ]
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },

@@ -19103,6 +19103,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("exercises")]
         public System.Collections.Generic.ICollection<RoutineExerciseInput> Exercises { get; set; } = new System.Collections.ObjectModel.Collection<RoutineExerciseInput>();
 
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid? Id { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -19165,6 +19168,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("notes")]
         public string? Notes { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid? Id { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
