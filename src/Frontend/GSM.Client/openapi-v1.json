@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7299/"
+      "url": "http://localhost:7370/"
     }
   ],
   "paths": {
@@ -1088,6 +1088,35 @@
                   "items": {
                     "$ref": "#/components/schemas/ImpersonationItem"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/metrics/monthly": {
+      "get": {
+        "tags": [
+          "AdminMetrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
                 }
               }
             }
@@ -11076,6 +11105,132 @@
           }
         }
       },
+      "MonthlyMetricItem": {
+        "required": [
+          "month",
+          "mrr",
+          "collected",
+          "newGyms",
+          "trialGymsAtClose",
+          "convertedGyms",
+          "lostGyms",
+          "activeGymsAtStart",
+          "activeGymsAtClose",
+          "churn",
+          "activeMembers",
+          "checkIns"
+        ],
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date"
+          },
+          "mrr": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "collected": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "newGyms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "trialGymsAtClose": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "convertedGyms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lostGyms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "activeGymsAtStart": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "activeGymsAtClose": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "churn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "activeMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "checkIns": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MonthlyMetricsResponse": {
+        "required": [
+          "months"
+        ],
+        "type": "object",
+        "properties": {
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthlyMetricItem"
+            }
+          }
+        }
+      },
       "Muscle": {
         "type": "integer"
       },
@@ -14156,6 +14311,9 @@
     },
     {
       "name": "AdminImpersonation"
+    },
+    {
+      "name": "AdminMetrics"
     },
     {
       "name": "AdminPayments"

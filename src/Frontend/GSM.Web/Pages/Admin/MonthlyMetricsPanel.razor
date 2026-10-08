@@ -1,0 +1,80 @@
+@inject IAdminMetricsClient MetricsClient
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h6" Class="mb-2">Evolución mensual (últimos 12 meses)</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_months.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mb-6" data-testid="metrics-empty">
+        Todavía no hay meses cerrados. La primera foto se guarda en la primera ejecución del mes siguiente;
+        lo que no se guardó no se recupera.
+    </MudText>
+}
+else
+{
+    var maxMrr = _months.Max(m => m.Mrr);
+    <MudTable Items="_months" Hover="true" Dense="true" Elevation="0" Class="mb-6" data-testid="metrics-table">
+        <HeaderContent>
+            <MudTh>Mes</MudTh>
+            <MudTh>MRR</MudTh>
+            <MudTh>Cobrado</MudTh>
+            <MudTh>Gyms activos</MudTh>
+            <MudTh>Nuevos</MudTh>
+            <MudTh>Convertidos</MudTh>
+            <MudTh>Perdidos</MudTh>
+            <MudTh>Churn</MudTh>
+            <MudTh>Miembros activos</MudTh>
+            <MudTh>Entradas</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Mes">@MonthLabel(context.Month)</MudTd>
+            <MudTd DataLabel="MRR" Class="gsm-mono">
+                @GsmFormat.Money((decimal)context.Mrr)
+                <div style="height:4px;margin-top:2px;background:var(--mud-palette-primary);width:@BarWidth(context.Mrr, maxMrr)"></div>
+            </MudTd>
+            <MudTd DataLabel="Cobrado" Class="gsm-mono">@GsmFormat.Money((decimal)context.Collected)</MudTd>
+            <MudTd DataLabel="Gyms activos">@context.ActiveGymsAtClose</MudTd>
+            <MudTd DataLabel="Nuevos">@context.NewGyms</MudTd>
+            <MudTd DataLabel="Convertidos">@context.ConvertedGyms</MudTd>
+            <MudTd DataLabel="Perdidos">@context.LostGyms</MudTd>
+            <MudTd DataLabel="Churn">@ChurnLabel(context.Churn)</MudTd>
+            <MudTd DataLabel="Miembros activos">@context.ActiveMembers</MudTd>
+            <MudTd DataLabel="Entradas">@context.CheckIns</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private IReadOnlyList<MonthlyMetricItem> _months = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _months = (await MetricsClient.MonthlyAsync()).Months.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    public static string MonthLabel(DateOnly month)
+        => month.ToString("MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("es-CO"));
+
+    /// <summary>Sin gyms activos al inicio no hay churn que medir: se muestra un guion, no un 0 %.</summary>
+    public static string ChurnLabel(double? churn)
+        => churn is { } c ? (c * 100).ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("es-CO")) + " %" : "—";
+
+    private static string BarWidth(double value, double max)
+        => max <= 0 ? "0%" : $"{(value / max * 100).ToString("0", System.Globalization.CultureInfo.InvariantCulture)}%";
+}
