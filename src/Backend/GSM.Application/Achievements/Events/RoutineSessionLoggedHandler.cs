@@ -20,7 +20,7 @@ public sealed class RoutineSessionLoggedHandler(
         if (unlocked.Count > 0)
         {
             logger.LogInformation(
-                "Sesión de rutina desbloqueó {Count} logro(s) para el socio {MemberId}",
+                "Sesión de rutina desbloqueó {Count} logro(s) para el miembro {MemberId}",
                 unlocked.Count, domainEvent.MemberId);
         }
     }

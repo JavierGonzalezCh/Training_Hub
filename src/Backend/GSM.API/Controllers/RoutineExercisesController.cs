@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GSM.API.Controllers;
 
-/// <summary>Seguimiento del socio sobre las líneas de su rutina. Idempotente por día.</summary>
+/// <summary>Seguimiento del miembro sobre las líneas de su rutina. Idempotente por día.</summary>
 [ApiController]
 [Route("api/routine-exercises")]
 [Authorize(Policy = AuthPolicies.RequireMember)]

@@ -160,7 +160,7 @@ public sealed class SubscriptionGateHttpTests(ApiFactory factory) : IClassFixtur
         return client;
     }
 
-    /// <summary>Un socio en el gym dado y otro en un gym distinto, para comprobar el aislamiento.</summary>
+    /// <summary>Un miembro en el gym dado y otro en un gym distinto, para comprobar el aislamiento.</summary>
     private async Task<(Guid Here, Guid Elsewhere)> SeedMembersAsync(Guid gymId)
     {
         using var scope = factory.CreateScopeWithMigration();

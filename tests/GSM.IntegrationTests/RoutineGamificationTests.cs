@@ -147,7 +147,7 @@ public sealed class RoutineGamificationTests(ApiFactory factory) : IClassFixture
         var staff = MakeUser($"{slug}-s", UserRole.Staff, gym.Id);
         gym.AssignOwner(staff.Id);
         var memberUser = MakeUser($"{slug}-m", UserRole.Member, gym.Id);
-        var member = Member.Create(gym.Id, "Socio", "Gam", $"doc-{slug}", new DateOnly(2026, 1, 1));
+        var member = Member.Create(gym.Id, "Miembro", "Gam", $"doc-{slug}", new DateOnly(2026, 1, 1));
         member.LinkUser(memberUser.Id);
 
         var flags = GymFeatureFlags.Default(gym.Id);

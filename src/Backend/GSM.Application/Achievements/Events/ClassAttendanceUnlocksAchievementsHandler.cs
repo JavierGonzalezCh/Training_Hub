@@ -8,7 +8,7 @@ namespace GSM.Application.Achievements.Events;
 /// <summary>
 /// Asistir a una clase dispara la evaluación de logros (condición <c>classes</c> y la racha, ya
 /// que la clase también cuenta como check-in del día). Idempotente: <c>AchievementService</c> solo
-/// mira los logros que el socio aún no tiene.
+/// mira los logros que el miembro aún no tiene.
 /// </summary>
 public sealed class ClassAttendanceUnlocksAchievementsHandler(
     IAchievementService achievements,
@@ -22,7 +22,7 @@ public sealed class ClassAttendanceUnlocksAchievementsHandler(
         if (unlocked.Count > 0)
         {
             logger.LogInformation(
-                "Asistencia a clase desbloqueó {Count} logro(s) para el socio {MemberId}",
+                "Asistencia a clase desbloqueó {Count} logro(s) para el miembro {MemberId}",
                 unlocked.Count, domainEvent.MemberId);
         }
     }

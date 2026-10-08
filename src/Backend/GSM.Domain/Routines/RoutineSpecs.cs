@@ -1,7 +1,7 @@
 namespace GSM.Domain.Routines;
 
 /// <summary>
-/// Datos de entrada para construir/reemplazar una rutina. El caso de uso ya validó el socio y
+/// Datos de entrada para construir/reemplazar una rutina. El caso de uso ya validó el miembro y
 /// cada <c>ExerciseId</c> contra el catálogo visible; el agregado valida sus propias invariantes.
 /// </summary>
 public sealed record RoutineDraft(

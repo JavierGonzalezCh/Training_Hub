@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GSM.Application.Routines;
 
-/// <summary>Contexto del socio para los endpoints de seguimiento: valida el feature flag y resuelve su id.</summary>
+/// <summary>Contexto del miembro para los endpoints de seguimiento: valida el feature flag y resuelve su id.</summary>
 internal static class RoutineMemberContext
 {
     public static async Task<Guid> ResolveAsync(
@@ -47,7 +47,7 @@ public sealed class LogRoutineExerciseHandler(
 
         if (reference.MemberId != memberId)
         {
-            throw new ForbiddenDomainException("No puedes registrar sobre la rutina de otro socio.");
+            throw new ForbiddenDomainException("No puedes registrar sobre la rutina de otro miembro.");
         }
 
         if (reference.IsRetired)
@@ -86,7 +86,7 @@ public sealed class LogRoutineExerciseHandler(
         if (firstOfDay)
         {
             logger.LogInformation(
-                "Socio {MemberId} inició sesión de rutina el {Date}", memberId, today);
+                "Miembro {MemberId} inició sesión de rutina el {Date}", memberId, today);
             await events.PublishAsync(
                 new RoutineSessionLogged(memberId, reference.GymId, today, reference.SelfAssigned),
                 cancellationToken);
@@ -116,7 +116,7 @@ public sealed class UnlogRoutineExerciseHandler(
 
         if (reference.MemberId != memberId)
         {
-            throw new ForbiddenDomainException("No puedes registrar sobre la rutina de otro socio.");
+            throw new ForbiddenDomainException("No puedes registrar sobre la rutina de otro miembro.");
         }
 
         var existing = await logs.GetAsync(routineExerciseId, date, cancellationToken);

@@ -78,7 +78,7 @@ else
         }
         catch (GsmApiException ex)
         {
-            // 404: código inválido o caducado. 409: el socio ya tiene cuenta.
+            // 404: código inválido o caducado. 409: el miembro ya tiene cuenta.
             _error = ApiError.FromException(ex).DisplayMessage;
         }
         finally

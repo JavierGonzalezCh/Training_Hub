@@ -48,7 +48,7 @@ public sealed class GetScheduleHandler(
     }
 }
 
-/// <summary>Horario del gym para la app del socio. 403 si <c>show_classes = false</c>.</summary>
+/// <summary>Horario del gym para la app del miembro. 403 si <c>show_classes = false</c>.</summary>
 public sealed class GetMyClassesHandler(
     ICurrentUserService currentUser,
     IGymReader gyms,

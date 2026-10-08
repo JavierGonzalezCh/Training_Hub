@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace GSM.API.Controllers;
 
 /// <summary>
-/// Reserva de plaza por el socio, sobre una sesión concreta. El socio solo actúa sobre sus propios
+/// Reserva de plaza por el miembro, sobre una sesión concreta. El miembro solo actúa sobre sus propios
 /// datos (se resuelve del token). 403 si <c>show_classes = false</c>.
 /// </summary>
 [ApiController]

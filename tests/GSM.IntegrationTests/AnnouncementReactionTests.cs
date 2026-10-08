@@ -198,7 +198,7 @@ public sealed class AnnouncementReactionTests(ApiFactory factory) : IClassFixtur
         for (var i = 0; i < members; i++)
         {
             var userId = Guid.CreateVersion7();
-            var member = GSM.Domain.Members.Member.Create(gym.Id, "Socio", $"{i}", $"doc-{Guid.NewGuid():N}"[..12], Today.AddDays(-30));
+            var member = GSM.Domain.Members.Member.Create(gym.Id, "Miembro", $"{i}", $"doc-{Guid.NewGuid():N}"[..12], Today.AddDays(-30));
             member.LinkUser(userId);
             db.Add(member);
             users.Add(userId);

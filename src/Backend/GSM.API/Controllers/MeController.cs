@@ -26,7 +26,7 @@ public sealed class MeController : ControllerBase
         [FromServices] GetMyAchievementsHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
-    /// <summary>Rutina activa del socio + qué toca hoy (o descanso). 403 si <c>show_routines = false</c>.</summary>
+    /// <summary>Rutina activa del miembro + qué toca hoy (o descanso). 403 si <c>show_routines = false</c>.</summary>
     [HttpGet("routines")]
     [ProducesResponseType<MyRoutineResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -34,7 +34,7 @@ public sealed class MeController : ControllerBase
         [FromServices] GetMyRoutineHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
-    /// <summary>Auto-servicio: el socio se arma su propia rutina. 403 si <c>members_can_create_routines = false</c>.</summary>
+    /// <summary>Auto-servicio: el miembro se arma su propia rutina. 403 si <c>members_can_create_routines = false</c>.</summary>
     [HttpPost("routines")]
     [ProducesResponseType<RoutineResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -57,7 +57,7 @@ public sealed class MeController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
 
-    /// <summary>Horario de clases del gym para la app del socio. 403 si <c>show_classes = false</c>.</summary>
+    /// <summary>Horario de clases del gym para la app del miembro. 403 si <c>show_classes = false</c>.</summary>
     [HttpGet("classes")]
     [ProducesResponseType<ScheduleResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -68,7 +68,7 @@ public sealed class MeController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
 
-    /// <summary>Histórico de clases del socio: todas sus reservas y asistencias.</summary>
+    /// <summary>Histórico de clases del miembro: todas sus reservas y asistencias.</summary>
     [HttpGet("classes/history")]
     [ProducesResponseType<IReadOnlyList<ClassHistoryItem>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -76,7 +76,7 @@ public sealed class MeController : ControllerBase
         [FromServices] GetMyClassHistoryHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
-    /// <summary>Racha del socio + congeladores disponibles.</summary>
+    /// <summary>Racha del miembro + congeladores disponibles.</summary>
     [HttpGet("streak")]
     [ProducesResponseType<MemberStreakResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<MemberStreakResponse>> Streak(

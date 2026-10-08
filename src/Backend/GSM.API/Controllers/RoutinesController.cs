@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GSM.API.Controllers;
 
-/// <summary>Gestión de rutinas por el staff. Los endpoints del socio viven en <c>MeController</c>.</summary>
+/// <summary>Gestión de rutinas por el staff. Los endpoints del miembro viven en <c>MeController</c>.</summary>
 [ApiController]
 [Route("api/routines")]
 [Authorize(Policy = AuthPolicies.RequireStaff)]
@@ -38,7 +38,7 @@ public sealed class RoutinesController : ControllerBase
     }
 }
 
-/// <summary>Rutinas de un socio concreto (listar y asignar).</summary>
+/// <summary>Rutinas de un miembro concreto (listar y asignar).</summary>
 [ApiController]
 [Route("api/members/{memberId:guid}/routines")]
 [Authorize(Policy = AuthPolicies.RequireStaff)]

@@ -4,7 +4,7 @@ using GSM.Domain.Common.Exceptions;
 namespace GSM.Domain.Classes;
 
 /// <summary>
-/// Reserva y asistencia de un socio a una <c>ClassSession</c>: una sola fila por socio y sesión
+/// Reserva y asistencia de un miembro a una <c>ClassSession</c>: una sola fila por miembro y sesión
 /// (índice único <c>(session_id, member_id)</c>). Reservar de nuevo tras cancelar reactiva la
 /// misma fila. En una clase sin cupo no hay reserva previa: marcar la asistencia crea la fila
 /// directamente en <see cref="ClassBookingStatus.Attended"/>.
@@ -70,7 +70,7 @@ public sealed class ClassBooking : BaseEntity, ITenantEntity
         CancelledAt = null;
     }
 
-    /// <summary>El socio cancela su reserva. Solo si está reservada.</summary>
+    /// <summary>El miembro cancela su reserva. Solo si está reservada.</summary>
     public void CancelByMember(DateTimeOffset now)
     {
         if (Status != ClassBookingStatus.Booked)

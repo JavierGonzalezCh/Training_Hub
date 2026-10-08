@@ -33,7 +33,7 @@ internal static class ClassBookingSupport
     }
 }
 
-/// <summary>El socio reserva una plaza. 422 si la clase no tiene cupo; 409 si está llena o cancelada.</summary>
+/// <summary>El miembro reserva una plaza. 422 si la clase no tiene cupo; 409 si está llena o cancelada.</summary>
 public sealed class BookClassHandler(
     ICurrentUserService currentUser,
     IClock clock,
@@ -102,7 +102,7 @@ public sealed class BookClassHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Socio {MemberId} reservó la sesión {SessionId} ({ClassId} {Date})", self.Id, session.Id, classId, date);
+            "Miembro {MemberId} reservó la sesión {SessionId} ({ClassId} {Date})", self.Id, session.Id, classId, date);
 
         return await ResponseAsync(mine, session, classId, self.Id, cancellationToken);
     }
@@ -116,7 +116,7 @@ public sealed class BookClassHandler(
     }
 }
 
-/// <summary>El socio cancela su reserva. Permitido hasta la hora de inicio de la sesión.</summary>
+/// <summary>El miembro cancela su reserva. Permitido hasta la hora de inicio de la sesión.</summary>
 public sealed class CancelBookingHandler(
     ICurrentUserService currentUser,
     IClock clock,
@@ -149,7 +149,7 @@ public sealed class CancelBookingHandler(
         booking.CancelByMember(clock.UtcNow);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Socio {MemberId} canceló su reserva en la sesión {SessionId}", self.Id, session.Id);
+        logger.LogInformation("Miembro {MemberId} canceló su reserva en la sesión {SessionId}", self.Id, session.Id);
     }
 }
 
@@ -182,7 +182,7 @@ public sealed class GetRosterHandler(
             var member = await members.GetAsync(b.MemberId, cancellationToken);
             entries.Add(new RosterEntry(
                 b.Id, b.MemberId,
-                member is null ? "(socio eliminado)" : $"{member.FirstName} {member.LastName}",
+                member is null ? "(miembro eliminado)" : $"{member.FirstName} {member.LastName}",
                 b.Status.ToString(), b.BookedAt, b.AttendedAt));
         }
 
@@ -278,7 +278,7 @@ public sealed class MarkAttendanceHandler(
     }
 }
 
-/// <summary>Histórico de clases del socio (todas sus reservas y asistencias).</summary>
+/// <summary>Histórico de clases del miembro (todas sus reservas y asistencias).</summary>
 public sealed class GetMyClassHistoryHandler(
     ICurrentUserService currentUser,
     IGymReader gyms,

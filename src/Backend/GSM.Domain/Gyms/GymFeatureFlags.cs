@@ -30,7 +30,7 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
 
     public bool CommunityComments { get; private set; } = true;
 
-    /// <summary>El socio puede armarse rutinas él mismo (etapa 9.6). Arranca en <c>false</c>.</summary>
+    /// <summary>El miembro puede armarse rutinas él mismo (etapa 9.6). Arranca en <c>false</c>.</summary>
     public bool MembersCanCreateRoutines { get; private set; }
 
     public static GymFeatureFlags Default(Guid gymId) => new() { GymId = gymId };

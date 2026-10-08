@@ -17,7 +17,7 @@ using Xunit;
 namespace GSM.IntegrationTests;
 
 /// <summary>
-/// Hueco H4: la app del socio decide si ofrece "crear mi rutina" leyendo
+/// Hueco H4: la app del miembro decide si ofrece "crear mi rutina" leyendo
 /// <c>members_can_create_routines</c> de <c>GET /api/auth/me</c>, porque
 /// <c>GET /api/gym/feature-flags</c> es solo para staff.
 /// </summary>

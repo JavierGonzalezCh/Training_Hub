@@ -8,7 +8,7 @@ public sealed record LogRoutineExerciseRequest(
     string? Notes,
     IReadOnlyList<LogSetRequest>? Sets = null);
 
-/// <summary>Una serie realizada: repeticiones y peso que usó el socio. El número lo pone el servidor por orden.</summary>
+/// <summary>Una serie realizada: repeticiones y peso que usó el miembro. El número lo pone el servidor por orden.</summary>
 public sealed record LogSetRequest(int? Reps, decimal? WeightKg);
 
 public sealed record SetResponse(int Number, int? Reps, decimal? WeightKg);

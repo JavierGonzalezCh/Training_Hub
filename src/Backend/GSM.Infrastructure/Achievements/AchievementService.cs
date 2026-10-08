@@ -88,7 +88,7 @@ public sealed class AchievementService(
                 achievements.AddStreakFreeze(StreakFreeze.Grant(gymId, memberId, today));
                 await unitOfWork.SaveChangesAsync(cancellationToken);
                 available++;
-                logger.LogInformation("Congelador de racha otorgado al socio {MemberId}", memberId);
+                logger.LogInformation("Congelador de racha otorgado al miembro {MemberId}", memberId);
             }
         }
 
@@ -123,7 +123,7 @@ public sealed class AchievementService(
             catch (DbUpdateException ex)
             {
                 // Carrera: otra consulta concurrente ya marcó un congelador para esa fecha.
-                logger.LogWarning(ex, "Consumo de congelador en conflicto para el socio {MemberId}", memberId);
+                logger.LogWarning(ex, "Consumo de congelador en conflicto para el miembro {MemberId}", memberId);
             }
         }
 

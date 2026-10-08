@@ -10,7 +10,7 @@ namespace GSM.Application.Attendance.Events;
 
 /// <summary>
 /// Asistir a una clase cuenta como check-in del día. El check-in ya es idempotente por día desde
-/// la etapa 6: si el socio había fichado al entrar, el registro existe y no se duplica.
+/// la etapa 6: si el miembro había fichado al entrar, el registro existe y no se duplica.
 /// </summary>
 public sealed class ClassAttendanceRegisteredHandler(
     IClock clock,
@@ -33,7 +33,7 @@ public sealed class ClassAttendanceRegisteredHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation(
-            "Check-in del día {Date} registrado para el socio {MemberId} por asistencia a clase",
+            "Check-in del día {Date} registrado para el miembro {MemberId} por asistencia a clase",
             domainEvent.SessionDate, domainEvent.MemberId);
     }
 }

@@ -113,7 +113,7 @@ public sealed class AssignRoutineHandler(
         }, cancellationToken);
 
         logger.LogInformation(
-            "Rutina {RoutineId} asignada al socio {MemberId} ({Days} días)",
+            "Rutina {RoutineId} asignada al miembro {MemberId} ({Days} días)",
             routine.Id, memberId, routine.CycleLength);
 
         await events.PublishAsync(
@@ -123,7 +123,7 @@ public sealed class AssignRoutineHandler(
     }
 }
 
-/// <summary>Auto-servicio: el socio se arma su propia rutina (<c>self_assigned = true</c>). 403 si el flag está apagado.</summary>
+/// <summary>Auto-servicio: el miembro se arma su propia rutina (<c>self_assigned = true</c>). 403 si el flag está apagado.</summary>
 public sealed class SelfAssignRoutineHandler(
     ICurrentUserService currentUser,
     IClock clock,
@@ -160,7 +160,7 @@ public sealed class SelfAssignRoutineHandler(
             await unitOfWork.SaveChangesAsync(innerToken);
         }, cancellationToken);
 
-        logger.LogInformation("Socio {MemberId} se auto-asignó la rutina {RoutineId}", self.Id, routine.Id);
+        logger.LogInformation("Miembro {MemberId} se auto-asignó la rutina {RoutineId}", self.Id, routine.Id);
         await events.PublishAsync(
             new RoutineAssigned(routine.Id, self.Id, gymId, SelfAssigned: true), cancellationToken);
 
@@ -254,7 +254,7 @@ public sealed class ListMemberRoutinesHandler(
     }
 }
 
-/// <summary>Rutina activa del socio + qué toca hoy, resolviendo la posición del ciclo.</summary>
+/// <summary>Rutina activa del miembro + qué toca hoy, resolviendo la posición del ciclo.</summary>
 public sealed class GetMyRoutineHandler(
     ICurrentUserService currentUser,
     IClock clock,

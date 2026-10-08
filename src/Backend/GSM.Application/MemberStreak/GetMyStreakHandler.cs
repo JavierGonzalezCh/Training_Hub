@@ -4,7 +4,7 @@ using GSM.Domain.Common.Exceptions;
 
 namespace GSM.Application.MemberStreak;
 
-/// <summary>La racha del socio autenticado (para <c>GET /api/me/streak</c>): racha + congeladores.</summary>
+/// <summary>La racha del miembro autenticado (para <c>GET /api/me/streak</c>): racha + congeladores.</summary>
 public sealed class GetMyStreakHandler(
     ICurrentUserService currentUser,
     IMemberReader members,

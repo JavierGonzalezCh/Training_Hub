@@ -107,7 +107,7 @@ public sealed class MemberStreakTests(ApiFactory factory) : IClassFixture<ApiFac
         var gym = Gym.Create("Streak Gym", slug);
         var staff = MakeUser($"{slug}-s", UserRole.Staff, gym.Id);
         gym.AssignOwner(staff.Id);
-        var member = Member.Create(gym.Id, "Socio", "Racha", $"doc-{slug}", new DateOnly(2026, 1, 1));
+        var member = Member.Create(gym.Id, "Miembro", "Racha", $"doc-{slug}", new DateOnly(2026, 1, 1));
 
         db.AddRange(gym, GymFeatureFlags.Default(gym.Id), staff, member);
         await db.SaveChangesAsync();

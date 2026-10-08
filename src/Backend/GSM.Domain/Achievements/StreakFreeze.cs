@@ -5,7 +5,7 @@ namespace GSM.Domain.Achievements;
 
 /// <summary>
 /// Congelador de racha: un imprevisto no arruina un mes de constancia. Vive en <c>achievements</c>
-/// —no en Routines— porque aplica también a socios sin rutina. Se concede uno cada 15 días, con
+/// —no en Routines— porque aplica también a miembros sin rutina. Se concede uno cada 15 días, con
 /// tope de dos disponibles; se consume marcando <see cref="UsedOn"/> con la fecha fallada.
 /// </summary>
 public sealed class StreakFreeze : BaseEntity, ITenantEntity

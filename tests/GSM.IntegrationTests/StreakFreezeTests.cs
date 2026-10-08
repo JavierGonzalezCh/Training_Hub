@@ -140,7 +140,7 @@ public sealed class StreakFreezeTests(ApiFactory factory) : IClassFixture<ApiFac
             SecurityStamp = Guid.NewGuid().ToString(),
         };
         gym.AssignOwner(staff.Id);
-        var member = Member.Create(gym.Id, "Socio", "Freeze", $"doc-{slug}", new DateOnly(2026, 1, 1));
+        var member = Member.Create(gym.Id, "Miembro", "Freeze", $"doc-{slug}", new DateOnly(2026, 1, 1));
 
         db.AddRange(gym, GymFeatureFlags.Default(gym.Id), staff, member);
         await db.SaveChangesAsync();

@@ -4,7 +4,7 @@ using GSM.Domain.Common.Exceptions;
 namespace GSM.Application.Routines;
 
 /// <summary>
-/// Con <c>show_routines = false</c> los endpoints del socio responden 403; los de staff siguen
+/// Con <c>show_routines = false</c> los endpoints del miembro responden 403; los de staff siguen
 /// abiertos (para preparar rutinas antes de encender el módulo).
 /// </summary>
 internal static class RoutineFeatureGate
@@ -20,7 +20,7 @@ internal static class RoutineFeatureGate
         }
     }
 
-    /// <summary><c>members_can_create_routines</c>: el auto-servicio del socio.</summary>
+    /// <summary><c>members_can_create_routines</c>: el auto-servicio del miembro.</summary>
     public static async Task EnsureSelfServiceEnabledAsync(
         IGymReader gyms, Guid gymId, CancellationToken cancellationToken)
     {
@@ -28,7 +28,7 @@ internal static class RoutineFeatureGate
         if (flags is null || !flags.MembersCanCreateRoutines)
         {
             throw new ForbiddenDomainException(
-                "Tu gimnasio no permite que los socios se armen rutinas.");
+                "Tu gimnasio no permite que los miembros se armen rutinas.");
         }
     }
 }

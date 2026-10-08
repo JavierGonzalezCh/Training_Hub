@@ -263,7 +263,7 @@ public sealed class AnnouncementTests(ApiFactory factory) : IClassFixture<ApiFac
         }
 
         var memberUserId = Guid.CreateVersion7();
-        var member = GSM.Domain.Members.Member.Create(gym.Id, "Socio", "Feed", $"doc-{Guid.NewGuid():N}"[..12], Today.AddDays(-30));
+        var member = GSM.Domain.Members.Member.Create(gym.Id, "Miembro", "Feed", $"doc-{Guid.NewGuid():N}"[..12], Today.AddDays(-30));
         member.LinkUser(memberUserId);
 
         db.AddRange(gym, flags, member);

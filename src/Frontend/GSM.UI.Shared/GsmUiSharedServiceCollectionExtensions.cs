@@ -8,7 +8,7 @@ namespace GSM.UI.Shared;
 
 public static class GsmUiSharedServiceCollectionExtensions
 {
-    /// <summary>Registra el estado de sesión compartido por los tres hosts (panel, admin, socio).</summary>
+    /// <summary>Registra el estado de sesión compartido por los tres hosts (panel, admin, miembro).</summary>
     public static IServiceCollection AddGsmUiShared(this IServiceCollection services)
     {
         services.AddAuthorizationCore(options =>

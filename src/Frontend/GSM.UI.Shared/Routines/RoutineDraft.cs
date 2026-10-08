@@ -3,8 +3,8 @@ using GSM.Client.Generated;
 namespace GSM.UI.Shared.Routines;
 
 /// <summary>
-/// Estado editable de una rutina, compartido por el editor del staff (ficha del socio) y el
-/// autoservicio del socio (<c>/app/rutina/nueva</c>). Solo convierte hacia y desde los contratos.
+/// Estado editable de una rutina, compartido por el editor del staff (ficha del miembro) y el
+/// autoservicio del miembro (<c>/app/rutina/nueva</c>). Solo convierte hacia y desde los contratos.
 /// </summary>
 public sealed class RoutineDraft
 {

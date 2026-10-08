@@ -63,7 +63,7 @@ public sealed record RoutineListItem(
     DateOnly? DeactivatedOn,
     int CycleLength);
 
-/// <summary>Rutina activa del socio + qué toca hoy (o descanso).</summary>
+/// <summary>Rutina activa del miembro + qué toca hoy (o descanso).</summary>
 public sealed record MyRoutineResponse(
     RoutineResponse? Routine,
     TodayView? Today);

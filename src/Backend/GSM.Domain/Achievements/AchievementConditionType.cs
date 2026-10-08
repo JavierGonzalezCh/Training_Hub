@@ -13,7 +13,7 @@ public enum AchievementConditionType
     RoutineSessions,
 
     /// <summary>
-    /// Nº de sesiones de clase a las que el socio asistió (etapa 10.4). Label: <c>classes</c>.
+    /// Nº de sesiones de clase a las que el miembro asistió (etapa 10.4). Label: <c>classes</c>.
     /// </summary>
     Classes,
 }

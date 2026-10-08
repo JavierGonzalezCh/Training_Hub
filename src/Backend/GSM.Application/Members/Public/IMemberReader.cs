@@ -21,7 +21,7 @@ public interface IMemberReader
     Task<IReadOnlyList<MemberContactView>> GetEmailContactsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Socios activos por gym, en una sola consulta (panel de SuperAdmin). Un gym sin socios
+    /// Miembros activos por gym, en una sola consulta (panel de SuperAdmin). Un gym sin miembros
     /// activos no aparece.
     /// </summary>
     Task<IReadOnlyDictionary<Guid, int>> GetActiveCountsByGymAsync(CancellationToken cancellationToken = default);

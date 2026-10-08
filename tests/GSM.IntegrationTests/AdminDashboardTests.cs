@@ -126,7 +126,7 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
         var disabled = MakeGym(db, "dash-disabled", GymStatus.Active, LastDayOfSeptember.AddDays(-30), price: 300_000m);
         var suspended = MakeGym(db, "dash-suspended", GymStatus.Suspended, LastDayOfSeptember.AddDays(20), price: 500_000m);
 
-        // Un socio activo con un check-in el 20 de septiembre en el gym activo.
+        // Un miembro activo con un check-in el 20 de septiembre en el gym activo.
         var member = Member.Create(active, "Ana", "Uso", $"doc-{Guid.NewGuid():N}"[..12], new DateOnly(2026, 1, 1));
         db.Add(member);
         db.Add(AttendanceEntity.Create(
@@ -152,7 +152,7 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
             disabled, carla.Id, AttendanceMethodEnum.Manual,
             new DateTimeOffset(2026, 8, 31, 15, 0, 0, TimeSpan.Zero), new DateOnly(2026, 8, 31)));
 
-        // Pagos de socios en el borde del mes de negocio (Colombia, UTC-5): las 22:00 del 30-sep
+        // Pagos de miembros en el borde del mes de negocio (Colombia, UTC-5): las 22:00 del 30-sep
         // locales son las 03:00 UTC del 1-oct y cuentan en septiembre; la 01:00 del 1-oct, en octubre.
         var staff = Guid.CreateVersion7();
         db.Add(Payment.Create(active, member.Id, null, 50_000m, PaymentMethod.Cash, "Mensualidad", null, staff,

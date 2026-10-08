@@ -2,7 +2,7 @@ using GSM.Domain.Routines;
 
 namespace GSM.Application.Routines.Abstractions;
 
-/// <summary>Referencia resuelta de una línea de rutina a su rutina/socio (para autorizar el registro).</summary>
+/// <summary>Referencia resuelta de una línea de rutina a su rutina/miembro (para autorizar el registro).</summary>
 public sealed record RoutineExerciseRef(
     Guid RoutineExerciseId, Guid GymId, Guid MemberId, bool SelfAssigned, Guid ExerciseId, bool IsRetired = false);
 
@@ -27,7 +27,7 @@ public interface IRoutineLogRepository
         Guid routineExerciseId, DateOnly performedOn, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// ¿El socio ya tenía ese día algún registro de una rutina del mismo tipo
+    /// ¿El miembro ya tenía ese día algún registro de una rutina del mismo tipo
     /// (<paramref name="selfAssigned"/>)?
     /// </summary>
     /// <remarks>
