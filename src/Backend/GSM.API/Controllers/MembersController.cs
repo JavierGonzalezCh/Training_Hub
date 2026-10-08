@@ -40,9 +40,12 @@ public sealed class MembersController : ControllerBase
 
         var active = await memberships.GetActiveAsync(id, cancellationToken);
         var recent = await payments.GetRecentByMemberAsync(id, limit: 5, cancellationToken);
+        var access = await memberships.GetAccessStatusAsync(id, cancellationToken);
 
         return Ok(member with
         {
+            CommercialStatus = GSM.Domain.Members.EnumText.Snake(access.Commercial)!,
+            AccessNotice = access.Notice,
             CurrentMembership = active is null
                 ? null
                 : new MemberCurrentMembership(

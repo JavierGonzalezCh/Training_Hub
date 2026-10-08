@@ -32,7 +32,32 @@ public class MoneyFormatUiTests : TestContext
 
     public class NoopClient : DispatchProxy
     {
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) => null;
+        // Responde con tareas completas: colecciones vacías y el resto por defecto. El diálogo de
+        // asignar consulta el historial del miembro (MS1) antes de proponer el plan.
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            var returnType = targetMethod!.ReturnType;
+            if (returnType == typeof(Task))
+            {
+                return Task.CompletedTask;
+            }
+
+            if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                var resultType = returnType.GetGenericArguments()[0];
+                object? result = null;
+                if (resultType.IsGenericType && resultType.GetGenericTypeDefinition() == typeof(ICollection<>))
+                {
+                    result = Activator.CreateInstance(typeof(List<>).MakeGenericType(resultType.GetGenericArguments()[0]));
+                }
+
+                return typeof(Task).GetMethod(nameof(Task.FromResult))!
+                    .MakeGenericMethod(resultType)
+                    .Invoke(null, [result]);
+            }
+
+            return null;
+        }
     }
 
     [Fact]

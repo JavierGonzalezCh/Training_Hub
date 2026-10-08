@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace GSM.UI.Shared.Formatting;
 
@@ -25,6 +25,10 @@ public static class GsmFormat
     /// <summary>Día de negocio, p. ej. <c>5 sept 2026</c>. No se convierte de zona horaria.</summary>
     public static string Day(DateOnly day)
         => day.ToString("d MMM yyyy", Colombia);
+
+    /// <summary>Día sin año, p. ej. <c>8 oct</c>. Para los letreros y la vista previa de la renovación.</summary>
+    public static string DayShort(DateOnly day)
+        => day.ToString("d MMM", Colombia);
 
     /// <summary>
     /// Día corto con día de la semana, p. ej. <c>lun 14 sept</c>. Para listas acotadas a una

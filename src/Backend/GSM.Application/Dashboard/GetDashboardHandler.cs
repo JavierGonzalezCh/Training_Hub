@@ -17,15 +17,18 @@ public sealed class GetDashboardHandler(
     IPaymentReader payments,
     IMembershipReader memberships)
 {
-    private const int ExpiringWindowDays = 7;
-
     public async Task<DashboardResponse> HandleAsync(CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
         var today = clock.Today;
         var lastMonth = today.AddMonths(-1);
 
-        var expiring = await memberships.GetExpiringAsync(gymId, ExpiringWindowDays, cancellationToken);
+        var settings = await memberships.GetSettingsAsync(gymId, cancellationToken);
+        var expiring = await memberships.GetExpiringAsync(gymId, settings.ExpiringDays, cancellationToken);
+
+        // Solo miembros activos: los dados de baja conservan sus membresías pero no cuentan aquí.
+        var activeIds = await members.GetActiveMemberIdsAsync(gymId, cancellationToken);
+        var counts = await memberships.GetStatusCountsAsync(gymId, activeIds, cancellationToken);
 
         // Sin el nombre, la tabla no sirve para lo que existe: que recepción llame a renovar.
         var rows = new List<ExpiringMemberRow>(expiring.Count);
@@ -43,6 +46,14 @@ public sealed class GetDashboardHandler(
             RevenueLastMonth: await payments.GetMonthlyRevenueAsync(gymId, lastMonth.Year, lastMonth.Month, cancellationToken),
             ExpiredMemberships: await memberships.GetExpiredCountAsync(gymId, cancellationToken),
             ExpiringSoon: expiring.Count,
-            ExpiringMemberships: rows);
+            ExpiringMemberships: rows,
+            CommercialStatus: new CommercialStatusCounts(
+                counts[CommercialStatus.Current],
+                counts[CommercialStatus.Expiring],
+                counts[CommercialStatus.Grace],
+                counts[CommercialStatus.Expired],
+                counts[CommercialStatus.Frozen],
+                counts[CommercialStatus.NoPlan]),
+            ExpiringDays: settings.ExpiringDays);
     }
 }

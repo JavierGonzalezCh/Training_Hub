@@ -26,8 +26,15 @@ public sealed class Attendance : BaseEntity, ITenantEntity
 
     public AttendanceMethod Method { get; private set; }
 
+    /// <summary>Quién dejó pasar al miembro fuera de la gracia ("Dejar pasar" en recepción). Nulo si la entrada no fue autorizada.</summary>
+    public Guid? AuthorizedBy { get; private set; }
+
+    /// <summary>Motivo de la entrada autorizada. Solo con <see cref="AuthorizedBy"/>.</summary>
+    public string? AuthorizationReason { get; private set; }
+
     public static Attendance Create(
-        Guid gymId, Guid memberId, AttendanceMethod method, DateTimeOffset checkedInAt, DateOnly attendanceDate)
+        Guid gymId, Guid memberId, AttendanceMethod method, DateTimeOffset checkedInAt, DateOnly attendanceDate,
+        Guid? authorizedBy = null, string? authorizationReason = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty)
         {
@@ -41,6 +48,8 @@ public sealed class Attendance : BaseEntity, ITenantEntity
             Method = method,
             CheckedInAt = checkedInAt,
             AttendanceDate = attendanceDate,
+            AuthorizedBy = authorizedBy,
+            AuthorizationReason = authorizedBy is null ? null : authorizationReason?.Trim(),
         };
     }
 }

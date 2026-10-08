@@ -1,4 +1,4 @@
-@page "/attendance"
+﻿@page "/attendance"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IAttendanceClient Attendance
 @inject NavigationManager Navigation
@@ -34,13 +34,16 @@
 <ServerTable @ref="_table" TItem="AttendanceListItem" Load="LoadAsync">
     <ToolBarContent>
         <MudDatePicker Label="Desde" Date="_from" DateChanged="OnFromChangedAsync" Class="mr-4" Style="max-width:180px" />
-        <MudDatePicker Label="Hasta" Date="_to" DateChanged="OnToChangedAsync" Style="max-width:180px" />
+        <MudDatePicker Label="Hasta" Date="_to" DateChanged="OnToChangedAsync" Class="mr-4" Style="max-width:180px" />
+        <MudSwitch T="bool" Value="_authorizedOnly" ValueChanged="OnAuthorizedChangedAsync" Color="Color.Primary"
+                   Label="Entradas autorizadas" />
     </ToolBarContent>
     <HeaderContent>
         <MudTh>Miembro</MudTh>
         <MudTh>Fecha</MudTh>
         <MudTh>Hora</MudTh>
         <MudTh>Método</MudTh>
+        <MudTh>Autorizada</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Miembro">
@@ -51,6 +54,16 @@
         <MudTd DataLabel="Fecha">@GsmFormat.Day(context.AttendanceDate)</MudTd>
         <MudTd DataLabel="Hora">@GsmFormat.Instant(context.CheckedInAt)</MudTd>
         <MudTd DataLabel="Método">@(context.Method == "Qr" ? "QR" : "Manual")</MudTd>
+        <MudTd DataLabel="Autorizada">
+            @if (context.Authorized == true)
+            {
+                <MudText Typo="Typo.body2">@(context.AuthorizedByName ?? "Staff") · @context.AuthorizationReason</MudText>
+            }
+            else
+            {
+                <MudText Color="Color.Secondary">—</MudText>
+            }
+        </MudTd>
     </RowTemplate>
     <CardTemplate>
         <div class="gsm-card__row">
@@ -67,6 +80,7 @@
     private ServerTable<AttendanceListItem> _table = null!;
     private DateTime? _from;
     private DateTime? _to;
+    private bool _authorizedOnly;
     private List<PeakHourBucket>? _peakHours;
     private List<ChartSeries> _series = [];
     private string[] _labels = [];
@@ -98,6 +112,7 @@
                 null,
                 _from is { } f ? DateOnly.FromDateTime(f) : null,
                 _to is { } t ? DateOnly.FromDateTime(t) : null,
+                _authorizedOnly ? true : null,
                 page, pageSize, cancellationToken);
             return new ServerTablePage<AttendanceListItem>(result.Items.ToList(), result.Total);
         }
@@ -111,6 +126,12 @@
     private async Task OnFromChangedAsync(DateTime? value)
     {
         _from = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OnAuthorizedChangedAsync(bool value)
+    {
+        _authorizedOnly = value;
         await _table.RefreshAsync();
     }
 

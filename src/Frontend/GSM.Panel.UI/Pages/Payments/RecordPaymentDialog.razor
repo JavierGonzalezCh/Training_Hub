@@ -129,7 +129,7 @@
             return [];
         }
 
-        var result = await Members.MembersGETAsync(search, null, null, 1, 10, cancellationToken);
+        var result = await Members.MembersGETAsync(search, null, null, null, 1, 10, cancellationToken);
         return result.Items;
     }
 

@@ -1,4 +1,4 @@
-using GSM.Application.Achievements;
+﻿using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
 using GSM.Application.Attendance;
 using GSM.Application.Attendance.Contracts;
@@ -51,7 +51,7 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
         using (var scope = Staff(gymId, staffId, day1))
         {
             var (res, created) = await scope.ServiceProvider.GetRequiredService<CheckInHandler>()
-                .HandleAsync(new CheckInRequest(memberId, null), default);
+                .HandleAsync(new CheckInRequest(memberId, null, "Cortesía de prueba"), default);
 
             Assert.True(created);
             Assert.True(res.MembershipExpired); // sin membresía asignada
@@ -62,7 +62,7 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
         using (var scope = Staff(gymId, staffId, day1))
         {
             var (res, created) = await scope.ServiceProvider.GetRequiredService<CheckInHandler>()
-                .HandleAsync(new CheckInRequest(memberId, null), default);
+                .HandleAsync(new CheckInRequest(memberId, null, "Cortesía de prueba"), default);
 
             Assert.False(created);
             Assert.True(res.AlreadyCheckedInToday);
@@ -73,13 +73,13 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
         using (var scope = Staff(gymId, staffId, day1.AddDays(1)))
         {
             await scope.ServiceProvider.GetRequiredService<CheckInHandler>()
-                .HandleAsync(new CheckInRequest(memberId, null), default);
+                .HandleAsync(new CheckInRequest(memberId, null, "Cortesía de prueba"), default);
         }
 
         using (var scope = Staff(gymId, staffId, day1.AddDays(2)))
         {
             var (res, _) = await scope.ServiceProvider.GetRequiredService<CheckInHandler>()
-                .HandleAsync(new CheckInRequest(memberId, null), default);
+                .HandleAsync(new CheckInRequest(memberId, null, "Cortesía de prueba"), default);
 
             Assert.Contains(res.UnlockedAchievements, a => a.Name == "3 visitas");
         }

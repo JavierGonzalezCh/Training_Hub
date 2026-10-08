@@ -28,7 +28,19 @@ public sealed class UpdatePlanRequestValidator : AbstractValidator<UpdatePlanReq
 public sealed class AssignMembershipRequestValidator : AbstractValidator<AssignMembershipRequest>
 {
     public AssignMembershipRequestValidator()
-        => RuleFor(x => x.PlanId).NotEmpty();
+    {
+        RuleFor(x => x.PlanId).NotEmpty();
+        RuleFor(x => x.StartDateReason).MaximumLength(500);
+    }
+}
+
+public sealed class UpdateMembershipSettingsRequestValidator : AbstractValidator<UpdateMembershipSettingsRequest>
+{
+    public UpdateMembershipSettingsRequestValidator()
+    {
+        RuleFor(x => x.GraceDays).InclusiveBetween(0, GSM.Domain.Memberships.MembershipSettings.MaxGraceDays);
+        RuleFor(x => x.ExpiringDays).InclusiveBetween(1, GSM.Domain.Memberships.MembershipSettings.MaxExpiringDays);
+    }
 }
 
 public sealed class CancelMembershipRequestValidator : AbstractValidator<CancelMembershipRequest>

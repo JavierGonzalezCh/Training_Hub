@@ -201,7 +201,7 @@ else
         var today = GsmFormat.Today();
         try
         {
-            var entries = await Attendance.AttendanceGETAsync(null, today, today, 1, 6, _cts.Token);
+            var entries = await Attendance.AttendanceGETAsync(null, today, today, null, 1, 6, _cts.Token);
             _entries = entries.Items.OrderByDescending(i => i.CheckedInAt).ToList();
             var attempts = await Attendance.AttemptsAsync(today, today, null, 1, 4, _cts.Token);
             _rejected = attempts.Items.OrderByDescending(i => i.AttemptedAt).ToList();

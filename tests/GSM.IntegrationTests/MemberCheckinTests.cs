@@ -1,7 +1,9 @@
-using GSM.Application.Attendance;
+﻿using GSM.Application.Attendance;
 using GSM.Application.Notifications;
 using GSM.Application.Attendance.Abstractions;
 using GSM.Application.Attendance.Contracts;
+using GSM.Application.Memberships;
+using GSM.Application.Memberships.Contracts;
 using GSM.Domain.Attendance;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Gyms;
@@ -53,7 +55,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         using (var s = Scope(w, UserRole.Owner))
         {
             var h = s.ServiceProvider.GetRequiredService<UpdateCheckinSettingsHandler>();
-            await h.HandleAsync(new UpdateCheckinSettingsRequest("Static", 3), default);
+            await h.HandleAsync(new UpdateCheckinSettingsRequest("Static"), default);
         }
 
         var v1 = CodeFor(w.GymId, CheckinMode.Static, 1, NowOf(Today));
@@ -139,8 +141,8 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         var w = await SeedAsync(endedDaysAgo: 1);
         using (var s = Scope(w, UserRole.Owner))
         {
-            await s.ServiceProvider.GetRequiredService<UpdateCheckinSettingsHandler>()
-                .HandleAsync(new UpdateCheckinSettingsRequest("Rotating", 0), default);
+            await s.ServiceProvider.GetRequiredService<UpdateMembershipSettingsHandler>()
+                .HandleAsync(new UpdateMembershipSettingsRequest(0, 7), default);
         }
 
         await Assert.ThrowsAsync<ConflictException>(
@@ -157,8 +159,8 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         // Pasa la gracia (se acorta a 0) y vuelve a escanear el mismo dia.
         using (var s = Scope(w, UserRole.Owner))
         {
-            await s.ServiceProvider.GetRequiredService<UpdateCheckinSettingsHandler>()
-                .HandleAsync(new UpdateCheckinSettingsRequest("Rotating", 0), default);
+            await s.ServiceProvider.GetRequiredService<UpdateMembershipSettingsHandler>()
+                .HandleAsync(new UpdateMembershipSettingsRequest(0, 7), default);
         }
 
         var (res, created) = await CheckInAsMember(w, code);
@@ -168,17 +170,47 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
-    public async Task Staff_registers_an_expired_member_without_rejection_and_with_the_warning()
+    public async Task Staff_needs_a_reason_to_let_an_expired_member_through_and_it_is_recorded()
     {
         var w = await SeedAsync(endedDaysAgo: 10);
 
-        var (res, created) = await CheckInAsStaff(w);
+        // Sin motivo: 422 con el mensaje que la UI usa para ofrecer "Renovar y cobrar" / "Dejar pasar".
+        var ex = await Assert.ThrowsAsync<ValidationDomainException>(() => CheckInAsStaff(w));
+        Assert.Contains("fuera de la gracia", ex.Message);
+        Assert.Equal(0, await PendingCountAsync(w));
+
+        var (res, created) = await CheckInAsStaff(w, "Paga mañana");
 
         Assert.True(created);
+        Assert.True(res.Authorized);
         Assert.True(res.MembershipExpired);
         Assert.Equal(Today.AddDays(-10), res.MembershipEndsOn);
         Assert.Null(res.GraceDaysLeft);
         Assert.Equal(0, await PendingCountAsync(w));
+
+        using var s = Scope(w, UserRole.Staff);
+        var all = await s.ServiceProvider.GetRequiredService<ListAttendanceHandler>()
+            .HandleAsync(new ListAttendanceQuery(), default);
+        var authorized = await s.ServiceProvider.GetRequiredService<ListAttendanceHandler>()
+            .HandleAsync(new ListAttendanceQuery { AuthorizedOnly = true }, default);
+        var item = Assert.Single(authorized.Items);
+        Assert.Equal(all.Total, authorized.Total);
+        Assert.True(item.Authorized);
+        Assert.Equal("Paga mañana", item.AuthorizationReason);
+        Assert.NotNull(item.AuthorizedBy);
+    }
+
+    [Fact]
+    public async Task Staff_enters_a_member_in_grace_without_a_reason_and_the_entry_is_not_authorized()
+    {
+        var w = await SeedAsync(endedDaysAgo: 1);
+
+        var (res, created) = await CheckInAsStaff(w);
+
+        Assert.True(created);
+        Assert.False(res.Authorized);
+        Assert.Equal(2, res.GraceDaysLeft);
+        Assert.Contains("venció", res.Notice);
     }
 
     [Fact]
@@ -244,11 +276,11 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
             .HandleAsync(new CheckInRequest(null, code), default);
     }
 
-    private async Task<(CheckInResponse Response, bool Created)> CheckInAsStaff(World w)
+    private async Task<(CheckInResponse Response, bool Created)> CheckInAsStaff(World w, string? authorizationReason = null)
     {
         using var s = Scope(w, UserRole.Staff);
         return await s.ServiceProvider.GetRequiredService<CheckInHandler>()
-            .HandleAsync(new CheckInRequest(w.MemberId, null), default);
+            .HandleAsync(new CheckInRequest(w.MemberId, null, authorizationReason), default);
     }
 
     private async Task<int> PendingCountAsync(World w)

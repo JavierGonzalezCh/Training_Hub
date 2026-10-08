@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @implements IDisposable
 @inject GymContext GymContext
@@ -35,9 +35,24 @@ else if (_dashboard is { } dashboard)
                   Hint="@($"{Percent(dashboard.CheckInsToday, dashboard.ActiveMembers)} de los activos")" />
         <StatCard Label="Ingresos del mes" Value="@GsmFormat.Money((decimal)dashboard.RevenueThisMonth)"
                   Hint="@RevenueHint(dashboard)" />
-        <StatCard Label="Por vencer · 7 días" Value="@dashboard.ExpiringSoon.ToString()"
+        <StatCard Label="@($"Por vencer · {dashboard.ExpiringDays} días")" Value="@dashboard.ExpiringSoon.ToString()"
                   Accent="@(dashboard.ExpiringSoon > 0 ? Color.Error : Color.Default)"
                   Hint="@($"{dashboard.ExpiredMemberships} ya vencidas")" />
+    </section>
+
+    @* Estado comercial de los miembros activos (Memberships v2, §10): "32 al día · 5 por vencer · 2 en gracia · 7 vencidos". *@
+    <section class="gsm-kpi-grid" aria-label="Estado comercial de los miembros" id="commercial-status">
+        <StatCard Label="Al día" Value="@dashboard.CommercialStatus.Current.ToString()" Accent="Color.Info"
+                  Hint="@($"{dashboard.CommercialStatus.NoPlan} sin plan · {dashboard.CommercialStatus.Frozen} congelados")" />
+        <StatCard Label="Por vencer" Value="@dashboard.CommercialStatus.Expiring.ToString()"
+                  Accent="@(dashboard.CommercialStatus.Expiring > 0 ? Color.Warning : Color.Default)"
+                  Hint="@($"{dashboard.ExpiringDays} días o menos")" />
+        <StatCard Label="En gracia" Value="@dashboard.CommercialStatus.Grace.ToString()"
+                  Accent="@(dashboard.CommercialStatus.Grace > 0 ? Color.Warning : Color.Default)"
+                  Hint="Vencidos que aún entran" />
+        <StatCard Label="Vencidos" Value="@dashboard.CommercialStatus.Expired.ToString()"
+                  Accent="@(dashboard.CommercialStatus.Expired > 0 ? Color.Error : Color.Default)"
+                  Hint="Pasada la gracia" />
     </section>
 
     <div class="gsm-dash-grid">
@@ -196,7 +211,7 @@ else if (_dashboard is { } dashboard)
         // secundarias (afluencia, feed) el dashboard sigue mostrando las cifras.
         var dashboardTask = Dashboard.Dashboard2Async();
         var peakTask = Attendance.PeakHoursAsync(_today.AddDays(-PeakWindowDays), _today);
-        var feedTask = Attendance.AttendanceGETAsync(null, _today, _today, 1, 8);
+        var feedTask = Attendance.AttendanceGETAsync(null, _today, _today, null, 1, 8);
         var rejectedTask = Attendance.AttemptsAsync(_today, _today, null, 1, 6);
 
         try

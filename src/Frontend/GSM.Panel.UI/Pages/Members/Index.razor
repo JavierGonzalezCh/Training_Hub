@@ -1,4 +1,4 @@
-@page "/members"
+﻿@page "/members"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembersClient Members
 @inject NavigationManager Navigation
@@ -25,6 +25,14 @@
         <MudTextField T="string" Placeholder="Etiqueta" Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Sell" Immediate="true" DebounceInterval="400"
                       ValueChanged="OnTagChangedAsync" Class="mr-4" Style="max-width:180px" aria-label="Filtrar por etiqueta" />
+        <MudSelect T="string" Value="_commercial" ValueChanged="OnCommercialChangedAsync" Label="Estado comercial"
+                   Dense="true" Class="mr-4" Style="max-width:200px" Margin="Margin.Dense">
+            <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
+            @foreach (var (value, label) in CommercialStatusLabels.Filters)
+            {
+                <MudSelectItem Value="value">@label</MudSelectItem>
+            }
+        </MudSelect>
         @* Tres opciones caben a la vista: un desplegable las escondía detrás de un clic. *@
         <div class="gsm-segmented" role="group" aria-label="Filtrar por estado">
             @foreach (var (value, label) in StatusFilters)
@@ -39,7 +47,7 @@
         <MudTh>Miembro</MudTh>
         <MudTh>Documento</MudTh>
         <MudTh>Teléfono</MudTh>
-        <MudTh>Estado</MudTh>
+        <MudTh>Situación</MudTh>
         <MudTh>Ingresó</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
@@ -58,7 +66,16 @@
         </MudTd>
         <MudTd DataLabel="Documento" Class="gsm-num">@MemberLabels.DocumentShort(context.DocumentType) @context.DocumentNumber</MudTd>
         <MudTd DataLabel="Teléfono" Class="gsm-num">@(context.Phone ?? "—")</MudTd>
-        <MudTd DataLabel="Estado"><StatusChip Status="@context.Status" /></MudTd>
+        <MudTd DataLabel="Situación">
+            @if (context.Status == "Inactive")
+            {
+                <MudChip T="string" Color="Color.Default" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">DADO DE BAJA</MudChip>
+            }
+            else
+            {
+                <CommercialStatusChip Status="@context.CommercialStatus" />
+            }
+        </MudTd>
         <MudTd DataLabel="Ingresó">@GsmFormat.Day(context.JoinedAt)</MudTd>
         <MudTd>
             <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))"
@@ -72,6 +89,7 @@
     private string _search = string.Empty;
     private string _status = FilterValues.All;
     private string _tag = string.Empty;
+    private string _commercial = FilterValues.All;
     private int? _total;
 
     private static readonly (string Value, string Label)[] StatusFilters =
@@ -85,6 +103,7 @@
                 string.IsNullOrWhiteSpace(_search) ? null : _search,
                 FilterValues.IsAll(_status) ? null : int.Parse(_status),
                 string.IsNullOrWhiteSpace(_tag) ? null : _tag.Trim(),
+                FilterValues.IsAll(_commercial) ? null : _commercial,
                 page, pageSize, cancellationToken);
             // La cabecera vive fuera de la tabla: hay que avisarla cuando cambia el total.
             if (_total != result.Total)
@@ -111,6 +130,12 @@
     private async Task OnTagChangedAsync(string value)
     {
         _tag = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OnCommercialChangedAsync(string value)
+    {
+        _commercial = value;
         await _table.RefreshAsync();
     }
 

@@ -15,7 +15,7 @@ public sealed class GetCheckinSettingsHandler(
     {
         var gymId = currentUser.RequireGymId();
         var current = await settings.GetAsync(gymId, cancellationToken) ?? CheckinSettings.Default(gymId);
-        return new CheckinSettingsResponse(current.Mode.ToString(), current.GraceDays);
+        return new CheckinSettingsResponse(current.Mode.ToString());
     }
 }
 
@@ -42,13 +42,11 @@ public sealed class UpdateCheckinSettingsHandler(
             settings.Add(current);
         }
 
-        current.Update(ParseMode(request.Mode), request.GraceDays);
+        current.Update(ParseMode(request.Mode));
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation(
-            "Ajustes de check-in del gym {GymId}: modo {Mode}, gracia {GraceDays} días",
-            gymId, current.Mode, current.GraceDays);
-        return new CheckinSettingsResponse(current.Mode.ToString(), current.GraceDays);
+        logger.LogInformation("Ajustes de check-in del gym {GymId}: modo {Mode}", gymId, current.Mode);
+        return new CheckinSettingsResponse(current.Mode.ToString());
     }
 }
 

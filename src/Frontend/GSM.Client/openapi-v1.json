@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7370/"
+      "url": "http://localhost:7380/"
     }
   ],
   "paths": {
@@ -1095,35 +1095,6 @@
         }
       }
     },
-    "/api/admin/metrics/monthly": {
-      "get": {
-        "tags": [
-          "AdminMetrics"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/admin/payments": {
       "get": {
         "tags": [
@@ -1860,6 +1831,13 @@
             "schema": {
               "type": "string",
               "format": "date"
+            }
+          },
+          {
+            "name": "AuthorizedOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -5525,6 +5503,162 @@
         }
       }
     },
+    "/api/members/{memberId}/memberships/access": {
+      "get": {
+        "tags": [
+          "MemberMemberships"
+        ],
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessStatusResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessStatusResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{memberId}/memberships/preview": {
+      "get": {
+        "tags": [
+          "MemberMemberships"
+        ],
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "planId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenewalPreviewResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenewalPreviewResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenewalPreviewResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/members/{memberId}/memberships/{membershipId}/cancel": {
       "post": {
         "tags": [
@@ -5918,6 +6052,13 @@
           },
           {
             "name": "Tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CommercialStatus",
             "in": "query",
             "schema": {
               "type": "string"
@@ -6967,6 +7108,87 @@
         }
       }
     },
+    "/api/membership-plans/{id}/reactivate": {
+      "post": {
+        "tags": [
+          "MembershipPlans"
+        ],
+        "operationId": "ReactivateMembershipPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/memberships/expiring": {
       "get": {
         "tags": [
@@ -7012,6 +7234,82 @@
                   "items": {
                     "$ref": "#/components/schemas/ExpiringMembershipItem"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/membership-settings": {
+      "get": {
+        "tags": [
+          "MembershipSettings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipSettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipSettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MembershipSettings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMembershipSettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMembershipSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMembershipSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipSettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipSettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipSettingsResponse"
                 }
               }
             }
@@ -8231,6 +8529,82 @@
   },
   "components": {
     "schemas": {
+      "AccessStatusResponse": {
+        "required": [
+          "commercial",
+          "kind",
+          "blockReason",
+          "canEnter",
+          "endsOn",
+          "daysLeft",
+          "graceEndsOn",
+          "graceDaysLeft",
+          "notice",
+          "blockMessage"
+        ],
+        "type": "object",
+        "properties": {
+          "commercial": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "blockReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "canEnter": {
+            "type": "boolean"
+          },
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "daysLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "graceEndsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "graceDaysLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "notice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "blockMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AchievementConditionType": {
         "type": "integer"
       },
@@ -8408,6 +8782,12 @@
               "string"
             ],
             "format": "date"
+          },
+          "startDateReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8443,6 +8823,29 @@
           },
           "method": {
             "type": "string"
+          },
+          "authorized": {
+            "type": "boolean",
+            "default": false
+          },
+          "authorizedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "authorizedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorizationReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8604,6 +9007,12 @@
               "null",
               "string"
             ]
+          },
+          "authorizationReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8667,26 +9076,36 @@
               "string"
             ],
             "format": "int32"
+          },
+          "notice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "daysLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "authorized": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
       "CheckinSettingsResponse": {
         "required": [
-          "mode",
-          "graceDays"
+          "mode"
         ],
         "type": "object",
         "properties": {
           "mode": {
             "type": "string"
-          },
-          "graceDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
           }
         }
       },
@@ -8885,6 +9304,67 @@
               "string"
             ],
             "format": "date"
+          }
+        }
+      },
+      "CommercialStatusCounts": {
+        "required": [
+          "current",
+          "expiring",
+          "grace",
+          "expired",
+          "frozen",
+          "noPlan"
+        ],
+        "type": "object",
+        "properties": {
+          "current": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expiring": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "grace": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expired": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "frozen": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noPlan": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -9448,7 +9928,9 @@
           "revenueLastMonth",
           "expiredMemberships",
           "expiringSoon",
-          "expiringMemberships"
+          "expiringMemberships",
+          "commercialStatus",
+          "expiringDays"
         ],
         "type": "object",
         "properties": {
@@ -9505,6 +9987,17 @@
             "items": {
               "$ref": "#/components/schemas/ExpiringMemberRow"
             }
+          },
+          "commercialStatus": {
+            "$ref": "#/components/schemas/CommercialStatusCounts"
+          },
+          "expiringDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -10801,6 +11294,15 @@
               }
             ]
           },
+          "commercialStatus": {
+            "type": "string"
+          },
+          "accessNotice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "recentPayments": {
             "type": "array",
             "items": {
@@ -10861,6 +11363,10 @@
           },
           "isProfileIncomplete": {
             "type": "boolean"
+          },
+          "commercialStatus": {
+            "type": "string",
+            "default": "no_plan"
           }
         }
       },
@@ -10945,7 +11451,9 @@
           "endDate",
           "createdAt",
           "pausedOn",
-          "cancellationReason"
+          "cancellationReason",
+          "renewalKind",
+          "startOverrideReason"
         ],
         "type": "object",
         "properties": {
@@ -10991,6 +11499,40 @@
               "null",
               "string"
             ]
+          },
+          "renewalKind": {
+            "type": "string"
+          },
+          "startOverrideReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MembershipSettingsResponse": {
+        "required": [
+          "graceDays",
+          "expiringDays"
+        ],
+        "type": "object",
+        "properties": {
+          "graceDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expiringDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -11102,132 +11644,6 @@
                 "$ref": "#/components/schemas/SubscriptionInfo"
               }
             ]
-          }
-        }
-      },
-      "MonthlyMetricItem": {
-        "required": [
-          "month",
-          "mrr",
-          "collected",
-          "newGyms",
-          "trialGymsAtClose",
-          "convertedGyms",
-          "lostGyms",
-          "activeGymsAtStart",
-          "activeGymsAtClose",
-          "churn",
-          "activeMembers",
-          "checkIns"
-        ],
-        "type": "object",
-        "properties": {
-          "month": {
-            "type": "string",
-            "format": "date"
-          },
-          "mrr": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "collected": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "newGyms": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "trialGymsAtClose": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "convertedGyms": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "lostGyms": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "activeGymsAtStart": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "activeGymsAtClose": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "churn": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "activeMembers": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "checkIns": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
-      "MonthlyMetricsResponse": {
-        "required": [
-          "months"
-        ],
-        "type": "object",
-        "properties": {
-          "months": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MonthlyMetricItem"
-            }
           }
         }
       },
@@ -12451,6 +12867,44 @@
           },
           "subscription": {
             "$ref": "#/components/schemas/SubscriptionDetail"
+          }
+        }
+      },
+      "RenewalPreviewResponse": {
+        "required": [
+          "kind",
+          "systemStartDate",
+          "startDate",
+          "endDate",
+          "previousEndDate",
+          "startDateChanged"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "systemStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "previousEndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "startDateChanged": {
+            "type": "boolean"
           }
         }
       },
@@ -13826,21 +14280,12 @@
       },
       "UpdateCheckinSettingsRequest": {
         "required": [
-          "mode",
-          "graceDays"
+          "mode"
         ],
         "type": "object",
         "properties": {
           "mode": {
             "type": "string"
-          },
-          "graceDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
           }
         }
       },
@@ -14230,6 +14675,31 @@
           }
         }
       },
+      "UpdateMembershipSettingsRequest": {
+        "required": [
+          "graceDays",
+          "expiringDays"
+        ],
+        "type": "object",
+        "properties": {
+          "graceDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expiringDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "UpdatePlanRequest": {
         "required": [
           "name",
@@ -14313,9 +14783,6 @@
       "name": "AdminImpersonation"
     },
     {
-      "name": "AdminMetrics"
-    },
-    {
       "name": "AdminPayments"
     },
     {
@@ -14371,6 +14838,9 @@
     },
     {
       "name": "Memberships"
+    },
+    {
+      "name": "MembershipSettings"
     },
     {
       "name": "Payments"

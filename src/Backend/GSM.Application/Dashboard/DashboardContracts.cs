@@ -7,7 +7,16 @@ public sealed record DashboardResponse(
     decimal RevenueLastMonth,
     int ExpiredMemberships,
     int ExpiringSoon,
-    IReadOnlyList<ExpiringMemberRow> ExpiringMemberships);
+    IReadOnlyList<ExpiringMemberRow> ExpiringMemberships,
+    CommercialStatusCounts CommercialStatus,
+    int ExpiringDays);
+
+/// <summary>
+/// Miembros activos por estado comercial hoy ("32 al día · 5 por vencer · 2 en gracia · 7 vencidos").
+/// El mismo `expiring_days` del gym define "por vencer" aquí, en el letrero y en la lista.
+/// </summary>
+public sealed record CommercialStatusCounts(
+    int Current, int Expiring, int Grace, int Expired, int Frozen, int NoPlan);
 
 public sealed record ExpiringMemberRow(
     Guid MembershipId,
