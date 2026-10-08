@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7370/"
+      "url": "http://localhost:7390/"
     }
   ],
   "paths": {
@@ -4271,6 +4271,35 @@
         }
       }
     },
+    "/api/me/gym": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me/achievements": {
       "get": {
         "tags": [
@@ -7896,6 +7925,172 @@
         }
       }
     },
+    "/api/gym/staff/profiles": {
+      "get": {
+        "tags": [
+          "Staff"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffProfileInfo"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffProfileInfo"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffProfileInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/staff/audit": {
+      "get": {
+        "tags": [
+          "Staff"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffAuditResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffAuditResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffAuditResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/staff/{id}/permissions": {
+      "put": {
+        "tags": [
+          "Staff"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gym/staff/{id}": {
       "delete": {
         "tags": [
@@ -9388,6 +9583,12 @@
           },
           "fullName": {
             "type": "string"
+          },
+          "profile": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -9952,7 +10153,18 @@
           "plan",
           "status",
           "ownerId",
-          "createdAt"
+          "createdAt",
+          "legalName",
+          "address",
+          "city",
+          "latitude",
+          "longitude",
+          "geofenceRadiusMeters",
+          "instagramUrl",
+          "facebookUrl",
+          "tikTokUrl",
+          "websiteUrl",
+          "whatsAppPhone"
         ],
         "type": "object",
         "properties": {
@@ -10021,6 +10233,80 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "geofenceRadiusMeters": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "instagramUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "facebookUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tikTokUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "websiteUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "whatsAppPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "subscription": {
             "oneOf": [
@@ -10806,6 +11092,108 @@
             "items": {
               "$ref": "#/components/schemas/MemberRecentPayment"
             }
+          }
+        }
+      },
+      "MemberGymResponse": {
+        "required": [
+          "name",
+          "logoUrl",
+          "primaryColor",
+          "secondaryColor",
+          "address",
+          "city",
+          "latitude",
+          "longitude",
+          "phone",
+          "whatsAppPhone",
+          "instagramUrl",
+          "facebookUrl",
+          "tikTokUrl",
+          "websiteUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryColor": {
+            "type": "string"
+          },
+          "secondaryColor": {
+            "type": "string"
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "whatsAppPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instagramUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "facebookUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tikTokUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "websiteUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -13352,6 +13740,66 @@
           }
         }
       },
+      "StaffAuditResponse": {
+        "required": [
+          "id",
+          "targetUserId",
+          "targetName",
+          "actorUserId",
+          "actorName",
+          "action",
+          "permission",
+          "oldValue",
+          "newValue",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "permission": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "oldValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "StaffNotificationCount": {
         "required": [
           "count"
@@ -13443,12 +13891,33 @@
           }
         }
       },
+      "StaffProfileInfo": {
+        "required": [
+          "profile",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "StaffResponse": {
         "required": [
           "id",
           "email",
           "fullName",
-          "isActive"
+          "isActive",
+          "profile",
+          "isAdjusted",
+          "permissions"
         ],
         "type": "object",
         "properties": {
@@ -13464,6 +13933,18 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "isAdjusted": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -14055,6 +14536,81 @@
               "string"
             ],
             "format": "int32"
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "geofenceRadiusMeters": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "instagramUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "facebookUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tikTokUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "websiteUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "whatsAppPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -14263,6 +14819,24 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "UpdateStaffPermissionsRequest": {
+        "required": [
+          "profile",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
