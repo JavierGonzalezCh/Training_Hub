@@ -27,7 +27,9 @@ public sealed class RegisterMemberRequestValidator : AbstractValidator<RegisterM
     {
         RuleFor(x => x.Code).NotEmpty().Length(6, 16);
         RuleFor(x => x.DocumentNumber).NotEmpty().MaximumLength(30);
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        // El email sale de la ficha; solo se pide si la ficha no tiene (lo resuelve el caso de uso).
+        RuleFor(x => x.Email).EmailAddress().MaximumLength(256)
+            .When(x => !string.IsNullOrWhiteSpace(x.Email));
         RuleFor(x => x.Password).NotEmpty().MinimumLength(10).MaximumLength(256);
     }
 }

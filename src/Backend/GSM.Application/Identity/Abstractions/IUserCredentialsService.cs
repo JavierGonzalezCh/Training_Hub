@@ -6,11 +6,11 @@ namespace GSM.Application.Identity.Abstractions;
 /// </summary>
 public interface IUserCredentialsService
 {
-    /// <summary>Valida email + password. <c>null</c> si no existe, la clave no coincide o el usuario está inactivo.</summary>
-    Task<AuthenticatedUser?> ValidateCredentialsAsync(
+    /// <summary>Valida email + password. <c>null</c> si no existe, la clave no coincide o la cuenta está inactiva.</summary>
+    Task<AccountIdentity?> ValidateCredentialsAsync(
         string email, string password, CancellationToken cancellationToken = default);
 
-    /// <summary>Usuario activo por id. <c>null</c> si no existe o está inactivo.</summary>
-    Task<AuthenticatedUser?> FindActiveByIdAsync(
+    /// <summary>Cuenta activa por id. <c>null</c> si no existe o está inactiva.</summary>
+    Task<AccountIdentity?> FindActiveByIdAsync(
         Guid userId, CancellationToken cancellationToken = default);
 }

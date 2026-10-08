@@ -134,8 +134,6 @@ public sealed class StreakFreezeTests(ApiFactory factory) : IClassFixture<ApiFac
             NormalizedEmail = $"{slug}@TEST.LOCAL",
             EmailConfirmed = true,
             FullName = "Freeze Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

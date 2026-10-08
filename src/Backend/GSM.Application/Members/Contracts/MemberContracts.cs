@@ -35,14 +35,25 @@ public sealed record CreateMemberResponse(Guid Id);
 
 public sealed record InviteMemberResponse(string Code, DateTimeOffset ExpiresAt);
 
-/// <summary>Canje anónimo de la invitación: el miembro crea su cuenta de la app.</summary>
+/// <summary>
+/// Canje anónimo de la invitación. El email sale de la ficha del miembro; <c>Email</c> solo se manda
+/// (y se usa) si la ficha no tiene. Si el email ya tiene cuenta (es miembro de otro gym), <c>Password</c>
+/// debe ser la contraseña de esa cuenta y solo se agrega el acceso a este gym.
+/// </summary>
 public sealed record RegisterMemberRequest(
     string Code,
     string DocumentNumber,
-    string Email,
+    string? Email,
     string Password);
 
-public sealed record RegisterMemberResponse(Guid MemberId, Guid UserId);
+/// <summary>Resultado del canje dentro de Members. El controller le suma la sesión (<see cref="RegisterMemberResponse"/>).</summary>
+public sealed record RegisterMemberResult(Guid MemberId, Guid UserId, Guid GymId);
+
+/// <summary>Respuesta del registro: el miembro queda vinculado y con la sesión iniciada.</summary>
+public sealed record RegisterMemberResponse(
+    Guid MemberId,
+    Guid UserId,
+    GSM.Application.Identity.Contracts.AuthTokensResponse Session);
 
 public sealed record MemberListItem(
     Guid Id,

@@ -6,7 +6,7 @@ namespace GSM.Infrastructure.Identity;
 
 public sealed class UserCredentialsService(UserManager<AppUser> userManager) : IUserCredentialsService
 {
-    public async Task<AuthenticatedUser?> ValidateCredentialsAsync(
+    public async Task<AccountIdentity?> ValidateCredentialsAsync(
         string email, string password, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByEmailAsync(email);
@@ -19,13 +19,13 @@ public sealed class UserCredentialsService(UserManager<AppUser> userManager) : I
         return await userManager.CheckPasswordAsync(user, password) ? Map(user) : null;
     }
 
-    public async Task<AuthenticatedUser?> FindActiveByIdAsync(
+    public async Task<AccountIdentity?> FindActiveByIdAsync(
         Guid userId, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         return user is { IsActive: true } ? Map(user) : null;
     }
 
-    private static AuthenticatedUser Map(AppUser user)
-        => new(user.Id, user.Email ?? string.Empty, user.FullName, user.Role, user.GymId);
+    private static AccountIdentity Map(AppUser user)
+        => new(user.Id, user.Email ?? string.Empty, user.FullName, user.IsSuperAdmin);
 }

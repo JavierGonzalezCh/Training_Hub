@@ -193,8 +193,6 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
             NormalizedEmail = $"{local}@TEST.LOCAL",
             EmailConfirmed = true,
             FullName = local,
-            Role = role,
-            GymId = gymId,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

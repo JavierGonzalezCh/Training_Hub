@@ -47,7 +47,51 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
         return Issue(claims, ImpersonationTokenMinutes);
     }
 
-    private AccessToken Issue(IDictionary<string, object> claims, int lifetimeMinutes)
+    /// <summary>Boleto de selección de gym: vida corta y audiencia propia (no sirve como access token).</summary>
+    private const int SelectionTicketMinutes = 5;
+
+    private const string SelectionTicketType = "gym_selection";
+
+    private string SelectionAudience => _options.Audience + ".gym-selection";
+
+    public AccessToken CreateGymSelectionTicket(Guid userId)
+        => Issue(
+            new Dictionary<string, object>
+            {
+                [GsmClaims.Subject] = userId.ToString(),
+                ["typ_ticket"] = SelectionTicketType,
+            },
+            SelectionTicketMinutes,
+            SelectionAudience);
+
+    public async Task<Guid?> ValidateGymSelectionTicketAsync(string ticket)
+    {
+        var parameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = _options.Issuer,
+            ValidateAudience = true,
+            ValidAudience = SelectionAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+
+        var result = await new JsonWebTokenHandler { MapInboundClaims = false }.ValidateTokenAsync(ticket, parameters);
+        if (!result.IsValid
+            || !result.Claims.TryGetValue("typ_ticket", out var type)
+            || !string.Equals(type as string, SelectionTicketType, StringComparison.Ordinal)
+            || !result.Claims.TryGetValue(GsmClaims.Subject, out var sub)
+            || !Guid.TryParse(sub as string, out var userId))
+        {
+            return null;
+        }
+
+        return userId;
+    }
+
+    private AccessToken Issue(IDictionary<string, object> claims, int lifetimeMinutes, string? audience = null)
     {
         var now = DateTimeOffset.UtcNow;
         var expiresAt = now.AddMinutes(lifetimeMinutes);
@@ -57,7 +101,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
         var descriptor = new SecurityTokenDescriptor
         {
             Issuer = _options.Issuer,
-            Audience = _options.Audience,
+            Audience = audience ?? _options.Audience,
             IssuedAt = now.UtcDateTime,
             NotBefore = now.UtcDateTime,
             Expires = expiresAt.UtcDateTime,

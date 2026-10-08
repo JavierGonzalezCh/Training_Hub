@@ -5,7 +5,6 @@ using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
 using GSM.Application.Members.Events;
 using GSM.Domain.Common.Exceptions;
-using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using Microsoft.Extensions.Logging;
 
@@ -23,7 +22,7 @@ public sealed class RegisterMemberHandler(
     IDomainEventPublisher events,
     ILogger<RegisterMemberHandler> logger)
 {
-    public async Task<RegisterMemberResponse> HandleAsync(
+    public async Task<RegisterMemberResult> HandleAsync(
         RegisterMemberRequest request, CancellationToken cancellationToken)
     {
         var code = InvitationCode.Normalize(request.Code);
@@ -54,15 +53,22 @@ public sealed class RegisterMemberHandler(
             throw new ForbiddenDomainException("El documento no coincide con la invitación.");
         }
 
+        // El email manda en la ficha (un solo email por persona); solo se pide si la ficha no lo tiene.
+        var email = !string.IsNullOrWhiteSpace(member.Email) ? member.Email.Trim() : request.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ValidationDomainException("Tu ficha no tiene email: indícalo para crear la cuenta.");
+        }
+
         var userId = Guid.Empty;
 
         await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
         {
-            userId = await userProvisioning.CreateGymUserAsync(
-                request.Email.Trim(),
+            // Cuenta nueva o, si el email ya tiene cuenta, validación de su contraseña y solo el acceso nuevo.
+            userId = await userProvisioning.CreateMemberUserAsync(
+                email,
                 $"{member.FirstName} {member.LastName}",
                 request.Password,
-                UserRole.Member,
                 member.GymId,
                 innerToken);
 
@@ -75,10 +81,10 @@ public sealed class RegisterMemberHandler(
         logger.LogInformation("Miembro {MemberId} registró la cuenta {UserId}", member.Id, userId);
         await events.PublishAsync(
             new MemberRegistered(
-                member.Id, userId, member.GymId, request.Email.Trim(),
+                member.Id, userId, member.GymId, email,
                 $"{member.FirstName} {member.LastName}"),
             cancellationToken);
 
-        return new RegisterMemberResponse(member.Id, userId);
+        return new RegisterMemberResult(member.Id, userId, member.GymId);
     }
 }

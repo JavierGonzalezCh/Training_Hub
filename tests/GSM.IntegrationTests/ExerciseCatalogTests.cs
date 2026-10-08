@@ -166,8 +166,6 @@ public sealed class ExerciseCatalogTests(ApiFactory factory) : IClassFixture<Api
             NormalizedEmail = $"{slug}@TEST.LOCAL",
             EmailConfirmed = true,
             FullName = $"{name} Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

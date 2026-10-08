@@ -73,13 +73,13 @@ public sealed class StaffManagementHttpTests(ApiFactory factory) : IClassFixture
         var owner = await LoggedInAsync(host, w.OwnerEmail, Password);
 
         var login = await host.CreateClient().PostAsJsonAsync("/api/auth/login", new LoginRequest(w.StaffEmail, Password));
-        var tokens = await login.Content.ReadFromJsonAsync<AuthTokensResponse>();
+        var tokens = await login.Content.ReadFromJsonAsync<LoginResponse>();
 
         Assert.Equal(HttpStatusCode.NoContent, (await owner.DeleteAsync($"/api/gym/staff/{w.StaffId}")).StatusCode);
 
         var blocked = await host.CreateClient().PostAsJsonAsync("/api/auth/login", new LoginRequest(w.StaffEmail, Password));
         Assert.Equal(HttpStatusCode.Unauthorized, blocked.StatusCode);
-        var refresh = await host.CreateClient().PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(tokens!.RefreshToken));
+        var refresh = await host.CreateClient().PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(tokens!.Tokens!.RefreshToken));
         Assert.Equal(HttpStatusCode.Unauthorized, refresh.StatusCode);
 
         var reactivated = await owner.PostAsync($"/api/gym/staff/{w.StaffId}/reactivate", null);
@@ -127,8 +127,8 @@ public sealed class StaffManagementHttpTests(ApiFactory factory) : IClassFixture
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, password));
         login.EnsureSuccessStatusCode();
 
-        var tokens = await login.Content.ReadFromJsonAsync<AuthTokensResponse>();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
+        var tokens = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.Tokens!.AccessToken);
         return client;
     }
 

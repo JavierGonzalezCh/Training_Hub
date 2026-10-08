@@ -124,8 +124,6 @@ public sealed class MembershipLifecycleTests(ApiFactory factory) : IClassFixture
             NormalizedEmail = "STAFF@LIFE.LOCAL",
             EmailConfirmed = true,
             FullName = "Life Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

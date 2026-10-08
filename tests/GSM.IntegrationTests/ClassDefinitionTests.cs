@@ -155,8 +155,6 @@ public sealed class ClassDefinitionTests(ApiFactory factory) : IClassFixture<Api
             NormalizedEmail = $"{local}@TEST.LOCAL",
             EmailConfirmed = true,
             FullName = local,
-            Role = UserRole.Staff,
-            GymId = gymId,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

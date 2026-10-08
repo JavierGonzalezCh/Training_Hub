@@ -88,8 +88,6 @@ public sealed class CashRegisterTests(ApiFactory factory) : IClassFixture<ApiFac
             NormalizedEmail = "STAFF@CASH.LOCAL",
             EmailConfirmed = true,
             FullName = "Cash Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

@@ -40,8 +40,8 @@ public sealed class MeFeatureFlagsHttpTests(ApiFactory factory) : IClassFixture<
         var client = host.CreateClient();
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, Password));
         login.EnsureSuccessStatusCode();
-        var tokens = await login.Content.ReadFromJsonAsync<AuthTokensResponse>();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
+        var tokens = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.Tokens!.AccessToken);
 
         var me = await client.GetFromJsonAsync<JsonElement>("/api/auth/me");
 

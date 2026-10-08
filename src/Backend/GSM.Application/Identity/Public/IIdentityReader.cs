@@ -1,5 +1,3 @@
-using GSM.Domain.Identity;
-
 namespace GSM.Application.Identity.Public;
 
 /// <summary>
@@ -11,4 +9,5 @@ public interface IIdentityReader
     Task<IdentityUserDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 
-public sealed record IdentityUserDto(Guid Id, string FullName, UserRole Role, Guid? GymId);
+/// <summary>La persona. El gym y el rol ya no son de la cuenta sino de cada acceso (<c>GymAccess</c>).</summary>
+public sealed record IdentityUserDto(Guid Id, string FullName, bool IsSuperAdmin);

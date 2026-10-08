@@ -101,8 +101,6 @@ public sealed class TenancyTests : IClassFixture<ApiFactory>
             NormalizedEmail = $"{slug}@TEST.LOCAL",
             EmailConfirmed = true,
             FullName = $"{name} Owner",
-            Role = UserRole.Owner,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };
