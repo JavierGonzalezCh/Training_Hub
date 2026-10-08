@@ -3,6 +3,7 @@ using GSM.Application.Common.Abstractions;
 using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
+using GSM.Domain.Members;
 
 namespace GSM.Application.Members;
 
@@ -10,6 +11,8 @@ public sealed class UploadMemberPhotoHandler(
     ICurrentUserService currentUser,
     IMemberRepository members,
     IFileStorage storage,
+    IClock clock,
+    MemberChangeRecorder changes,
     IUnitOfWork unitOfWork)
 {
     public async Task<MemberDetail> HandleAsync(
@@ -25,6 +28,7 @@ public sealed class UploadMemberPhotoHandler(
         var url = await storage.SaveAsync(file, "member-photos", cancellationToken);
 
         member.SetPhoto(url);
+        changes.Record(member, [new MemberFieldChange("photo_url", previous, url)]);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(previous))
@@ -32,6 +36,6 @@ public sealed class UploadMemberPhotoHandler(
             await storage.DeleteAsync(previous, cancellationToken);
         }
 
-        return MemberMapper.ToDetail(member);
+        return MemberMapper.ToDetail(member, clock.Today);
     }
 }

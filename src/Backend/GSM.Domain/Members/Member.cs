@@ -1,7 +1,40 @@
+using System.Globalization;
 using GSM.Domain.Common;
 using GSM.Domain.Common.Exceptions;
 
 namespace GSM.Domain.Members;
+
+/// <summary>
+/// Datos editables de la ficha de un miembro (Members v2, §3.1). Sin salud, entrenador ni
+/// autorizaciones: esas piezas llegan en sub-etapas posteriores.
+/// </summary>
+public sealed record MemberProfile(
+    string FirstName,
+    string LastName,
+    DocumentType DocumentType,
+    string DocumentNumber,
+    DateOnly? BirthDate,
+    Gender? Gender = null,
+    string? PhotoUrl = null,
+    string? Phone = null,
+    string? Email = null,
+    string? Address = null,
+    string? City = null,
+    string? EmergencyContactName = null,
+    string? EmergencyContactRelationship = null,
+    string? EmergencyContactPhone = null,
+    MemberSource? Source = null,
+    Guid? ReferredByMemberId = null,
+    MemberGoal? Goal = null,
+    IReadOnlyList<string>? Tags = null,
+    string? GuardianName = null,
+    DocumentType? GuardianDocumentType = null,
+    string? GuardianDocumentNumber = null,
+    string? GuardianPhone = null,
+    string? GuardianRelationship = null);
+
+/// <summary>Un campo de la ficha que cambió: nombre estable y valores en texto.</summary>
+public sealed record MemberFieldChange(string Field, string? OldValue, string? NewValue);
 
 /// <summary>
 /// Persona que asiste al gimnasio. Puede existir sin <see cref="UserId"/> (registrada en recepción,
@@ -9,6 +42,8 @@ namespace GSM.Domain.Members;
 /// </summary>
 public sealed class Member : BaseEntity, ITenantEntity
 {
+    public const int AdultAge = 18;
+
     private Member()
     {
     }
@@ -22,22 +57,84 @@ public sealed class Member : BaseEntity, ITenantEntity
 
     public string LastName { get; private set; } = string.Empty;
 
+    public DocumentType DocumentType { get; private set; } = DocumentType.Cc;
+
     public string DocumentNumber { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Obligatoria para fichas nuevas (la exige la API); las anteriores a la v2 pueden no tenerla y
+    /// quedan marcadas como incompletas (<see cref="IsProfileIncomplete"/>).
+    /// </summary>
+    public DateOnly? BirthDate { get; private set; }
+
+    public Gender? Gender { get; private set; }
+
+    public string? PhotoUrl { get; private set; }
+
+    /// <summary>Teléfono en E.164. Un dato anterior a la v2 que no se pudo interpretar se deja tal cual.</summary>
     public string? Phone { get; private set; }
 
     public string? Email { get; private set; }
 
-    public DateOnly? BirthDate { get; private set; }
+    public string? Address { get; private set; }
 
-    public string? PhotoUrl { get; private set; }
+    public string? City { get; private set; }
 
-    public string? EmergencyContact { get; private set; }
+    public string? EmergencyContactName { get; private set; }
+
+    public string? EmergencyContactRelationship { get; private set; }
+
+    public string? EmergencyContactPhone { get; private set; }
+
+    public MemberSource? Source { get; private set; }
+
+    public Guid? ReferredByMemberId { get; private set; }
+
+    public MemberGoal? Goal { get; private set; }
+
+    public string[] Tags { get; private set; } = [];
+
+    public string? GuardianName { get; private set; }
+
+    public DocumentType? GuardianDocumentType { get; private set; }
+
+    public string? GuardianDocumentNumber { get; private set; }
+
+    public string? GuardianPhone { get; private set; }
+
+    public string? GuardianRelationship { get; private set; }
 
     public MemberStatus Status { get; private set; } = MemberStatus.Active;
 
     public DateOnly JoinedAt { get; private set; }
 
+    /// <summary>
+    /// "Ficha incompleta": falta la fecha de nacimiento o el teléfono guardado no es un E.164
+    /// válido. Se deriva de los datos, así que desaparece sola cuando el staff los completa.
+    /// </summary>
+    public bool IsProfileIncomplete => BirthDate is null || (Phone is not null && !PhoneNumber.IsE164(Phone));
+
+    public bool IsMinor(DateOnly today) => BirthDate is { } birth && birth.AddYears(AdultAge) > today;
+
+    /// <summary>Alta con la ficha completa. <paramref name="today"/> es el día de negocio (<c>IClock.Today</c>).</summary>
+    public static Member Create(Guid gymId, MemberProfile profile, DateOnly joinedAt, DateOnly today)
+    {
+        if (gymId == Guid.Empty)
+        {
+            throw new ValidationDomainException("El miembro necesita un gym.");
+        }
+
+        var member = new Member
+        {
+            GymId = gymId,
+            Status = MemberStatus.Active,
+            JoinedAt = RequireJoinedAt(joinedAt, today),
+        };
+        member.Apply(profile, today);
+        return member;
+    }
+
+    /// <summary>Alta mínima (documento <c>cc</c>, sin fecha de nacimiento): semillas y pruebas.</summary>
     public static Member Create(
         Guid gymId,
         string firstName,
@@ -47,53 +144,64 @@ public sealed class Member : BaseEntity, ITenantEntity
         string? phone = null,
         string? email = null,
         DateOnly? birthDate = null,
-        string? emergencyContact = null,
         string? photoUrl = null)
+        => Create(
+            gymId,
+            new MemberProfile(
+                firstName, lastName, DocumentType.Cc, documentNumber, birthDate,
+                PhotoUrl: photoUrl, Phone: phone, Email: email),
+            joinedAt,
+            today: joinedAt);
+
+    /// <summary>
+    /// Reemplaza los datos de la ficha y devuelve un <see cref="MemberFieldChange"/> por cada campo
+    /// que de verdad cambió. <paramref name="joinedAt"/> nulo = no tocar la fecha de ingreso.
+    /// </summary>
+    public IReadOnlyList<MemberFieldChange> UpdateProfile(MemberProfile profile, DateOnly? joinedAt, DateOnly today)
     {
-        if (gymId == Guid.Empty)
+        var before = Snapshot();
+
+        if (BirthDate is not null && profile.BirthDate is null)
         {
-            throw new ValidationDomainException("El miembro necesita un gym.");
+            throw new ValidationDomainException("La fecha de nacimiento no se puede quitar de una ficha.");
         }
 
-        return new Member
+        if (profile.ReferredByMemberId == Id)
         {
-            GymId = gymId,
-            FirstName = RequireText(firstName, "El nombre", 100),
-            LastName = RequireText(lastName, "El apellido", 100),
-            DocumentNumber = RequireText(documentNumber, "El documento", 30),
-            Phone = Clean(phone),
-            Email = Clean(email),
-            BirthDate = birthDate,
-            EmergencyContact = Clean(emergencyContact),
-            PhotoUrl = Clean(photoUrl),
-            Status = MemberStatus.Active,
-            JoinedAt = joinedAt,
-        };
-    }
+            throw new ValidationDomainException("Un miembro no puede ser su propio referente.");
+        }
 
-    public void UpdateProfile(
-        string firstName,
-        string lastName,
-        string documentNumber,
-        string? phone,
-        string? email,
-        DateOnly? birthDate,
-        string? emergencyContact,
-        string? photoUrl)
-    {
-        FirstName = RequireText(firstName, "El nombre", 100);
-        LastName = RequireText(lastName, "El apellido", 100);
-        DocumentNumber = RequireText(documentNumber, "El documento", 30);
-        Phone = Clean(phone);
-        Email = Clean(email);
-        BirthDate = birthDate;
-        EmergencyContact = Clean(emergencyContact);
-        PhotoUrl = Clean(photoUrl);
+        Apply(profile, today);
+        if (joinedAt is { } value)
+        {
+            JoinedAt = RequireJoinedAt(value, today);
+        }
+
+        var after = Snapshot();
+        var changes = new List<MemberFieldChange>();
+        foreach (var (field, newValue) in after)
+        {
+            if (!string.Equals(before[field], newValue, StringComparison.Ordinal))
+            {
+                changes.Add(new MemberFieldChange(field, before[field], newValue));
+            }
+        }
+
+        return changes;
     }
 
     public void Deactivate() => Status = MemberStatus.Inactive;
 
-    public void Reactivate() => Status = MemberStatus.Active;
+    /// <summary>Vuelve a activo a un miembro dado de baja. Uno que ya está activo es un choque de estado.</summary>
+    public void Reactivate()
+    {
+        if (Status == MemberStatus.Active)
+        {
+            throw new ConflictException("El miembro ya está activo.");
+        }
+
+        Status = MemberStatus.Active;
+    }
 
     /// <summary>Fija solo la foto (subida de archivo).</summary>
     public void SetPhoto(string? photoUrl) => PhotoUrl = Clean(photoUrl);
@@ -114,6 +222,154 @@ public sealed class Member : BaseEntity, ITenantEntity
         UserId = userId;
     }
 
+    /// <summary>Valores actuales de los campos de la ficha, en texto y con nombre estable (historial).</summary>
+    public IReadOnlyDictionary<string, string?> Snapshot() => new Dictionary<string, string?>
+    {
+        ["first_name"] = FirstName,
+        ["last_name"] = LastName,
+        ["document_type"] = EnumText.Snake(DocumentType),
+        ["document_number"] = DocumentNumber,
+        ["birth_date"] = BirthDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        ["gender"] = EnumText.Snake(Gender),
+        ["photo_url"] = PhotoUrl,
+        ["phone"] = Phone,
+        ["email"] = Email,
+        ["address"] = Address,
+        ["city"] = City,
+        ["emergency_contact_name"] = EmergencyContactName,
+        ["emergency_contact_relationship"] = EmergencyContactRelationship,
+        ["emergency_contact_phone"] = EmergencyContactPhone,
+        ["source"] = EnumText.Snake(Source),
+        ["referred_by_member_id"] = ReferredByMemberId?.ToString(),
+        ["goal"] = EnumText.Snake(Goal),
+        ["tags"] = Tags.Length == 0 ? null : string.Join(", ", Tags),
+        ["guardian_name"] = GuardianName,
+        ["guardian_document_type"] = EnumText.Snake(GuardianDocumentType),
+        ["guardian_document_number"] = GuardianDocumentNumber,
+        ["guardian_phone"] = GuardianPhone,
+        ["guardian_relationship"] = GuardianRelationship,
+        ["joined_at"] = JoinedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+    };
+
+    private void Apply(MemberProfile p, DateOnly today)
+    {
+        if (p.BirthDate is { } birth && birth >= today)
+        {
+            throw new ValidationDomainException("La fecha de nacimiento debe ser pasada.");
+        }
+
+        var firstName = RequireText(p.FirstName, "El nombre", 100);
+        var lastName = RequireText(p.LastName, "El apellido", 100);
+        var documentNumber = RequireText(p.DocumentNumber, "El documento", 30);
+
+        var phone = ResolvePhone(p.Phone, Phone, "El teléfono");
+        var emergencyPhone = ResolvePhone(p.EmergencyContactPhone, EmergencyContactPhone, "El teléfono del contacto de emergencia");
+        var guardianPhone = ResolvePhone(p.GuardianPhone, GuardianPhone, "El teléfono del acudiente");
+
+        var guardianName = OptionalText(p.GuardianName, "El nombre del acudiente", 150);
+        var guardianDocumentNumber = OptionalText(p.GuardianDocumentNumber, "El documento del acudiente", 30);
+        var guardianRelationship = OptionalText(p.GuardianRelationship, "El parentesco del acudiente", 50);
+
+        if (p.BirthDate is { } b && b.AddYears(AdultAge) > today
+            && (guardianName is null || p.GuardianDocumentType is null || guardianDocumentNumber is null
+                || guardianPhone is null || guardianRelationship is null))
+        {
+            throw new ValidationDomainException(
+                "El miembro es menor de edad: el nombre, tipo y número de documento, teléfono y parentesco del acudiente son obligatorios.");
+        }
+
+        FirstName = firstName;
+        LastName = lastName;
+        DocumentType = p.DocumentType;
+        DocumentNumber = documentNumber;
+        BirthDate = p.BirthDate;
+        Gender = p.Gender;
+        PhotoUrl = OptionalText(p.PhotoUrl, "La foto", 2048);
+        Phone = phone;
+        Email = OptionalText(p.Email, "El email", 256);
+        Address = OptionalText(p.Address, "La dirección", 200);
+        City = OptionalText(p.City, "La ciudad", 100);
+        EmergencyContactName = OptionalText(p.EmergencyContactName, "El nombre del contacto de emergencia", 150);
+        EmergencyContactRelationship = OptionalText(p.EmergencyContactRelationship, "El parentesco del contacto de emergencia", 50);
+        EmergencyContactPhone = emergencyPhone;
+        Source = p.Source;
+        ReferredByMemberId = p.ReferredByMemberId;
+        Goal = p.Goal;
+        Tags = NormalizeTags(p.Tags);
+        GuardianName = guardianName;
+        GuardianDocumentType = p.GuardianDocumentType;
+        GuardianDocumentNumber = guardianDocumentNumber;
+        GuardianPhone = guardianPhone;
+        GuardianRelationship = guardianRelationship;
+    }
+
+    /// <summary>
+    /// Normaliza a E.164. Si el valor llega igual al guardado se respeta tal cual: así un dato
+    /// anterior a la v2 que no se pudo interpretar no bloquea editar el resto de la ficha.
+    /// </summary>
+    private static string? ResolvePhone(string? input, string? current, string label)
+    {
+        var trimmed = Clean(input);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
+        if (trimmed == current)
+        {
+            return current;
+        }
+
+        return PhoneNumber.TryNormalize(trimmed)
+            ?? throw new ValidationDomainException(
+                $"{label} no es válido. Usa el formato internacional (+573001234567) o 10 dígitos de Colombia.");
+    }
+
+    private static string[] NormalizeTags(IReadOnlyList<string>? tags)
+    {
+        if (tags is null)
+        {
+            return [];
+        }
+
+        var result = new List<string>();
+        foreach (var raw in tags)
+        {
+            var tag = Clean(raw);
+            if (tag is null)
+            {
+                continue;
+            }
+
+            if (tag.Length > 40)
+            {
+                throw new ValidationDomainException("Cada etiqueta puede tener hasta 40 caracteres.");
+            }
+
+            if (!result.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                result.Add(tag);
+            }
+        }
+
+        if (result.Count > 20)
+        {
+            throw new ValidationDomainException("Un miembro puede tener hasta 20 etiquetas.");
+        }
+
+        return [.. result];
+    }
+
+    private static DateOnly RequireJoinedAt(DateOnly joinedAt, DateOnly today)
+    {
+        if (joinedAt > today)
+        {
+            throw new ValidationDomainException("La fecha de ingreso no puede ser futura.");
+        }
+
+        return joinedAt;
+    }
+
     private static string RequireText(string value, string label, int maxLength)
     {
         var trimmed = (value ?? string.Empty).Trim();
@@ -123,6 +379,17 @@ public sealed class Member : BaseEntity, ITenantEntity
         }
 
         return trimmed;
+    }
+
+    private static string? OptionalText(string? value, string label, int maxLength)
+    {
+        var cleaned = Clean(value);
+        if (cleaned is not null && cleaned.Length > maxLength)
+        {
+            throw new ValidationDomainException($"{label} no puede exceder {maxLength} caracteres.");
+        }
+
+        return cleaned;
     }
 
     private static string? Clean(string? value)

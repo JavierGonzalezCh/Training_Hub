@@ -1,0 +1,73 @@
+@* Pestaña "Datos" de la ficha: los grupos de campos de Members v2 (§3.1), de solo lectura. *@
+<div class="mt-4">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Identificación</MudText>
+                <DataRow Label="Documento" Value="@($"{MemberLabels.DocumentShort(Member.DocumentType)} {Member.DocumentNumber}")" />
+                <DataRow Label="Fecha de nacimiento" Value="@(Member.BirthDate is { } birth ? GsmFormat.Day(birth) : null)" />
+                <DataRow Label="Género" Value="@MemberLabels.Gender(Member.Gender)" />
+                <DataRow Label="Ingresó" Value="@GsmFormat.Day(Member.JoinedAt)" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Contacto</MudText>
+                <DataRow Label="Teléfono" Value="@Member.Phone" />
+                <DataRow Label="Email" Value="@Member.Email" />
+                <DataRow Label="Dirección" Value="@Member.Address" />
+                <DataRow Label="Ciudad" Value="@Member.City" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Contacto de emergencia</MudText>
+                <DataRow Label="Nombre" Value="@Member.EmergencyContactName" />
+                <DataRow Label="Parentesco" Value="@Member.EmergencyContactRelationship" />
+                <DataRow Label="Teléfono" Value="@Member.EmergencyContactPhone" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Relación con el gimnasio</MudText>
+                <DataRow Label="Cómo nos conoció" Value="@MemberLabels.Source(Member.Source)" />
+                <DataRow Label="Objetivo" Value="@MemberLabels.Goal(Member.Goal)" />
+                <div class="d-flex justify-space-between align-center py-1">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Etiquetas</MudText>
+                    <span class="d-flex flex-wrap justify-end" style="gap:0.25rem">
+                        @if (Member.Tags.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2">—</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var tag in Member.Tags)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@tag</MudChip>
+                            }
+                        }
+                    </span>
+                </div>
+            </MudPaper>
+        </MudItem>
+        @if (Member.IsMinor || Member.GuardianName is not null)
+        {
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">
+                        Acudiente@(Member.IsMinor ? " (el miembro es menor de edad)" : string.Empty)
+                    </MudText>
+                    <DataRow Label="Nombre" Value="@Member.GuardianName" />
+                    <DataRow Label="Parentesco" Value="@Member.GuardianRelationship" />
+                    <DataRow Label="Documento" Value="@(Member.GuardianDocumentNumber is null ? null : $"{MemberLabels.DocumentShort(Member.GuardianDocumentType)} {Member.GuardianDocumentNumber}")" />
+                    <DataRow Label="Teléfono" Value="@Member.GuardianPhone" />
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public MemberDetail Member { get; set; } = null!;
+}

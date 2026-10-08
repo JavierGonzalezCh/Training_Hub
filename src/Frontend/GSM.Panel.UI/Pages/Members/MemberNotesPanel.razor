@@ -1,0 +1,82 @@
+@* Notas internas (Members v2, §3.3): las ve todo el equipo del gym; el miembro nunca. Solo se añaden. *@
+@inject IMembersClient Members
+@inject ISnackbar Snackbar
+
+<div class="mt-4">
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+        Las notas son internas: el miembro no las ve. Quedan con tu nombre y la fecha, y no se pueden editar.
+    </MudAlert>
+
+    <div class="d-flex align-start mb-4" style="gap:0.75rem">
+        <MudTextField T="string" @bind-Value="_text" Label="Nueva nota" Lines="2" MaxLength="2000" Immediate="true"
+                      Disabled="_saving" Style="flex:1" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync"
+                   Disabled="_saving || string.IsNullOrWhiteSpace(_text)">
+            @(_saving ? "Guardando..." : "Añadir nota")
+        </MudButton>
+    </div>
+
+    @if (_notes is null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_notes.Count == 0)
+    {
+        <MudText Color="Color.Secondary">Sin notas todavía.</MudText>
+    }
+    else
+    {
+        @foreach (var note in _notes)
+        {
+            <MudPaper Class="pa-3 mb-2" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.body2" Style="white-space:pre-wrap">@note.Text</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @(note.AuthorName ?? "Sistema") · @GsmFormat.Instant(note.CreatedAt)
+                </MudText>
+            </MudPaper>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private List<MemberNoteItem>? _notes;
+    private string? _text;
+    private bool _saving;
+
+    protected override async Task OnParametersSetAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _notes = (await Members.NotesAllAsync(MemberId)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _notes = [];
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        _saving = true;
+        try
+        {
+            var added = await Members.NotesAsync(MemberId, new AddMemberNoteRequest { Text = _text!.Trim() });
+            _notes = [added, .. _notes ?? []];
+            _text = null;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

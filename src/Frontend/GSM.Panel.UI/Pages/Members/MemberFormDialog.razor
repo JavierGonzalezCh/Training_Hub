@@ -10,31 +10,149 @@
         {
             @if (_error is not null)
             {
-                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" role="alert">@_error</MudAlert>
             }
             <MudForm @ref="_form" Model="_model">
+                <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-1">Identificación</MudText>
                 <MudGrid>
-                    <MudItem xs="6">
-                        <MudTextField T="string" @bind-Value="_model.FirstName" Label="Nombres" Required="true" />
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_model.FirstName" Label="Nombres" Required="true"
+                                      RequiredError="Los nombres son obligatorios." />
                     </MudItem>
-                    <MudItem xs="6">
-                        <MudTextField T="string" @bind-Value="_model.LastName" Label="Apellidos" Required="true" />
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_model.LastName" Label="Apellidos" Required="true"
+                                      RequiredError="Los apellidos son obligatorios." />
                     </MudItem>
-                    <MudItem xs="6">
-                        <MudTextField T="string" @bind-Value="_model.DocumentNumber" Label="Documento" Required="true"
+                    <MudItem xs="12" sm="5">
+                        <MudSelect T="string" @bind-Value="_model.DocumentType" Label="Tipo de documento">
+                            @foreach (var (value, label) in MemberLabels.DocumentTypes)
+                            {
+                                <MudSelectItem Value="@value">@label</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="7">
+                        <MudTextField T="string" @bind-Value="_model.DocumentNumber" Label="Número de documento" Required="true"
+                                      RequiredError="El documento es obligatorio."
                                       Error="@_documentHasError" ErrorText="@_documentError" />
                     </MudItem>
-                    <MudItem xs="6">
-                        <MudTextField T="string" @bind-Value="_model.Phone" Label="Teléfono" />
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Fecha de nacimiento" Required="@(MemberId is null)"
+                                       Date="_model.BirthDate" DateChanged="OnBirthDateChanged"
+                                       MaxDate="@DateTime.Today.AddDays(-1)"
+                                       Error="@_birthDateHasError" ErrorText="@_birthDateError" />
                     </MudItem>
-                    <MudItem xs="6">
-                        <MudTextField T="string" @bind-Value="_model.Email" Label="Email" InputType="InputType.Email" />
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="_model.Gender" Label="Género" Clearable="true">
+                            @foreach (var (value, label) in MemberLabels.Genders)
+                            {
+                                <MudSelectItem Value="@value">@label</MudSelectItem>
+                            }
+                        </MudSelect>
                     </MudItem>
-                    <MudItem xs="6">
-                        <MudDatePicker Label="Fecha de nacimiento" Date="_birthDate" DateChanged="d => _birthDate = d" />
+                </MudGrid>
+
+                <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-1">Contacto</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_model.Phone" Label="Teléfono"
+                                      HelperText="10 dígitos de Colombia o formato internacional (+57…)"
+                                      Error="@_phoneHasError" ErrorText="@_phoneError" />
                     </MudItem>
-                    <MudItem xs="12">
-                        <MudTextField T="string" @bind-Value="_model.EmergencyContact" Label="Contacto de emergencia" />
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_model.Email" Label="Email" InputType="InputType.Email"
+                                      Error="@_emailHasError" ErrorText="@_emailError" />
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <MudTextField T="string" @bind-Value="_model.Address" Label="Dirección" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField T="string" @bind-Value="_model.City" Label="Ciudad" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-1">Contacto de emergencia</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="5">
+                        <MudTextField T="string" @bind-Value="_model.EmergencyContactName" Label="Nombre" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudTextField T="string" @bind-Value="_model.EmergencyContactRelationship" Label="Parentesco" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField T="string" @bind-Value="_model.EmergencyContactPhone" Label="Teléfono"
+                                      Error="@_emergencyPhoneHasError" ErrorText="@_emergencyPhoneError" />
+                    </MudItem>
+                </MudGrid>
+
+                @if (_isMinor)
+                {
+                    <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-1" id="guardian-section">Datos del acudiente</MudText>
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                        El miembro es menor de edad: los datos del acudiente son obligatorios.
+                    </MudAlert>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField T="string" @bind-Value="_model.GuardianName" Label="Nombre del acudiente" Required="true"
+                                          RequiredError="El nombre del acudiente es obligatorio." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField T="string" @bind-Value="_model.GuardianRelationship" Label="Parentesco" Required="true"
+                                          RequiredError="El parentesco es obligatorio." />
+                        </MudItem>
+                        <MudItem xs="12" sm="5">
+                            <MudSelect T="string" @bind-Value="_model.GuardianDocumentType" Label="Tipo de documento">
+                                @foreach (var (value, label) in MemberLabels.DocumentTypes)
+                                {
+                                    <MudSelectItem Value="@value">@label</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="7">
+                            <MudTextField T="string" @bind-Value="_model.GuardianDocumentNumber" Label="Número de documento" Required="true"
+                                          RequiredError="El documento del acudiente es obligatorio." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField T="string" @bind-Value="_model.GuardianPhone" Label="Teléfono del acudiente" Required="true"
+                                          RequiredError="El teléfono del acudiente es obligatorio."
+                                          Error="@_guardianPhoneHasError" ErrorText="@_guardianPhoneError" />
+                        </MudItem>
+                    </MudGrid>
+                }
+
+                <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-1">Relación con el gimnasio</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="_model.Source" Label="Cómo nos conoció" Clearable="true">
+                            @foreach (var (value, label) in MemberLabels.Sources)
+                            {
+                                <MudSelectItem Value="@value">@label</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="_model.Goal" Label="Objetivo" Clearable="true">
+                            @foreach (var (value, label) in MemberLabels.Goals)
+                            {
+                                <MudSelectItem Value="@value">@label</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudAutocomplete T="MemberListItem" Label="Referido por" Clearable="true"
+                                         Value="_referrer" ValueChanged="OnReferrerChanged"
+                                         SearchFunc="SearchReferrersAsync"
+                                         ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
+                                         Error="@_referrerHasError" ErrorText="@_referrerError" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_model.TagsText" Label="Etiquetas"
+                                      HelperText="Separadas por coma: crossfit, mañanas" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Fecha de ingreso" @bind-Date="_model.JoinedAt"
+                                       MaxDate="@DateTime.Today"
+                                       HelperText="@(MemberId is null ? "Vacía = hoy. Cámbiala si migras miembros antiguos." : null)" />
                     </MudItem>
                 </MudGrid>
             </MudForm>
@@ -56,13 +174,15 @@
     [Parameter]
     public Guid? MemberId { get; set; }
 
-    private readonly FormModel _model = new();
+    private readonly MemberFormModel _model = new();
     private MudForm _form = null!;
-    private DateTime? _birthDate;
+    private MemberListItem? _referrer;
     private bool _loading;
     private bool _submitting;
     private string? _error;
-    private Dictionary<string, string[]> _fieldErrors = new();
+    private Dictionary<string, string[]> _fieldErrors = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool _isMinor => _model.IsMinor(GsmFormat.Today());
 
     protected override async Task OnInitializedAsync()
     {
@@ -75,13 +195,28 @@
         try
         {
             var member = await Members.MembersGET2Async(id);
-            _model.FirstName = member.FirstName;
-            _model.LastName = member.LastName;
-            _model.DocumentNumber = member.DocumentNumber;
-            _model.Phone = member.Phone;
-            _model.Email = member.Email;
-            _model.EmergencyContact = member.EmergencyContact;
-            _birthDate = member.BirthDate is { } d ? d.ToDateTime(TimeOnly.MinValue) : null;
+            var loaded = MemberFormModel.From(member);
+            CopyInto(loaded);
+
+            if (member.ReferredByMemberId is { } referrerId)
+            {
+                try
+                {
+                    var referrer = await Members.MembersGET2Async(referrerId);
+                    _referrer = new MemberListItem
+                    {
+                        Id = referrer.Id,
+                        FirstName = referrer.FirstName,
+                        LastName = referrer.LastName,
+                        DocumentNumber = referrer.DocumentNumber,
+                        DocumentType = referrer.DocumentType,
+                    };
+                }
+                catch (GsmApiException)
+                {
+                    // El referente no se pudo leer: se conserva el id y se edita el resto.
+                }
+            }
         }
         catch (GsmApiException ex)
         {
@@ -93,48 +228,92 @@
         }
     }
 
+    private void CopyInto(MemberFormModel source)
+    {
+        foreach (var property in typeof(MemberFormModel).GetProperties().Where(p => p.CanWrite))
+        {
+            property.SetValue(_model, property.GetValue(source));
+        }
+    }
+
+    private void OnBirthDateChanged(DateTime? date) => _model.BirthDate = date;
+
+    private void OnReferrerChanged(MemberListItem? referrer)
+    {
+        _referrer = referrer;
+        _model.ReferredByMemberId = referrer?.Id;
+    }
+
+    private async Task<IEnumerable<MemberListItem>> SearchReferrersAsync(string value, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
+        {
+            return [];
+        }
+
+        try
+        {
+            var page = await Members.MembersGETAsync(value, null, null, 1, 8, cancellationToken);
+            return page.Items.Where(m => m.Id != MemberId).ToList();
+        }
+        catch (GsmApiException)
+        {
+            return [];
+        }
+    }
+
+    private string? FieldError(string name) => _fieldErrors.TryGetValue(name, out var errors) ? errors.FirstOrDefault() : null;
+
     private bool _documentHasError => _fieldErrors.ContainsKey("documentNumber");
-    private string? _documentError => _fieldErrors.TryGetValue("documentNumber", out var errors) ? errors.FirstOrDefault() : null;
+    private string? _documentError => FieldError("documentNumber");
+    private bool _birthDateHasError => _fieldErrors.ContainsKey("birthDate");
+    private string? _birthDateError => FieldError("birthDate");
+    private bool _phoneHasError => _fieldErrors.ContainsKey("phone");
+    private string? _phoneError => FieldError("phone");
+    private bool _emailHasError => _fieldErrors.ContainsKey("email");
+    private string? _emailError => FieldError("email");
+    private bool _emergencyPhoneHasError => _fieldErrors.ContainsKey("emergencyContactPhone");
+    private string? _emergencyPhoneError => FieldError("emergencyContactPhone");
+    private bool _guardianPhoneHasError => _fieldErrors.ContainsKey("guardianPhone");
+    private string? _guardianPhoneError => FieldError("guardianPhone");
+    private bool _referrerHasError => _fieldErrors.ContainsKey("referredByMemberId");
+    private string? _referrerError => FieldError("referredByMemberId");
 
     private async Task SubmitAsync()
     {
         _error = null;
-        _fieldErrors = new();
+        _fieldErrors = new(StringComparer.OrdinalIgnoreCase);
         await _form.Validate();
         if (!_form.IsValid)
         {
             return;
         }
 
-        var birthDate = _birthDate is { } d ? DateOnly.FromDateTime(d) : (DateOnly?)null;
+        if (MemberId is null && _model.BirthDate is null)
+        {
+            _fieldErrors["birthDate"] = ["La fecha de nacimiento es obligatoria."];
+            _error = "Revisa los campos marcados.";
+            return;
+        }
+
+        // Aviso antes de enviar; el servidor sigue siendo quien decide (422).
+        var missing = _model.MissingGuardianFields(GsmFormat.Today());
+        if (missing.Count > 0)
+        {
+            _error = $"El miembro es menor de edad: falta del acudiente {string.Join(", ", missing)}.";
+            return;
+        }
+
         _submitting = true;
         try
         {
             if (MemberId is { } id)
             {
-                await Members.MembersPUTAsync(id, new UpdateMemberRequest
-                {
-                    FirstName = _model.FirstName,
-                    LastName = _model.LastName,
-                    DocumentNumber = _model.DocumentNumber,
-                    Phone = _model.Phone,
-                    Email = _model.Email,
-                    BirthDate = birthDate,
-                    EmergencyContact = _model.EmergencyContact,
-                });
+                await Members.MembersPUTAsync(id, _model.ToUpdateRequest());
             }
             else
             {
-                await Members.MembersPOSTAsync(new CreateMemberRequest
-                {
-                    FirstName = _model.FirstName,
-                    LastName = _model.LastName,
-                    DocumentNumber = _model.DocumentNumber,
-                    Phone = _model.Phone,
-                    Email = _model.Email,
-                    BirthDate = birthDate,
-                    EmergencyContact = _model.EmergencyContact,
-                });
+                await Members.MembersPOSTAsync(_model.ToCreateRequest());
             }
 
             MudDialog.Close(DialogResult.Ok(true));
@@ -154,6 +333,7 @@
             }
             else
             {
+                // 422 (regla de negocio): el detalle del servidor es el mensaje.
                 _error = error.DisplayMessage;
             }
         }
@@ -164,14 +344,4 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
-
-    private sealed class FormModel
-    {
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string DocumentNumber { get; set; } = string.Empty;
-        public string? Phone { get; set; }
-        public string? Email { get; set; }
-        public string? EmergencyContact { get; set; }
-    }
 }

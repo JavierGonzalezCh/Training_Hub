@@ -2,7 +2,7 @@ using GSM.Domain.Members;
 
 namespace GSM.Application.Members.Abstractions;
 
-public sealed record MemberPageQuery(string? Search, MemberStatus? Status, int Page, int PageSize);
+public sealed record MemberPageQuery(string? Search, MemberStatus? Status, string? Tag, int Page, int PageSize);
 
 /// <summary>Acceso de escritura/consulta a las entidades del módulo Members. Sin <c>SaveChanges</c>.</summary>
 public interface IMemberRepository
@@ -12,12 +12,29 @@ public interface IMemberRepository
     Task<(IReadOnlyList<Member> Items, int Total)> GetPageAsync(
         MemberPageQuery query, CancellationToken cancellationToken = default);
 
-    /// <summary>¿Hay otro miembro (del gym en contexto) con ese documento?</summary>
+    /// <summary>¿Hay otro miembro (del gym en contexto) con ese tipo y número de documento?</summary>
     Task<bool> DocumentExistsAsync(
-        string documentNumber, Guid? excludeMemberId, CancellationToken cancellationToken = default);
+        DocumentType documentType, string documentNumber, Guid? excludeMemberId,
+        CancellationToken cancellationToken = default);
 
+    /// <summary>¿Existe el miembro en el gym en contexto? (valida el referente).</summary>
+    Task<bool> ExistsAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     void Add(Member member);
+
+    // --- Historial de cambios ---
+
+    void Add(MemberChange change);
+
+    Task<(IReadOnlyList<MemberChange> Items, int Total)> GetChangesPageAsync(
+        Guid memberId, int page, int pageSize, CancellationToken cancellationToken = default);
+
+    // --- Notas internas ---
+
+    void Add(MemberNote note);
+
+    /// <summary>Las notas del miembro, de la más reciente a la más antigua.</summary>
+    Task<IReadOnlyList<MemberNote>> GetNotesAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     // --- Invitaciones ---
 

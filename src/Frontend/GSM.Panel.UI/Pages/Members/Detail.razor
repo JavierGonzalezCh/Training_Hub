@@ -51,7 +51,7 @@ else if (_member is not null)
                 <StatusChip Status="@_member.Status" />
             </div>
             <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">
-                @_member.DocumentNumber · ingresó @GsmFormat.Day(_member.JoinedAt)
+                @MemberLabels.DocumentShort(_member.DocumentType) @_member.DocumentNumber · ingresó @GsmFormat.Day(_member.JoinedAt)
             </MudText>
         </div>
         <div class="d-flex flex-wrap" style="gap:0.5rem">
@@ -69,8 +69,21 @@ else if (_member is not null)
                     Dar de baja
                 </MudButton>
             }
+            else
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="ReactivateAsync">
+                    Reactivar
+                </MudButton>
+            }
         </div>
     </div>
+
+    @if (MemberLabels.IncompleteReasons(_member.BirthDate, _member.Phone) is { Count: > 0 } reasons)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4" role="status">
+            Ficha incompleta: @string.Join(" y ", reasons). Edita al miembro para completarla.
+        </MudAlert>
+    }
 
     <MudGrid Class="mb-6">
         <MudItem xs="12" md="4">
@@ -125,6 +138,9 @@ else if (_member is not null)
     </MudGrid>
 
     <MudTabs Rounded="true" Color="Color.Primary">
+        <MudTabPanel Text="Datos">
+            <MemberProfileView Member="_member" />
+        </MudTabPanel>
         <MudTabPanel Text="Membresías">
             @if (_memberships is null)
             {
@@ -294,6 +310,12 @@ else if (_member is not null)
                 </RowTemplate>
             </ServerTable>
         </MudTabPanel>
+        <MudTabPanel Text="Notas">
+            <MemberNotesPanel MemberId="Id" />
+        </MudTabPanel>
+        <MudTabPanel Text="Historial">
+            <MemberHistoryPanel MemberId="Id" />
+        </MudTabPanel>
     </MudTabs>
 }
 
@@ -392,7 +414,7 @@ else if (_member is not null)
     private async Task EditAsync()
     {
         var parameters = new DialogParameters<MemberFormDialog> { { x => x.MemberId, Id } };
-        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Editar miembro", parameters);
+        var dialog = await Dialogs.ShowAsync<MemberFormDialog>("Editar miembro", parameters, MemberFormOptions);
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {
@@ -554,6 +576,21 @@ else if (_member is not null)
         finally
         {
             _uploadingPhoto = false;
+        }
+    }
+
+    private static readonly DialogOptions MemberFormOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true };
+
+    private async Task ReactivateAsync()
+    {
+        try
+        {
+            _member = await Members.ReactivateMemberAsync(Id);
+            Snackbar.Add("Miembro reactivado.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
     }
 
