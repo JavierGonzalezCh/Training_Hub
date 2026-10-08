@@ -24,6 +24,20 @@ public interface IMemberReader
     Task<IReadOnlyList<Guid>> GetActiveMemberIdsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// ¿Tiene el miembro una autorización de tratamiento de datos aceptada y no revocada? Es el
+    /// candado de las secciones de salud (M3) y medidas (M4): sin ella no se guardan ni se leen.
+    /// Basta con haber aceptado cualquier versión; publicar un texto nuevo no la anula (la ficha
+    /// solo avisa que falta aceptar la vigente).
+    /// </summary>
+    Task<bool> HasDataProcessingConsentAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// ¿Tiene la exoneración de responsabilidad aceptada (cualquier versión)? Recepción avisa
+    /// "falta la exoneración" cuando es falso. Sin más detalle.
+    /// </summary>
+    Task<bool> HasLiabilityWaiverAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Miembros activos por gym, en una sola consulta (panel de SuperAdmin). Un gym sin miembros
     /// activos no aparece.
     /// </summary>

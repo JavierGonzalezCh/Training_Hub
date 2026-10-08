@@ -83,3 +83,21 @@ public sealed class AddMemberNoteRequestValidator : AbstractValidator<AddMemberN
         RuleFor(x => x.Text).NotEmpty().MaximumLength(MemberNote.MaxLength);
     }
 }
+
+public sealed class PublishConsentDocumentRequestValidator : AbstractValidator<PublishConsentDocumentRequest>
+{
+    public PublishConsentDocumentRequestValidator()
+    {
+        RuleFor(x => x.Type).NotEmpty().MaximumLength(40);
+        RuleFor(x => x.Text).NotEmpty().MaximumLength(ConsentDocument.MaxTextLength);
+    }
+}
+
+public sealed class AcceptConsentRequestValidator : AbstractValidator<AcceptConsentRequest>
+{
+    public AcceptConsentRequestValidator()
+    {
+        RuleFor(x => x.Type).NotEmpty().MaximumLength(40);
+        RuleFor(x => x.DocumentVersion).GreaterThanOrEqualTo(0).When(x => x.DocumentVersion is not null);
+    }
+}

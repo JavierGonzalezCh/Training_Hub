@@ -53,6 +53,23 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
             .Select(m => m.Id)
             .ToListAsync(cancellationToken);
 
+    public Task<bool> HasDataProcessingConsentAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => HasConsentAsync(memberId, ConsentType.DataProcessing, cancellationToken);
+
+    public Task<bool> HasLiabilityWaiverAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => HasConsentAsync(memberId, ConsentType.LiabilityWaiver, cancellationToken);
+
+    // La aceptación más reciente del tipo, y que no esté revocada.
+    private async Task<bool> HasConsentAsync(Guid memberId, ConsentType type, CancellationToken cancellationToken)
+    {
+        var latest = await dbContext.Set<MemberConsent>()
+            .Where(c => c.MemberId == memberId && c.Type == type)
+            .OrderByDescending(c => c.AcceptedAt).ThenByDescending(c => c.Id)
+            .Select(c => new { c.RevokedAt })
+            .FirstOrDefaultAsync(cancellationToken);
+        return latest is not null && latest.RevokedAt is null;
+    }
+
     private static IQueryable<MemberInfo> Project(IQueryable<Member> source)
         => source.Select(m => new MemberInfo(
             m.Id, m.GymId, m.UserId, m.FirstName, m.LastName, m.Status));

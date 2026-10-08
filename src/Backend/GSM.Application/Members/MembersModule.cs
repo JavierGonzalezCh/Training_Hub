@@ -11,6 +11,7 @@ public static class MembersModuleRegistration
         // Añade aquí solo lo que el scanning no cubra.
 
         services.AddScoped<GSM.Application.Members.MemberChangeRecorder>();
+        services.AddScoped<GSM.Application.Members.ConsentService>();
 
         return services;
     }

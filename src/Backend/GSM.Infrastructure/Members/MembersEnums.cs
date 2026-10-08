@@ -14,5 +14,7 @@ public sealed class MembersEnums : IModuleEnums
         PgEnumMapping.Of<GSM.Domain.Members.MemberGoal>("member_goal", "members", SnakeCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Members.MemberChangeSource>("member_change_source", "members", SnakeCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Members.MemberChangeRole>("member_change_role", "members", SnakeCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Members.ConsentType>("consent_type", "members", SnakeCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Members.ConsentChannel>("consent_channel", "members", SnakeCaseNameTranslator.Instance),
     ];
 }

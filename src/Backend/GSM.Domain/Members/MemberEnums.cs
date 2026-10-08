@@ -60,3 +60,21 @@ public enum MemberChangeRole
     Superadmin,
     System,
 }
+
+/// <summary>Tipo de autorización legal que firma el miembro (Members v2, §3.4).</summary>
+public enum ConsentType
+{
+    /// <summary>Autorización de tratamiento de datos (Ley 1581).</summary>
+    DataProcessing,
+
+    /// <summary>Exoneración de responsabilidad.</summary>
+    LiabilityWaiver,
+}
+
+/// <summary>Por dónde se aceptó una autorización.</summary>
+public enum ConsentChannel
+{
+    App,
+    FrontDesk,
+    Import,
+}
