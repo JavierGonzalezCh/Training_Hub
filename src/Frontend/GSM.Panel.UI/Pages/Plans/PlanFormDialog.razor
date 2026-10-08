@@ -15,7 +15,7 @@
             <MudForm @ref="_form" Model="_model">
                 <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
                 <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Class="mb-3" />
-                <MudNumericField T="decimal" @bind-Value="_model.Price" Label="Precio (COP)" Required="true" Min="0" Class="mb-3" />
+                <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_model.Price" Label="Precio (COP)" Required="true" Min="0" Class="mb-3" />
                 <MudNumericField T="int" @bind-Value="_model.DurationDays" Label="Duración (días)" Required="true" Min="1" />
             </MudForm>
         }
