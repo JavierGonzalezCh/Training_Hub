@@ -25,7 +25,7 @@ public sealed class CashRegisterTests(ApiFactory factory) : IClassFixture<ApiFac
             var record = scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>();
 
             await record.HandleAsync(new RecordPaymentRequest(100_000m, PaymentMethod.Cash, "Mensualidad", null, memberId, null), default);
-            await record.HandleAsync(new RecordPaymentRequest(50_000m, PaymentMethod.Transfer, "Mensualidad", null, memberId, null), default);
+            await record.HandleAsync(new RecordPaymentRequest(50_000m, PaymentMethod.BankTransfer, "Mensualidad", null, memberId, null), default);
             await record.HandleAsync(new RecordPaymentRequest(30_000m, PaymentMethod.Cash, "Producto", null, null, null), default);
             await record.HandleAsync(new RecordPaymentRequest(-20_000m, PaymentMethod.Cash, "Ajuste: devolución", null, null, null), default);
         }
@@ -41,7 +41,7 @@ public sealed class CashRegisterTests(ApiFactory factory) : IClassFixture<ApiFac
         Assert.Equal(day, close.Date);
         Assert.Equal(4, close.TransactionCount);
         Assert.Equal(110_000m, close.TotalsByMethod["Cash"]);   // 100k + 30k - 20k
-        Assert.Equal(50_000m, close.TotalsByMethod["Transfer"]);
+        Assert.Equal(50_000m, close.TotalsByMethod["BankTransfer"]);
         Assert.Equal(160_000m, close.Total);
         Assert.Equal(close.Total, close.TotalsByMethod.Values.Sum());
 
