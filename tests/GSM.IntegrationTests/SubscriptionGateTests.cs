@@ -68,6 +68,17 @@ public sealed class SubscriptionGateTests(ApiFactory factory) : IClassFixture<Ap
     }
 
     [Fact]
+    public void Write_mode_impersonation_admits_every_method()
+    {
+        Assert.Equal(SubscriptionGate.Decision.Allow,
+            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Active, true, true, true, false, false, impersonationCanWrite: true));
+        Assert.Equal(SubscriptionGate.Decision.Allow,
+            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Disabled, true, true, true, false, false, impersonationCanWrite: true));
+        Assert.Equal(SubscriptionGate.Decision.BlockedImpersonation,
+            SubscriptionGate.Evaluate(EffectiveSubscriptionStatus.Active, true, true, true, false, false, impersonationCanWrite: false));
+    }
+
+    [Fact]
     public void Exempt_endpoints_stay_reachable_while_impersonating()
         => Assert.Equal(
             SubscriptionGate.Decision.Allow,
