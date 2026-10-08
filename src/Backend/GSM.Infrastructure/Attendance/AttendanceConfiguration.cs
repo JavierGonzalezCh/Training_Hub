@@ -11,6 +11,7 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
         builder.ToTable("attendances", "attendance");
 
         builder.Property(a => a.Method).HasColumnName("method");
+        builder.Property(a => a.AuthorizationReason).HasMaxLength(500);
 
         // Una asistencia por miembro por día de negocio.
         builder.HasIndex(a => new { a.MemberId, a.AttendanceDate }).IsUnique();

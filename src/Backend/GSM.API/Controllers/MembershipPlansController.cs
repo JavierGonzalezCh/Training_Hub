@@ -42,6 +42,17 @@ public sealed class MembershipPlansController : ControllerBase
         Guid id, UpdatePlanRequest request, [FromServices] UpdatePlanHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, request, cancellationToken));
 
+    /// <summary>Vuelve a ofrecer un plan desactivado. Uno que ya está activo → 409.</summary>
+    [HttpPost("{id:guid}/reactivate")]
+    [EndpointName("ReactivateMembershipPlan")] // evita que NSwag renumere los Reactivate de otros controllers
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<PlanResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PlanResponse>> Reactivate(
+        Guid id, [FromServices] ReactivatePlanHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = AuthPolicies.RequireOwner)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

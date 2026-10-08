@@ -20,6 +20,31 @@ public interface IMembershipReader
     Task<int> GetExpiringCountAsync(
         Guid gymId, int withinDays, CancellationToken cancellationToken = default);
 
+    /// <summary>Gracia y ventana de "por vencer" del gym (valores por defecto si no hay fila).</summary>
+    Task<MembershipSettingsView> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Veredicto de acceso de un miembro hoy: estado comercial, días que le quedan, si entra y el
+    /// texto del letrero (§5.3). Es lo que Attendance pide en vez de calcular la gracia él mismo.
+    /// </summary>
+    Task<AccessStatus> GetAccessStatusAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>Estado comercial hoy de varios miembros (lista de miembros). Un miembro sin membresías es <see cref="CommercialStatus.NoPlan"/>.</summary>
+    Task<IReadOnlyDictionary<Guid, CommercialStatus>> GetCommercialStatusesAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ids de los miembros del gym en contexto cuyo estado comercial hoy es alguno de
+    /// <paramref name="statuses"/> (filtro de la lista). <see cref="CommercialStatus.NoPlan"/> no se
+    /// lista aquí: quien no tiene membresías no aparece en Memberships; el llamador usa el complemento.
+    /// </summary>
+    Task<IReadOnlyCollection<Guid>> GetMemberIdsByStatusAsync(
+        IReadOnlyCollection<CommercialStatus> statuses, CancellationToken cancellationToken = default);
+
+    /// <summary>Cuántos de <paramref name="memberIds"/> hay en cada estado comercial hoy (dashboard). Incluye <see cref="CommercialStatus.NoPlan"/>.</summary>
+    Task<IReadOnlyDictionary<CommercialStatus, int>> GetStatusCountsAsync(
+        Guid gymId, IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
+
     /// <summary>¿La membresía existe y pertenece a ese miembro? (validación al registrar un pago).</summary>
     Task<bool> BelongsToMemberAsync(
         Guid membershipId, Guid memberId, CancellationToken cancellationToken = default);

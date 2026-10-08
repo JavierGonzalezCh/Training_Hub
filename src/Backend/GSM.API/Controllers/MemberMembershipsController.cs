@@ -20,6 +20,30 @@ public sealed class MemberMembershipsController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(memberId, cancellationToken));
 
+    /// <summary>Estado comercial y veredicto de acceso del miembro hoy (tarjeta de recepción, ficha).</summary>
+    [HttpGet("access")]
+    [ProducesResponseType<AccessStatusResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AccessStatusResponse>> GetAccess(
+        Guid memberId, [FromServices] GetAccessStatusHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, cancellationToken));
+
+    /// <summary>
+    /// Vista previa de la asignación: inicio y fin que tendría la membresía, calculados con la regla
+    /// de renovación, sin crear nada. `startDate` es el cambio manual del staff, si lo hay.
+    /// </summary>
+    [HttpGet("preview")]
+    [ProducesResponseType<RenewalPreviewResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<RenewalPreviewResponse>> Preview(
+        Guid memberId,
+        [FromQuery] Guid planId,
+        [FromQuery] DateOnly? startDate,
+        [FromServices] PreviewMembershipHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, planId, startDate, null, cancellationToken));
+
     [HttpPost]
     [ProducesResponseType<MembershipResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

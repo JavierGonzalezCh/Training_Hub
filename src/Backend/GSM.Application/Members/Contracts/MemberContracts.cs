@@ -100,6 +100,12 @@ public sealed record ListMembersQuery
     /// <summary>Solo los miembros que tienen esta etiqueta.</summary>
     public string? Tag { get; init; }
 
+    /// <summary>
+    /// Estado comercial (`no_plan`, `current`, `expiring`, `grace`, `expired`, `frozen`). Lo calcula
+    /// Memberships; el filtro solo se aplica si el valor es uno de esos.
+    /// </summary>
+    public string? CommercialStatus { get; init; }
+
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }
@@ -138,7 +144,8 @@ public sealed record MemberListItem(
     string Status,
     DateOnly JoinedAt,
     IReadOnlyList<string> Tags,
-    bool IsProfileIncomplete);
+    bool IsProfileIncomplete,
+    string CommercialStatus = "no_plan");
 
 public sealed record MemberDetail(
     Guid Id,
@@ -175,6 +182,12 @@ public sealed record MemberDetail(
 {
     /// <summary>Membresía vigente hoy. La rellena el controller vía IMembershipReader; <c>null</c> si no hay.</summary>
     public MemberCurrentMembership? CurrentMembership { get; init; }
+
+    /// <summary>Estado comercial hoy (`no_plan`, `current`, `expiring`, `grace`, `expired`, `frozen`). Lo rellena el controller vía IMembershipReader.</summary>
+    public string CommercialStatus { get; init; } = "no_plan";
+
+    /// <summary>Letrero de renovación (por vencer o en gracia), para que recepción lo diga en persona. Nulo si no hay.</summary>
+    public string? AccessNotice { get; init; }
 
     /// <summary>Últimos pagos del miembro. Los rellena el controller vía IPaymentReader.</summary>
     public IReadOnlyList<MemberRecentPayment> RecentPayments { get; init; } = [];

@@ -34,8 +34,15 @@ public sealed class Membership : BaseEntity, ITenantEntity
 
     public string? CancellationReason { get; private set; }
 
+    /// <summary>Cómo se calculó el inicio (§4.1 de Memberships v2).</summary>
+    public RenewalKind RenewalKind { get; private set; } = RenewalKind.New;
+
+    /// <summary>Motivo cuando el staff cambió a mano la fecha de inicio que calculó el sistema.</summary>
+    public string? StartOverrideReason { get; private set; }
+
     public static Membership Create(
-        Guid gymId, Guid memberId, Guid planId, DateOnly startDate, int durationDays)
+        Guid gymId, Guid memberId, Guid planId, DateOnly startDate, int durationDays,
+        RenewalKind renewalKind = RenewalKind.New, string? startOverrideReason = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty || planId == Guid.Empty)
         {
@@ -55,6 +62,8 @@ public sealed class Membership : BaseEntity, ITenantEntity
             StartDate = startDate,
             EndDate = startDate.AddDays(durationDays - 1),
             Status = MembershipStatus.Active,
+            RenewalKind = renewalKind,
+            StartOverrideReason = string.IsNullOrWhiteSpace(startOverrideReason) ? null : startOverrideReason.Trim(),
         };
     }
 

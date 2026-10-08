@@ -41,6 +41,11 @@ public interface IMembershipRepository
         Guid gymId, DateOnly today, int withinDays, CancellationToken cancellationToken = default);
 
     void Add(Membership membership);
+
+    // Ajustes del gym (gracia y aviso de vencimiento)
+    Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    void Add(MembershipSettings settings);
 }
 
 public sealed record ExpiringMembershipRow(

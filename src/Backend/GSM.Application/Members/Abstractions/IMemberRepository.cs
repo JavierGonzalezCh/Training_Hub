@@ -2,7 +2,13 @@ using GSM.Domain.Members;
 
 namespace GSM.Application.Members.Abstractions;
 
-public sealed record MemberPageQuery(string? Search, MemberStatus? Status, string? Tag, int Page, int PageSize);
+/// <summary>
+/// <c>Ids</c> acota la lista a esos miembros (o a todos menos esos si <c>ExcludeIds</c>): es el filtro
+/// por estado comercial, cuyos ids entrega Memberships.
+/// </summary>
+public sealed record MemberPageQuery(
+    string? Search, MemberStatus? Status, string? Tag, int Page, int PageSize,
+    IReadOnlyCollection<Guid>? Ids = null, bool ExcludeIds = false);
 
 /// <summary>Acceso de escritura/consulta a las entidades del módulo Members. Sin <c>SaveChanges</c>.</summary>
 public interface IMemberRepository

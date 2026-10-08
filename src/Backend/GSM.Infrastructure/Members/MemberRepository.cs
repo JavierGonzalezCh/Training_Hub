@@ -22,6 +22,13 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
             q = q.Where(m => m.Status == status);
         }
 
+        if (query.Ids is { } ids)
+        {
+            q = query.ExcludeIds
+                ? q.Where(m => !ids.Contains(m.Id))
+                : q.Where(m => ids.Contains(m.Id));
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Tag))
         {
             var tag = query.Tag.Trim();

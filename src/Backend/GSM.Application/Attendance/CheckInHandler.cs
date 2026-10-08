@@ -18,7 +18,8 @@ namespace GSM.Application.Attendance;
 
 /// <summary>
 /// Registra la entrada. El miembro solo entra con un código válido del gym (QR de la entrada) y
-/// sujeto a la regla de gracia; el staff registra a mano, sin código y sin gracia (con aviso).
+/// sujeto al veredicto de acceso de Memberships (gracia incluida); el staff registra a mano, sin
+/// código, y fuera de la gracia debe "dejar pasar" con motivo.
 /// Ver docs/CHECKIN-QR-BUILD-PLAN.md.
 /// </summary>
 public sealed class CheckInHandler(
@@ -69,16 +70,19 @@ public sealed class CheckInHandler(
         var today = clock.Today;
         var existing = await attendance.GetForMemberOnDateAsync(member.Id, today, cancellationToken);
 
-        var active = await memberships.IsActiveAsync(member.Id, cancellationToken);
-        var endedOn = await memberships.GetLatestEndDateAsync(member.Id, cancellationToken);
-        int? graceLeft = !active && endedOn is { } end && today <= end.AddDays(settings.GraceDays)
-            ? end.AddDays(settings.GraceDays).DayNumber - today.DayNumber
-            : null;
+        // Memberships decide quién entra (estado, gracia y letrero): Attendance ya no calcula la gracia.
+        var access = await memberships.GetAccessStatusAsync(member.Id, cancellationToken);
 
         // Quien ya entró hoy no vuelve a ser rechazado, aunque su membresía haya vencido después.
-        if (existing is null && isMember && !active && graceLeft is null)
+        string? authorizationReason = null;
+        if (existing is null && access.Kind == AccessKind.Blocked)
         {
-            await RejectAsync(gymId, member, endedOn, today, cancellationToken);
+            if (isMember)
+            {
+                await RejectAsync(gymId, member, access, today, cancellationToken);
+            }
+
+            authorizationReason = RequireAuthorizationReason(access, request.AuthorizationReason);
         }
 
         var created = existing is null;
@@ -90,15 +94,21 @@ public sealed class CheckInHandler(
         else
         {
             var method = isMember ? AttendanceMethod.Qr : AttendanceMethod.Manual;
-            record = AttendanceEntity.Create(gymId, member.Id, method, clock.UtcNow, today);
+            record = AttendanceEntity.Create(
+                gymId, member.Id, method, clock.UtcNow, today,
+                authorizationReason is null ? null : currentUser.UserId,
+                authorizationReason);
             attendance.Add(record);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await events.PublishAsync(new CheckInRegistered(record.Id, gymId, member.Id), cancellationToken);
-            logger.LogInformation("Check-in {AttendanceId} de miembro {MemberId}", record.Id, member.Id);
+            logger.LogInformation(
+                "Check-in {AttendanceId} de miembro {MemberId}{Authorized}",
+                record.Id, member.Id, record.AuthorizedBy is null ? string.Empty : " (entrada autorizada)");
         }
 
         var unlocked = await achievements.EvaluateForMemberAsync(member.Id, cancellationToken);
 
+        var covered = access.Kind is AccessKind.Covered or AccessKind.Expiring;
         var response = new CheckInResponse(
             record.Id,
             member.Id,
@@ -106,17 +116,37 @@ public sealed class CheckInHandler(
             record.CheckedInAt,
             record.Method.ToString(),
             AlreadyCheckedInToday: !created,
-            MembershipExpired: !active,
+            MembershipExpired: !covered,
             unlocked,
-            MembershipEndsOn: active ? null : endedOn,
-            GraceDaysLeft: graceLeft);
+            MembershipEndsOn: covered ? null : access.EndsOn,
+            GraceDaysLeft: access.GraceDaysLeft,
+            Notice: access.Notice,
+            DaysLeft: access.DaysLeft,
+            Authorized: record.AuthorizedBy is not null);
 
         return (response, created);
     }
 
-    private async Task RejectAsync(
-        Guid gymId, MemberInfo member, DateOnly? endedOn, DateOnly today, CancellationToken cancellationToken)
+    /// <summary>
+    /// "Dejar pasar": el staff puede registrar a mano a quien no puede entrar, pero con un motivo
+    /// obligatorio que queda en la asistencia junto con quién lo autorizó.
+    /// </summary>
+    private static string RequireAuthorizationReason(AccessStatus access, string? reason)
     {
+        var trimmed = (reason ?? string.Empty).Trim();
+        if (trimmed.Length is < 3 or > 500)
+        {
+            throw new ValidationDomainException(
+                $"{access.BlockMessage} Para dejarlo pasar indica un motivo (3 a 500 caracteres).");
+        }
+
+        return trimmed;
+    }
+
+    private async Task RejectAsync(
+        Guid gymId, MemberInfo member, AccessStatus access, DateOnly today, CancellationToken cancellationToken)
+    {
+        var endedOn = access.BlockReason == AccessBlockReason.Expired ? access.EndsOn : null;
         var reason = endedOn is null ? CheckinRejectionReason.NoMembership : CheckinRejectionReason.MembershipExpired;
         var now = clock.UtcNow;
 
@@ -139,9 +169,12 @@ public sealed class CheckInHandler(
             "Check-in rechazado de miembro {MemberId}: {Reason} (intento {AttemptId}, x{Count})",
             member.Id, reason, attempt.Id, attempt.AttemptCount);
 
-        throw new ConflictException(endedOn is { } ended
-            ? $"Tu membresía venció el {ended:dd/MM/yyyy}. Pasa por recepción para renovarla."
-            : "No tienes una membresía activa. Pasa por recepción.");
+        throw new ConflictException(
+            access.BlockReason == AccessBlockReason.Frozen
+                ? "Tu membresía está congelada. Pasa por recepción."
+                : endedOn is { } ended
+                    ? $"Tu membresía venció el {ended:dd/MM/yyyy}. Pasa por recepción para renovarla."
+                    : "No tienes una membresía activa. Pasa por recepción.");
     }
 
     private async Task<MemberInfo> ResolveMemberAsync(

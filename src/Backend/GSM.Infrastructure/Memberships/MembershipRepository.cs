@@ -83,4 +83,9 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
     }
 
     public void Add(Membership membership) => Memberships.Add(membership);
+
+    public Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<MembershipSettings>().FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);
+
+    public void Add(MembershipSettings settings) => dbContext.Set<MembershipSettings>().Add(settings);
 }

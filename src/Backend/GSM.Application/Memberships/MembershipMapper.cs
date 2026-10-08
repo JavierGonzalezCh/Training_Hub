@@ -1,4 +1,6 @@
 using GSM.Application.Memberships.Contracts;
+using GSM.Application.Memberships.Public;
+using GSM.Domain.Members;
 using GSM.Domain.Memberships;
 using Riok.Mapperly.Abstractions;
 
@@ -20,5 +22,20 @@ public static partial class MembershipMapper
             membership.EndDate,
             membership.CreatedAt,
             membership.PausedOn,
-            membership.CancellationReason);
+            membership.CancellationReason,
+            EnumText.Snake(membership.RenewalKind)!,
+            membership.StartOverrideReason);
+
+    public static AccessStatusResponse ToResponse(AccessStatus access)
+        => new(
+            EnumText.Snake(access.Commercial)!,
+            EnumText.Snake(access.Kind)!,
+            EnumText.Snake(access.BlockReason),
+            access.CanEnter,
+            access.EndsOn,
+            access.DaysLeft,
+            access.GraceEndsOn,
+            access.GraceDaysLeft,
+            access.Notice,
+            access.BlockMessage);
 }

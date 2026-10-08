@@ -3,14 +3,19 @@ using GSM.Application.Attendance.Contracts;
 using GSM.Application.Attendance.Public;
 using GSM.Application.Common;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Identity.Public;
 using GSM.Application.Members.Public;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Identity;
+using AttendanceEntity = GSM.Domain.Attendance.Attendance;
 
 namespace GSM.Application.Attendance;
 
 public sealed class ListAttendanceHandler(
-    ICurrentUserService currentUser, IMemberReader members, IAttendanceRepository attendance)
+    ICurrentUserService currentUser,
+    IMemberReader members,
+    IAttendanceRepository attendance,
+    IIdentityReader identity)
 {
     public async Task<PagedResult<AttendanceListItem>> HandleAsync(
         ListAttendanceQuery query, CancellationToken cancellationToken)
@@ -21,15 +26,39 @@ public sealed class ListAttendanceHandler(
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
         var (items, total) = await attendance.GetPageAsync(
-            new AttendancePageQuery(query.MemberId, query.From, query.To, page, pageSize), cancellationToken);
+            new AttendancePageQuery(query.MemberId, query.From, query.To, page, pageSize, query.AuthorizedOnly),
+            cancellationToken);
 
         var names = await ResolveNamesAsync(members, items.Select(a => a.MemberId), cancellationToken);
+        var authorizers = await ResolveAuthorizersAsync(identity, items, cancellationToken);
 
         return new PagedResult<AttendanceListItem>(
-            items.Select(a => new AttendanceListItem(
-                a.Id, a.MemberId, names.GetValueOrDefault(a.MemberId, "?"),
-                a.CheckedInAt, a.AttendanceDate, a.Method.ToString())).ToList(),
+            items.Select(a => ToItem(a, names.GetValueOrDefault(a.MemberId, "?"), authorizers)).ToList(),
             page, pageSize, total);
+    }
+
+    internal static AttendanceListItem ToItem(
+        AttendanceEntity a, string memberName, IReadOnlyDictionary<Guid, string> authorizers)
+        => new(
+            a.Id, a.MemberId, memberName, a.CheckedInAt, a.AttendanceDate, a.Method.ToString(),
+            Authorized: a.AuthorizedBy is not null,
+            AuthorizedBy: a.AuthorizedBy,
+            AuthorizedByName: a.AuthorizedBy is { } by ? authorizers.GetValueOrDefault(by) : null,
+            AuthorizationReason: a.AuthorizationReason);
+
+    internal static async Task<IReadOnlyDictionary<Guid, string>> ResolveAuthorizersAsync(
+        IIdentityReader identity, IEnumerable<AttendanceEntity> items, CancellationToken cancellationToken)
+    {
+        var names = new Dictionary<Guid, string>();
+        foreach (var id in items.Where(a => a.AuthorizedBy.HasValue).Select(a => a.AuthorizedBy!.Value).Distinct())
+        {
+            if (await identity.GetUserAsync(id, cancellationToken) is { } user)
+            {
+                names[id] = user.FullName;
+            }
+        }
+
+        return names;
     }
 
     internal static async Task<Dictionary<Guid, string>> ResolveNamesAsync(
@@ -47,7 +76,10 @@ public sealed class ListAttendanceHandler(
 }
 
 public sealed class GetMemberAttendanceHandler(
-    ICurrentUserService currentUser, IMemberReader members, IAttendanceRepository attendance)
+    ICurrentUserService currentUser,
+    IMemberReader members,
+    IAttendanceRepository attendance,
+    IIdentityReader identity)
 {
     public async Task<PagedResult<AttendanceListItem>> HandleAsync(
         Guid memberId, int page, int pageSize, CancellationToken cancellationToken)
@@ -63,9 +95,16 @@ public sealed class GetMemberAttendanceHandler(
         var name = (await members.GetAsync(memberId, cancellationToken)) is { } m
             ? $"{m.FirstName} {m.LastName}" : "?";
 
+        // El motivo de una entrada autorizada es interno del gym: el miembro no lo ve.
+        var isStaff = currentUser.Role != UserRole.Member;
+        var authorizers = isStaff
+            ? await ListAttendanceHandler.ResolveAuthorizersAsync(identity, items, cancellationToken)
+            : new Dictionary<Guid, string>();
+
         return new PagedResult<AttendanceListItem>(
-            items.Select(a => new AttendanceListItem(
-                a.Id, a.MemberId, name, a.CheckedInAt, a.AttendanceDate, a.Method.ToString())).ToList(),
+            items.Select(a => isStaff
+                ? ListAttendanceHandler.ToItem(a, name, authorizers)
+                : new AttendanceListItem(a.Id, a.MemberId, name, a.CheckedInAt, a.AttendanceDate, a.Method.ToString())).ToList(),
             p, size, total);
     }
 }
