@@ -46,10 +46,10 @@
 | AP2 | **Unida** (9cf3061) | **Verificada en el navegador** a 1280 y 375 px: menú igual en escritorio, barra inferior, hoja "Más", diálogo a pantalla completa. También verificado el login de I2. Suite 272 + 134 |
 | S6 | **Unida** | Modos `read`/`write`, firma "GSM", auditoría por petición. Ver pregunta 17. **Ola 1 cerrada**; suite 309 + 144; `CLAUDE.md` actualizado |
 | B3 | **Unida** | Causa: nada fijaba la cultura y el selector no tenía `ToStringFunc`. Marcado corregido en `BUGS.md`. bUnit 135 |
-| G2 | En curso | — |
+| G2 | **Unida** | Sin mapa con pin (solo lat/long y "Ver en el mapa"). Suite 327 + 150 |
 | E1 | En curso | — |
 | M2 | En curso | el texto base de las autorizaciones es un borrador pendiente de revisión legal |
-| I1 | En curso | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
+| I1 | **Terminada, SIN unir** (rama `v2-I1-bloqueo-y-enlaces`). Falta unir y correr la suite. Config nueva `Identity:PublicWebBaseUrl` (producción) | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -108,6 +108,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- G2 unida (327 + 150). I1 terminada sin unir; E1 y M2 en curso. Sesión cortada por el límite de uso.
 - S6 unida (309 + 144): **Ola 1 cerrada**. Lanzada M2. Cliente regenerado (idéntico al unido, solo cambia `openapi-v1.json`). `CLAUDE.md` actualizado con las notas de I2, I3, N1, MS1, AP2 y S6.
 - S7 y MS1 unidas (300 + 141). En MS1 hubo que combinar a mano el diálogo de asignar con el arreglo de B3. Lanzadas G2 y E1.
 - B3 unida. Lanzada I1.
