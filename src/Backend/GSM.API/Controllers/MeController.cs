@@ -4,6 +4,8 @@ using GSM.Application.Achievements.Contracts;
 using GSM.Application.Classes;
 using GSM.Application.Classes.Contracts;
 using GSM.Application.Common;
+using GSM.Application.Gyms;
+using GSM.Application.Gyms.Contracts;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
 using GSM.Application.Notifications;
@@ -22,6 +24,13 @@ namespace GSM.API.Controllers;
 [Authorize(Policy = AuthPolicies.RequireMember)]
 public sealed class MeController : ControllerBase
 {
+    /// <summary>Datos del gimnasio del miembro: ubicación, contacto y redes ("Mi gimnasio").</summary>
+    [HttpGet("gym")]
+    [ProducesResponseType<MemberGymResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MemberGymResponse>> MyGym(
+        [FromServices] GetMyGymHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     [HttpGet("achievements")]
     [ProducesResponseType<IReadOnlyList<MemberAchievementItem>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<MemberAchievementItem>>> Achievements(

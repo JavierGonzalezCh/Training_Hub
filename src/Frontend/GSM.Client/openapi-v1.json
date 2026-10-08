@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7299/"
+      "url": "http://localhost:7390/"
     }
   ],
   "paths": {
@@ -1095,75 +1095,6 @@
         }
       }
     },
-    "/api/admin/impersonations/{sessionId}/actions": {
-      "get": {
-        "tags": [
-          "AdminImpersonation"
-        ],
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ImpersonationActionItem"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ImpersonationActionItem"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ImpersonationActionItem"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/admin/metrics/monthly": {
       "get": {
         "tags": [
@@ -1929,13 +1860,6 @@
             "schema": {
               "type": "string",
               "format": "date"
-            }
-          },
-          {
-            "name": "AuthorizedOnly",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
             }
           },
           {
@@ -4347,6 +4271,35 @@
         }
       }
     },
+    "/api/me/gym": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me/achievements": {
       "get": {
         "tags": [
@@ -5601,162 +5554,6 @@
         }
       }
     },
-    "/api/members/{memberId}/memberships/access": {
-      "get": {
-        "tags": [
-          "MemberMemberships"
-        ],
-        "parameters": [
-          {
-            "name": "memberId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccessStatusResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccessStatusResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccessStatusResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/members/{memberId}/memberships/preview": {
-      "get": {
-        "tags": [
-          "MemberMemberships"
-        ],
-        "parameters": [
-          {
-            "name": "memberId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "planId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "startDate",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/RenewalPreviewResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RenewalPreviewResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RenewalPreviewResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/members/{memberId}/memberships/{membershipId}/cancel": {
       "post": {
         "tags": [
@@ -6150,13 +5947,6 @@
           },
           {
             "name": "Tag",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "CommercialStatus",
             "in": "query",
             "schema": {
               "type": "string"
@@ -7206,87 +6996,6 @@
         }
       }
     },
-    "/api/membership-plans/{id}/reactivate": {
-      "post": {
-        "tags": [
-          "MembershipPlans"
-        ],
-        "operationId": "ReactivateMembershipPlan",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PlanResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PlanResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PlanResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/memberships/expiring": {
       "get": {
         "tags": [
@@ -7332,82 +7041,6 @@
                   "items": {
                     "$ref": "#/components/schemas/ExpiringMembershipItem"
                   }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/membership-settings": {
-      "get": {
-        "tags": [
-          "MembershipSettings"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/MembershipSettingsResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MembershipSettingsResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MembershipSettingsResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "MembershipSettings"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMembershipSettingsRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMembershipSettingsRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMembershipSettingsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/MembershipSettingsResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MembershipSettingsResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MembershipSettingsResponse"
                 }
               }
             }
@@ -8793,82 +8426,6 @@
   },
   "components": {
     "schemas": {
-      "AccessStatusResponse": {
-        "required": [
-          "commercial",
-          "kind",
-          "blockReason",
-          "canEnter",
-          "endsOn",
-          "daysLeft",
-          "graceEndsOn",
-          "graceDaysLeft",
-          "notice",
-          "blockMessage"
-        ],
-        "type": "object",
-        "properties": {
-          "commercial": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "blockReason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "canEnter": {
-            "type": "boolean"
-          },
-          "endsOn": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date"
-          },
-          "daysLeft": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "graceEndsOn": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date"
-          },
-          "graceDaysLeft": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "notice": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "blockMessage": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "AchievementConditionType": {
         "type": "integer"
       },
@@ -9046,12 +8603,6 @@
               "string"
             ],
             "format": "date"
-          },
-          "startDateReason": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -9087,29 +8638,6 @@
           },
           "method": {
             "type": "string"
-          },
-          "authorized": {
-            "type": "boolean",
-            "default": false
-          },
-          "authorizedBy": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "authorizedByName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "authorizationReason": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -9271,12 +8799,6 @@
               "null",
               "string"
             ]
-          },
-          "authorizationReason": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -9340,36 +8862,26 @@
               "string"
             ],
             "format": "int32"
-          },
-          "notice": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "daysLeft": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "authorized": {
-            "type": "boolean",
-            "default": false
           }
         }
       },
       "CheckinSettingsResponse": {
         "required": [
-          "mode"
+          "mode",
+          "graceDays"
         ],
         "type": "object",
         "properties": {
           "mode": {
             "type": "string"
+          },
+          "graceDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -9568,67 +9080,6 @@
               "string"
             ],
             "format": "date"
-          }
-        }
-      },
-      "CommercialStatusCounts": {
-        "required": [
-          "current",
-          "expiring",
-          "grace",
-          "expired",
-          "frozen",
-          "noPlan"
-        ],
-        "type": "object",
-        "properties": {
-          "current": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "expiring": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "grace": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "expired": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "frozen": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "noPlan": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
           }
         }
       },
@@ -10198,9 +9649,7 @@
           "revenueLastMonth",
           "expiredMemberships",
           "expiringSoon",
-          "expiringMemberships",
-          "commercialStatus",
-          "expiringDays"
+          "expiringMemberships"
         ],
         "type": "object",
         "properties": {
@@ -10257,17 +9706,6 @@
             "items": {
               "$ref": "#/components/schemas/ExpiringMemberRow"
             }
-          },
-          "commercialStatus": {
-            "$ref": "#/components/schemas/CommercialStatusCounts"
-          },
-          "expiringDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
           }
         }
       },
@@ -10715,7 +10153,18 @@
           "plan",
           "status",
           "ownerId",
-          "createdAt"
+          "createdAt",
+          "legalName",
+          "address",
+          "city",
+          "latitude",
+          "longitude",
+          "geofenceRadiusMeters",
+          "instagramUrl",
+          "facebookUrl",
+          "tikTokUrl",
+          "websiteUrl",
+          "whatsAppPhone"
         ],
         "type": "object",
         "properties": {
@@ -10784,6 +10233,80 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "geofenceRadiusMeters": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "instagramUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "facebookUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tikTokUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "websiteUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "whatsAppPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "subscription": {
             "oneOf": [
@@ -10856,44 +10379,6 @@
         "type": "string",
         "format": "binary"
       },
-      "ImpersonationActionItem": {
-        "required": [
-          "id",
-          "method",
-          "endpoint",
-          "summary",
-          "statusCode",
-          "occurredAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "method": {
-            "type": "string"
-          },
-          "endpoint": {
-            "type": "string"
-          },
-          "summary": {
-            "type": "string"
-          },
-          "statusCode": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "occurredAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "ImpersonationItem": {
         "required": [
           "id",
@@ -10901,8 +10386,6 @@
           "gymId",
           "gymName",
           "reason",
-          "mode",
-          "actionCount",
           "startedAt",
           "endedAt"
         ],
@@ -10926,17 +10409,6 @@
           "reason": {
             "type": "string"
           },
-          "mode": {
-            "type": "string"
-          },
-          "actionCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
           "startedAt": {
             "type": "string",
             "format": "date-time"
@@ -10955,8 +10427,7 @@
           "token",
           "expiresAtUtc",
           "sessionId",
-          "gymId",
-          "mode"
+          "gymId"
         ],
         "type": "object",
         "properties": {
@@ -10974,9 +10445,6 @@
           "gymId": {
             "type": "string",
             "format": "uuid"
-          },
-          "mode": {
-            "type": "string"
           },
           "tokenType": {
             "type": "string",
@@ -11619,20 +11087,113 @@
               }
             ]
           },
-          "commercialStatus": {
-            "type": "string"
-          },
-          "accessNotice": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
           "recentPayments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MemberRecentPayment"
             }
+          }
+        }
+      },
+      "MemberGymResponse": {
+        "required": [
+          "name",
+          "logoUrl",
+          "primaryColor",
+          "secondaryColor",
+          "address",
+          "city",
+          "latitude",
+          "longitude",
+          "phone",
+          "whatsAppPhone",
+          "instagramUrl",
+          "facebookUrl",
+          "tikTokUrl",
+          "websiteUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryColor": {
+            "type": "string"
+          },
+          "secondaryColor": {
+            "type": "string"
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "whatsAppPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instagramUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "facebookUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tikTokUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "websiteUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -11688,10 +11249,6 @@
           },
           "isProfileIncomplete": {
             "type": "boolean"
-          },
-          "commercialStatus": {
-            "type": "string",
-            "default": "no_plan"
           }
         }
       },
@@ -11776,9 +11333,7 @@
           "endDate",
           "createdAt",
           "pausedOn",
-          "cancellationReason",
-          "renewalKind",
-          "startOverrideReason"
+          "cancellationReason"
         ],
         "type": "object",
         "properties": {
@@ -11824,40 +11379,6 @@
               "null",
               "string"
             ]
-          },
-          "renewalKind": {
-            "type": "string"
-          },
-          "startOverrideReason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "MembershipSettingsResponse": {
-        "required": [
-          "graceDays",
-          "expiringDays"
-        ],
-        "type": "object",
-        "properties": {
-          "graceDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "expiringDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
           }
         }
       },
@@ -12185,10 +11706,6 @@
         "properties": {
           "reason": {
             "type": "string"
-          },
-          "mode": {
-            "type": "string",
-            "default": "read"
           }
         }
       },
@@ -13322,44 +12839,6 @@
           },
           "subscription": {
             "$ref": "#/components/schemas/SubscriptionDetail"
-          }
-        }
-      },
-      "RenewalPreviewResponse": {
-        "required": [
-          "kind",
-          "systemStartDate",
-          "startDate",
-          "endDate",
-          "previousEndDate",
-          "startDateChanged"
-        ],
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string"
-          },
-          "systemStartDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "previousEndDate": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date"
-          },
-          "startDateChanged": {
-            "type": "boolean"
           }
         }
       },
@@ -14828,12 +14307,21 @@
       },
       "UpdateCheckinSettingsRequest": {
         "required": [
-          "mode"
+          "mode",
+          "graceDays"
         ],
         "type": "object",
         "properties": {
           "mode": {
             "type": "string"
+          },
+          "graceDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -15048,6 +14536,81 @@
               "string"
             ],
             "format": "int32"
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "geofenceRadiusMeters": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "instagramUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "facebookUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tikTokUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "websiteUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "whatsAppPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -15223,31 +14786,6 @@
           }
         }
       },
-      "UpdateMembershipSettingsRequest": {
-        "required": [
-          "graceDays",
-          "expiringDays"
-        ],
-        "type": "object",
-        "properties": {
-          "graceDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "expiringDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
       "UpdatePlanRequest": {
         "required": [
           "name",
@@ -15407,9 +14945,6 @@
     },
     {
       "name": "Memberships"
-    },
-    {
-      "name": "MembershipSettings"
     },
     {
       "name": "Payments"
