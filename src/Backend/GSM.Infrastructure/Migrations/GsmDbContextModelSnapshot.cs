@@ -51,6 +51,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "equipment", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "cardio" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "schedule_mode", new[] { "rotating", "weekly" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("GSM.Domain.Achievements.Achievement", b =>
@@ -1553,6 +1554,12 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("notes");
 
+                    b.Property<ScheduleMode>("ScheduleMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("routines.schedule_mode")
+                        .HasDefaultValue(ScheduleMode.Rotating)
+                        .HasColumnName("schedule_mode");
+
                     b.Property<bool>("SelfAssigned")
                         .HasColumnType("boolean")
                         .HasColumnName("self_assigned");
@@ -1584,6 +1591,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<int?>("DayOfWeek")
+                        .HasColumnType("integer")
+                        .HasColumnName("day_of_week");
 
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
@@ -1620,7 +1631,10 @@ namespace GSM.Infrastructure.Migrations
                     b.HasIndex("RoutineId", "Position")
                         .HasDatabaseName("ix_routine_days_routine_id_position");
 
-                    b.ToTable("routine_days", "routines");
+                    b.ToTable("routine_days", "routines", t =>
+                        {
+                            t.HasCheckConstraint("ck_routine_days_day_of_week", "day_of_week is null or day_of_week between 1 and 7");
+                        });
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.RoutineExercise", b =>

@@ -14,6 +14,7 @@ public sealed class RoutineConfiguration : IEntityTypeConfiguration<Routine>
         builder.Property(r => r.Notes).HasMaxLength(1000);
         builder.Property(r => r.StartsOn).HasColumnType("date");
         builder.Property(r => r.DeactivatedOn).HasColumnType("date");
+        builder.Property(r => r.ScheduleMode).HasDefaultValue(GSM.Domain.Routines.ScheduleMode.Rotating);
 
         builder.HasMany(r => r.Days)
             .WithOne()
@@ -34,6 +35,7 @@ public sealed class RoutineDayConfiguration : IEntityTypeConfiguration<RoutineDa
 
         builder.Property(d => d.Name).HasMaxLength(60);
         builder.Property(d => d.RetiredOn).HasColumnType("date");
+        builder.ToTable(t => t.HasCheckConstraint("ck_routine_days_day_of_week", "day_of_week is null or day_of_week between 1 and 7"));
 
         builder.HasMany(d => d.Exercises)
             .WithOne()

@@ -10906,6 +10906,15 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "dayOfWeek": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -10942,6 +10951,15 @@
             "items": {
               "$ref": "#/components/schemas/RoutineExerciseResponse"
             }
+          },
+          "dayOfWeek": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -11155,7 +11173,8 @@
           "startsOn",
           "isActive",
           "deactivatedOn",
-          "cycleLength"
+          "cycleLength",
+          "scheduleMode"
         ],
         "type": "object",
         "properties": {
@@ -11187,6 +11206,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "scheduleMode": {
+            "type": "string"
           }
         }
       },
@@ -11272,7 +11294,8 @@
           "isActive",
           "deactivatedOn",
           "cycleLength",
-          "days"
+          "days",
+          "scheduleMode"
         ],
         "type": "object",
         "properties": {
@@ -11327,6 +11350,9 @@
             "items": {
               "$ref": "#/components/schemas/RoutineDayResponse"
             }
+          },
+          "scheduleMode": {
+            "type": "string"
           }
         }
       },
@@ -11423,6 +11449,12 @@
             "items": {
               "$ref": "#/components/schemas/RoutineDayInput"
             }
+          },
+          "scheduleMode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -11768,7 +11800,8 @@
           "position",
           "dayName",
           "isRest",
-          "exercises"
+          "exercises",
+          "dayOfWeek"
         ],
         "type": "object",
         "properties": {
@@ -11795,6 +11828,14 @@
             "items": {
               "$ref": "#/components/schemas/RoutineExerciseResponse"
             }
+          },
+          "dayOfWeek": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

@@ -2559,3 +2559,31 @@ a.gsm-m-card:hover {
     font: 600 0.625rem/1.1rem var(--gsm-font-mono);
     text-align: center;
 }
+
+.gsm-routine-week {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.875rem;
+  color: var(--mud-palette-text-secondary);
+}
+
+.gsm-native-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--mud-palette-text-secondary);
+}
+.gsm-native-field select {
+  font: inherit;
+  font-size: 0.9375rem;
+  padding: 0.5rem 0.625rem;
+  color: var(--mud-palette-text-primary);
+  background: var(--mud-palette-surface);
+  border: 1px solid var(--gsm-border);
+  border-radius: 6px;
+}

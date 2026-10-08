@@ -48,6 +48,7 @@ public sealed class RoutineReader(GsmDbContext dbContext) : IRoutineReader
                         && r.StartsOn <= to
                         && (r.DeactivatedOn == null || r.DeactivatedOn >= from))
             .OrderByDescending(r => r.StartsOn)
+            .ThenByDescending(r => r.IsActive)
             .ToListAsync(cancellationToken);
 
         if (routines.Count == 0)
@@ -65,10 +66,15 @@ public sealed class RoutineReader(GsmDbContext dbContext) : IRoutineReader
                 continue;
             }
 
-            var position = RoutineCycle.PositionOn(routine.StartsOn, routine.CycleLength, date);
-            var day = routine.Days.FirstOrDefault(d => d.Position == position);
+            // Rotativo: la posición del ciclo. Semanal: el día de la semana; sin fila, descanso planificado.
+            var day = RoutineSchedule.DayOn(routine, date);
             if (day is null)
             {
+                if (routine.ScheduleMode == ScheduleMode.Weekly)
+                {
+                    rest.Add(date);
+                }
+
                 continue;
             }
 

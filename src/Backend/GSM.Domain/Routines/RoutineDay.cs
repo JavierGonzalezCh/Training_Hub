@@ -26,6 +26,9 @@ public sealed class RoutineDay : BaseEntity, ITenantEntity
 
     public bool IsRest { get; private set; }
 
+    /// <summary>Modo semanal: día de la semana ISO (1 = lunes … 7 = domingo). Nulo en el rotativo.</summary>
+    public int? DayOfWeek { get; private set; }
+
     /// <summary>Día de negocio en que el día salió de la rutina; no se borra, sus registros siguen ligados.</summary>
     public DateOnly? RetiredOn { get; private set; }
 
@@ -55,6 +58,7 @@ public sealed class RoutineDay : BaseEntity, ITenantEntity
         Position = position;
         Name = string.IsNullOrWhiteSpace(draft.Name) ? null : draft.Name.Trim();
         IsRest = draft.IsRest;
+        DayOfWeek = draft.DayOfWeek;
 
         if (Name is { Length: > 60 })
         {
