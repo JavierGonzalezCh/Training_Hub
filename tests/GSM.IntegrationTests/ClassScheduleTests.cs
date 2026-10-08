@@ -171,7 +171,7 @@ public sealed class ClassScheduleTests(ApiFactory factory) : IClassFixture<ApiFa
         var staff = MakeUser($"cs-{suffix}-staff", UserRole.Staff, gym.Id);
         var memberUser = MakeUser($"cs-{suffix}-member", UserRole.Member, gym.Id);
         gym.AssignOwner(staff.Id);
-        var member = Member.Create(gym.Id, "Socio", "Uno", $"doc-{suffix}", new DateOnly(2026, 1, 1));
+        var member = Member.Create(gym.Id, "Miembro", "Uno", $"doc-{suffix}", new DateOnly(2026, 1, 1));
         member.LinkUser(memberUser.Id);
 
         db.Add(gym);

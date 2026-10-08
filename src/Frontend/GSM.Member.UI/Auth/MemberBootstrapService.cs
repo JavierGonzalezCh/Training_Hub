@@ -2,7 +2,7 @@ using GSM.Client.Generated;
 
 namespace GSM.Member.UI.Auth;
 
-/// <summary>Resuelve el <see cref="MemberContext"/> del socio autenticado.</summary>
+/// <summary>Resuelve el <see cref="MemberContext"/> del miembro autenticado.</summary>
 public sealed class MemberBootstrapService(IMeClient me, IMembersClient members, MemberContext context)
 {
     public async Task<MemberDetail> LoadAsync(CancellationToken cancellationToken = default)

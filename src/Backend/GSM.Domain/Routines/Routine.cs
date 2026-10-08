@@ -4,7 +4,7 @@ using GSM.Domain.Common.Exceptions;
 namespace GSM.Domain.Routines;
 
 /// <summary>
-/// Rutina de un socio: una cabecera más un ciclo rotativo de días. El día 1 del ciclo cae en
+/// Rutina de un miembro: una cabecera más un ciclo rotativo de días. El día 1 del ciclo cae en
 /// <see cref="StartsOn"/> y los <c>N</c> días se repiten sin atarse a la semana.
 /// </summary>
 public sealed class Routine : BaseEntity, ITenantEntity
@@ -26,7 +26,7 @@ public sealed class Routine : BaseEntity, ITenantEntity
     /// <summary>Siempre de <c>ICurrentUserService</c>, nunca del body.</summary>
     public Guid AssignedBy { get; private set; }
 
-    /// <summary>La creó el propio socio. Las rutinas con <c>true</c> no puntúan para logros.</summary>
+    /// <summary>La creó el propio miembro. Las rutinas con <c>true</c> no puntúan para logros.</summary>
     public bool SelfAssigned { get; private set; }
 
     /// <summary>Ancla del ciclo (día de negocio, de <c>IClock.Today</c>).</summary>
@@ -47,7 +47,7 @@ public sealed class Routine : BaseEntity, ITenantEntity
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty)
         {
-            throw new ValidationDomainException("La rutina necesita gym y socio.");
+            throw new ValidationDomainException("La rutina necesita gym y miembro.");
         }
 
         var routine = new Routine

@@ -3,7 +3,7 @@ namespace GSM.Application.Identity.Abstractions;
 /// <summary>
 /// Cuentas de staff de un gym sobre ASP.NET Identity. Implementado en Infrastructure. Los usuarios
 /// no están bajo el Global Query Filter, así que toda operación recibe el gym explícito y solo
-/// ve usuarios con rol Staff de ese gym: el owner y los socios quedan fuera de alcance.
+/// ve usuarios con rol Staff de ese gym: el owner y los miembros quedan fuera de alcance.
 /// </summary>
 public interface IStaffAccountService
 {

@@ -6,7 +6,7 @@ public sealed record RoutineAssigned(
     Guid RoutineId, Guid MemberId, Guid GymId, bool SelfAssigned) : IDomainEvent;
 
 /// <summary>
-/// Solo la **primera** vez que el socio registra algo en un día dado, para contar sesiones y
+/// Solo la **primera** vez que el miembro registra algo en un día dado, para contar sesiones y
 /// no ejercicios sueltos.
 /// </summary>
 public sealed record RoutineSessionLogged(

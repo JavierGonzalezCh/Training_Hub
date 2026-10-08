@@ -7,7 +7,7 @@ namespace GSM.Infrastructure.Routines;
 
 /// <summary>
 /// <see cref="Routine"/> y sus hijos son <c>ITenantEntity</c>: el Global Query Filter ya restringe
-/// al gym actual, así que aquí solo se filtra por socio / id.
+/// al gym actual, así que aquí solo se filtra por miembro / id.
 /// </summary>
 public sealed class RoutineRepository(GsmDbContext dbContext) : IRoutineRepository
 {

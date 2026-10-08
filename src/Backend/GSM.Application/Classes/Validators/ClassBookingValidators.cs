@@ -9,7 +9,7 @@ public sealed class MarkAttendanceRequestValidator : AbstractValidator<MarkAtten
     {
         RuleFor(x => x)
             .Must(x => (x.Attended?.Count ?? 0) + (x.NoShow?.Count ?? 0) > 0)
-            .WithMessage("Indica al menos un socio en 'attended' o en 'noShow'.");
+            .WithMessage("Indica al menos un miembro en 'attended' o en 'noShow'.");
 
         RuleForEach(x => x.Attended).NotEmpty();
         RuleForEach(x => x.NoShow).NotEmpty();

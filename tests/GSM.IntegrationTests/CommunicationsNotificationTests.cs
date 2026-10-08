@@ -400,7 +400,7 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
             var userId = Guid.CreateVersion7();
             var address = email ? $"m-{Guid.NewGuid():N}@test.local" : null;
             var member = GSM.Domain.Members.Member.Create(
-                gym.Id, "Socio", "Prueba", $"doc-{Guid.NewGuid():N}"[..12], Today.AddDays(-60), email: address);
+                gym.Id, "Miembro", "Prueba", $"doc-{Guid.NewGuid():N}"[..12], Today.AddDays(-60), email: address);
             member.LinkUser(userId);
             if (!active)
             {

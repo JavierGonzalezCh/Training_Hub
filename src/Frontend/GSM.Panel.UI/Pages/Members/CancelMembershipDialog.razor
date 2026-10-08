@@ -26,7 +26,7 @@
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
         }
         <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2"
-                      HelperText="Por ejemplo: plan equivocado, asignada al socio que no era." />
+                      HelperText="Por ejemplo: plan equivocado, asignada al miembro que no era." />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => MudDialog.Cancel())">Volver</MudButton>

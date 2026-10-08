@@ -34,7 +34,7 @@ public sealed class GetMemberStreakHandler(
             var self = await members.ResolveByUserIdAsync(currentUser.UserId ?? Guid.Empty, cancellationToken);
             if (self is null || self.Id != memberId)
             {
-                throw new ForbiddenDomainException("No puedes ver la racha de otro socio.");
+                throw new ForbiddenDomainException("No puedes ver la racha de otro miembro.");
             }
         }
         else if (!await members.ExistsAsync(memberId, cancellationToken))
@@ -44,7 +44,7 @@ public sealed class GetMemberStreakHandler(
 
         var today = clock.Today;
 
-        // Concesión perezosa: aplica también a socios sin rutina.
+        // Concesión perezosa: aplica también a miembros sin rutina.
         var freezeState = await achievements.GetOrGrantStreakFreezesAsync(memberId, today, cancellationToken);
 
         var (streak, freezesAvailable) = await ComputeStreakAsync(

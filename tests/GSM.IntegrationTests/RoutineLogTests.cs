@@ -157,7 +157,7 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
         gym.AssignOwner(staff.Id);
         var memberUser = MakeUser($"{slug}-m", UserRole.Member, gym.Id);
         var otherUser = MakeUser($"{slug}-o", UserRole.Member, gym.Id);
-        var member = Member.Create(gym.Id, "Socio", "Log", $"doc-{slug}-1", new DateOnly(2026, 1, 1));
+        var member = Member.Create(gym.Id, "Miembro", "Log", $"doc-{slug}-1", new DateOnly(2026, 1, 1));
         var other = Member.Create(gym.Id, "Otro", "Log", $"doc-{slug}-2", new DateOnly(2026, 1, 1));
         member.LinkUser(memberUser.Id);
         other.LinkUser(otherUser.Id);

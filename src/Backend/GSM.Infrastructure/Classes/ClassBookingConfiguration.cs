@@ -19,7 +19,7 @@ public sealed class ClassBookingConfiguration : IEntityTypeConfiguration<ClassBo
             .HasForeignKey(b => b.SessionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Una fila por socio y sesión; reservar de nuevo tras cancelar reactiva esta misma fila.
+        // Una fila por miembro y sesión; reservar de nuevo tras cancelar reactiva esta misma fila.
         builder.HasIndex(b => new { b.SessionId, b.MemberId }).IsUnique();
         builder.HasIndex(b => b.MemberId);
     }

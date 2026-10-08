@@ -7,7 +7,7 @@ public interface IAttendanceReader
 
     Task<int> GetStreakAsync(Guid memberId, CancellationToken cancellationToken = default);
 
-    /// <summary>Días de negocio con asistencia del socio, opcionalmente desde <paramref name="from"/> (inclusive).</summary>
+    /// <summary>Días de negocio con asistencia del miembro, opcionalmente desde <paramref name="from"/> (inclusive).</summary>
     Task<IReadOnlyList<DateOnly>> GetAttendanceDatesAsync(
         Guid memberId, DateOnly? from = null, CancellationToken cancellationToken = default);
 

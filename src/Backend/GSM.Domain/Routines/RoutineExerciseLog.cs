@@ -4,7 +4,7 @@ using GSM.Domain.Common.Exceptions;
 namespace GSM.Domain.Routines;
 
 /// <summary>
-/// Registro de que el socio hizo un ejercicio un día. Marcar y anotar la carga son la misma
+/// Registro de que el miembro hizo un ejercicio un día. Marcar y anotar la carga son la misma
 /// operación: un registro con los tres campos de carga en <c>null</c> es simplemente "hecho".
 /// Único por <c>(routine_exercise_id, performed_on)</c>: repetir **actualiza**, no duplica.
 /// </summary>
@@ -16,7 +16,7 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
 
     public Guid GymId { get; private set; }
 
-    /// <summary>Denormalizado: casi toda consulta de progreso parte del socio.</summary>
+    /// <summary>Denormalizado: casi toda consulta de progreso parte del miembro.</summary>
     public Guid MemberId { get; private set; }
 
     public Guid RoutineExerciseId { get; private set; }
@@ -42,7 +42,7 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
     public string? Notes { get; private set; }
 
     /// <summary>
-    /// Detalle por serie (repeticiones y peso de cada una). Vacío si el socio solo marcó el ejercicio o
+    /// Detalle por serie (repeticiones y peso de cada una). Vacío si el miembro solo marcó el ejercicio o
     /// anotó una carga global. <see cref="SetsDone"/>, <see cref="RepsDone"/> y <see cref="WeightKg"/>
     /// se derivan de aquí cuando hay detalle, para que el progreso siga leyendo los mismos campos.
     /// </summary>

@@ -95,7 +95,7 @@
             }
 
             // /app/checkin tambien lo abre quien no es miembro (staff con el enlace del QR): ese caso
-            // no tiene ficha de socio que cargar y la propia pagina lo explica.
+            // no tiene ficha de miembro que cargar y la propia pagina lo explica.
             var user = (await AuthState.GetAuthenticationStateAsync()).User;
             if (user.IsInRole(GsmRoles.Member) && !MemberCtx.IsLoaded)
             {

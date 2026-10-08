@@ -95,7 +95,7 @@ public sealed class ClassBookingTests(ApiFactory factory) : IClassFixture<ApiFac
         var world = await SeedAsync(members: 2);
         var classId = await CreateClassAsync(world, capacity: 10);
 
-        // El socio 0 ya fichó al entrar hoy.
+        // El miembro 0 ya fichó al entrar hoy.
         using (var scope = Staff(world))
         {
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
@@ -256,7 +256,7 @@ public sealed class ClassBookingTests(ApiFactory factory) : IClassFixture<ApiFac
         for (var i = 0; i < members; i++)
         {
             var u = MakeUser($"cb-{suffix}-m{i}", UserRole.Member, gym.Id);
-            var m = Member.Create(gym.Id, "Socio", $"{i}", $"doc-{suffix}-{i}", new DateOnly(2026, 1, 1));
+            var m = Member.Create(gym.Id, "Miembro", $"{i}", $"doc-{suffix}-{i}", new DateOnly(2026, 1, 1));
             m.LinkUser(u.Id);
             db.Add(u);
             db.Add(m);

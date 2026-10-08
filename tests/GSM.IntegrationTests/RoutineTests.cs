@@ -20,7 +20,7 @@ public sealed class RoutineTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         var world = await SeedAsync();
 
-        // Rutina inicial válida para el socio de A.
+        // Rutina inicial válida para el miembro de A.
         Guid firstRoutineId;
         using (var scope = Staff(world.GymA, world.StaffA))
         {
@@ -196,8 +196,8 @@ public sealed class RoutineTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var staff = MakeUser($"{slug}-staff", UserRole.Staff, gym.Id);
         gym.AssignOwner(staff.Id);
 
-        var member = Member.Create(gym.Id, "Socio", "Uno", $"doc-{slug}-1", new DateOnly(2026, 1, 1));
-        var other = Member.Create(gym.Id, "Socio", "Dos", $"doc-{slug}-2", new DateOnly(2026, 1, 1));
+        var member = Member.Create(gym.Id, "Miembro", "Uno", $"doc-{slug}-1", new DateOnly(2026, 1, 1));
+        var other = Member.Create(gym.Id, "Miembro", "Dos", $"doc-{slug}-2", new DateOnly(2026, 1, 1));
 
         db.Add(gym);
         db.Add(GymFeatureFlags.Default(gym.Id));

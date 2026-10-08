@@ -4,7 +4,7 @@ using GSM.Domain.Common.Exceptions;
 namespace GSM.Application.Classes;
 
 /// <summary>
-/// Con <c>show_classes = false</c> los endpoints del socio responden 403; los de staff siguen
+/// Con <c>show_classes = false</c> los endpoints del miembro responden 403; los de staff siguen
 /// abiertos (para preparar clases antes de encender el módulo).
 /// </summary>
 internal static class ClassFeatureGate

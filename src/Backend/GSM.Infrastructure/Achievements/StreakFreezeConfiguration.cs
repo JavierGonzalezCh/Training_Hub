@@ -13,7 +13,7 @@ public sealed class StreakFreezeConfiguration : IEntityTypeConfiguration<StreakF
         builder.Property(f => f.GrantedOn).HasColumnType("date");
         builder.Property(f => f.UsedOn).HasColumnType("date");
 
-        // Saldo y concesión perezosa parten del socio, ordenando por granted_on.
+        // Saldo y concesión perezosa parten del miembro, ordenando por granted_on.
         builder.HasIndex(f => new { f.MemberId, f.GrantedOn });
 
         // Único parcial (member_id, used_on) filtrado a los consumidos: un solo congelador por

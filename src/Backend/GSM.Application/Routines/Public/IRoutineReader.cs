@@ -14,8 +14,8 @@ public interface IRoutineReader
     Task<int> GetActiveRoutineCountAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// <c>starts_on</c> de la rutina activa del socio, o <c>null</c> si no tiene.
-    /// Con <paramref name="onlyAssigned"/> ignora las que el socio se asignó a sí mismo.
+    /// <c>starts_on</c> de la rutina activa del miembro, o <c>null</c> si no tiene.
+    /// Con <paramref name="onlyAssigned"/> ignora las que el miembro se asignó a sí mismo.
     /// </summary>
     Task<DateOnly?> GetActiveRoutineStartAsync(
         Guid memberId, bool onlyAssigned = false, CancellationToken cancellationToken = default);

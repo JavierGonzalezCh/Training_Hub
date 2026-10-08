@@ -10,7 +10,7 @@ public interface IAchievementService
         Guid memberId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Estado de congeladores del socio con **concesión perezosa**: si han pasado ≥ 15 días desde
+    /// Estado de congeladores del miembro con **concesión perezosa**: si han pasado ≥ 15 días desde
     /// el último <c>granted_on</c> y hay menos de 2 disponibles, otorga uno y lo persiste.
     /// Consultar la racha puede escribir: es deliberado, no hay proceso diario.
     /// </summary>
