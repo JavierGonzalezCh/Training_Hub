@@ -19,6 +19,7 @@
     <ProjectReference Include="..\GSM.Client\GSM.Client.csproj" />
     <ProjectReference Include="..\GSM.UI.Shared\GSM.UI.Shared.csproj" />
     <ProjectReference Include="..\GSM.Member.UI\GSM.Member.UI.csproj" />
+    <ProjectReference Include="..\GSM.Panel.UI\GSM.Panel.UI.csproj" />
   </ItemGroup>
 
 </Project>

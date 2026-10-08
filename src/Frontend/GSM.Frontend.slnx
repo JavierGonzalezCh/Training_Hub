@@ -2,6 +2,7 @@
   <Project Path="../../tests/GSM.Web.Tests/GSM.Web.Tests.csproj" />
   <Project Path="GSM.Client/GSM.Client.csproj" />
   <Project Path="GSM.Member.UI/GSM.Member.UI.csproj" />
+  <Project Path="GSM.Panel.UI/GSM.Panel.UI.csproj" />
   <Project Path="GSM.UI.Shared/GSM.UI.Shared.csproj" />
   <Project Path="GSM.Web/GSM.Web.csproj" />
 </Solution>
