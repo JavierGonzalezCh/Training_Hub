@@ -39,6 +39,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Checkin:SigningKey", "integration-tests-checkin-key-32-bytes-min!!");
         builder.UseSetting("Communications:UnsubscribeSigningKey", "integration-tests-unsubscribe-key-32-bytes!!");
         builder.UseSetting("Communications:PublicApiBaseUrl", "https://api.test.local");
+        // El dispatcher de avisos no corre solo en los tests: cada test ejecuta una vuelta a mano.
+        builder.UseSetting("Notifications:Dispatcher:Enabled", "false");
         builder.UseSetting("Jobs:Secret", "integration-tests-jobs-secret-32-bytes-min!!");
 
         builder.ConfigureTestServices(services =>

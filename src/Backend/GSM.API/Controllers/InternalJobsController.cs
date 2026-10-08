@@ -4,6 +4,7 @@ using GSM.API.Filters;
 using GSM.Application.Common.Logs;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
+using GSM.Application.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,11 +24,14 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
 {
     public const string SecretHeader = "X-Job-Secret";
 
-    /// <summary>Recordatorios de vencimiento, envío de la cola de correos y purga de avisos viejos.</summary>
+    /// <summary>
+    /// Recordatorios de vencimiento (como eventos, que Notifications convierte en avisos) y purga de avisos
+    /// viejos. El envío de correos ya no va aquí: lo hace el dispatcher de Notifications cada 30 segundos.
+    /// </summary>
     [HttpPost("communications/run")]
     public async Task<ActionResult<CommunicationsJobResult>> RunCommunications(
-        [FromQuery] int? batchSize,
         [FromServices] RunCommunicationsJobHandler handler,
+        [FromServices] PurgeNotificationsHandler purge,
         [FromServices] LoggedJobRunner runner,
         CancellationToken cancellationToken)
     {
@@ -38,8 +42,10 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
 
         var result = await runner.RunAsync(
             "communications",
-            () => handler.HandleAsync(batchSize ?? RunCommunicationsJobHandler.DefaultBatchSize, cancellationToken),
-            r => (r.RemindersCreated + r.EmailsSent + r.EmailsFailed, r.EmailsFailed));
+            async () => new CommunicationsJobResult(
+                await handler.HandleAsync(cancellationToken),
+                await purge.HandleAsync(cancellationToken)),
+            r => (r.RemindersPublished + r.NotificationsPurged, 0));
         return Ok(result);
     }
 

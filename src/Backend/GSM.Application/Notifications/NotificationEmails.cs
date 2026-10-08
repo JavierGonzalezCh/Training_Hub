@@ -1,12 +1,12 @@
 using System.Net;
 
-namespace GSM.Application.Communications;
+namespace GSM.Application.Notifications;
 
 /// <summary>
-/// Plantillas de los correos de comunicaciones: HTML mínimo y su versión en texto, con el gym
-/// como remitente visible y el enlace de baja al pie. Voz del producto: directa, sin relleno.
+/// Plantilla de los correos de avisos: HTML mínimo y su versión en texto, con el gym como remitente
+/// visible y el enlace de baja al pie. Voz del producto: directa, sin relleno.
 /// </summary>
-internal static class CommunicationEmails
+internal static class NotificationEmails
 {
     public static (string Subject, string Html, string Text) Compose(
         string gymName, string firstName, string title, string body, string unsubscribeUrl)

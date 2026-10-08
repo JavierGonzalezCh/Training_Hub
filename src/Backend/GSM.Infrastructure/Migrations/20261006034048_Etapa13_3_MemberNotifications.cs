@@ -57,7 +57,7 @@ namespace GSM.Infrastructure.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     gym_id = table.Column<Guid>(type: "uuid", nullable: false),
                     member_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    type = table.Column<NotificationType>(type: "communications.notification_type", nullable: false),
+                    type = table.Column<LegacyNotificationType>(type: "communications.notification_type", nullable: false),
                     reference_id = table.Column<Guid>(type: "uuid", nullable: false),
                     title = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
                     body = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),

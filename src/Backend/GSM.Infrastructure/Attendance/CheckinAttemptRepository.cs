@@ -19,12 +19,6 @@ public sealed class CheckinAttemptRepository(GsmDbContext dbContext) : ICheckinA
         => Attempts.FirstOrDefaultAsync(
             a => a.MemberId == memberId && a.AttemptDate == date && a.AcknowledgedAt == null, cancellationToken);
 
-    public async Task<IReadOnlyList<CheckinAttempt>> GetPendingAsync(CancellationToken cancellationToken = default)
-        => await Attempts.Where(a => a.AcknowledgedAt == null).ToListAsync(cancellationToken);
-
-    public Task<int> GetPendingCountAsync(CancellationToken cancellationToken = default)
-        => Attempts.CountAsync(a => a.AcknowledgedAt == null, cancellationToken);
-
     public async Task<(IReadOnlyList<CheckinAttempt> Items, int Total)> GetPageAsync(
         AttemptPageQuery query, CancellationToken cancellationToken = default)
     {

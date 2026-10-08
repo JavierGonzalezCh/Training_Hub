@@ -8,6 +8,7 @@ using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Logs;
 using GSM.Infrastructure.Members;
 using GSM.Infrastructure.Memberships;
+using GSM.Infrastructure.Notifications;
 using GSM.Infrastructure.Payments;
 using GSM.Infrastructure.Routines;
 using GSM.Infrastructure.SuperAdmin;
@@ -36,6 +37,7 @@ public static class DependencyInjection
             .AddPaymentsInfrastructure(configuration)
             .AddAttendanceInfrastructure(configuration)
             .AddCommunicationsInfrastructure(configuration)
+            .AddNotificationsInfrastructure(configuration)
             .AddAchievementsInfrastructure(configuration)
             .AddRoutinesInfrastructure(configuration)
             .AddClassesInfrastructure(configuration)

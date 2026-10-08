@@ -749,7 +749,7 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(160)")
                         .HasColumnName("title");
 
-                    b.Property<NotificationType>("Type")
+                    b.Property<LegacyNotificationType>("Type")
                         .HasColumnType("communications.notification_type")
                         .HasColumnName("type");
 

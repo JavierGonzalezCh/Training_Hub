@@ -6,6 +6,8 @@ using GSM.Application.Classes.Contracts;
 using GSM.Application.Common;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
+using GSM.Application.Notifications;
+using GSM.Application.Notifications.Contracts;
 using GSM.Application.MemberStreak;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;

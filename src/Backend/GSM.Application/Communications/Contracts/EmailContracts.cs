@@ -11,12 +11,11 @@ public sealed record CommunicationsSettingsResponse(int ReminderDaysBefore);
 
 public sealed record UpdateCommunicationsSettingsRequest(int ReminderDaysBefore);
 
-/// <summary>Resumen de una ejecución de la tarea periódica.</summary>
-public sealed record CommunicationsJobResult(
-    int RemindersCreated,
-    int EmailsSent,
-    int EmailsFailed,
-    int NotificationsPurged);
+/// <summary>
+/// Resumen de una ejecución de la tarea periódica: cuántos recordatorios de vencimiento se publicaron
+/// como evento (Notifications crea los avisos, sin duplicar) y cuántos avisos viejos se purgaron.
+/// </summary>
+public sealed record CommunicationsJobResult(int RemindersPublished, int NotificationsPurged);
 
 /// <summary>Destinatarios de un anuncio por email (para avisar en el editor antes de publicar).</summary>
 public sealed record EmailAudienceResponse(int Recipients);

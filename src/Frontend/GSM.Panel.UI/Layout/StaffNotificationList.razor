@@ -1,0 +1,57 @@
+@* Lista de la bandeja del staff (la que abre la campana). Presentacional: no llama a la API, avisa por callbacks.
+   Un aviso de acción se atiende para todos y, una vez atendido, dice quién y a qué hora; uno informativo es
+   de una sola persona y se marca como leído. *@
+
+<div class="gsm-bell-panel">
+    <div class="gsm-bell-panel__title">Avisos</div>
+    @if (Items.Count == 0)
+    {
+        <div class="gsm-bell-panel__empty">Nada pendiente.</div>
+    }
+    else
+    {
+        <ul class="gsm-bell-list">
+            @foreach (var item in Items)
+            {
+                var closed = item.RequiresAction ? item.ResolvedAt is not null : item.ReadAt is not null;
+                <li class="gsm-bell-item @(closed ? "is-closed" : null) @(item.Priority == "Urgent" ? "is-urgent" : null)">
+                    @if (item.Link is { } link)
+                    {
+                        <a href="@link" class="gsm-bell-item__name">@item.Title</a>
+                    }
+                    else
+                    {
+                        <span class="gsm-bell-item__name">@item.Title</span>
+                    }
+                    <span class="gsm-bell-item__meta">@item.Body · @GsmFormat.Time(item.CreatedAt)</span>
+                    @if (item.RequiresAction && item.ResolvedAt is { } at)
+                    {
+                        <span class="gsm-bell-item__resolved">Atendido por @(item.ResolvedByName ?? "alguien") · @GsmFormat.Time(at)</span>
+                    }
+                    else if (item.RequiresAction)
+                    {
+                        <button type="button" class="gsm-bell-item__action" @onclick="() => OnResolve.InvokeAsync(item)">Atender</button>
+                    }
+                    else if (item.ReadAt is null)
+                    {
+                        <button type="button" class="gsm-bell-item__action" @onclick="() => OnRead.InvokeAsync(item)">Marcar como leído</button>
+                    }
+                </li>
+            }
+        </ul>
+        @if (Items.Any(i => i.RequiresAction && i.ResolvedAt is null))
+        {
+            <button type="button" class="gsm-bell-panel__all" @onclick="() => OnResolveAll.InvokeAsync()">Atender todo</button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<StaffNotificationItem> Items { get; set; } = [];
+
+    [Parameter] public EventCallback<StaffNotificationItem> OnResolve { get; set; }
+
+    [Parameter] public EventCallback<StaffNotificationItem> OnRead { get; set; }
+
+    [Parameter] public EventCallback OnResolveAll { get; set; }
+}

@@ -3,6 +3,7 @@ using GSM.Application.Communications.Abstractions;
 using GSM.Application.Communications.Contracts;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Members.Public;
+using GSM.Application.Notifications;
 using GSM.Domain.Communications;
 using GSM.Domain.Common.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -115,7 +116,7 @@ public sealed class GetUnreadCountHandler(
     IMemberReader members,
     IAnnouncementRepository announcements,
     IMemberFeedStateRepository feedStates,
-    IMemberNotificationRepository notifications)
+    CountMyUnreadNotificationsHandler unreadNotifications)
 {
     public async Task<UnreadCountResponse> HandleAsync(CancellationToken cancellationToken)
     {
@@ -126,7 +127,7 @@ public sealed class GetUnreadCountHandler(
         var state = await feedStates.GetAsync(self.Id, cancellationToken);
         var unread = await announcements.CountVisibleSinceAsync(clock.Today, state?.AnnouncementsSeenAt, cancellationToken);
 
-        var unreadNotifications = await notifications.CountUnreadAsync(self.Id, cancellationToken);
-        return new UnreadCountResponse(unread, unreadNotifications);
+        var unreadCount = await unreadNotifications.HandleAsync(cancellationToken);
+        return new UnreadCountResponse(unread, unreadCount);
     }
 }

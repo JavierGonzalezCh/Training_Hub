@@ -1,24 +1,6 @@
-using GSM.Application.Communications.Contracts;
 using GSM.Domain.Communications;
 
 namespace GSM.Application.Communications.Abstractions;
-
-public interface IEmailOutboxRepository
-{
-    Task<bool> ExistsAsync(Guid memberId, EmailKind kind, Guid referenceId, CancellationToken cancellationToken = default);
-
-    void Add(EmailOutboxItem item);
-
-    /// <summary>
-    /// Pendientes de todos los gyms, por orden de creación. Solo la usa la tarea periódica, que
-    /// corre sin usuario y por tanto sin Global Query Filter.
-    /// </summary>
-    Task<IReadOnlyList<EmailOutboxItem>> GetPendingBatchAsync(int size, CancellationToken cancellationToken = default);
-
-    /// <summary>Estado de envío por anuncio (panel).</summary>
-    Task<IReadOnlyDictionary<Guid, EmailDelivery>> GetDeliveryAsync(
-        IReadOnlyCollection<Guid> announcementIds, CancellationToken cancellationToken = default);
-}
 
 public interface IMemberCommunicationPreferencesRepository
 {

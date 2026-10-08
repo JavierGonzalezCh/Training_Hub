@@ -1,4 +1,5 @@
 using GSM.Application.Attendance;
+using GSM.Application.Notifications;
 using GSM.Application.Attendance.Abstractions;
 using GSM.Application.Attendance.Contracts;
 using GSM.Domain.Attendance;
@@ -181,29 +182,39 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
-    public async Task Panel_counts_pending_attempts_and_acknowledge_clears_them()
+    public async Task Panel_counts_pending_attempts_and_resolving_clears_them_for_everyone()
     {
         var w = await SeedAsync(endedDaysAgo: 10);
         var code = CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today));
         await Assert.ThrowsAsync<ConflictException>(() => CheckInAsMember(w, code));
         Assert.Equal(1, await PendingCountAsync(w));
 
-        Guid id;
+        // Un segundo miembro del staff ve el mismo aviso: es uno por gym.
+        Guid noticeId;
         using (var s = Scope(w, UserRole.Staff))
         {
-            id = (await s.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>()
-                .HandleAsync(new ListCheckinAttemptsQuery(), default)).Items.Single().Id;
-            await s.ServiceProvider.GetRequiredService<AcknowledgeCheckinAttemptHandler>().HandleAsync(id, default);
+            var open = await s.ServiceProvider.GetRequiredService<ListStaffNotificationsHandler>()
+                .HandleAsync(true, 1, 20, default);
+            noticeId = open.Items.Single().Id;
+            await s.ServiceProvider.GetRequiredService<ResolveStaffNotificationHandler>().HandleAsync(noticeId, default);
         }
 
         Assert.Equal(0, await PendingCountAsync(w));
 
-        // Un nuevo intento tras verlo crea fila nueva; acknowledge-all las vacia.
+        // El intento de Attendance queda visto por el evento de atención.
+        using (var s = Scope(w, UserRole.Staff))
+        {
+            var attempt = (await s.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>()
+                .HandleAsync(new ListCheckinAttemptsQuery(), default)).Items.Single();
+            Assert.NotNull(attempt.AcknowledgedAt);
+        }
+
+        // Un nuevo intento tras verlo crea fila nueva; resolve-all las vacía.
         await Assert.ThrowsAsync<ConflictException>(() => CheckInAsMember(w, code));
         Assert.Equal(1, await PendingCountAsync(w));
         using (var s = Scope(w, UserRole.Staff))
         {
-            await s.ServiceProvider.GetRequiredService<AcknowledgeAllCheckinAttemptsHandler>().HandleAsync(default);
+            await s.ServiceProvider.GetRequiredService<ResolveAllStaffNotificationsHandler>().HandleAsync(default);
         }
 
         Assert.Equal(0, await PendingCountAsync(w));
@@ -243,7 +254,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
     private async Task<int> PendingCountAsync(World w)
     {
         using var s = Scope(w, UserRole.Staff);
-        return (await s.ServiceProvider.GetRequiredService<GetPendingAttemptCountHandler>().HandleAsync(default)).Count;
+        return (await s.ServiceProvider.GetRequiredService<GetStaffNotificationCountHandler>().HandleAsync(default)).Count;
     }
 
     /// <param name="endedDaysAgo">Dias desde el ultimo dia cubierto (negativo = aun vigente); <c>null</c> = sin membresia.</param>

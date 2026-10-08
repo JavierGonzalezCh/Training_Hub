@@ -1,57 +1,41 @@
-using System.Globalization;
-using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Events;
 using GSM.Application.Communications.Abstractions;
-using GSM.Application.Communications.Contracts;
+using GSM.Application.Communications.Events;
 using GSM.Application.Members.Public;
 using GSM.Application.Memberships.Public;
 using GSM.Domain.Communications;
-using GSM.Domain.Members;
 using Microsoft.Extensions.Logging;
 
 namespace GSM.Application.Communications;
 
 /// <summary>
-/// La primera tarea periódica del sistema (ver la especificación, §5). La invoca una tarea
-/// programada de Dokploy por un endpoint interno; no hay scheduler dentro de la API.
+/// La tarea periódica de Comunicaciones (ver la especificación, §5). La invoca una tarea programada de
+/// Dokploy por un endpoint interno. Genera los recordatorios de vencimiento <b>como eventos</b>
+/// (<see cref="MembershipReminderDue"/>): Notifications crea los avisos y el dispatcher envía los correos.
 /// <para>
-/// Corre <b>sin usuario</b>, así que el Global Query Filter está desactivado y ve todos los gyms:
-/// cada escritura fija su <c>gym_id</c> de forma explícita. Es idempotente y tolera ejecuciones
-/// perdidas: si un día no corre, al siguiente recupera los recordatorios que faltaban.
+/// Corre <b>sin usuario</b>, así que el Global Query Filter está desactivado y ve todos los gyms.
+/// Es idempotente (Notifications deduplica) y tolera ejecuciones perdidas: si un día no corre, al
+/// siguiente recupera los recordatorios que faltaban.
 /// </para>
 /// </summary>
 public sealed class RunCommunicationsJobHandler(
-    IClock clock,
     IMemberReader members,
     IMembershipReader memberships,
     ICommunicationsSettingsRepository settings,
-    IEmailOutboxRepository outbox,
-    IMemberNotificationRepository notifications,
-    IEmailSender emailSender,
-    MemberNotifier notifier,
-    IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<RunCommunicationsJobHandler> logger)
 {
-    public const int DefaultBatchSize = 50;
-
-    private static readonly CultureInfo Colombia = CultureInfo.GetCultureInfo("es-CO");
-
-    public async Task<CommunicationsJobResult> HandleAsync(int batchSize, CancellationToken cancellationToken)
+    /// <returns>Cuántos recordatorios de vencimiento se publicaron.</returns>
+    public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        var reminders = await CreateRemindersAsync(cancellationToken);
-        var (sent, failed) = await DrainOutboxAsync(Math.Clamp(batchSize, 1, 500), cancellationToken);
-        var purged = await notifications.PurgeOlderThanAsync(
-            clock.UtcNow.AddDays(-MemberNotification.RetentionDays), cancellationToken);
-
-        var result = new CommunicationsJobResult(reminders, sent, failed, purged);
-        logger.LogInformation(
-            "Tarea de comunicaciones: {Reminders} recordatorios, {Sent} correos enviados, {Failed} fallidos, {Purged} avisos purgados",
-            reminders, sent, failed, purged);
-        return result;
+        var reminders = await PublishRemindersAsync(cancellationToken);
+        logger.LogInformation("Tarea de comunicaciones: {Reminders} recordatorios publicados", reminders);
+        return reminders;
     }
 
-    private async Task<int> CreateRemindersAsync(CancellationToken cancellationToken)
+    private async Task<int> PublishRemindersAsync(CancellationToken cancellationToken)
     {
-        var created = 0;
+        var published = 0;
 
         // Gyms con miembros activos: los demás no tienen a quién avisar.
         var gymIds = (await members.GetActiveCountsByGymAsync(cancellationToken)).Keys;
@@ -73,64 +57,15 @@ public sealed class RunCommunicationsJobHandler(
                     continue;
                 }
 
-                var contact = await members.GetContactAsync(expiring.MemberId, cancellationToken);
-                if (contact is null || contact.Status != MemberStatus.Active)
-                {
-                    continue;
-                }
-
-                var when = expiring.DaysLeft switch
-                {
-                    0 => "hoy",
-                    1 => "mañana",
-                    _ => $"el {expiring.EndDate.ToString("dddd d 'de' MMMM", Colombia)}",
-                };
-
-                if (await notifier.NotifyAsync(
-                        gymId, expiring.MemberId, NotificationType.MembershipExpiring, expiring.MembershipId,
-                        $"Tu plan {expiring.PlanName} vence {when}",
-                        "Pasa por recepción para renovarlo y seguir entrenando sin interrupciones.",
-                        "/app", sendEmail: true, cancellationToken))
-                {
-                    created++;
-                }
+                await events.PublishAsync(
+                    new MembershipReminderDue(
+                        gymId, expiring.MemberId, expiring.MembershipId, expiring.PlanName,
+                        expiring.EndDate, expiring.DaysLeft),
+                    cancellationToken);
+                published++;
             }
-
-            // Un guardado por gym: si uno falla, los anteriores ya quedaron.
-            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
-        return created;
-    }
-
-    private async Task<(int Sent, int Failed)> DrainOutboxAsync(int batchSize, CancellationToken cancellationToken)
-    {
-        var sent = 0;
-        var failed = 0;
-        foreach (var item in await outbox.GetPendingBatchAsync(batchSize, cancellationToken))
-        {
-            try
-            {
-                await emailSender.SendAsync(
-                    new EmailMessage(item.ToAddress, item.Subject, item.HtmlBody, item.TextBody), cancellationToken);
-                item.MarkSent(clock.UtcNow);
-                sent++;
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                item.MarkAttemptFailed(ex.Message);
-                if (item.Status == EmailStatus.Failed)
-                {
-                    failed++;
-                }
-
-                logger.LogWarning(ex, "Fallo al enviar el correo {EmailId} (intento {Attempt})", item.Id, item.Attempts);
-            }
-
-            // Se guarda tras cada envío: si la tarea se corta, no se reenvía lo ya enviado.
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-        }
-
-        return (sent, failed);
+        return published;
     }
 }
