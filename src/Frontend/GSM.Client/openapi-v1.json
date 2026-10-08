@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7310/"
+      "url": "http://localhost:7375/"
     }
   ],
   "paths": {
@@ -1088,6 +1088,75 @@
                   "items": {
                     "$ref": "#/components/schemas/ImpersonationItem"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/impersonations/{sessionId}/actions": {
+      "get": {
+        "tags": [
+          "AdminImpersonation"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImpersonationActionItem"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImpersonationActionItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImpersonationActionItem"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -10236,6 +10305,44 @@
         "type": "string",
         "format": "binary"
       },
+      "ImpersonationActionItem": {
+        "required": [
+          "id",
+          "method",
+          "endpoint",
+          "summary",
+          "statusCode",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "method": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "statusCode": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ImpersonationItem": {
         "required": [
           "id",
@@ -10243,6 +10350,8 @@
           "gymId",
           "gymName",
           "reason",
+          "mode",
+          "actionCount",
           "startedAt",
           "endedAt"
         ],
@@ -10266,6 +10375,17 @@
           "reason": {
             "type": "string"
           },
+          "mode": {
+            "type": "string"
+          },
+          "actionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
           "startedAt": {
             "type": "string",
             "format": "date-time"
@@ -10284,7 +10404,8 @@
           "token",
           "expiresAtUtc",
           "sessionId",
-          "gymId"
+          "gymId",
+          "mode"
         ],
         "type": "object",
         "properties": {
@@ -10302,6 +10423,9 @@
           "gymId": {
             "type": "string",
             "format": "uuid"
+          },
+          "mode": {
+            "type": "string"
           },
           "tokenType": {
             "type": "string",
@@ -11335,6 +11459,10 @@
         "properties": {
           "reason": {
             "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "default": "read"
           }
         }
       },

@@ -3,12 +3,22 @@
 <MudDialog>
     <DialogContent>
         <MudText Class="mb-3">
-            Vas a entrar en el panel de <strong>@GymName</strong> en modo solo lectura, durante 15 minutos.
+            Vas a entrar en el panel de <strong>@GymName</strong> durante 15 minutos. El gym no recibe ningún aviso.
             Motivo obligatorio (queda en el historial de auditoría).
         </MudText>
         @if (_error is not null)
         {
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudRadioGroup T="string" @bind-Value="_mode" Class="mb-2">
+            <MudRadio T="string" Value="@ImpersonationService.ReadMode" Color="Color.Primary">Solo lectura</MudRadio>
+            <MudRadio T="string" Value="@ImpersonationService.WriteMode" Color="Color.Warning">Escritura</MudRadio>
+        </MudRadioGroup>
+        @if (_mode == ImpersonationService.WriteMode)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                En escritura lo que cambies queda firmado como "GSM" en el historial del gym.
+            </MudAlert>
         }
         <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2" />
     </DialogContent>
@@ -31,6 +41,7 @@
     public string GymName { get; set; } = string.Empty;
 
     private string _reason = string.Empty;
+    private string _mode = ImpersonationService.ReadMode;
     private bool _submitting;
     private string? _error;
 
@@ -45,7 +56,7 @@
         _submitting = true;
         try
         {
-            await Impersonation.StartAsync(GymId, _reason);
+            await Impersonation.StartAsync(GymId, _reason, _mode);
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (GsmApiException ex)

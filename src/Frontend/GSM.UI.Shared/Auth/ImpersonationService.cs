@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 namespace GSM.UI.Shared.Auth;
 
 /// <summary>
-/// Abre y cierra una sesión de impersonación de solo lectura. Mientras dura, los tokens propios
+/// Abre y cierra una sesión de impersonación, de lectura o de escritura (S6). Mientras dura, los tokens propios
 /// del superadmin se guardan aparte (<see cref="ITokenStore.BackupAsync"/>) y se restauran al
 /// terminar. El token de impersonación no tiene refresh (15 min fijos): si expira, el
 /// <c>AuthenticatedHttpHandler</c> intenta refrescar con un refresh token vacío, falla, limpia la
@@ -17,7 +17,11 @@ public sealed class ImpersonationService(
     GymContext gymContext,
     NavigationManager navigation)
 {
-    public async Task StartAsync(Guid gymId, string reason, CancellationToken cancellationToken = default)
+    public const string ReadMode = "read";
+    public const string WriteMode = "write";
+
+    public async Task StartAsync(
+        Guid gymId, string reason, string mode = ReadMode, CancellationToken cancellationToken = default)
     {
         var current = await tokenStore.GetAsync(cancellationToken);
         if (current is not null)
@@ -25,7 +29,7 @@ public sealed class ImpersonationService(
             await tokenStore.BackupAsync(current, cancellationToken);
         }
 
-        var token = await impersonation.ImpersonateAsync(gymId, new OpenImpersonationRequest { Reason = reason }, cancellationToken);
+        var token = await impersonation.ImpersonateAsync(gymId, new OpenImpersonationRequest { Reason = reason, Mode = mode }, cancellationToken);
 
         await tokenStore.SetAsync(new AuthTokens(token.Token, RefreshToken: string.Empty, token.ExpiresAtUtc), cancellationToken);
         gymContext.Clear();
