@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using GSM.API.Filters;
+using GSM.Application.Common.Logs;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,7 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
     public async Task<ActionResult<CommunicationsJobResult>> RunCommunications(
         [FromQuery] int? batchSize,
         [FromServices] RunCommunicationsJobHandler handler,
+        [FromServices] LoggedJobRunner runner,
         CancellationToken cancellationToken)
     {
         if (!IsAuthorized())
@@ -34,7 +36,11 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
             return Unauthorized();
         }
 
-        return Ok(await handler.HandleAsync(batchSize ?? RunCommunicationsJobHandler.DefaultBatchSize, cancellationToken));
+        var result = await runner.RunAsync(
+            "communications",
+            () => handler.HandleAsync(batchSize ?? RunCommunicationsJobHandler.DefaultBatchSize, cancellationToken),
+            r => (r.RemindersCreated + r.EmailsSent + r.EmailsFailed, r.EmailsFailed));
+        return Ok(result);
     }
 
     private bool IsAuthorized()

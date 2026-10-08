@@ -3,6 +3,7 @@ using GSM.API.Filters;
 using GSM.API.Middleware;
 using GSM.Application;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Logs;
 using GSM.API.Seed;
 using GSM.Infrastructure;
 using Scalar.AspNetCore;
@@ -26,6 +27,7 @@ builder.Services.AddCors(options => options.AddPolicy(CorsPolicy, policy => poli
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ICurrentUserService, CurrentUser>();
+builder.Services.AddSingleton<ITraceContext, HttpTraceContext>();
 
 builder.Services.AddGsmAuth(builder.Configuration);
 builder.Services.AddGsmRateLimiting();
@@ -37,16 +39,20 @@ builder.Services
     {
         options.Filters.Add<SubscriptionGateFilter>();
         options.Filters.Add<ValidationActionFilter>();
+        options.Filters.Add<TraceIdResultFilter>();
     })
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(
             new System.Text.Json.Serialization.JsonStringEnumConverter()));
-builder.Services.AddProblemDetails();
+builder.Services.AddProblemDetails(options =>
+    options.CustomizeProblemDetails = context => TraceIds.Stamp(context.HttpContext, context.ProblemDetails));
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+app.UseMiddleware<TraceIdMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseStatusCodePages();

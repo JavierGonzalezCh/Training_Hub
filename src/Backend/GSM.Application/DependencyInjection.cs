@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true);
 
         services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
+        services.AddScoped<GSM.Application.Common.Logs.LoggedJobRunner>();
 
         var eventHandlerInterface = typeof(IDomainEventHandler<>);
 
