@@ -1,3 +1,4 @@
+using GSM.Domain.Equipment;
 using GSM.API.Auth;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Abstractions;
@@ -22,7 +23,7 @@ public sealed class ExercisesController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ExerciseResponse>>> List(
         [FromQuery] string? search,
         [FromQuery] Muscle? primaryMuscle,
-        [FromQuery] Equipment? equipment,
+        [FromQuery] EquipmentType? equipment,
         [FromQuery] bool includeInactive,
         [FromServices] ListExercisesHandler handler,
         CancellationToken cancellationToken,

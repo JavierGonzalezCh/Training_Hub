@@ -1,4 +1,5 @@
 using GSM.Domain.Common;
+using GSM.Domain.Equipment;
 using GSM.Domain.Common.Exceptions;
 
 namespace GSM.Domain.Routines;
@@ -29,7 +30,7 @@ public sealed class Exercise : BaseEntity
 
     public List<Muscle> SecondaryMuscles { get; private set; } = [];
 
-    public List<Equipment> Equipment { get; private set; } = [];
+    public List<EquipmentType> Equipment { get; private set; } = [];
 
     public string? VideoUrl { get; private set; }
 
@@ -59,7 +60,7 @@ public sealed class Exercise : BaseEntity
         string? description,
         Muscle primaryMuscle,
         IEnumerable<Muscle>? secondaryMuscles,
-        IEnumerable<Equipment>? equipment,
+        IEnumerable<EquipmentType>? equipment,
         string? videoUrl,
         string? imageUrl,
         ExerciseType exerciseType = ExerciseType.Strength,
@@ -82,7 +83,7 @@ public sealed class Exercise : BaseEntity
         string? description,
         Muscle primaryMuscle,
         IEnumerable<Muscle>? secondaryMuscles,
-        IEnumerable<Equipment>? equipment,
+        IEnumerable<EquipmentType>? equipment,
         string? videoUrl,
         string? imageUrl,
         ExerciseType exerciseType = ExerciseType.Strength,
@@ -101,7 +102,7 @@ public sealed class Exercise : BaseEntity
         string? description,
         Muscle primaryMuscle,
         IEnumerable<Muscle>? secondaryMuscles,
-        IEnumerable<Equipment>? equipment,
+        IEnumerable<EquipmentType>? equipment,
         string? videoUrl,
         string? imageUrl,
         ExerciseType exerciseType,

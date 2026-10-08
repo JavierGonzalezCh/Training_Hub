@@ -5,6 +5,7 @@ using GSM.Domain.Achievements;
 using GSM.Domain.Attendance;
 using GSM.Domain.Classes;
 using GSM.Domain.Communications;
+using GSM.Domain.Equipment;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
@@ -42,6 +43,8 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "announcement_status", new[] { "draft", "published", "archived" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "reaction_kind", new[] { "like", "celebrate", "strong" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_status", new[] { "available", "maintenance", "out_of_service" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_type", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_access_audit_action", new[] { "invited", "profile_changed", "permission_granted", "permission_revoked" });
@@ -65,7 +68,6 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "difficulty", new[] { "beginner", "intermediate", "advanced" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "equipment", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "exercise_type", new[] { "strength", "cardio", "mobility", "stretching", "plyometrics" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "traps", "obliques", "adductors", "abductors" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "schedule_mode", new[] { "rotating", "weekly" });
@@ -796,6 +798,171 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_feed_states_member_id");
 
                     b.ToTable("member_feed_states", "communications");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Equipment.EquipmentItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly?>("AcquiredOn")
+                        .HasColumnType("date")
+                        .HasColumnName("acquired_on");
+
+                    b.Property<string>("Brand")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("brand");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly?>("ExpectedBackOn")
+                        .HasColumnType("date")
+                        .HasColumnName("expected_back_on");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("Instructions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("instructions");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("model");
+
+                    b.Property<Guid?>("ModelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("model_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("photo_url");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<EquipmentStatus>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("equipment.equipment_status")
+                        .HasDefaultValue(EquipmentStatus.Available)
+                        .HasColumnName("status");
+
+                    b.Property<EquipmentType>("Type")
+                        .HasColumnType("equipment.equipment_type")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Zone")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("zone");
+
+                    b.HasKey("Id")
+                        .HasName("pk_equipment_items");
+
+                    b.HasIndex("GymId", "ModelId")
+                        .HasDatabaseName("ix_equipment_items_gym_id_model_id");
+
+                    b.HasIndex("GymId", "IsActive", "Type")
+                        .HasDatabaseName("ix_equipment_items_gym_id_is_active_type");
+
+                    b.ToTable("equipment_items", "equipment", t =>
+                        {
+                            t.HasCheckConstraint("ck_equipment_items_quantity", "quantity >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("GSM.Domain.Equipment.EquipmentModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DefaultInstructions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("default_instructions");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("image_url");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<bool>("TrackedPerUnit")
+                        .HasColumnType("boolean")
+                        .HasColumnName("tracked_per_unit");
+
+                    b.Property<EquipmentType>("Type")
+                        .HasColumnType("equipment.equipment_type")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_equipment_models");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_equipment_models_name");
+
+                    b.HasIndex("Type")
+                        .HasDatabaseName("ix_equipment_models_type");
+
+                    b.ToTable("equipment_models", "equipment");
                 });
 
             modelBuilder.Entity("GSM.Domain.Gyms.Gym", b =>
@@ -1771,9 +1938,9 @@ namespace GSM.Infrastructure.Migrations
                         .HasDefaultValue(Difficulty.Intermediate)
                         .HasColumnName("difficulty");
 
-                    b.PrimitiveCollection<List<Equipment>>("Equipment")
+                    b.PrimitiveCollection<List<EquipmentType>>("Equipment")
                         .IsRequired()
-                        .HasColumnType("routines.equipment[]")
+                        .HasColumnType("equipment.equipment_type[]")
                         .HasColumnName("equipment");
 
                     b.Property<ExerciseType>("ExerciseType")

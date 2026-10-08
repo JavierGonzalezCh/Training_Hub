@@ -1,4 +1,5 @@
-﻿using GSM.Domain.Routines;
+using GSM.Domain.Equipment;
+using GSM.Domain.Routines;
 
 namespace GSM.Application.Routines.Contracts;
 
@@ -12,7 +13,7 @@ public sealed record CreateExerciseRequest(
     string? Description,
     Muscle PrimaryMuscle,
     IReadOnlyList<Muscle>? SecondaryMuscles,
-    IReadOnlyList<Equipment>? Equipment,
+    IReadOnlyList<EquipmentType>? Equipment,
     string? VideoUrl,
     string? ImageUrl,
     ExerciseType? ExerciseType = null,
@@ -25,7 +26,7 @@ public sealed record UpdateExerciseRequest(
     string? Description,
     Muscle PrimaryMuscle,
     IReadOnlyList<Muscle>? SecondaryMuscles,
-    IReadOnlyList<Equipment>? Equipment,
+    IReadOnlyList<EquipmentType>? Equipment,
     string? VideoUrl,
     string? ImageUrl,
     ExerciseType? ExerciseType = null,
