@@ -32,7 +32,8 @@
 | AP1 | **Unida** (269d85d) | Verificada en el navegador: login, dashboard, miembros, configuración, clases y pagos cargan sin errores de consola |
 | LG1 | **Unida** (522275b + 8a09bb2) | Ver preguntas 1–3 (para LG4). Hizo falta un arreglo al unir (ver §4) |
 | R1 | **Unida** (7de0916) | Corrige B1. Suite 183 + 74 en verde |
-| T1 | En curso | — |
+| T1 | **Unida** (f62d2f5) | 67 archivos; no había datos sembrados con "socio". **Ola 0 cerrada**; `CLAUDE.md` actualizado |
+| N1 | En curso | — |
 | I2 | En curso | camino crítico |
 | P1 | En curso | — |
 | R2 | En curso | — |
@@ -77,6 +78,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- T1 unida (183 + 74). **Ola 0 cerrada**; `CLAUDE.md` actualizado (§6.3). Lanzada N1. Decisión de alcance del integrador: N1 no mueve los correos de cuenta de Identity (los toca I1) para no chocar con I2.
 - AP1 unida y verificada en el navegador. LG1 unida (con arreglo del `.gitignore`); 175 + 73. R1 unida; 183 + 74. B1 marcado corregido en `BUGS.md`.
 - X0 unida (b2249ce); suite 162 + 68 en verde. Lanzadas AP1 y LG1 en paralelo (`gsm_test_ap1`, `gsm_test_lg1`).
 - Inicio. Leídos `CLAUDE.md`, `docs/V2-BUILD-PLAN.md`, `docs/BUGS.md`. Creada `gsm_test_x0`.
