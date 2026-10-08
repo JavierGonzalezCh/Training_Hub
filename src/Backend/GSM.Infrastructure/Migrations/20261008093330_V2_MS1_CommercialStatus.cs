@@ -12,11 +12,6 @@ namespace GSM.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "grace_days",
-                schema: "attendance",
-                table: "checkin_settings");
-
             migrationBuilder.AlterDatabase()
                 .Annotation("Npgsql:Enum:achievements.condition_type", "visits,streak,routine_sessions,classes")
                 .Annotation("Npgsql:Enum:attendance.attendance_method", "qr,manual")
@@ -140,11 +135,30 @@ namespace GSM.Infrastructure.Migrations
                 table: "membership_settings",
                 column: "gym_id",
                 unique: true);
+
+            // Copia grace_days de attendance.checkin_settings ANTES de borrar la columna (orden que no se debe perder).
+            migrationBuilder.SqlScript("MS1");
+
+            migrationBuilder.DropColumn(
+                name: "grace_days",
+                schema: "attendance",
+                table: "checkin_settings");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<int>(
+                name: "grace_days",
+                schema: "attendance",
+                table: "checkin_settings",
+                type: "integer",
+                nullable: false,
+                defaultValue: 3);
+
+            migrationBuilder.Sql(
+                "UPDATE attendance.checkin_settings c SET grace_days = m.grace_days FROM memberships.membership_settings m WHERE m.gym_id = c.gym_id;");
+
             migrationBuilder.DropTable(
                 name: "membership_settings",
                 schema: "memberships");
@@ -237,14 +251,6 @@ namespace GSM.Infrastructure.Migrations
                 .OldAnnotation("Npgsql:Enum:routines.muscle", "chest,back,shoulders,biceps,triceps,forearms,quadriceps,hamstrings,glutes,calves,abs,lower_back,neck,full_body,traps,obliques,adductors,abductors")
                 .OldAnnotation("Npgsql:Enum:routines.schedule_mode", "rotating,weekly")
                 .OldAnnotation("Npgsql:Enum:routines.tracking_type", "reps_weight,reps,time,distance,time_distance");
-
-            migrationBuilder.AddColumn<int>(
-                name: "grace_days",
-                schema: "attendance",
-                table: "checkin_settings",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
         }
     }
 }
