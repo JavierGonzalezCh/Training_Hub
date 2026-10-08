@@ -15,9 +15,10 @@ namespace GSM.Application.Routines;
 internal static class RoutineDrafting
 {
     public static RoutineDraft ToDraft(
-        SaveRoutineRequest request, Guid assignedBy, bool selfAssigned, bool keepIds = false)
+        SaveRoutineRequest request, Guid assignedBy, bool selfAssigned, bool keepIds = false,
+        ScheduleMode? mode = null)
     {
-        var draft = BuildDraft(request, assignedBy, selfAssigned);
+        var draft = BuildDraft(request, assignedBy, selfAssigned, mode ?? RoutineSchedule.ParseMode(request.ScheduleMode));
         return keepIds ? draft : StripIds(draft);
     }
 
@@ -32,7 +33,8 @@ internal static class RoutineDrafting
             }).ToList(),
         };
 
-    private static RoutineDraft BuildDraft(SaveRoutineRequest request, Guid assignedBy, bool selfAssigned)
+    private static RoutineDraft BuildDraft(
+        SaveRoutineRequest request, Guid assignedBy, bool selfAssigned, ScheduleMode mode)
         => new(
             request.Name,
             request.Notes,
@@ -43,7 +45,9 @@ internal static class RoutineDrafting
                 d.IsRest,
                 (d.Exercises ?? []).Select(e => new RoutineExerciseDraft(
                     e.ExerciseId, e.TargetSets, e.TargetReps, e.TargetWeightKg, e.RestSeconds, e.Notes, e.Id)).ToList(),
-                d.Id)).ToList());
+                d.Id,
+                d.DayOfWeek)).ToList(),
+            mode);
 
     public static async Task ValidateExercisesVisibleAsync(
         IExerciseRepository exercises, SaveRoutineRequest request, CancellationToken cancellationToken)
@@ -168,25 +172,42 @@ public sealed class SelfAssignRoutineHandler(
     }
 }
 
+/// <summary>
+/// Edita una rutina en el lugar. Si el body trae un modo de calendario distinto del de la rutina no es una
+/// edición: se crea una rutina nueva con ese modo, la anterior se desactiva (conserva sus registros) y la
+/// respuesta trae el <c>Id</c> de la nueva. Cambiar el modo sobre la misma rutina rompería la racha calculada
+/// hacia atrás.
+/// </summary>
 public sealed class UpdateRoutineHandler(
     ICurrentUserService currentUser,
     IClock clock,
     IExerciseRepository exercises,
     IRoutineRepository routines,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<UpdateRoutineHandler> logger)
 {
     public async Task<RoutineResponse> HandleAsync(
         Guid routineId, SaveRoutineRequest request, CancellationToken cancellationToken)
     {
-        _ = currentUser.RequireGymId();
+        var gymId = currentUser.RequireGymId();
 
         var routine = await routines.GetWithDaysAsync(routineId, cancellationToken)
             ?? throw new NotFoundException("Rutina no encontrada.");
 
+        var requestedMode = request.ScheduleMode is null
+            ? routine.ScheduleMode
+            : RoutineSchedule.ParseMode(request.ScheduleMode);
+
         await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
 
-        var draft = RoutineDrafting.ToDraft(request, routine.AssignedBy, routine.SelfAssigned, keepIds: true);
+        if (requestedMode != routine.ScheduleMode)
+        {
+            return await ChangeModeAsync(gymId, routine, request, requestedMode, cancellationToken);
+        }
+
+        var draft = RoutineDrafting.ToDraft(
+            request, routine.AssignedBy, routine.SelfAssigned, keepIds: true, mode: routine.ScheduleMode);
 
         routine.Replace(draft, clock.Today);
         routines.TrackNewChildren(routine);
@@ -194,6 +215,40 @@ public sealed class UpdateRoutineHandler(
 
         logger.LogInformation("Rutina {RoutineId} editada en el lugar ({Days} días)", routine.Id, routine.CycleLength);
         return await RoutineDrafting.BuildResponseAsync(exercises, routine, cancellationToken);
+    }
+
+    private async Task<RoutineResponse> ChangeModeAsync(
+        Guid gymId, Routine previous, SaveRoutineRequest request, ScheduleMode mode, CancellationToken cancellationToken)
+    {
+        if (!previous.IsActive)
+        {
+            throw new ConflictException(
+                "La rutina está dada de baja: para cambiar el modo de calendario crea una rutina nueva.");
+        }
+
+        // Los ids del body son de la rutina anterior y no significan nada en la nueva: se descartan.
+        var draft = RoutineDrafting.ToDraft(request, previous.AssignedBy, previous.SelfAssigned, mode: mode);
+        var replacement = Routine.Assign(gymId, previous.MemberId, clock.Today, draft);
+
+        await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
+        {
+            foreach (var active in await routines.GetActiveForMemberAsync(previous.MemberId, innerToken))
+            {
+                active.Deactivate(clock.Today);
+            }
+
+            routines.Add(replacement);
+            await unitOfWork.SaveChangesAsync(innerToken);
+        }, cancellationToken);
+
+        logger.LogInformation(
+            "Rutina {PreviousId} reemplazada por {RoutineId} al cambiar el modo de calendario a {Mode}",
+            previous.Id, replacement.Id, mode);
+
+        await events.PublishAsync(
+            new RoutineAssigned(replacement.Id, previous.MemberId, gymId, previous.SelfAssigned), cancellationToken);
+
+        return await RoutineDrafting.BuildResponseAsync(exercises, replacement, cancellationToken);
     }
 }
 
@@ -282,16 +337,19 @@ public sealed class GetMyRoutineHandler(
         var response = RoutineMapper.ToResponse(routine, names);
 
         var today = clock.Today;
-        var position = RoutineCycle.PositionOn(routine.StartsOn, routine.CycleLength, today);
-        var day = routine.Days.OrderBy(d => d.Position).First(d => d.Position == position);
+        var day = RoutineSchedule.DayOn(routine, today);
 
-        var todayView = new TodayView(
-            today,
-            position,
-            day.Name ?? $"Día {day.Position}",
-            day.IsRest,
-            day.Exercises.OrderBy(e => e.Order)
-                .Select(e => RoutineMapper.ToExerciseResponse(e, names)).ToList());
+        // Semanal sin fila para hoy = descanso: no hay RoutineDay al que apuntar.
+        var todayView = day is null
+            ? new TodayView(today, 0, "Descanso", true, [], IsoWeekDay.Of(today))
+            : new TodayView(
+                today,
+                day.Position,
+                RoutineMapper.DayName(day),
+                day.IsRest,
+                day.Exercises.OrderBy(e => e.Order)
+                    .Select(e => RoutineMapper.ToExerciseResponse(e, names)).ToList(),
+                IsoWeekDay.Of(today));
 
         return new MyRoutineResponse(response, todayView);
     }

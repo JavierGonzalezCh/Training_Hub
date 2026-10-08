@@ -19106,6 +19106,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public System.Guid? Id { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("dayOfWeek")]
+        public int? DayOfWeek { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -19135,6 +19138,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("exercises")]
         public System.Collections.Generic.ICollection<RoutineExerciseResponse> Exercises { get; set; } = new System.Collections.ObjectModel.Collection<RoutineExerciseResponse>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("dayOfWeek")]
+        public int? DayOfWeek { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -19292,6 +19298,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("cycleLength")]
         public int CycleLength { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("scheduleMode")]
+        public string ScheduleMode { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -19382,6 +19391,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         public System.Collections.Generic.ICollection<RoutineDayResponse> Days { get; set; } = new System.Collections.ObjectModel.Collection<RoutineDayResponse>();
 
+        [System.Text.Json.Serialization.JsonPropertyName("scheduleMode")]
+        public string ScheduleMode { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -19447,6 +19459,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         public System.Collections.Generic.ICollection<RoutineDayInput> Days { get; set; } = new System.Collections.ObjectModel.Collection<RoutineDayInput>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("scheduleMode")]
+        public string? ScheduleMode { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -19735,6 +19750,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("exercises")]
         public System.Collections.Generic.ICollection<RoutineExerciseResponse> Exercises { get; set; } = new System.Collections.ObjectModel.Collection<RoutineExerciseResponse>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("dayOfWeek")]
+        public int DayOfWeek { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

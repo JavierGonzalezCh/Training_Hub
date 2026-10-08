@@ -9,5 +9,6 @@ public sealed class RoutinesEnums : IModuleEnums
     [
         PgEnumMapping.Of<GSM.Domain.Routines.Muscle>("muscle", "routines", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Routines.Equipment>("equipment", "routines", LowerCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Routines.ScheduleMode>("schedule_mode", "routines", LowerCaseNameTranslator.Instance),
     ];
 }

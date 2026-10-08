@@ -1,3 +1,4 @@
+@using GSM.UI.Shared.Formatting
 @* Formulario de rutina (días y ejercicios). Lo usan el editor del staff y el autoservicio del socio. *@
 @inject IExercisesClient ExercisesApi
 
@@ -8,7 +9,30 @@
     <MudItem xs="12" sm="6">
         <MudTextField T="string" @bind-Value="Draft.Notes" Label="Notas" />
     </MudItem>
+    <MudItem xs="12" sm="6">
+        <label class="gsm-native-field">
+            <span>Calendario</span>
+            <select data-testid="schedule-mode" value="@Draft.ScheduleMode" @onchange="@(e => OnModeChanged(e.Value?.ToString() ?? RoutineDraft.RotatingMode))">
+                <option value="@RoutineDraft.RotatingMode" selected="@(!Draft.IsWeekly)">Rotativa: Día 1, Día 2… se repite en ciclo</option>
+                <option value="@RoutineDraft.WeeklyMode" selected="@Draft.IsWeekly">Semanal: cada día en un día de la semana</option>
+            </select>
+        </label>
+    </MudItem>
+    <MudItem xs="12" sm="6" Class="d-flex align-center">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            @(Draft.IsWeekly
+                ? "El día de la semana sin entrenamiento es descanso."
+                : "El descanso es un día más del ciclo.")
+        </MudText>
+    </MudItem>
 </MudGrid>
+
+@if (Draft.ModeChanged)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">
+        Cambiar el calendario crea una rutina nueva y da de baja la actual. Sus registros de entrenamiento se conservan.
+    </MudAlert>
+}
 
 @for (var dayIndex = 0; dayIndex < Draft.Days.Count; dayIndex++)
 {
@@ -17,15 +41,34 @@
     <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
         <div class="d-flex align-center flex-wrap mb-3" style="gap:0.75rem">
             <MudText Typo="Typo.overline" Class="gsm-mono" Color="Color.Secondary">DÍA @(index + 1)</MudText>
+            @if (Draft.IsWeekly)
+            {
+                <label class="gsm-native-field">
+                    <span>Día de la semana</span>
+                    <select data-testid="@($"weekday-{index}")" @onchange="@(e => SetWeekday(day, e.Value?.ToString() ?? string.Empty))">
+                        @if (day.DayOfWeek is null)
+                        {
+                            <option value="" selected>Elige…</option>
+                        }
+                        @foreach (var (value, label) in RoutineLabels.IsoWeekdays)
+                        {
+                            <option value="@value" selected="@(day.DayOfWeek == value)" disabled="@(!Draft.FreeWeekdays(day).Contains(value))">@label</option>
+                        }
+                    </select>
+                </label>
+            }
             <MudTextField T="string" @bind-Value="day.Name" Placeholder="Nombre del día (p. ej. Pierna)" Style="max-width:260px" />
-            <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Descanso" Color="Color.Primary" />
+            @if (!Draft.IsWeekly)
+            {
+                <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Descanso" Color="Color.Primary" />
+            }
             <MudSpacer />
             <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => MoveDay(index, -1))" />
             <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == Draft.Days.Count - 1" OnClick="@(() => MoveDay(index, 1))" />
             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Draft.Days.RemoveAt(index))" />
         </div>
 
-        @if (!day.IsRest)
+        @if (Draft.IsWeekly || !day.IsRest)
         {
             @foreach (var exercise in day.Exercises)
             {
@@ -60,13 +103,18 @@
     </MudPaper>
 }
 
-<MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Class="mb-6" OnClick="@(() => Draft.Days.Add(new DraftDay()))">
+<MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Class="mb-6" Disabled="!Draft.CanAddDay" OnClick="@(() => Draft.AddDay())">
     Añadir día
 </MudButton>
 
 @code {
     [Parameter, EditorRequired]
     public RoutineDraft Draft { get; set; } = default!;
+
+    private void OnModeChanged(string mode) => Draft.SetMode(mode);
+
+    private static void SetWeekday(DraftDay day, string value)
+        => day.DayOfWeek = int.TryParse(value, out var weekday) ? weekday : null;
 
     private void MoveDay(int index, int delta)
     {

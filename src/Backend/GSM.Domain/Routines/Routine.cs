@@ -32,6 +32,9 @@ public sealed class Routine : BaseEntity, ITenantEntity
     /// <summary>Ancla del ciclo (día de negocio, de <c>IClock.Today</c>).</summary>
     public DateOnly StartsOn { get; private set; }
 
+    /// <summary>Se elige al crear; cambiarlo es crear otra rutina.</summary>
+    public ScheduleMode ScheduleMode { get; private set; } = ScheduleMode.Rotating;
+
     public bool IsActive { get; private set; } = true;
 
     public DateOnly? DeactivatedOn { get; private set; }
@@ -57,6 +60,7 @@ public sealed class Routine : BaseEntity, ITenantEntity
             AssignedBy = draft.AssignedBy,
             SelfAssigned = draft.SelfAssigned,
             StartsOn = startsOn,
+            ScheduleMode = draft.ScheduleMode,
         };
 
         routine.ApplyHeaderAndDays(draft, startsOn);
@@ -68,7 +72,16 @@ public sealed class Routine : BaseEntity, ITenantEntity
     /// id se crea y lo que ya no viene se retira con <paramref name="today"/> sin borrarse. No cambia
     /// <see cref="StartsOn"/>: es el ancla histórica del ciclo.
     /// </summary>
-    public void Replace(RoutineDraft draft, DateOnly today) => ApplyHeaderAndDays(draft, today);
+    public void Replace(RoutineDraft draft, DateOnly today)
+    {
+        if (draft.ScheduleMode != ScheduleMode)
+        {
+            throw new ValidationDomainException(
+                "El modo de calendario no se edita: cambiarlo crea una rutina nueva.");
+        }
+
+        ApplyHeaderAndDays(draft, today);
+    }
 
     public void Deactivate(DateOnly on)
     {
@@ -90,13 +103,15 @@ public sealed class Routine : BaseEntity, ITenantEntity
             throw new ValidationDomainException("La rutina necesita al menos un día.");
         }
 
+        var days = ValidateSchedule(draft);
+
         Name = name;
         Notes = string.IsNullOrWhiteSpace(draft.Notes) ? null : draft.Notes.Trim();
 
         var current = _days.Where(d => d.RetiredOn is null).ToDictionary(d => d.Id);
         var kept = new HashSet<Guid>();
         var position = 1;
-        foreach (var dayDraft in draft.Days)
+        foreach (var dayDraft in days)
         {
             if (dayDraft.Id is { } id)
             {
@@ -122,6 +137,47 @@ public sealed class Routine : BaseEntity, ITenantEntity
         {
             removed.Retire(today);
         }
+    }
+
+    /// <summary>
+    /// Modo semanal: cada día lleva un <c>day_of_week</c> 1..7 sin repetir y no hay filas de descanso (el día sin
+    /// fila lo es); los días quedan ordenados de lunes a domingo. Rotativo: sin <c>day_of_week</c>.
+    /// </summary>
+    private IReadOnlyList<RoutineDayDraft> ValidateSchedule(RoutineDraft draft)
+    {
+        if (ScheduleMode == ScheduleMode.Rotating)
+        {
+            if (draft.Days.Any(d => d.DayOfWeek is not null))
+            {
+                throw new ValidationDomainException(
+                    "Una rutina rotativa no ata sus días a la semana: quita el día de la semana.");
+            }
+
+            return draft.Days;
+        }
+
+        if (draft.Days.Any(d => d.DayOfWeek is null))
+        {
+            throw new ValidationDomainException("En una rutina semanal cada día necesita su día de la semana.");
+        }
+
+        if (draft.Days.Any(d => d.DayOfWeek is < IsoWeekDay.Monday or > IsoWeekDay.Sunday))
+        {
+            throw new ValidationDomainException("El día de la semana debe ir de 1 (lunes) a 7 (domingo).");
+        }
+
+        if (draft.Days.Select(d => d.DayOfWeek).Distinct().Count() != draft.Days.Count)
+        {
+            throw new ValidationDomainException("Un día de la semana no puede repetirse en la rutina.");
+        }
+
+        if (draft.Days.Any(d => d.IsRest))
+        {
+            throw new ValidationDomainException(
+                "En una rutina semanal el descanso es el día sin entrenamiento: no lleva fila propia.");
+        }
+
+        return draft.Days.OrderBy(d => d.DayOfWeek).ToList();
     }
 
     private static string NormalizeName(string name)

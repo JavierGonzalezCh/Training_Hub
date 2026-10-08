@@ -207,7 +207,7 @@ else if (_member is not null)
                                 <div class="gsm-routine-head">
                                     <div class="gsm-routine-head__main">
                                         <span class="gsm-routine-head__name">@current.Name</span>
-                                        <span class="gsm-routine-head__meta">Desde @GsmFormat.Day(current.StartsOn) · ciclo de @current.CycleLength días</span>
+                                        <span class="gsm-routine-head__meta">Desde @GsmFormat.Day(current.StartsOn) · @(current.ScheduleMode == "weekly" ? $"semanal, {current.CycleLength} días de entrenamiento" : $"ciclo de {current.CycleLength} días")</span>
                                     </div>
                                     <MudChip T="string" Color="@(current.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                                         @(current.IsActive ? "ACTIVA" : "INACTIVA")
@@ -234,7 +234,7 @@ else if (_member is not null)
                                         {
                                             <section class="gsm-routine-day @(day.IsRest ? "is-rest" : null)">
                                                 <h3 class="gsm-routine-day__title">
-                                                    <span class="gsm-routine-day__num">Día @(day.Position)</span> @day.Name
+                                                    <span class="gsm-routine-day__num">@(day.DayOfWeek is { } weekday ? RoutineLabels.IsoWeekdayLabel(weekday) : $"Día {day.Position}")</span> @day.Name
                                                 </h3>
                                                 @if (day.IsRest)
                                                 {

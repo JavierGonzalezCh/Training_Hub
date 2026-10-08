@@ -41,4 +41,15 @@ public static class RoutineLabels
     public static string MuscleLabel(string name) => MuscleByName.GetValueOrDefault(name, name);
 
     public static string EquipmentLabel(string name) => EquipmentByName.GetValueOrDefault(name, name);
+
+    /// <summary>Días de la semana ISO de las rutinas semanales: 1 = lunes … 7 = domingo.</summary>
+    public static readonly (int Value, string Label)[] IsoWeekdays =
+    [
+        (1, "Lunes"), (2, "Martes"), (3, "Miércoles"), (4, "Jueves"), (5, "Viernes"), (6, "Sábado"), (7, "Domingo"),
+    ];
+
+    public static string IsoWeekdayLabel(int value)
+        => value is >= 1 and <= 7 ? IsoWeekdays[value - 1].Label : value.ToString();
+
+    public static string ScheduleModeLabel(string? mode) => mode == "weekly" ? "Semanal" : "Rotativa";
 }
