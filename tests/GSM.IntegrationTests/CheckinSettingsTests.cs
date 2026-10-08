@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using GSM.Application.Attendance;
@@ -32,7 +32,6 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
             var settings = await scope.ServiceProvider.GetRequiredService<GetCheckinSettingsHandler>()
                 .HandleAsync(default);
             Assert.Equal("Rotating", settings.Mode);
-            Assert.Equal(3, settings.GraceDays);
         }
 
         using var system = System();
@@ -41,21 +40,21 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
-    public async Task Update_persists_and_rejects_out_of_range_grace_in_the_domain()
+    public async Task Update_persists_the_mode_and_rejects_an_invalid_one_in_the_domain()
     {
         var gymId = await SeedGymAsync();
 
         using (var scope = Owner(gymId))
         {
             var updated = await scope.ServiceProvider.GetRequiredService<UpdateCheckinSettingsHandler>()
-                .HandleAsync(new UpdateCheckinSettingsRequest("Static", 7), default);
+                .HandleAsync(new UpdateCheckinSettingsRequest("Static"), default);
             Assert.Equal("Static", updated.Mode);
         }
 
         using (var scope = Owner(gymId))
         {
             var read = await scope.ServiceProvider.GetRequiredService<GetCheckinSettingsHandler>().HandleAsync(default);
-            Assert.Equal(("Static", 7), (read.Mode, read.GraceDays));
+            Assert.Equal("Static", read.Mode);
         }
 
         // La red de seguridad del dominio (el validador de FluentValidation corta antes por HTTP).
@@ -63,7 +62,7 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
         {
             await Assert.ThrowsAsync<ValidationDomainException>(() => scope.ServiceProvider
                 .GetRequiredService<UpdateCheckinSettingsHandler>()
-                .HandleAsync(new UpdateCheckinSettingsRequest("Static", 31), default));
+                .HandleAsync(new UpdateCheckinSettingsRequest("Nope"), default));
         }
     }
 
@@ -114,7 +113,7 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
             await Assert.ThrowsAsync<ConflictException>(() => scope.ServiceProvider
                 .GetRequiredService<RegenerateStaticCodeHandler>().HandleAsync(default));
             await scope.ServiceProvider.GetRequiredService<UpdateCheckinSettingsHandler>()
-                .HandleAsync(new UpdateCheckinSettingsRequest("Static", 3), default);
+                .HandleAsync(new UpdateCheckinSettingsRequest("Static"), default);
         }
 
         string before, after;
@@ -156,7 +155,7 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
-    public async Task Http_validates_the_grace_range_and_only_the_owner_can_update()
+    public async Task Http_validates_the_mode_and_only_the_owner_can_update()
     {
         var gymId = await SeedGymAsync();
         await using var host = factory.WithWebHostBuilder(b => b.ConfigureTestServices(services =>
@@ -175,16 +174,16 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
         }
 
         var owner = ClientFor(UserRole.Owner);
-        var tooMuch = await owner.PutAsJsonAsync("/api/attendance/settings", new { mode = "Rotating", graceDays = 31 });
+        var tooMuch = await owner.PutAsJsonAsync("/api/attendance/settings", new { mode = "Nope" });
         Assert.Equal(HttpStatusCode.BadRequest, tooMuch.StatusCode);
 
-        var ok = await owner.PutAsJsonAsync("/api/attendance/settings", new { mode = "Static", graceDays = 5 });
+        var ok = await owner.PutAsJsonAsync("/api/attendance/settings", new { mode = "Static" });
         Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
 
         var staff = ClientFor(UserRole.Staff);
         Assert.Equal(HttpStatusCode.OK, (await staff.GetAsync("/api/attendance/settings")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden,
-            (await staff.PutAsJsonAsync("/api/attendance/settings", new { mode = "Rotating", graceDays = 1 })).StatusCode);
+            (await staff.PutAsJsonAsync("/api/attendance/settings", new { mode = "Rotating" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await staff.PostAsync("/api/attendance/kiosk-code/regenerate", null)).StatusCode);
     }
 
