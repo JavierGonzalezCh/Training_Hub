@@ -9,7 +9,7 @@ se decide cambiar va en la especificación del módulo.
 
 | Id | Módulo | Resumen | Severidad | Estado |
 |---|---|---|---|---|
-| B1 | Routines | Editar una rutina borra todo el historial de entrenamiento del miembro | Alta | Abierto |
+| B1 | Routines | Editar una rutina borra todo el historial de entrenamiento del miembro | Alta | **Corregido en R1** (v2) |
 | B2 | Dashboard | "Ingresos del mes" compara el mes en curso contra el mes anterior completo | Media | Abierto |
 | B3 | Memberships (UI) | El precio del plan sale con formato distinto según la pantalla | Baja | Por confirmar |
 | B4 | Gyms (UI) | El campo "Aforo" promete medir qué tan lleno está el gym en tiempo real, y nada lo usa | Baja | Abierto |
@@ -32,6 +32,12 @@ se decide cambiar va en la especificación del módulo.
 - **Arreglo propuesto:** editar en el lugar. Los ejercicios que no cambian conservan su id, los que
   se quitan se marcan como retirados en vez de borrarse, y la llave del registro deja de borrar en
   cascada (`Restrict`). Se decide junto con el rediseño de Routines (`GSM-modulo-routines.md`).
+- **Corregido en R1 (2026-10-08, rama `v2`):** edición en el lugar con `retired_on`, FK `Restrict`,
+  `exercise_id` en los registros. Test: `RoutineEditInPlaceTests`.
+- **Hallazgo al reproducirlo:** sobre el código anterior, el `PUT` fallaba **siempre** con
+  `DbUpdateConcurrencyException` (los hijos recreados traen Guid v7 desde el dominio y EF los trataba
+  como existentes), con o sin registros. Es decir, editar una rutina devolvía 500 en lugar de borrar el
+  historial; el borrado en cascada solo lo respaldaba el esquema. El `PUT` no tenía ningún test.
 
 ## B2 — El comparativo de ingresos del dashboard engaña
 

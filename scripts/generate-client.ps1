@@ -23,7 +23,15 @@ $specPath = Join-Path $clientDir "openapi-v1.json"
 
 Write-Host "Descargando OpenAPI de $OpenApiUrl ..."
 # -SkipCertificateCheck: el certificado de desarrollo es autofirmado.
-Invoke-WebRequest -Uri $OpenApiUrl -OutFile $specPath -SkipCertificateCheck
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+    Invoke-WebRequest -Uri $OpenApiUrl -OutFile $specPath -SkipCertificateCheck
+}
+else {
+    # Windows PowerShell 5.1 no tiene -SkipCertificateCheck.
+    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -Uri $OpenApiUrl -OutFile $specPath -UseBasicParsing
+}
 
 Write-Host "Generando el cliente con NSwag ..."
 Push-Location $clientDir
