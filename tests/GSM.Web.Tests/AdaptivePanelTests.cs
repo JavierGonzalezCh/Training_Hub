@@ -47,7 +47,7 @@ public class AdaptivePanelTests : TestContext
         var auth = this.AddTestAuthorization();
         auth.SetAuthorized("ana");
         auth.SetRoles(role);
-        Services.GetRequiredService<ViewportState>().Set(narrow);
+        Services.GetRequiredService<ViewportState>().Pin(narrow);
     }
 
     private static string[] Links(IRenderedComponent<NavMenu> cut)
@@ -107,9 +107,14 @@ public class AdaptivePanelTests : TestContext
     [Fact]
     public void Settings_index_renders_the_tabs_the_modules_declare()
     {
-        Setup(withExtraModule: true);
         // Solo la pestaña de prueba hace falta para comprobar el armado; las reales piden la API.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
         Services.AddSingleton(new PanelRegistry([new ExtraModule()]));
+        var auth = this.AddTestAuthorization();
+        auth.SetAuthorized("ana");
+        auth.SetRoles("owner");
+        RenderComponent<MudPopoverProvider>();
 
         var cut = RenderComponent<GSM.Panel.UI.Pages.Settings.Index>();
 

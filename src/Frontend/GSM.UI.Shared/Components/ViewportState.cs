@@ -37,6 +37,13 @@ public sealed class ViewportState : IBrowserViewportObserver, IAsyncDisposable
         Changed?.Invoke();
     }
 
+    /// <summary>Fija el ancho y no escucha el navegador (pruebas, o un host que ya lo conoce).</summary>
+    public void Pin(bool narrow)
+    {
+        _started = true;
+        Set(narrow);
+    }
+
     public async Task EnsureStartedAsync()
     {
         if (_started)
