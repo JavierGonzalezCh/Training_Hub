@@ -1,6 +1,7 @@
 using GSM.API.Auth;
 using GSM.API.Uploads;
 using GSM.Application.Common;
+using GSM.Application.Identity;
 using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
 using GSM.Application.Memberships.Public;
@@ -104,19 +105,28 @@ public sealed class MembersController : ControllerBase
         Guid id, [FromServices] InviteMemberHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
 
-    /// <summary>Canje anónimo del código: crea la cuenta del miembro y lo vincula.</summary>
+    /// <summary>
+    /// Canje anónimo del código: crea la cuenta del miembro (o, si su email ya tiene cuenta, valida su
+    /// contraseña y agrega el acceso), lo vincula y deja la sesión iniciada.
+    /// </summary>
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Login)]
     [ProducesResponseType<RegisterMemberResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RegisterMemberResponse>> Register(
         RegisterMemberRequest request,
         [FromServices] RegisterMemberHandler handler,
+        [FromServices] StartMemberSessionHandler startSession,
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(request, cancellationToken);
-        return CreatedAtAction(nameof(Get), new { id = result.MemberId }, result);
+
+        // El canje ya confirmó; la sesión la emite Identity, no Members.
+        var session = await startSession.HandleAsync(result.UserId, result.GymId, cancellationToken);
+        return CreatedAtAction(
+            nameof(Get), new { id = result.MemberId }, new RegisterMemberResponse(result.MemberId, result.UserId, session));
     }
 }

@@ -32,6 +32,17 @@ public static class EmailTemplates
             $"Te dieron acceso al panel. Define tu contraseña con este código: {token}");
     }
 
+    public static EmailMessage StaffAccessGranted(string to, string fullName)
+    {
+        var html = $"""
+            <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
+            <p>Te dieron acceso al panel de un gimnasio más en GSM.</p>
+            <p>Entra con tu email y tu contraseña de siempre: al iniciar sesión podrás elegir a qué gimnasio entrar.</p>
+            """;
+        return new EmailMessage(to, "Nuevo acceso al panel de un gimnasio", html,
+            "Te dieron acceso al panel de un gimnasio más. Entra con tu contraseña de siempre y elige el gimnasio.");
+    }
+
     public static EmailMessage Welcome(string to, string gymName, string memberName)
     {
         var html = $"""

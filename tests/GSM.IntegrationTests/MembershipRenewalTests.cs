@@ -96,8 +96,6 @@ public sealed class MembershipRenewalTests(ApiFactory factory) : IClassFixture<A
             NormalizedEmail = "STAFF@RENEW.LOCAL",
             EmailConfirmed = true,
             FullName = "Renew Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

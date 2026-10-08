@@ -35,8 +35,11 @@ public sealed class CreateStaffHandler(
         // La cuenta ya existe: si el email falla, el usuario puede pedir el código con "olvidé mi contraseña".
         try
         {
+            // Con cuenta previa solo se agregó el acceso: entra con su contraseña de siempre.
             await emailSender.SendAsync(
-                EmailTemplates.StaffInvitation(ticket.Account.Email, ticket.Account.FullName, ticket.Token),
+                ticket.Token is null
+                    ? EmailTemplates.StaffAccessGranted(ticket.Account.Email, ticket.Account.FullName)
+                    : EmailTemplates.StaffInvitation(ticket.Account.Email, ticket.Account.FullName, ticket.Token),
                 cancellationToken);
         }
         catch (Exception ex)

@@ -96,7 +96,7 @@ public sealed class SubscriptionGateTests(ApiFactory factory) : IClassFixture<Ap
         var tokens = await scope.ServiceProvider.GetRequiredService<LoginHandler>()
             .HandleAsync(new LoginRequest(w.OwnerEmail, "OwnerPass_123"), default);
 
-        Assert.False(string.IsNullOrEmpty(tokens.AccessToken));
+        Assert.False(string.IsNullOrEmpty(tokens.Tokens!.AccessToken));
     }
 
     private IServiceScope Scope()
@@ -149,8 +149,6 @@ public sealed class SubscriptionGateTests(ApiFactory factory) : IClassFixture<Ap
                 NormalizedEmail = email.ToUpperInvariant(),
                 EmailConfirmed = true,
                 FullName = "Gate Owner",
-                Role = UserRole.Owner,
-                GymId = gym.Id,
                 IsActive = true,
                 SecurityStamp = Guid.NewGuid().ToString(),
             };

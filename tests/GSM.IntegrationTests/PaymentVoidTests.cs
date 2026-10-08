@@ -106,8 +106,6 @@ public sealed class PaymentVoidTests(ApiFactory factory) : IClassFixture<ApiFact
             NormalizedEmail = "STAFF@VOID.LOCAL",
             EmailConfirmed = true,
             FullName = "Void Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

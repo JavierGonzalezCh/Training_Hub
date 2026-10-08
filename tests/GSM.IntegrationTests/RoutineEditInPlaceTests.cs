@@ -311,8 +311,6 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
             NormalizedEmail = $"{local}@TEST.LOCAL",
             EmailConfirmed = true,
             FullName = local,
-            Role = role,
-            GymId = gymId,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

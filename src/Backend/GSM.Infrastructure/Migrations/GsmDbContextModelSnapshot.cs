@@ -1981,15 +1981,17 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("full_name");
 
-                    b.Property<Guid?>("GymId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("gym_id");
-
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("is_active");
+
+                    b.Property<bool>("IsSuperAdmin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_super_admin");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean")
@@ -2021,10 +2023,6 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("phone_number_confirmed");
 
-                    b.Property<UserRole>("Role")
-                        .HasColumnType("identity.user_role")
-                        .HasColumnName("role");
-
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text")
                         .HasColumnName("security_stamp");
@@ -2041,9 +2039,6 @@ namespace GSM.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_users");
 
-                    b.HasIndex("GymId")
-                        .HasDatabaseName("ix_users_gym_id");
-
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -2052,6 +2047,64 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("users", "identity");
+                });
+
+            modelBuilder.Entity("GSM.Infrastructure.Identity.GymAccess", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeactivatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deactivated_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsTeam")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_team");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<UserRole>("Role")
+                        .HasColumnType("identity.user_role")
+                        .HasColumnName("role");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_gym_accesses");
+
+                    b.HasIndex("GymId", "Role")
+                        .HasDatabaseName("ix_gym_accesses_gym_id_role");
+
+                    b.HasIndex("UserId", "GymId", "IsTeam")
+                        .IsUnique()
+                        .HasDatabaseName("ix_gym_accesses_user_id_gym_id_is_team");
+
+                    b.ToTable("gym_accesses", "identity");
                 });
 
             modelBuilder.Entity("GSM.Infrastructure.Identity.RefreshToken", b =>
@@ -2068,6 +2121,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
+
+                    b.Property<Guid?>("GymAccessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_access_id");
 
                     b.Property<DateTimeOffset?>("RevokedAt")
                         .HasColumnType("timestamp with time zone")
@@ -2089,6 +2146,9 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_refresh_tokens");
+
+                    b.HasIndex("GymAccessId")
+                        .HasDatabaseName("ix_refresh_tokens_gym_access_id");
 
                     b.HasIndex("TokenHash")
                         .IsUnique()
@@ -2299,6 +2359,16 @@ namespace GSM.Infrastructure.Migrations
                         });
 
                     b.Navigation("Sets");
+                });
+
+            modelBuilder.Entity("GSM.Infrastructure.Identity.GymAccess", b =>
+                {
+                    b.HasOne("GSM.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_gym_accesses_users_user_id");
                 });
 
             modelBuilder.Entity("GSM.Infrastructure.Identity.RefreshToken", b =>

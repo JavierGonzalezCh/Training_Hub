@@ -9,10 +9,8 @@ public sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
     {
         // La tabla y el schema se fijan en GsmDbContext.OnModelCreating.
         builder.Property(u => u.FullName).HasMaxLength(200).IsRequired();
-        builder.Property(u => u.Role).HasColumnName("role");
+        builder.Property(u => u.IsSuperAdmin).HasDefaultValue(false);
         builder.Property(u => u.IsActive).HasDefaultValue(true);
-
-        builder.HasIndex(u => u.GymId);
 
         builder.HasMany(u => u.RefreshTokens)
             .WithOne()

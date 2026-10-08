@@ -91,8 +91,6 @@ public sealed class DashboardTests(ApiFactory factory) : IClassFixture<ApiFactor
         NormalizedEmail = "STAFF@DASH.LOCAL",
         EmailConfirmed = true,
         FullName = "Dash Staff",
-        Role = UserRole.Staff,
-        GymId = gymId,
         IsActive = true,
         SecurityStamp = Guid.NewGuid().ToString(),
     };

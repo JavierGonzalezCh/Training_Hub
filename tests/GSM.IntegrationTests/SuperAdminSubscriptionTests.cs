@@ -197,8 +197,6 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
             NormalizedEmail = $"{slugPrefix}-{suffix}@TEST.LOCAL".ToUpperInvariant(),
             EmailConfirmed = true,
             FullName = $"{slugPrefix} owner",
-            Role = UserRole.Owner,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

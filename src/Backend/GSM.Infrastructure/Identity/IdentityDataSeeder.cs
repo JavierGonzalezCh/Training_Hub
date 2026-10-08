@@ -1,4 +1,3 @@
-using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -36,8 +35,7 @@ public static class IdentityDataSeeder
             Email = options.Email,
             EmailConfirmed = true,
             FullName = options.FullName,
-            Role = UserRole.SuperAdmin,
-            GymId = null,
+            IsSuperAdmin = true,
             IsActive = true,
         };
 

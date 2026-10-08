@@ -5,6 +5,7 @@
 @inject MemberBootstrapService Bootstrap
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
+@inject IDialogService Dialogs
 @implements IDisposable
 
 <GsmThemeProvider Gym="@GymCtx.Gym" />
@@ -33,6 +34,10 @@
             <span class="gsm-wordmark" style="font-size:1.3rem">GS<span class="accent">M</span></span>
         }
         <MudSpacer />
+        @if (_accesses.Count > 1)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Color="Color.Inherit" OnClick="SwitchGymAsync" aria-label="Cambiar de gimnasio" />
+        }
         <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" aria-label="Cerrar sesión" />
     </MudAppBar>
 
@@ -81,6 +86,7 @@
 
 @code {
     private bool _loading = true;
+    private IReadOnlyList<GymAccessOption> _accesses = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,6 +107,8 @@
             {
                 await Bootstrap.LoadAsync();
             }
+
+            _accesses = await Session.GetAccessesAsync();
         }
         catch (ApiErrorException ex) when (ex.Error.IsUnauthorized)
         {
@@ -113,6 +121,11 @@
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task SwitchGymAsync()
+        => await Dialogs.ShowAsync<GymSwitchDialog>(
+            "Cambiar de gimnasio",
+            new DialogParameters<GymSwitchDialog> { { x => x.Accesses, _accesses } });
 
     private async Task LogoutAsync()
     {

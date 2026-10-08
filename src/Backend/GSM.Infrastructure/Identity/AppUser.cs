@@ -1,10 +1,9 @@
-using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 
 namespace GSM.Infrastructure.Identity;
 
 /// <summary>
-/// Entidad de ASP.NET Identity. Vive en Infrastructure: Domain no conoce Identity.
+/// Entidad de ASP.NET Identity: la persona. Vive en Infrastructure: Domain no conoce Identity.
 /// Otros módulos solo la ven a través de <c>IIdentityReader</c>.
 /// </summary>
 public sealed class AppUser : IdentityUser<Guid>
@@ -16,10 +15,11 @@ public sealed class AppUser : IdentityUser<Guid>
 
     public required string FullName { get; set; }
 
-    /// <summary>Gym al que pertenece. <c>null</c> únicamente para <see cref="UserRole.SuperAdmin"/>.</summary>
-    public Guid? GymId { get; set; }
-
-    public UserRole Role { get; set; }
+    /// <summary>
+    /// SuperAdmin global. La cuenta ya no lleva <c>GymId</c> ni <c>Role</c>: el gym y el rol viven en
+    /// <see cref="GymAccess"/>, uno por gym. El SuperAdmin no tiene accesos.
+    /// </summary>
+    public bool IsSuperAdmin { get; set; }
 
     public bool IsActive { get; set; } = true;
 

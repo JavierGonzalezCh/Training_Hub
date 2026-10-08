@@ -132,8 +132,6 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
             NormalizedEmail = "STAFF@ACH.LOCAL",
             EmailConfirmed = true,
             FullName = "Ach Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

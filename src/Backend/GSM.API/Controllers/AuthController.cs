@@ -17,11 +17,41 @@ public sealed class AuthController : ControllerBase
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Login)]
-    [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<AuthTokensResponse>> Login(
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<LoginResponse>> Login(
         LoginRequest request, [FromServices] LoginHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>Segundo paso del login con varios gyms: con el boleto del login y el acceso elegido emite la sesión.</summary>
+    [HttpPost("select-gym")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AuthTokensResponse>> SelectGym(
+        SelectGymRequest request, [FromServices] SelectGymHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>Cambiar de gym, o pasar al otro acceso del mismo gym (modo staff/miembro), sin pedir contraseña.</summary>
+    [HttpPost("switch-gym")]
+    [Authorize]
+    [SubscriptionGateExempt]
+    [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AuthTokensResponse>> SwitchGym(
+        SwitchGymRequest request, [FromServices] SwitchGymHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>Los accesos activos de la persona (gym, logo, rol), el último usado primero; marca el actual.</summary>
+    [HttpGet("accesses")]
+    [Authorize]
+    [ProducesResponseType<IReadOnlyList<GymAccessOption>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<GymAccessOption>>> Accesses(
+        [FromServices] ListMyAccessesHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
 
     [HttpPost("refresh")]
     [AllowAnonymous]

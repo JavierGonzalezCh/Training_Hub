@@ -10,6 +10,6 @@ public sealed class IdentityReader(GsmDbContext dbContext) : IIdentityReader
         Guid userId, CancellationToken cancellationToken = default)
         => await dbContext.Users
             .Where(u => u.Id == userId)
-            .Select(u => new IdentityUserDto(u.Id, u.FullName, u.Role, u.GymId))
+            .Select(u => new IdentityUserDto(u.Id, u.FullName, u.IsSuperAdmin))
             .FirstOrDefaultAsync(cancellationToken);
 }

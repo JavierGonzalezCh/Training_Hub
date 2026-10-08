@@ -163,8 +163,7 @@ public sealed class ImpersonationTests(ApiFactory factory) : IClassFixture<ApiFa
 
         var admin = await scope.ServiceProvider
             .GetRequiredService<GSM.Application.Identity.Public.IUserProvisioning>()
-            .CreateGymUserAsync($"sa-{Guid.NewGuid():N}"[..16] + "@test.local", "Super Admin", "AdminPass_123",
-                UserRole.Owner, Guid.CreateVersion7()); // rol/gym irrelevantes: solo se usa FullName + id
+            .CreateSuperAdminAsync($"sa-{Guid.NewGuid():N}"[..16] + "@test.local", "Super Admin", "AdminPass_123");
 
         var gymA = MakeGym(db, "Gym A", "gym-a");
         var gymB = MakeGym(db, "Gym B", "gym-b");

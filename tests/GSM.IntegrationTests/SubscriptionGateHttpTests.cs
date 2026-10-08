@@ -146,8 +146,8 @@ public sealed class SubscriptionGateHttpTests(ApiFactory factory) : IClassFixtur
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, Password));
         login.EnsureSuccessStatusCode();
 
-        var tokens = await login.Content.ReadFromJsonAsync<AuthTokensResponse>();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
+        var tokens = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.Tokens!.AccessToken);
         return client;
     }
 

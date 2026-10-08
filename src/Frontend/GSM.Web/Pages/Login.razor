@@ -7,6 +7,21 @@
 <PageTitle>Iniciar sesión — GSM</PageTitle>
 
 @* La marca la pone AuthLayout. Aquí solo el título de la tarjeta. *@
+@if (_selection is not null)
+{
+    <MudText Typo="Typo.h6" Class="mb-2">¿A qué gimnasio quieres entrar?</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Tu cuenta tiene acceso a varios.</MudText>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+    }
+
+    <GymAccessPicker Accesses="_selection.Accesses" Busy="_submitting" OnSelect="SelectAsync" />
+    <MudButton Variant="Variant.Text" Class="mt-4" OnClick="BackToLogin">Usar otra cuenta</MudButton>
+}
+else
+{
 <MudText Typo="Typo.h6" Class="mb-6">Iniciar sesión</MudText>
 
 @if (_error is not null)
@@ -35,6 +50,7 @@
         @(_submitting ? "Entrando..." : "Entrar")
     </MudButton>
 </MudForm>
+}
 
 @code {
     // Ruta local a la que volver tras entrar (p. ej. el enlace del QR del gym). Cualquier otra cosa se ignora.
@@ -45,6 +61,7 @@
     private MudForm _form = null!;
     private bool _submitting;
     private string? _error;
+    private GymSelection? _selection;
 
     // MudForm renderiza un <button type="submit" disabled hidden> para suprimir el envío
     // implícito del navegador, así que Enter no hace nada por su cuenta: hay que atarlo.
@@ -68,24 +85,59 @@
         _submitting = true;
         try
         {
-            var me = await Session.LoginAsync(_model.Email, _model.Password);
-            Navigation.NavigateTo(GSM.UI.Shared.Auth.ReturnUrl.Sanitize(ReturnUrl) ?? GsmRoles.HomeFor(me.Role), replace: true);
+            var outcome = await Session.LoginAsync(_model.Email, _model.Password);
+            if (outcome.Selection is { } selection)
+            {
+                // Varios gyms: la persona elige a cuál entrar (el último usado, primero).
+                _selection = selection;
+                return;
+            }
+
+            Enter(outcome.Me!);
         }
         catch (ApiErrorException ex)
         {
-            _error = ex.Error switch
-            {
-                { IsUnauthorized: true } => "Credenciales inválidas.",
-                { IsForbidden: true } => ex.Error.DisplayMessage,
-                { IsRateLimited: true } => ex.Error.DisplayMessage,
-                _ => ex.Error.DisplayMessage,
-            };
+            _error = Describe(ex);
         }
         finally
         {
             _submitting = false;
         }
     }
+
+    private async Task SelectAsync(GymAccessOption access)
+    {
+        _error = null;
+        _submitting = true;
+        try
+        {
+            Enter(await Session.SelectGymAsync(_selection!, access.AccessId));
+        }
+        catch (ApiErrorException ex)
+        {
+            _error = Describe(ex);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void BackToLogin()
+    {
+        _selection = null;
+        _error = null;
+        _model.Password = string.Empty;
+    }
+
+    private void Enter(MeResponse me)
+        => Navigation.NavigateTo(GSM.UI.Shared.Auth.ReturnUrl.Sanitize(ReturnUrl) ?? GsmRoles.HomeFor(me.Role), replace: true);
+
+    private static string Describe(ApiErrorException ex) => ex.Error switch
+    {
+        { IsUnauthorized: true } => "Credenciales inválidas.",
+        _ => ex.Error.DisplayMessage,
+    };
 
     private sealed class LoginModel
     {

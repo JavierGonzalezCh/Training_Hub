@@ -9,4 +9,6 @@ namespace GSM.Infrastructure.Persistence;
 public partial class GsmDbContext
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<GymAccess> GymAccesses => Set<GymAccess>();
 }

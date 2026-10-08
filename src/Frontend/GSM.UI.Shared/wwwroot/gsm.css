@@ -255,6 +255,52 @@ body,
     color: var(--gsm-text-2);
 }
 
+/* Selector de gimnasio: un botón grande por acceso (gym + rol). */
+.gsm-access-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.gsm-access-picker__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    color: var(--gsm-text);
+    background: transparent;
+    border: 1px solid var(--gsm-border);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.gsm-access-picker__item:hover:not(:disabled) {
+    border-color: var(--mud-palette-primary);
+}
+
+.gsm-access-picker__item:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.gsm-access-picker__logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.gsm-access-picker__text {
+    display: flex;
+    flex-direction: column;
+}
+
+.gsm-access-picker__gym {
+    font-weight: 600;
+}
+
 /* El drawer va recortado bajo el appbar (ClipMode): el logo queda en la esquina superior
    izquierda, encima del menú, y el borde separa el menú del contenido. */
 .gsm-drawer {

@@ -1,0 +1,48 @@
+@* "Cambiar de gimnasio" (o de modo staff/miembro dentro del mismo gym): emite la sesión del otro acceso
+   sin pedir contraseña y recarga la app para descartar el estado del gym anterior. *@
+@inject SessionService Session
+@inject NavigationManager Navigation
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">¿A qué gimnasio quieres entrar?</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <GymAccessPicker Accesses="Accesses" Busy="_busy" OnSelect="SelectAsync" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<GymAccessOption> Accesses { get; set; } = [];
+
+    private bool _busy;
+    private string? _error;
+
+    private async Task SelectAsync(GymAccessOption access)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            var me = await Session.SwitchGymAsync(access.AccessId);
+            MudDialog.Close();
+
+            // forceLoad: el estado de las páginas y los contextos es del gym anterior.
+            Navigation.NavigateTo(GsmRoles.HomeFor(me.Role), forceLoad: true);
+        }
+        catch (ApiErrorException ex)
+        {
+            _error = ex.Error.DisplayMessage;
+            _busy = false;
+        }
+    }
+}

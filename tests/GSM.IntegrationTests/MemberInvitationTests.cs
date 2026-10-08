@@ -52,8 +52,9 @@ public sealed class MemberInvitationTests(ApiFactory factory) : IClassFixture<Ap
             var user = await db.Users.SingleAsync(u => u.Id == userId);
 
             Assert.Equal(userId, member.UserId);
-            Assert.Equal(UserRole.Member, user.Role);
-            Assert.Equal(gymId, user.GymId);
+            var access = await db.GymAccesses.SingleAsync(a => a.UserId == user.Id);
+            Assert.Equal(UserRole.Member, access.Role);
+            Assert.Equal(gymId, access.GymId);
         }
 
         // Como ese miembro: ve su ficha, no la de otro.
@@ -130,8 +131,6 @@ public sealed class MemberInvitationTests(ApiFactory factory) : IClassFixture<Ap
             NormalizedEmail = "STAFF@INVITE.LOCAL",
             EmailConfirmed = true,
             FullName = "Invite Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

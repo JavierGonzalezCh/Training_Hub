@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
 @inject IBrowserViewportService Viewport
+@inject IDialogService Dialogs
 @implements IDisposable
 
 <GsmThemeProvider Gym="@GymContext.Gym" />
@@ -44,6 +45,10 @@
                             <div class="gsm-user-card__meta">@RoleLabel(GymContext.Role)</div>
                         </div>
                         <MudDivider />
+                        @if (_accesses.Count > 1)
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.SwapHoriz" OnClick="SwitchGymAsync">Cambiar de gimnasio</MudMenuItem>
+                        }
                         <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">Cerrar sesión</MudMenuItem>
                     </ChildContent>
                 </MudMenu>
@@ -66,6 +71,7 @@
 
 @code {
     private bool _drawerOpen = true;
+    private IReadOnlyList<GymAccessOption> _accesses = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -89,9 +95,18 @@
             catch (ApiErrorException ex) when (ex.Error.IsUnauthorized)
             {
                 Navigation.NavigateTo("/login", replace: true);
+                return;
             }
         }
+
+        // Con más de un acceso (otros gyms, o el otro modo de este gym) se ofrece "Cambiar de gimnasio".
+        _accesses = await Session.GetAccessesAsync();
     }
+
+    private async Task SwitchGymAsync()
+        => await Dialogs.ShowAsync<GymSwitchDialog>(
+            "Cambiar de gimnasio",
+            new DialogParameters<GymSwitchDialog> { { x => x.Accesses, _accesses } });
 
     // En móvil el drawer se abre por encima del contenido: navegar tiene que cerrarlo.
     // En escritorio queda fijo, así que solo se cierra por debajo del breakpoint.

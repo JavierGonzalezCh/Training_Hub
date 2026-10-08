@@ -82,8 +82,6 @@ public sealed class MonthlyRevenueTests(ApiFactory factory) : IClassFixture<ApiF
             NormalizedEmail = "STAFF@REV.LOCAL",
             EmailConfirmed = true,
             FullName = "Revenue Staff",
-            Role = UserRole.Staff,
-            GymId = gym.Id,
             IsActive = true,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

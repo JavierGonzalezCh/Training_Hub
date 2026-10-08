@@ -2,6 +2,7 @@
 @layout MemberAuthLayout
 @attribute [AllowAnonymous]
 @inject IMembersClient Members
+@inject SessionService Session
 @inject NavigationManager Navigation
 
 <PageTitle>Crear cuenta — GSM</PageTitle>
@@ -11,14 +12,15 @@
 @if (_done)
 {
     <MudAlert Severity="Severity.Success" Dense="true" Class="mb-4">
-        Cuenta creada. Ya puedes iniciar sesión.
+        Listo. Ya estás dentro.
     </MudAlert>
-    <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" Href="/login">Iniciar sesión</MudButton>
+    <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" Href="/app">Continuar</MudButton>
 }
 else
 {
     <MudText Typo="Typo.body2" Class="mb-4" Color="Color.Secondary">
-        Pega el código de invitación que te dio el gimnasio y crea tu contraseña.
+        Escribe el código de invitación que te dio el gimnasio y tu documento. Si ya tienes cuenta en otro
+        gimnasio, usa tu contraseña de siempre; si no, crea una.
     </MudText>
 
     @if (_error is not null)
@@ -28,7 +30,7 @@ else
 
     <MudTextField T="string" @bind-Value="_code" Label="Código de invitación" Class="mb-3 gsm-mono" />
     <MudTextField T="string" @bind-Value="_documentNumber" Label="Documento" Class="mb-3" />
-    <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Class="mb-3" />
+    <MudTextField T="string" @bind-Value="_email" Label="Email (solo si tu ficha no lo tiene)" InputType="InputType.Email" Class="mb-3" />
     <MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password" Class="mb-4" />
 
     <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
@@ -58,7 +60,7 @@ else
     {
         _error = null;
         if (string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_documentNumber)
-            || string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+            || string.IsNullOrWhiteSpace(_password))
         {
             _error = "Rellena todos los campos.";
             return;
@@ -67,18 +69,21 @@ else
         _submitting = true;
         try
         {
-            await Members.RegisterAsync(new RegisterMemberRequest
+            var response = await Members.RegisterAsync(new RegisterMemberRequest
             {
                 Code = _code,
                 DocumentNumber = _documentNumber,
-                Email = _email,
+                Email = string.IsNullOrWhiteSpace(_email) ? null : _email.Trim(),
                 Password = _password,
             });
+
+            // Queda con la sesión iniciada.
+            await Session.StartSessionAsync(response.Session);
             _done = true;
         }
         catch (GsmApiException ex)
         {
-            // 404: código inválido o caducado. 409: el miembro ya tiene cuenta.
+            // 404: código inválido o caducado. 409: el miembro ya tiene cuenta. 401: la contraseña de su cuenta existente no coincide.
             _error = ApiError.FromException(ex).DisplayMessage;
         }
         finally
