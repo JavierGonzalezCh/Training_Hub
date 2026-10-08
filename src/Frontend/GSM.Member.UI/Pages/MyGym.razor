@@ -1,0 +1,130 @@
+@page "/app/gimnasio"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject IMeClient Me
+@inject ISnackbar Snackbar
+
+<PageTitle>Mi gimnasio — GSM</PageTitle>
+
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Mi gimnasio</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_gym is null)
+{
+    <MudAlert Severity="Severity.Normal">No pudimos cargar los datos del gimnasio.</MudAlert>
+}
+else
+{
+    var directions = GymLinks.DirectionsUrl(_gym.Latitude, _gym.Longitude, _gym.Address, _gym.City);
+    var whatsApp = GymLinks.WhatsAppUrl(_gym.WhatsAppPhone);
+    var tel = GymLinks.TelUrl(_gym.Phone);
+
+    <MudPaper Class="pa-4 mb-3 d-flex align-center" Elevation="0" Style="gap:1rem">
+        @if (!string.IsNullOrWhiteSpace(_gym.LogoUrl))
+        {
+            <img src="@_gym.LogoUrl" alt="@_gym.Name" style="width:64px;height:64px;object-fit:contain;border-radius:8px" />
+        }
+        else
+        {
+            <span class="gsm-m-brand__mark" aria-hidden="true">@GymBrand.Initial(_gym.Name)</span>
+        }
+        <MudText Typo="Typo.h6" id="gym-name">@_gym.Name</MudText>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_gym.Address) || !string.IsNullOrWhiteSpace(_gym.City))
+    {
+        <MudPaper Class="pa-4 mb-3" Elevation="0">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Dirección</MudText>
+            <MudText Typo="Typo.body1" id="gym-address">@(string.Join(", ", new[] { _gym.Address, _gym.City }.Where(s => !string.IsNullOrWhiteSpace(s))))</MudText>
+            @if (directions is not null)
+            {
+                <MudButton Href="@directions" Target="_blank" rel="noopener noreferrer" Variant="Variant.Filled"
+                           Color="Color.Primary" StartIcon="@Icons.Material.Filled.Directions" Class="mt-2" id="gym-directions">
+                    Cómo llegar
+                </MudButton>
+            }
+        </MudPaper>
+    }
+
+    @if (tel is not null || whatsApp is not null)
+    {
+        <MudPaper Class="pa-4 mb-3" Elevation="0">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Contacto</MudText>
+            @if (tel is not null)
+            {
+                <div class="d-flex align-center mb-2" style="gap:0.75rem">
+                    <MudText Typo="Typo.body1">@_gym.Phone</MudText>
+                    <MudButton Href="@tel" Size="Size.Small" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.Phone" id="gym-call">Llamar</MudButton>
+                </div>
+            }
+            @if (whatsApp is not null)
+            {
+                <MudButton Href="@whatsApp" Target="_blank" rel="noopener noreferrer" Size="Size.Small"
+                           Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Chat" id="gym-whatsapp">
+                    Escribir por WhatsApp
+                </MudButton>
+            }
+        </MudPaper>
+    }
+
+    @if (HasSocial)
+    {
+        <MudPaper Class="pa-4 mb-3" Elevation="0">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Redes</MudText>
+            <div class="d-flex flex-wrap" style="gap:0.5rem">
+                @SocialLink("Instagram", _gym.InstagramUrl)
+                @SocialLink("Facebook", _gym.FacebookUrl)
+                @SocialLink("TikTok", _gym.TikTokUrl)
+                @SocialLink("Sitio web", _gym.WebsiteUrl)
+            </div>
+        </MudPaper>
+    }
+
+    @* El horario de atención (G3) y la ocupación en vivo (A5) se sumarán aquí cuando existan;
+       mientras tanto no se muestra nada para no inventar datos. *@
+}
+
+@code {
+    private MemberGymResponse? _gym;
+    private bool _loading = true;
+
+    private bool HasSocial => _gym is not null
+        && (!string.IsNullOrWhiteSpace(_gym.InstagramUrl) || !string.IsNullOrWhiteSpace(_gym.FacebookUrl)
+            || !string.IsNullOrWhiteSpace(_gym.TikTokUrl) || !string.IsNullOrWhiteSpace(_gym.WebsiteUrl));
+
+    private static RenderFragment SocialLink(string label, string? url) => builder =>
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return;
+        }
+
+        builder.OpenComponent<MudButton>(0);
+        builder.AddAttribute(1, "Href", url);
+        builder.AddAttribute(2, "Target", "_blank");
+        builder.AddAttribute(3, "Size", Size.Small);
+        builder.AddAttribute(4, "Variant", Variant.Outlined);
+        builder.AddAttribute(5, "ChildContent", (RenderFragment)(b => b.AddContent(0, label)));
+        builder.CloseComponent();
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _gym = await Me.GymGET2Async();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

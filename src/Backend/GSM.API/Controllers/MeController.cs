@@ -27,7 +27,7 @@ public sealed class MeController : ControllerBase
     /// <summary>Datos del gimnasio del miembro: ubicación, contacto y redes ("Mi gimnasio").</summary>
     [HttpGet("gym")]
     [ProducesResponseType<MemberGymResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<MemberGymResponse>> Gym(
+    public async Task<ActionResult<MemberGymResponse>> MyGym(
         [FromServices] GetMyGymHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
