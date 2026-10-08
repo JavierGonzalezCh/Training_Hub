@@ -130,13 +130,16 @@ public sealed record PlatformTotals(
 
 // --- Impersonación ------------------------------------------------------------------------
 
-public sealed record OpenImpersonationRequest(string Reason);
+/// <param name="Reason">Obligatorio.</param>
+/// <param name="Mode"><c>read</c> (por defecto) o <c>write</c>.</param>
+public sealed record OpenImpersonationRequest(string Reason, string Mode = "read");
 
 public sealed record ImpersonationTokenResponse(
     string Token,
     DateTimeOffset ExpiresAtUtc,
     Guid SessionId,
     Guid GymId,
+    string Mode,
     string TokenType = "Bearer");
 
 public sealed record ImpersonationItem(
@@ -145,6 +148,8 @@ public sealed record ImpersonationItem(
     Guid GymId,
     string GymName,
     string Reason,
+    string Mode,
+    int ActionCount,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt);
 
@@ -164,3 +169,12 @@ public sealed record MonthlyMetricItem(
     int CheckIns);
 
 public sealed record MonthlyMetricsResponse(IReadOnlyList<MonthlyMetricItem> Months);
+
+/// <summary>Una petición hecha durante la sesión (consulta o escritura).</summary>
+public sealed record ImpersonationActionItem(
+    Guid Id,
+    string Method,
+    string Endpoint,
+    string Summary,
+    int StatusCode,
+    DateTimeOffset OccurredAt);

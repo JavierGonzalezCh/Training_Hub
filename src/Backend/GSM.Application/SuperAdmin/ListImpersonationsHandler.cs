@@ -1,5 +1,6 @@
 using GSM.Application.SuperAdmin.Abstractions;
 using GSM.Application.SuperAdmin.Contracts;
+using GSM.Domain.SuperAdmin;
 
 namespace GSM.Application.SuperAdmin;
 
@@ -13,7 +14,8 @@ public sealed class ListImpersonationsHandler(IImpersonationSessionRepository se
 
         return rows
             .Select(r => new ImpersonationItem(
-                r.Id, r.SuperAdminUserId, r.GymId, r.GymName, r.Reason, r.StartedAt, r.EndedAt))
+                r.Id, r.SuperAdminUserId, r.GymId, r.GymName, r.Reason,
+                ImpersonationModeName.ToClaim(r.Mode), r.ActionCount, r.StartedAt, r.EndedAt))
             .ToList();
     }
 }

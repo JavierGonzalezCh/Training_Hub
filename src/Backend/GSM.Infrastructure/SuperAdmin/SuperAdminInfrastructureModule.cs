@@ -15,6 +15,7 @@ public static class SuperAdminInfrastructureRegistration
         services.AddScoped<IGymSubscriptionRepository, GymSubscriptionRepository>();
         services.AddScoped<ISubscriptionPaymentRepository, SubscriptionPaymentRepository>();
         services.AddScoped<IImpersonationSessionRepository, ImpersonationSessionRepository>();
+        services.AddSingleton<IImpersonationActionRecorder, ImpersonationActionRecorder>();
         services.AddScoped<ISubscriptionReader, SubscriptionReader>();
         services.AddScoped<IMonthlyMetricRepository, MonthlyMetricRepository>();
         services.AddScoped<GSM.Application.Identity.Abstractions.IGymLoginGate, SubscriptionLoginGate>();

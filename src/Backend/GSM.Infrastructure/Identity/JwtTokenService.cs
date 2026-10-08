@@ -48,6 +48,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
             [GsmClaims.GymId] = request.GymId.ToString(),
             [GsmClaims.Impersonating] = "true",
             [GsmClaims.ImpersonationSession] = request.SessionId.ToString(),
+            [GsmClaims.ImpersonationMode] = request.CanWrite ? GsmClaims.ImpersonationModeWrite : "read",
         };
 
         return Issue(claims, ImpersonationTokenMinutes);

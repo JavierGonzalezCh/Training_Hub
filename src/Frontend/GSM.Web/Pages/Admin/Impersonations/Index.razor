@@ -19,12 +19,15 @@ else if (_items.Count == 0)
 }
 else
 {
-    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0">
+    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0" T="ImpersonationItem">
         <HeaderContent>
             <MudTh>Gym</MudTh>
             <MudTh>Motivo</MudTh>
+            <MudTh>Modo</MudTh>
+            <MudTh>Acciones</MudTh>
             <MudTh>Inicio</MudTh>
             <MudTh>Fin</MudTh>
+            <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Gym">
@@ -33,15 +36,66 @@ else
                 </MudLink>
             </MudTd>
             <MudTd DataLabel="Motivo">@context.Reason</MudTd>
+            <MudTd DataLabel="Modo">
+                <MudChip T="string" Size="Size.Small" Color="@(context.Mode == "write" ? Color.Warning : Color.Default)">
+                    @(context.Mode == "write" ? "Escritura" : "Lectura")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Acciones">@context.ActionCount</MudTd>
             <MudTd DataLabel="Inicio">@GsmFormat.Instant(context.StartedAt)</MudTd>
             <MudTd DataLabel="Fin">@(context.EndedAt is { } end ? GsmFormat.Instant(end) : "En curso")</MudTd>
+            <MudTd>
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ToggleAsync(context.Id))">
+                    @(_openId == context.Id ? "Ocultar" : "Ver acciones")
+                </MudButton>
+            </MudTd>
         </RowTemplate>
+        <ChildRowContent>
+            @if (_openId == context.Id)
+            {
+                <MudTr>
+                    <td colspan="7">
+                        @if (_actionsLoading)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        }
+                        else if (_actions.Count == 0)
+                        {
+                            <MudText Color="Color.Secondary">Sin acciones registradas.</MudText>
+                        }
+                        else
+                        {
+                            <MudSimpleTable Dense="true" Elevation="0" Class="gsm-impersonation-actions">
+                                <thead>
+                                    <tr><th>Hora</th><th>Método</th><th>Endpoint</th><th>Resumen</th><th>Estado</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var action in _actions)
+                                    {
+                                        <tr>
+                                            <td>@GsmFormat.Instant(action.OccurredAt)</td>
+                                            <td>@action.Method</td>
+                                            <td>@action.Endpoint</td>
+                                            <td>@action.Summary</td>
+                                            <td>@action.StatusCode</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        }
+                    </td>
+                </MudTr>
+            }
+        </ChildRowContent>
     </MudTable>
 }
 
 @code {
     private List<ImpersonationItem> _items = [];
+    private List<ImpersonationActionItem> _actions = [];
+    private Guid? _openId;
     private bool _loading = true;
+    private bool _actionsLoading;
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,6 +111,31 @@ else
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task ToggleAsync(Guid sessionId)
+    {
+        if (_openId == sessionId)
+        {
+            _openId = null;
+            return;
+        }
+
+        _openId = sessionId;
+        _actions = [];
+        _actionsLoading = true;
+        try
+        {
+            _actions = (await AdminImpersonation.ActionsAsync(sessionId)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _actionsLoading = false;
         }
     }
 }

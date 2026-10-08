@@ -1,3 +1,4 @@
+using GSM.API.Auth;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.SuperAdmin.Public;
 using Microsoft.AspNetCore.Mvc;
@@ -41,7 +42,8 @@ public sealed class SubscriptionGateFilter(ILogger<SubscriptionGateFilter> logge
                 .GetEffectiveStatusAsync(gymId, http.RequestAborted);
 
         var decision = SubscriptionGate.Evaluate(
-            status, currentUser.IsSuperAdmin, currentUser.IsImpersonating, hasGym: true, isRead, isExempt);
+            status, currentUser.IsSuperAdmin, currentUser.IsImpersonating, hasGym: true, isRead, isExempt,
+            impersonationCanWrite: ImpersonationClaims.CanWrite(http.User));
 
         if (decision == SubscriptionGate.Decision.Allow)
         {
@@ -53,7 +55,7 @@ public sealed class SubscriptionGateFilter(ILogger<SubscriptionGateFilter> logge
             SubscriptionGate.Decision.BlockedSuspended =>
                 "La cuenta del gimnasio está suspendida. Contacta con soporte.",
             SubscriptionGate.Decision.BlockedImpersonation =>
-                "La sesión de impersonación es de solo lectura: no se permite ninguna escritura.",
+                "La sesión de impersonación es de solo lectura: no se permite ninguna escritura. Abre una en modo escritura.",
             _ =>
                 "La suscripción del gimnasio está inhabilitada por falta de pago: solo lectura hasta regularizar el pago.",
         };

@@ -19,4 +19,9 @@ public static class GsmClaims
 
     /// <summary>Id de la sesión de auditoría de impersonación.</summary>
     public const string ImpersonationSession = "impersonation_session";
+
+    /// <summary>Modo de la impersonación: <c>read</c> (solo GET) o <c>write</c> (todos los métodos).</summary>
+    public const string ImpersonationMode = "impersonation_mode";
+
+    public const string ImpersonationModeWrite = "write";
 }

@@ -15,6 +15,26 @@ public interface IImpersonationSessionRepository
     /// <summary>Historial de auditoría, del más reciente al más antiguo, con el nombre del gym.</summary>
     Task<IReadOnlyList<ImpersonationAuditRow>> GetHistoryAsync(
         Guid? gymId, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>Acciones de una sesión, de la más antigua a la más reciente.</summary>
+    Task<IReadOnlyList<ImpersonationAction>> GetActionsAsync(
+        Guid sessionId, int limit, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Registra una acción de una sesión de impersonación <b>fuera</b> de la transacción de la petición
+/// (con su propio ámbito y su propio contexto). Nunca lanza: si guardar falla, se loguea y la
+/// petición sigue.
+/// </summary>
+public interface IImpersonationActionRecorder
+{
+    Task RecordAsync(
+        Guid sessionId,
+        string method,
+        string endpoint,
+        string summary,
+        int statusCode,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record ImpersonationAuditRow(
@@ -23,5 +43,7 @@ public sealed record ImpersonationAuditRow(
     Guid GymId,
     string GymName,
     string Reason,
+    ImpersonationMode Mode,
+    int ActionCount,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt);

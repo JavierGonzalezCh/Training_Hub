@@ -12,6 +12,8 @@ public sealed class ImpersonationSessionConfiguration : IEntityTypeConfiguration
 
         builder.Property(s => s.Reason).HasMaxLength(ImpersonationSession.MaxReasonLength).IsRequired();
 
+        builder.Property(s => s.Mode).HasDefaultValue(GSM.Domain.SuperAdmin.ImpersonationMode.Read);
+
         builder.HasIndex(s => new { s.GymId, s.StartedAt });
         builder.HasIndex(s => new { s.SuperAdminUserId, s.StartedAt });
     }

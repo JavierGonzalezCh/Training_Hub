@@ -50,6 +50,7 @@ public sealed class GsmAuthenticationStateProvider(ITokenStore tokenStore) : Aut
         if (payload.Impersonating)
         {
             claims.Add(new Claim("impersonating", "true"));
+            claims.Add(new Claim("impersonation_mode", payload.ImpersonationMode ?? "read"));
         }
 
         foreach (var permission in payload.Permissions ?? [])
@@ -68,6 +69,10 @@ public sealed class GsmAuthenticationStateProvider(ITokenStore tokenStore) : Aut
 
 public static class GsmClaimsPrincipalExtensions
 {
+    /// <summary>Impersonación en modo escritura (S6). Un token sin el claim de modo cuenta como lectura.</summary>
+    public static bool IsImpersonationWrite(this ClaimsPrincipal user)
+        => user.IsImpersonating() && user.HasClaim("impersonation_mode", "write");
+
     public static bool IsImpersonating(this ClaimsPrincipal user)
         => user.HasClaim("impersonating", "true");
 

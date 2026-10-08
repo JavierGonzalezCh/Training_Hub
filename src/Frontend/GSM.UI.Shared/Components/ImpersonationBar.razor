@@ -1,4 +1,4 @@
-@* Barra fija cuando el token trae impersonating=true (ver CLAUDE.md): solo lectura, con la
+@* Barra fija cuando el token trae impersonating=true (ver CLAUDE.md): lectura o escritura, con la
    cuenta atrás de los 15 minutos y un botón para terminar la sesión. *@
 @implements IAsyncDisposable
 @inject AuthenticationStateProvider AuthState
@@ -9,7 +9,7 @@
 {
     <div class="gsm-impersonation-bar">
         <MudIcon Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small" Class="mr-2" />
-        <span>Viendo como SuperAdmin — solo lectura @(_remaining is { } r ? $"· queda {r:mm\\:ss}" : "")</span>
+        <span>Viendo como SuperAdmin — @(_write ? "escritura" : "solo lectura") @(_remaining is { } r ? $"· queda {r:mm\\:ss}" : "")</span>
         <MudSpacer />
         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Inherit" OnClick="EndAsync">Finalizar</MudButton>
     </div>
@@ -17,6 +17,7 @@
 
 @code {
     private bool _visible;
+    private bool _write;
     private DateTimeOffset? _expiresAt;
     private TimeSpan? _remaining;
     private PeriodicTimer? _timer;
@@ -26,6 +27,7 @@
     {
         var state = await AuthState.GetAuthenticationStateAsync();
         _visible = state.User.IsImpersonating();
+        _write = state.User.IsImpersonationWrite();
         if (!_visible)
         {
             return;

@@ -22,6 +22,8 @@ public sealed class ImpersonationSession : BaseEntity
 
     public string Reason { get; private set; } = string.Empty;
 
+    public ImpersonationMode Mode { get; private set; }
+
     public DateTimeOffset StartedAt { get; private set; }
 
     public DateTimeOffset? EndedAt { get; private set; }
@@ -29,7 +31,7 @@ public sealed class ImpersonationSession : BaseEntity
     public bool IsActive => EndedAt is null;
 
     public static ImpersonationSession Open(
-        Guid superAdminUserId, Guid gymId, string reason, DateTimeOffset startedAt)
+        Guid superAdminUserId, Guid gymId, string reason, ImpersonationMode mode, DateTimeOffset startedAt)
     {
         if (superAdminUserId == Guid.Empty)
         {
@@ -53,6 +55,7 @@ public sealed class ImpersonationSession : BaseEntity
             SuperAdminUserId = superAdminUserId,
             GymId = gymId,
             Reason = trimmed,
+            Mode = mode,
             StartedAt = startedAt,
         };
     }
