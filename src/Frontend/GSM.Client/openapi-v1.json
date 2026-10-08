@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7310/"
+      "url": "http://localhost:7370/"
     }
   ],
   "paths": {
@@ -1088,6 +1088,35 @@
                   "items": {
                     "$ref": "#/components/schemas/ImpersonationItem"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/metrics/monthly": {
+      "get": {
+        "tags": [
+          "AdminMetrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyMetricsResponse"
                 }
               }
             }
@@ -7867,172 +7896,6 @@
         }
       }
     },
-    "/api/gym/staff/profiles": {
-      "get": {
-        "tags": [
-          "Staff"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StaffProfileInfo"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StaffProfileInfo"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StaffProfileInfo"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/gym/staff/audit": {
-      "get": {
-        "tags": [
-          "Staff"
-        ],
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StaffAuditResponse"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StaffAuditResponse"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StaffAuditResponse"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/gym/staff/{id}/permissions": {
-      "put": {
-        "tags": [
-          "Staff"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateStaffPermissionsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/StaffResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StaffResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StaffResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/gym/staff/{id}": {
       "delete": {
         "tags": [
@@ -9525,12 +9388,6 @@
           },
           "fullName": {
             "type": "string"
-          },
-          "profile": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -11245,6 +11102,132 @@
                 "$ref": "#/components/schemas/SubscriptionInfo"
               }
             ]
+          }
+        }
+      },
+      "MonthlyMetricItem": {
+        "required": [
+          "month",
+          "mrr",
+          "collected",
+          "newGyms",
+          "trialGymsAtClose",
+          "convertedGyms",
+          "lostGyms",
+          "activeGymsAtStart",
+          "activeGymsAtClose",
+          "churn",
+          "activeMembers",
+          "checkIns"
+        ],
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date"
+          },
+          "mrr": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "collected": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "newGyms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "trialGymsAtClose": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "convertedGyms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lostGyms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "activeGymsAtStart": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "activeGymsAtClose": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "churn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "activeMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "checkIns": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MonthlyMetricsResponse": {
+        "required": [
+          "months"
+        ],
+        "type": "object",
+        "properties": {
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthlyMetricItem"
+            }
           }
         }
       },
@@ -13369,66 +13352,6 @@
           }
         }
       },
-      "StaffAuditResponse": {
-        "required": [
-          "id",
-          "targetUserId",
-          "targetName",
-          "actorUserId",
-          "actorName",
-          "action",
-          "permission",
-          "oldValue",
-          "newValue",
-          "at"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "targetUserId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "targetName": {
-            "type": "string"
-          },
-          "actorUserId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "actorName": {
-            "type": "string"
-          },
-          "action": {
-            "type": "string"
-          },
-          "permission": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "oldValue": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "newValue": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "StaffNotificationCount": {
         "required": [
           "count"
@@ -13520,33 +13443,12 @@
           }
         }
       },
-      "StaffProfileInfo": {
-        "required": [
-          "profile",
-          "permissions"
-        ],
-        "type": "object",
-        "properties": {
-          "profile": {
-            "type": "string"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
       "StaffResponse": {
         "required": [
           "id",
           "email",
           "fullName",
-          "isActive",
-          "profile",
-          "isAdjusted",
-          "permissions"
+          "isActive"
         ],
         "type": "object",
         "properties": {
@@ -13562,18 +13464,6 @@
           },
           "isActive": {
             "type": "boolean"
-          },
-          "profile": {
-            "type": "string"
-          },
-          "isAdjusted": {
-            "type": "boolean"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         }
       },
@@ -14376,24 +14266,6 @@
           }
         }
       },
-      "UpdateStaffPermissionsRequest": {
-        "required": [
-          "profile",
-          "permissions"
-        ],
-        "type": "object",
-        "properties": {
-          "profile": {
-            "type": "string"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
       "UpdateSubscriptionRequest": {
         "required": [
           "plan",
@@ -14439,6 +14311,9 @@
     },
     {
       "name": "AdminImpersonation"
+    },
+    {
+      "name": "AdminMetrics"
     },
     {
       "name": "AdminPayments"

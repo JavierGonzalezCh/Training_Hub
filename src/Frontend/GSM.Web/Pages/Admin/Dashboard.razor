@@ -47,6 +47,8 @@ else if (_dashboard is { } d)
         </MudItem>
     </MudGrid>
 
+    <MonthlyMetricsPanel />
+
     <MudText Typo="Typo.h6" Class="mb-2">Cartera por estado</MudText>
     <div class="d-flex flex-wrap mb-6" style="gap:0.5rem">
         @foreach (var (status, count) in d.Portfolio.CountByStatus)

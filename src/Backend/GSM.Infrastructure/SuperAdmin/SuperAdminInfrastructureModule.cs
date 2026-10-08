@@ -16,6 +16,7 @@ public static class SuperAdminInfrastructureRegistration
         services.AddScoped<ISubscriptionPaymentRepository, SubscriptionPaymentRepository>();
         services.AddScoped<IImpersonationSessionRepository, ImpersonationSessionRepository>();
         services.AddScoped<ISubscriptionReader, SubscriptionReader>();
+        services.AddScoped<IMonthlyMetricRepository, MonthlyMetricRepository>();
         services.AddScoped<GSM.Application.Identity.Abstractions.IGymLoginGate, SubscriptionLoginGate>();
 
         return services;
