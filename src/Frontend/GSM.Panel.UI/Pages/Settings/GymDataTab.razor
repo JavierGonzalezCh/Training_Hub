@@ -1,0 +1,162 @@
+@* Pestaña "Datos del gym" de la configuración (la registra GymsPanelModule). *@
+@inject IGymClient Gym
+@inject SessionService Session
+@inject GymContext GymCtx
+@inject ISnackbar Snackbar
+
+@if (_loadingGym)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <MudGrid Class="mt-2" Style="max-width:640px">
+        <MudItem xs="12" sm="8">
+            <MudTextField T="string" @bind-Value="_gymModel.Name" Label="Nombre" Required="true" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_gymModel.Nit" Label="NIT" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_gymModel.Phone" Label="Teléfono" Class="mb-3" />
+            <MudTextField T="string" @bind-Value="_gymModel.Email" Label="Email" InputType="InputType.Email" Class="mb-3" />
+            <MudNumericField T="int?" @bind-Value="_gymModel.Capacity" Label="Aforo aproximado (clientes a la vez)"
+                             Min="1" Max="5000" Immediate="true" Class="mb-3"
+                             HelperText="¿Cuántas personas caben cómodamente entrenando al mismo tiempo? Con este dato calcularemos qué tan lleno está el gimnasio en tiempo real." />
+            <div class="d-flex align-center mb-3" style="gap:0.75rem">
+                <MudTextField T="string" @bind-Value="_gymModel.PrimaryColor" Label="Color primario (hex)"
+                              Error="@(!IsValidHex(_gymModel.PrimaryColor))" ErrorText="Formato #RRGGBB" />
+                <div class="gsm-swatch" style="@SwatchStyle(_gymModel.PrimaryColor)"></div>
+            </div>
+            <div class="d-flex align-center mb-4" style="gap:0.75rem">
+                <MudTextField T="string" @bind-Value="_gymModel.SecondaryColor" Label="Color secundario (hex)"
+                              Error="@(!IsValidHex(_gymModel.SecondaryColor))" ErrorText="Formato #RRGGBB" />
+                <div class="gsm-swatch" style="@SwatchStyle(_gymModel.SecondaryColor)"></div>
+            </div>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveGymAsync"
+                       Disabled="_savingGym || !IsValidHex(_gymModel.PrimaryColor) || !IsValidHex(_gymModel.SecondaryColor)">
+                @(_savingGym ? "Guardando..." : "Guardar cambios")
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Logo</MudText>
+            <MudAvatar Style="width:96px;height:96px" Square="true" Class="mb-2">
+                @if (!string.IsNullOrEmpty(GymCtx.Gym?.LogoUrl))
+                {
+                    <MudImage Src="@GymCtx.Gym!.LogoUrl" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Image" />
+                }
+            </MudAvatar>
+            <MudFileUpload T="IBrowserFile" FilesChanged="UploadLogoAsync">
+                <ActivatorContent>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_uploadingLogo">
+                        @(_uploadingLogo ? "Subiendo..." : "Cambiar logo")
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private readonly GymModel _gymModel = new();
+
+    private bool _loadingGym = true;
+    private bool _savingGym;
+    private bool _uploadingLogo;
+
+    protected override Task OnInitializedAsync() => LoadGymAsync();
+
+    private async Task LoadGymAsync()
+    {
+        _loadingGym = true;
+        try
+        {
+            var gym = await Gym.GymGETAsync();
+            _gymModel.Name = gym.Name;
+            _gymModel.Nit = gym.Nit;
+            _gymModel.Phone = gym.Phone;
+            _gymModel.Email = gym.Email;
+            _gymModel.Capacity = gym.Capacity;
+            _gymModel.PrimaryColor = gym.PrimaryColor;
+            _gymModel.SecondaryColor = gym.SecondaryColor;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loadingGym = false;
+        }
+    }
+
+    private async Task SaveGymAsync()
+    {
+        _savingGym = true;
+        try
+        {
+            await Gym.GymPUTAsync(new UpdateGymRequest
+            {
+                Name = _gymModel.Name,
+                Nit = _gymModel.Nit,
+                Phone = _gymModel.Phone,
+                Email = _gymModel.Email,
+                Capacity = _gymModel.Capacity,
+                PrimaryColor = _gymModel.PrimaryColor,
+                SecondaryColor = _gymModel.SecondaryColor,
+            });
+            await Session.BootstrapAsync(); // refresca branding/tema en el shell
+            Snackbar.Add("Datos del gym actualizados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _savingGym = false;
+        }
+    }
+
+    private async Task UploadLogoAsync(IBrowserFile file)
+    {
+        _uploadingLogo = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            await Gym.LogoAsync(new FileParameter(stream, file.Name, file.ContentType));
+            await Session.BootstrapAsync();
+            Snackbar.Add("Logo actualizado.", Severity.Success);
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500)
+        {
+            Snackbar.Add("El logo no está disponible todavía: falta configurar el almacenamiento.", Severity.Warning);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _uploadingLogo = false;
+        }
+    }
+
+    private static bool IsValidHex(string? hex)
+        => System.Text.RegularExpressions.Regex.IsMatch(hex ?? "", "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$");
+
+    private static string SwatchStyle(string? hex)
+        => $"width:32px;height:32px;border-radius:6px;border:1px solid var(--gsm-border);flex-shrink:0;background:{(IsValidHex(hex) ? hex : "transparent")}";
+
+    private sealed class GymModel
+    {
+        public int? Capacity { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Nit { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string PrimaryColor { get; set; } = "#B50016";
+        public string SecondaryColor { get; set; } = "#0AAFCA";
+    }
+}

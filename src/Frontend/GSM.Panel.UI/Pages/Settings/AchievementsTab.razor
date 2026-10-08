@@ -1,0 +1,119 @@
+@* Pestaña "Logros del gym" de la configuración (la registra AchievementsPanelModule). *@
+@inject ISnackbar Snackbar
+
+<div class="d-flex justify-end mb-3">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAchievementAsync">
+        Nuevo logro
+    </MudButton>
+</div>
+@if (_loadingAchievements)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_achievements.Count == 0)
+{
+    <MudText Color="Color.Secondary">No hay logros todavía.</MudText>
+}
+else
+{
+    <MudTable Items="_achievements" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Condición</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">@context.Name</MudTd>
+            <MudTd DataLabel="Condición">@AchievementConditionLabels.Label(context.ConditionType) · @context.ConditionValue</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @(context.IsActive ? "ACTIVO" : "INACTIVO")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAchievementAsync(context))" title="Editar" />
+                @if (context.IsActive)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => DeactivateAchievementAsync(context))" title="Desactivar" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<AchievementResponse> _achievements = [];
+    private bool _loadingAchievements = true;
+
+    protected override Task OnInitializedAsync() => LoadAchievementsAsync();
+
+    private async Task LoadAchievementsAsync()
+    {
+        _loadingAchievements = true;
+        try
+        {
+            var achievements = await AchievementsClient.AchievementsAllAsync(includeInactive: true);
+            _achievements = achievements.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loadingAchievements = false;
+        }
+    }
+
+    [Inject]
+    private IAchievementsClient AchievementsClient { get; set; } = null!;
+
+    [Inject]
+    private IDialogService Dialogs { get; set; } = null!;
+
+    private async Task OpenCreateAchievementAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<AchievementFormDialog>("Nuevo logro");
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Logro creado.", Severity.Success);
+            await LoadAchievementsAsync();
+        }
+    }
+
+    private async Task OpenEditAchievementAsync(AchievementResponse achievement)
+    {
+        var parameters = new DialogParameters<AchievementFormDialog> { { x => x.AchievementId, achievement.Id } };
+        var dialog = await Dialogs.ShowAsync<AchievementFormDialog>("Editar logro", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Logro actualizado.", Severity.Success);
+            await LoadAchievementsAsync();
+        }
+    }
+
+    private async Task DeactivateAchievementAsync(AchievementResponse achievement)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Desactivar logro", $"¿Desactivar \"{achievement.Name}\"?", yesText: "Desactivar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await AchievementsClient.AchievementsDELETEAsync(achievement.Id);
+            Snackbar.Add("Logro desactivado.", Severity.Success);
+            await LoadAchievementsAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

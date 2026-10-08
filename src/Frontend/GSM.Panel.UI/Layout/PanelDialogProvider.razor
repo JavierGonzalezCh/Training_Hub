@@ -1,0 +1,18 @@
+@* Proveedor de diálogos del panel. En el celular (por debajo de 960 px) todo diálogo se abre a
+   pantalla completa: MudDialogProvider no tiene un FullScreen global, así que el envoltorio lleva
+   la clase gsm-dialogs--fullscreen y gsm.css le da a cualquier .mud-dialog de dentro el tamaño de la
+   pantalla (los cuadros de confirmación quedan como están). En escritorio, como siempre. *@
+@implements IDisposable
+@inject ViewportState Viewport
+
+<div class="@(Viewport.IsNarrow ? "gsm-dialogs--fullscreen" : null)" data-testid="dialogs-host">
+    <MudDialogProvider CloseButton="@Viewport.IsNarrow" />
+</div>
+
+@code {
+    protected override void OnInitialized() => Viewport.Changed += OnViewportChanged;
+
+    private void OnViewportChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Viewport.Changed -= OnViewportChanged;
+}

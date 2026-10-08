@@ -3,20 +3,25 @@
 @inject SessionService Session
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
-@inject IBrowserViewportService Viewport
+@inject IBrowserViewportService BrowserViewport
+@inject ViewportState Viewport
 @inject IDialogService Dialogs
 @implements IDisposable
 
 <GsmThemeProvider Gym="@GymContext.Gym" />
 <MudPopoverProvider />
-<MudDialogProvider />
+<PanelDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout Class="gsm-shell">
     <ImpersonationBar />
     <MudAppBar Elevation="0" Class="gsm-topbar">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-                       Class="mr-2 d-md-none" OnClick="@(() => _drawerOpen = !_drawerOpen)" aria-label="Abrir menú" />
+        @* En el celular manda la barra inferior (BottomNav); el menú lateral es solo de escritorio. *@
+        @if (!Viewport.IsNarrow)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                           Class="mr-2 d-md-none" OnClick="@(() => _drawerOpen = !_drawerOpen)" aria-label="Abrir menú" />
+        }
         <a href="/" class="gsm-topbar__brand" aria-label="GSM, ir al dashboard">
             <span class="gsm-wordmark">GS<span class="accent">M</span></span>
         </a>
@@ -56,10 +61,13 @@
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
-               ClipMode="DrawerClipMode.Always" Class="gsm-drawer">
-        <NavMenu />
-    </MudDrawer>
+    @if (!Viewport.IsNarrow)
+    {
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
+                   ClipMode="DrawerClipMode.Always" Class="gsm-drawer">
+            <NavMenu />
+        </MudDrawer>
+    }
 
     <MudMainContent Class="gsm-main">
         <SubscriptionBanner />
@@ -67,6 +75,7 @@
             @Body
         </MudContainer>
     </MudMainContent>
+    <BottomNav />
 </MudLayout>
 
 @code {
@@ -77,6 +86,7 @@
     {
         GymContext.Changed += OnGymChanged;
         Navigation.LocationChanged += OnLocationChanged;
+        Viewport.Changed += OnViewportChanged;
 
         // El layout envuelve tanto el contenido autorizado como el "acceso denegado" de
         // AuthorizeRouteView: si aún no hay sesión, no tiene sentido pedir /api/auth/me.
@@ -103,6 +113,16 @@
         _accesses = await Session.GetAccessesAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Viewport.EnsureStartedAsync();
+        }
+    }
+
+    private void OnViewportChanged() => InvokeAsync(StateHasChanged);
+
     private async Task SwitchGymAsync()
         => await Dialogs.ShowAsync<GymSwitchDialog>(
             "Cambiar de gimnasio",
@@ -117,7 +137,7 @@
             return;
         }
 
-        var breakpoint = await Viewport.GetCurrentBreakpointAsync();
+        var breakpoint = await BrowserViewport.GetCurrentBreakpointAsync();
         if (breakpoint is Breakpoint.Xs or Breakpoint.Sm)
         {
             _drawerOpen = false;
@@ -146,5 +166,6 @@
     {
         GymContext.Changed -= OnGymChanged;
         Navigation.LocationChanged -= OnLocationChanged;
+        Viewport.Changed -= OnViewportChanged;
     }
 }

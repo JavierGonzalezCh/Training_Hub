@@ -1,60 +1,25 @@
 @* Navegación del panel agrupada por tarea, no por módulo: lo que se hace en el mostrador
-   arriba, la gestión comercial después y el entrenamiento al final. Ocho destinos en una
-   lista plana obligaban a leerlos todos para encontrar uno. *@
+   arriba, la gestión comercial después y el entrenamiento al final. Las entradas no se escriben
+   aquí: cada módulo declara las suyas (IPanelModule.MenuEntries) y PanelRegistry las ordena. *@
+@using GSM.Panel.UI.Navigation
 @implements IDisposable
 @inject GymContext GymContext
+@inject PanelRegistry Registry
+@inject AuthenticationStateProvider AuthState
 
 <nav class="gsm-nav" aria-label="Navegación principal">
-    <div class="gsm-nav__group">
-        <div class="gsm-nav__label">Operación</div>
-        <NavLink class="gsm-nav-link" href="/" Match="NavLinkMatch.All">
-            <MudIcon Icon="@Icons.Material.Outlined.SpaceDashboard" Size="Size.Small" /><span>Dashboard</span>
-        </NavLink>
-        <NavLink class="gsm-nav-link" href="/attendance/checkin">
-            <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Size="Size.Small" /><span>Recepción</span>
-        </NavLink>
-        <NavLink class="gsm-nav-link" href="/kiosk">
-            <MudIcon Icon="@Icons.Material.Outlined.QrCode2" Size="Size.Small" /><span>Kiosco</span>
-        </NavLink>
-        <NavLink class="gsm-nav-link" href="/attendance" Match="NavLinkMatch.All">
-            <MudIcon Icon="@Icons.Material.Outlined.FactCheck" Size="Size.Small" /><span>Asistencia</span>
-        </NavLink>
-    </div>
-
-    <div class="gsm-nav__group">
-        <div class="gsm-nav__label">Negocio</div>
-        <NavLink class="gsm-nav-link" href="/members">
-            <MudIcon Icon="@Icons.Material.Outlined.Groups" Size="Size.Small" /><span>Miembros</span>
-        </NavLink>
-        <NavLink class="gsm-nav-link" href="/plans">
-            <MudIcon Icon="@Icons.Material.Outlined.CardMembership" Size="Size.Small" /><span>Planes</span>
-        </NavLink>
-        <NavLink class="gsm-nav-link" href="/payments">
-            <MudIcon Icon="@Icons.Material.Outlined.Payments" Size="Size.Small" /><span>Pagos y caja</span>
-        </NavLink>
-        <NavLink class="gsm-nav-link" href="/communications">
-            <MudIcon Icon="@Icons.Material.Outlined.Campaign" Size="Size.Small" /><span>Comunicaciones</span>
-        </NavLink>
-    </div>
-
-    <div class="gsm-nav__group">
-        <div class="gsm-nav__label">Entrenamiento</div>
-        <NavLink class="gsm-nav-link" href="/classes">
-            <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" /><span>Clases</span>
-        </NavLink>
-        <NavLink class="gsm-nav-link" href="/exercises">
-            <MudIcon Icon="@Icons.Material.Outlined.FitnessCenter" Size="Size.Small" /><span>Ejercicios</span>
-        </NavLink>
-    </div>
-
-    <RequireRole Roles="@GsmRoles.Owner">
+    @foreach (var group in _groups)
+    {
         <div class="gsm-nav__group">
-            <div class="gsm-nav__label">Gestión</div>
-            <NavLink class="gsm-nav-link" href="/settings">
-                <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" /><span>Configuración</span>
-            </NavLink>
+            <div class="gsm-nav__label">@group.Label</div>
+            @foreach (var entry in group.Entries)
+            {
+                <NavLink class="gsm-nav-link" href="@entry.Href" Match="@(entry.MatchAll ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                    <MudIcon Icon="@entry.Icon" Size="Size.Small" /><span>@entry.Title</span>
+                </NavLink>
+            }
         </div>
-    </RequireRole>
+    }
 
     @if (GymContext.Gym is { } gym)
     {
@@ -69,7 +34,14 @@
 </nav>
 
 @code {
-    protected override void OnInitialized() => GymContext.Changed += OnGymChanged;
+    private IReadOnlyList<PanelMenuGroup> _groups = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        GymContext.Changed += OnGymChanged;
+        var state = await AuthState.GetAuthenticationStateAsync();
+        _groups = Registry.GetMenu(state.User);
+    }
 
     private void OnGymChanged() => InvokeAsync(StateHasChanged);
 

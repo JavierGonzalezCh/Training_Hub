@@ -26,6 +26,7 @@ public static class GsmUiSharedServiceCollectionExtensions
         services.AddScoped<GymContext>();
         services.AddScoped<SessionService>();
         services.AddScoped<ImpersonationService>();
+        services.AddScoped<GSM.UI.Shared.Components.ViewportState>();
         return services;
     }
 }
