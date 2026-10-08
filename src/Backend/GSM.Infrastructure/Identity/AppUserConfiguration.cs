@@ -5,12 +5,20 @@ namespace GSM.Infrastructure.Identity;
 
 public sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
 {
+    public const string SingleSuperAdminIndex = "ux_users_single_super_admin";
+
     public void Configure(EntityTypeBuilder<AppUser> builder)
     {
         // La tabla y el schema se fijan en GsmDbContext.OnModelCreating.
         builder.Property(u => u.FullName).HasMaxLength(200).IsRequired();
         builder.Property(u => u.IsSuperAdmin).HasDefaultValue(false);
         builder.Property(u => u.IsActive).HasDefaultValue(true);
+
+        // Solo una cuenta puede ser SuperAdmin (V5): índice único parcial.
+        builder.HasIndex(u => u.IsSuperAdmin)
+            .IsUnique()
+            .HasDatabaseName(SingleSuperAdminIndex)
+            .HasFilter("is_super_admin");
 
         builder.HasMany(u => u.RefreshTokens)
             .WithOne()

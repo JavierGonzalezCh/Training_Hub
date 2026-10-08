@@ -73,9 +73,27 @@ public sealed class UserProvisioning(UserManager<AppUser> userManager, GsmDbCont
             throw new ConflictException($"Ya existe un usuario con el email '{email}'.");
         }
 
-        var user = await CreateAccountAsync(email, fullName, password, isSuperAdmin: true);
-        return user.Id;
+        // Hay una sola cuenta de SuperAdmin (V5).
+        if (await dbContext.Users.AnyAsync(u => u.IsSuperAdmin, cancellationToken))
+        {
+            throw new ConflictException("Ya existe una cuenta de SuperAdmin; solo puede haber una.");
+        }
+
+        try
+        {
+            var user = await CreateAccountAsync(email, fullName, password, isSuperAdmin: true);
+            return user.Id;
+        }
+        catch (DbUpdateException ex) when (IsSingleSuperAdminViolation(ex))
+        {
+            // Carrera: otra petición creó el SuperAdmin entre la comprobación y el insert.
+            throw new ConflictException("Ya existe una cuenta de SuperAdmin; solo puede haber una.");
+        }
     }
+
+    internal static bool IsSingleSuperAdminViolation(DbUpdateException ex) =>
+        ex.InnerException is Npgsql.PostgresException { SqlState: "23505" } pg
+        && pg.ConstraintName == AppUserConfiguration.SingleSuperAdminIndex;
 
     private async Task<AppUser> CreateAccountAsync(
         string email, string fullName, string password, bool isSuperAdmin = false)

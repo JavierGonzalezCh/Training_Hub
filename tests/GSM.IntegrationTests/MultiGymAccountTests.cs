@@ -374,6 +374,9 @@ public sealed class MultiGymAccountTests(ApiFactory factory) : IClassFixture<Api
         using (var scope = factory.CreateScopeWithMigration())
         {
             scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+            // S5: solo puede haber un SuperAdmin; se retira el de corridas anteriores.
+            await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Database
+                .ExecuteSqlRawAsync("delete from identity.users where is_super_admin");
             await scope.ServiceProvider.GetRequiredService<IUserProvisioning>()
                 .CreateSuperAdminAsync(email, "Root", Password);
         }

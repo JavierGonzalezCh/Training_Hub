@@ -2353,6 +2353,11 @@ namespace GSM.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_users");
 
+                    b.HasIndex("IsSuperAdmin")
+                        .IsUnique()
+                        .HasDatabaseName("ux_users_single_super_admin")
+                        .HasFilter("is_super_admin");
+
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 

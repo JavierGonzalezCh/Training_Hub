@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,6 +28,13 @@ public static class IdentityDataSeeder
         if (await userManager.FindByEmailAsync(options.Email) is not null)
         {
             return;
+        }
+
+        var dbContext = services.GetRequiredService<GSM.Infrastructure.Persistence.GsmDbContext>();
+        if (await dbContext.Users.AnyAsync(u => u.IsSuperAdmin, cancellationToken))
+        {
+            throw new GSM.Domain.Common.Exceptions.ConflictException(
+                "Ya existe una cuenta de SuperAdmin distinta de 'Seed:SuperAdmin'; solo puede haber una.");
         }
 
         var superAdmin = new AppUser
