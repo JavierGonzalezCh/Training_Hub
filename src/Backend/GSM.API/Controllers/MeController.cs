@@ -168,18 +168,22 @@ public sealed class MeController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("communication-preferences")]
-    [ProducesResponseType<CommunicationPreferencesResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<CommunicationPreferencesResponse>> CommunicationPreferences(
-        [FromServices] GetCommunicationPreferencesHandler handler, CancellationToken cancellationToken)
+    /// <summary>
+    /// Preferencias de avisos por categoría y canal (push y correo). Sin fila, los valores por defecto:
+    /// todo encendido salvo Promociones. La bandeja de la app siempre recibe todo.
+    /// </summary>
+    [HttpGet("notification-preferences")]
+    [ProducesResponseType<NotificationPreferencesResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<NotificationPreferencesResponse>> NotificationPreferences(
+        [FromServices] GetMyNotificationPreferencesHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
-    /// <summary>Activa o desactiva los avisos del gym por email (no afecta a los transaccionales).</summary>
-    [HttpPut("communication-preferences")]
-    [ProducesResponseType<CommunicationPreferencesResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<CommunicationPreferencesResponse>> UpdateCommunicationPreferences(
-        UpdateCommunicationPreferencesRequest request,
-        [FromServices] UpdateCommunicationPreferencesHandler handler,
+    /// <summary>Cambia las preferencias de las categorías enviadas; las demás conservan su valor.</summary>
+    [HttpPut("notification-preferences")]
+    [ProducesResponseType<NotificationPreferencesResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<NotificationPreferencesResponse>> UpdateNotificationPreferences(
+        UpdateNotificationPreferencesRequest request,
+        [FromServices] UpdateMyNotificationPreferencesHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
 

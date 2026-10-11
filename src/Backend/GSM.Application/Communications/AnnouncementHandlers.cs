@@ -68,7 +68,8 @@ public sealed class CreateAnnouncementHandler(
         }
 
         var announcement = Announcement.CreateDraft(
-            gymId, authorId, request.Title, request.Body, request.Pinned, request.ExpiresOn, request.SendEmail);
+            gymId, authorId, request.Title, request.Body, request.Pinned, request.ExpiresOn, request.SendEmail,
+            request.Category);
         announcements.Add(announcement);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -89,7 +90,7 @@ public sealed class UpdateAnnouncementHandler(
         var announcement = await announcements.GetAsync(id, cancellationToken)
             ?? throw new NotFoundException("Anuncio no encontrado.");
 
-        announcement.Edit(request.Title, request.Body, request.ExpiresOn, request.SendEmail);
+        announcement.Edit(request.Title, request.Body, request.ExpiresOn, request.SendEmail, request.Category);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Anuncio {AnnouncementId} editado", id);
@@ -121,7 +122,7 @@ public sealed class PublishAnnouncementHandler(
         await events.PublishAsync(
             new AnnouncementPublished(
                 announcement.Id, announcement.GymId, announcement.Title, announcement.Body,
-                announcement.SendEmail, audience),
+                announcement.SendEmail, audience, announcement.Category),
             cancellationToken);
 
         logger.LogInformation(
@@ -241,7 +242,7 @@ internal static class AnnouncementMapper
 {
     public static AnnouncementResponse ToResponse(Announcement a, ReactionCounts? reactions, EmailDelivery? delivery) => new(
         a.Id, a.Title, a.Body, a.Status.ToString(), a.PublishedAt, a.Pinned, a.ExpiresOn, a.SendEmail, a.CreatedAt,
-        reactions ?? ReactionCounts.None, delivery);
+        reactions ?? ReactionCounts.None, delivery, a.Category.ToString());
 
     public static async Task<IReadOnlyDictionary<Guid, EmailDelivery>> GetDeliveryAsync(
         INotificationReader notificationReader, IReadOnlyCollection<Guid> announcementIds, CancellationToken cancellationToken)

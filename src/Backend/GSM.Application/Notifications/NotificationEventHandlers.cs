@@ -10,6 +10,7 @@ using GSM.Application.Communications.Events;
 using GSM.Application.Members.Public;
 using GSM.Application.Notifications.Abstractions;
 using GSM.Domain.Attendance;
+using GSM.Domain.Communications;
 using GSM.Domain.Members;
 using GSM.Domain.Notifications;
 using Microsoft.Extensions.Logging;
@@ -118,7 +119,9 @@ public sealed class AnnouncementPublishedCreatesNotices(
             domainEvent.GymId,
             domainEvent.MemberIds,
             NotificationType.Announcement,
-            NotificationCategory.News,
+            domainEvent.Category == AnnouncementCategory.Promotions
+                ? NotificationCategory.Promotions
+                : NotificationCategory.News,
             domainEvent.AnnouncementId,
             domainEvent.Title,
             domainEvent.Body,

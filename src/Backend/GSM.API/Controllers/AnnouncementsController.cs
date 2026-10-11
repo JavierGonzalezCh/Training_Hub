@@ -2,6 +2,7 @@ using GSM.API.Auth;
 using GSM.Application.Common;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
+using GSM.Domain.Communications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,12 +25,17 @@ public sealed class AnnouncementsController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(query, cancellationToken));
 
-    /// <summary>Cuántos miembros recibirían un anuncio por email (activos, con email y sin baja).</summary>
+    /// <summary>
+    /// Cuántos miembros recibirían un anuncio por email (activos, con email y con el correo de su categoría
+    /// encendido: Novedades o Promociones).
+    /// </summary>
     [HttpGet("email-audience")]
     [ProducesResponseType<EmailAudienceResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<EmailAudienceResponse>> EmailAudience(
-        [FromServices] GetEmailAudienceHandler handler, CancellationToken cancellationToken)
-        => Ok(await handler.HandleAsync(cancellationToken));
+        [FromServices] GetEmailAudienceHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] AnnouncementCategory category = AnnouncementCategory.GymNews)
+        => Ok(await handler.HandleAsync(category, cancellationToken));
 
     [HttpGet("/api/communications/reminder-settings")]
     [ProducesResponseType<CommunicationsSettingsResponse>(StatusCodes.Status200OK)]

@@ -66,6 +66,15 @@ public sealed class NotificationDelivery : BaseEntity, ITenantEntity
         };
     }
 
+    /// <summary>Correo que no se envía porque el miembro apagó ese canal para la categoría (N4). Sin cuerpo.</summary>
+    public static NotificationDelivery CreateSkippedEmail(
+        Guid gymId, Guid notificationId, string toAddress, string subject)
+    {
+        var delivery = CreateEmail(gymId, notificationId, toAddress, subject, string.Empty, string.Empty);
+        delivery.Status = DeliveryStatus.Skipped;
+        return delivery;
+    }
+
     public void MarkSent(DateTimeOffset now)
     {
         Status = DeliveryStatus.Sent;

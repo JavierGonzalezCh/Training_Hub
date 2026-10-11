@@ -13,6 +13,7 @@ public sealed class AnnouncementConfiguration : IEntityTypeConfiguration<Announc
         builder.Property(a => a.Title).HasMaxLength(Announcement.TitleMaxLength).IsRequired();
         builder.Property(a => a.Body).HasMaxLength(Announcement.BodyMaxLength).IsRequired();
         builder.Property(a => a.Status).HasColumnName("status");
+        builder.Property(a => a.Category).HasColumnName("category");
 
         builder.HasIndex(a => new { a.GymId, a.Status, a.PublishedAt });
     }

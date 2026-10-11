@@ -3,10 +3,6 @@ namespace GSM.Application.Communications.Contracts;
 /// <summary>Correos de un anuncio enviado por email.</summary>
 public sealed record EmailDelivery(int Pending, int Sent, int Failed);
 
-public sealed record CommunicationPreferencesResponse(bool EmailOptOut);
-
-public sealed record UpdateCommunicationPreferencesRequest(bool EmailOptOut);
-
 public sealed record CommunicationsSettingsResponse(int ReminderDaysBefore);
 
 public sealed record UpdateCommunicationsSettingsRequest(int ReminderDaysBefore);

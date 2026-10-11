@@ -4,28 +4,6 @@ using GSM.Domain.Common.Exceptions;
 namespace GSM.Domain.Communications;
 
 /// <summary>
-/// Preferencias del miembro. Sin fila = valores por defecto (recibe emails). Solo afecta a los
-/// correos de comunicaciones; los transaccionales (invitación, contraseña) no dependen de esto.
-/// </summary>
-public sealed class MemberCommunicationPreferences : BaseEntity, ITenantEntity
-{
-    private MemberCommunicationPreferences()
-    {
-    }
-
-    public Guid GymId { get; private set; }
-
-    public Guid MemberId { get; private set; }
-
-    public bool EmailOptOut { get; private set; }
-
-    public static MemberCommunicationPreferences Create(Guid gymId, Guid memberId)
-        => new() { GymId = gymId, MemberId = memberId };
-
-    public void SetEmailOptOut(bool optOut) => EmailOptOut = optOut;
-}
-
-/// <summary>
 /// Ajustes de comunicaciones del gym. Perezosos, como los de check-in: sin fila se usan los
 /// valores por defecto y la fila se crea en el primer cambio.
 /// </summary>

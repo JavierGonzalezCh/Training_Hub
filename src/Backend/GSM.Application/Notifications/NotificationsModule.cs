@@ -15,6 +15,7 @@ public static class NotificationsModuleRegistration
         services.AddScoped<MemberNoticeWriter>();
         services.AddScoped<NotificationDispatchRunner>();
         services.AddScoped<INotificationReader, NotificationReader>();
+        services.AddScoped<INotificationPreferenceReader, NotificationPreferenceReader>();
 
         return services;
     }

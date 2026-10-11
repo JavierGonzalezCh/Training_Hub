@@ -1,5 +1,4 @@
 using GSM.Application.Common.Abstractions;
-using GSM.Application.Communications.Public;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Members.Public;
 using GSM.Application.Notifications.Abstractions;
@@ -24,15 +23,16 @@ public sealed record MemberNotice(
 /// misma <c>(tipo, miembro, referencia)</c>, no hace nada. Lo comparten los manejadores de eventos de
 /// Notifications. No guarda: el llamante decide cuándo hacer <c>SaveChanges</c>.
 /// <para>
-/// El correo respeta el interruptor de baja que hoy es de Comunicaciones (lectura por
-/// <see cref="ICommunicationPreferencesReader"/>); las preferencias por categoría llegan en N4.
+/// El correo respeta la preferencia del miembro para la categoría del aviso (N4): si la apagó, la entrega
+/// se crea como <c>skipped</c> (el aviso llega a la bandeja igual). Los avisos de seguridad no tienen preferencia.
 /// </para>
 /// </summary>
 public sealed class MemberNoticeWriter(
     INotificationRepository notifications,
     IMemberReader members,
     IGymReader gyms,
-    ICommunicationPreferencesReader preferences,
+    IMemberNotificationPreferenceRepository preferences,
+    IUnsubscribeLinks unsubscribeLinks,
     IClock clock)
 {
     /// <returns><c>true</c> si se creó el aviso; <c>false</c> si ya existía.</returns>
@@ -49,9 +49,9 @@ public sealed class MemberNoticeWriter(
             var contact = await members.GetContactAsync(notice.MemberId, cancellationToken);
             if (contact is not null)
             {
-                var optedOut = await preferences.GetEmailOptedOutAsync([contact.Id], cancellationToken);
+                var enabled = await EmailEnabledAsync([contact.Id], notice.Category, cancellationToken);
                 var gymName = await GymNameAsync(notice.GymId, cancellationToken);
-                AddEmail(notification, contact, gymName, optedOut, notice.Title, notice.Body);
+                AddEmail(notification, contact, gymName, enabled, notice.Title, notice.Body);
             }
         }
 
@@ -83,7 +83,7 @@ public sealed class MemberNoticeWriter(
         }
 
         IReadOnlyDictionary<Guid, MemberContactView> contacts = new Dictionary<Guid, MemberContactView>();
-        IReadOnlySet<Guid> optedOut = new HashSet<Guid>();
+        IReadOnlySet<Guid> emailEnabled = new HashSet<Guid>();
         var gymName = string.Empty;
         if (emailBody is not null)
         {
@@ -91,7 +91,7 @@ public sealed class MemberNoticeWriter(
             contacts = (await members.GetEmailContactsAsync(gymId, cancellationToken))
                 .Where(c => wanted.Contains(c.Id))
                 .ToDictionary(c => c.Id);
-            optedOut = await preferences.GetEmailOptedOutAsync(contacts.Keys.ToList(), cancellationToken);
+            emailEnabled = await EmailEnabledAsync(contacts.Keys.ToList(), category, cancellationToken);
             gymName = await GymNameAsync(gymId, cancellationToken);
         }
 
@@ -101,7 +101,7 @@ public sealed class MemberNoticeWriter(
             var notification = Add(new MemberNotice(gymId, memberId, type, category, referenceId, title, body, link));
             if (emailBody is not null
                 && contacts.TryGetValue(memberId, out var contact)
-                && AddEmail(notification, contact, gymName, optedOut, title, emailBody))
+                && AddEmail(notification, contact, gymName, emailEnabled, title, emailBody))
             {
                 emails++;
             }
@@ -119,19 +119,44 @@ public sealed class MemberNoticeWriter(
         return notification;
     }
 
+    /// <summary>De los miembros, a quiénes les llega el correo de la categoría. Seguridad: a todos.</summary>
+    private async Task<IReadOnlySet<Guid>> EmailEnabledAsync(
+        IReadOnlyCollection<Guid> memberIds, NotificationCategory category, CancellationToken cancellationToken)
+    {
+        if (!MemberNotificationPreference.IsConfigurable(category))
+        {
+            return memberIds.ToHashSet();
+        }
+
+        var rows = await preferences.GetForMembersAsync(memberIds, category, cancellationToken);
+        var byDefault = MemberNotificationPreference.Defaults(category).Email;
+        return memberIds.Where(id => rows.TryGetValue(id, out var row) ? row.Email : byDefault).ToHashSet();
+    }
+
+    /// <returns><c>true</c> si el correo quedó en cola para enviarse; <c>false</c> si no hay a quién o quedó <c>skipped</c>.</returns>
     private bool AddEmail(
         Notification notification, MemberContactView contact, string gymName,
-        IReadOnlySet<Guid> optedOut, string title, string body)
+        IReadOnlySet<Guid> emailEnabled, string title, string body)
     {
-        if (contact.Status != MemberStatus.Active
-            || string.IsNullOrWhiteSpace(contact.Email)
-            || optedOut.Contains(contact.Id))
+        if (contact.Status != MemberStatus.Active || string.IsNullOrWhiteSpace(contact.Email))
         {
             return false;
         }
 
+        var category = notification.Category ?? NotificationCategory.Security;
+        if (!emailEnabled.Contains(contact.Id))
+        {
+            notifications.AddDelivery(NotificationDelivery.CreateSkippedEmail(
+                notification.GymId, notification.Id, contact.Email, $"{gymName}: {title}"));
+            return false;
+        }
+
+        // Los de seguridad no tienen preferencia, así que tampoco enlace de baja.
+        var unsubscribeUrl = MemberNotificationPreference.IsConfigurable(category)
+            ? unsubscribeLinks.BuildUrl(contact.Id, notification.GymId, category)
+            : null;
         var (subject, html, text) = NotificationEmails.Compose(
-            gymName, contact.FirstName, title, body, preferences.BuildUnsubscribeUrl(contact.Id, notification.GymId));
+            gymName, contact.FirstName, title, body, unsubscribeUrl, NotificationCategoryLabels.Es(category));
         notifications.AddDelivery(NotificationDelivery.CreateEmail(
             notification.GymId, notification.Id, contact.Email, subject, html, text));
         return true;

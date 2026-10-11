@@ -52,6 +52,7 @@ public interface INotificationRepository
 
     // ---- dispatcher ----
 
+    /// <summary>Pendientes cuya hora llegó, y retenidos (<c>held</c>) cuyo horario sin avisos ya terminó.</summary>
     Task<IReadOnlyList<Notification>> GetDueAsync(DateTimeOffset now, int take, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<NotificationDelivery>> GetDeliveriesAsync(

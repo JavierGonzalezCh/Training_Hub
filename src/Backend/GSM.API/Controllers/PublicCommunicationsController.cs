@@ -1,5 +1,5 @@
 using GSM.API.Filters;
-using GSM.Application.Communications;
+using GSM.Application.Notifications;
 using GSM.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,12 +23,13 @@ public sealed class PublicCommunicationsController : ControllerBase
     {
         try
         {
-            await handler.HandleAsync(t, cancellationToken);
-            return Page(200, "Listo", "No recibirás más avisos del gimnasio por email. Puedes volver a activarlos desde la app.");
+            var category = await handler.HandleAsync(t, cancellationToken);
+            var what = category is null ? "avisos del gimnasio" : $"correos de «{category}»";
+            return Page(200, "Listo", $"No recibirás más {what} por email. Puedes volver a activarlos desde las preferencias de la app.");
         }
         catch (ValidationDomainException)
         {
-            return Page(400, "Enlace no válido", "Este enlace de baja no es válido. Puedes desactivar los avisos por email desde la app.");
+            return Page(400, "Enlace no válido", "Este enlace de baja no es válido. Puedes desactivar los avisos por email desde las preferencias de la app.");
         }
     }
 

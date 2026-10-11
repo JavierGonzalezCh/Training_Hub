@@ -41,8 +41,12 @@ public sealed class Announcement : BaseEntity, ITenantEntity
 
     public bool SendEmail { get; private set; }
 
+    /// <summary>Novedades del gym o Promociones: define qué preferencia del miembro se respeta (CO1).</summary>
+    public AnnouncementCategory Category { get; private set; } = AnnouncementCategory.GymNews;
+
     public static Announcement CreateDraft(
-        Guid gymId, Guid authorUserId, string title, string body, bool pinned, DateOnly? expiresOn, bool sendEmail)
+        Guid gymId, Guid authorUserId, string title, string body, bool pinned, DateOnly? expiresOn, bool sendEmail,
+        AnnouncementCategory category = AnnouncementCategory.GymNews)
     {
         if (gymId == Guid.Empty)
         {
@@ -54,6 +58,7 @@ public sealed class Announcement : BaseEntity, ITenantEntity
             GymId = gymId,
             AuthorUserId = authorUserId,
             Pinned = pinned,
+            Category = category,
         };
         announcement.Apply(title, body, expiresOn, sendEmail);
         return announcement;
@@ -63,9 +68,16 @@ public sealed class Announcement : BaseEntity, ITenantEntity
     /// Cambia el contenido. Sobre un anuncio publicado cambia lo que se ve en la app, pero no
     /// reenvía correos: por eso <paramref name="sendEmail"/> solo cuenta mientras es borrador.
     /// </summary>
-    public void Edit(string title, string body, DateOnly? expiresOn, bool sendEmail)
+    public void Edit(
+        string title, string body, DateOnly? expiresOn, bool sendEmail, AnnouncementCategory? category = null)
     {
         EnsureNotArchived("editar");
+        if (category is { } newCategory && Status == AnnouncementStatus.Draft)
+        {
+            // Publicado, la categoría ya decidió a quién se le avisó: no cambia.
+            Category = newCategory;
+        }
+
         Apply(title, body, expiresOn, Status == AnnouncementStatus.Draft ? sendEmail : SendEmail);
     }
 
