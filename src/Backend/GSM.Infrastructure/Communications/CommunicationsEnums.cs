@@ -9,5 +9,6 @@ public sealed class CommunicationsEnums : IModuleEnums
     [
         PgEnumMapping.Of<GSM.Domain.Communications.AnnouncementStatus>("announcement_status", "communications", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Communications.ReactionKind>("reaction_kind", "communications", LowerCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Communications.WhatsAppTemplateKind>("whatsapp_template_kind", "communications", SnakeCaseNameTranslator.Instance),
     ];
 }

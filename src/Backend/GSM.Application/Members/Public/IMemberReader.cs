@@ -24,11 +24,23 @@ public interface IMemberReader
     Task<IReadOnlyList<Guid>> GetActiveMemberIdsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Celular de cada miembro en E.164 (<c>+573001234567</c>), listo para <c>wa.me</c>. Quien no tiene
+    /// celular o no es interpretable no aparece. Para el botón de WhatsApp (Comunicaciones).
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, string>> GetWhatsAppPhonesAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
+
+    /// <summary>La invitación más reciente sin canjear del miembro (puede estar vencida: lo decide quien llama). <c>null</c> si no hay.</summary>
+    Task<MemberInvitationView?> GetPendingInvitationAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Miembros activos por gym, en una sola consulta (panel de SuperAdmin). Un gym sin miembros
     /// activos no aparece.
     /// </summary>
     Task<IReadOnlyDictionary<Guid, int>> GetActiveCountsByGymAsync(CancellationToken cancellationToken = default);
 }
+
+public sealed record MemberInvitationView(string Code, DateTimeOffset ExpiresAt);
 
 public sealed record MemberContactView(
     Guid Id,

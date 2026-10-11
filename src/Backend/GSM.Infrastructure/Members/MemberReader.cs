@@ -53,6 +53,40 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
             .Select(m => m.Id)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, string>> GetWhatsAppPhonesAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var rows = await Members
+            .Where(m => memberIds.Contains(m.Id) && m.Phone != null)
+            .Select(m => new { m.Id, m.Phone })
+            .ToListAsync(cancellationToken);
+
+        var result = new Dictionary<Guid, string>();
+        foreach (var row in rows)
+        {
+            var normalized = PhoneNumber.TryNormalize(row.Phone);
+            if (normalized is not null)
+            {
+                result[row.Id] = normalized;
+            }
+        }
+
+        return result;
+    }
+
+    public Task<MemberInvitationView?> GetPendingInvitationAsync(
+        Guid memberId, CancellationToken cancellationToken = default)
+        => dbContext.Set<MemberInvitation>()
+            .Where(i => i.MemberId == memberId && i.RedeemedAt == null)
+            .OrderByDescending(i => i.ExpiresAt)
+            .Select(i => new MemberInvitationView(i.Code, i.ExpiresAt))
+            .FirstOrDefaultAsync(cancellationToken);
+
     private static IQueryable<MemberInfo> Project(IQueryable<Member> source)
         => source.Select(m => new MemberInfo(
             m.Id, m.GymId, m.UserId, m.FirstName, m.LastName, m.Status));

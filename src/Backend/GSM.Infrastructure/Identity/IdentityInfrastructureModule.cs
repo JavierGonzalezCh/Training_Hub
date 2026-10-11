@@ -49,6 +49,7 @@ public static class IdentityInfrastructureRegistration
         services.AddTransient<ResetTokenProvider>();
         services.AddTransient<ActivationTokenProvider>();
         services.AddSingleton<IAccountLinkBuilder, AccountLinkBuilder>();
+        services.AddSingleton<IMemberRegistrationLinks>(sp => (AccountLinkBuilder)sp.GetRequiredService<IAccountLinkBuilder>());
         services.AddScoped<IAccountLinkService, AccountLinkService>();
         services.AddScoped<IUserCredentialsService, UserCredentialsService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();

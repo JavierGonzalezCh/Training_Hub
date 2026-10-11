@@ -16,6 +16,7 @@ public static class CommunicationsInfrastructureRegistration
         services.AddScoped<IMemberFeedStateRepository, MemberFeedStateRepository>();
         services.AddScoped<IMemberCommunicationPreferencesRepository, MemberCommunicationPreferencesRepository>();
         services.AddScoped<ICommunicationsSettingsRepository, CommunicationsSettingsRepository>();
+        services.AddScoped<IWhatsAppRepository, WhatsAppRepository>();
         services.AddSingleton<IUnsubscribeLinks, UnsubscribeLinks>();
         services.AddOptions<CommunicationsOptions>()
             .Bind(configuration.GetSection(CommunicationsOptions.SectionName))
