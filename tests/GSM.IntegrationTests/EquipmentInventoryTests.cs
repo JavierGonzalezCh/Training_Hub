@@ -414,6 +414,7 @@ public sealed class EquipmentInventoryTests(ApiFactory factory) : IClassFixture<
                 scope.ServiceProvider.GetRequiredService<ICurrentUserService>(),
                 scope.ServiceProvider.GetRequiredService<IEquipmentItemRepository>(),
                 scope.ServiceProvider.GetRequiredService<IEquipmentModelRepository>(),
+                scope.ServiceProvider.GetRequiredService<IClock>(),
                 storage,
                 scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
 

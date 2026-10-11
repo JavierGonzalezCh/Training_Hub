@@ -1,0 +1,146 @@
+@page "/equipment/{Id:guid}"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IEquipmentClient Equipment
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_item?.Name ?? "Equipo") — GSM</PageTitle>
+
+<MudLink Href="/equipment" Class="mb-3 d-inline-block">&larr; Equipos</MudLink>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_item is null)
+{
+    <MudAlert Severity="Severity.Error" data-testid="detail-error">@_error</MudAlert>
+}
+else
+{
+    <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+        <MudAvatar Size="Size.Large" Variant="Variant.Outlined">
+            @{
+                var image = _item.PhotoUrl ?? _item.ModelImageUrl;
+            }
+            @if (!string.IsNullOrEmpty(image))
+            {
+                <MudImage Src="@image" Alt="@_item.Name" ObjectFit="ObjectFit.Cover" />
+            }
+            else
+            {
+                <MudIcon Icon="@EquipmentDisplay.TypeIcon(_item.Type)" />
+            }
+        </MudAvatar>
+        <div>
+            <MudText Typo="Typo.h4">@_item.Name</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @EquipmentDisplay.TypeLabel(_item.Type) · @(_item.Zone ?? "sin zona")
+                @if (_item.Quantity > 1)
+                {
+                    <span> · @_item.Quantity unidades</span>
+                }
+            </MudText>
+        </div>
+        <MudSpacer />
+        <MudChip T="string" Color="@EquipmentDisplay.StatusColor(_item.Status)" Variant="Variant.Text" Class="gsm-mono" data-testid="detail-status">
+            @EquipmentDisplay.StatusLabel(_item.Status).ToUpperInvariant()
+        </MudChip>
+        @if (_item.IsOverdue)
+        {
+            <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Class="gsm-mono" data-testid="detail-overdue">VENCIDA</MudChip>
+        }
+        @if (_item.IsActive)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeStatusAsync" data-testid="change-status">
+                Cambiar estado
+            </MudButton>
+        }
+    </div>
+
+    @if (_item.Status != "Available" && _item.ExpectedBackOn is { } back)
+    {
+        <MudText Class="mb-3" data-testid="expected-back">
+            Se espera de vuelta el @GsmFormat.Day(back).@(_item.IsOverdue ? " Ya pasó esa fecha y sigue sin volver." : string.Empty)
+        </MudText>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-2">Historial de estado</MudText>
+    @if (_history.Count == 0)
+    {
+        <MudText Color="Color.Secondary" data-testid="history-empty">Todavía no hay cambios de estado.</MudText>
+    }
+    else
+    {
+        <MudTable Items="_history" Dense="true" Elevation="0" Hover="true" data-testid="history">
+            <HeaderContent>
+                <MudTh>Cuándo</MudTh>
+                <MudTh>Cambio</MudTh>
+                <MudTh>Motivo</MudTh>
+                <MudTh>Quién</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Cuándo">@GsmFormat.Instant(context.ChangedAt)</MudTd>
+                <MudTd DataLabel="Cambio">
+                    @EquipmentDisplay.StatusLabel(context.FromStatus) → @EquipmentDisplay.StatusLabel(context.ToStatus)
+                    @if (context.ExpectedBackOn is { } expected)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Regresa el @GsmFormat.Day(expected)</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Motivo">@(context.Reason ?? "—")</MudTd>
+                <MudTd DataLabel="Quién">@(context.ChangedByName ?? "—")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private EquipmentItemResponse? _item;
+    private List<EquipmentStatusChangeResponse> _history = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _item = await Equipment.GetEquipmentAsync(Id);
+            _history = (await Equipment.GetEquipmentHistoryAsync(Id)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _item = null;
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ChangeStatusAsync()
+    {
+        var parameters = new DialogParameters<EquipmentStatusDialog>
+        {
+            { x => x.EquipmentId, _item!.Id },
+            { x => x.Name, _item.Name },
+            { x => x.CurrentStatus, _item.Status },
+        };
+        var dialog = await Dialogs.ShowAsync<EquipmentStatusDialog>(
+            "Cambiar estado", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Estado actualizado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+}

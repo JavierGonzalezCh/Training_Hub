@@ -20,6 +20,15 @@ public sealed class SaveEquipmentRequestValidator : AbstractValidator<SaveEquipm
     }
 }
 
+public sealed class ChangeEquipmentStatusRequestValidator : AbstractValidator<ChangeEquipmentStatusRequest>
+{
+    public ChangeEquipmentStatusRequestValidator()
+    {
+        RuleFor(x => x.Status).IsInEnum();
+        RuleFor(x => x.Reason).MaximumLength(EquipmentStatusChange.ReasonMaxLength);
+    }
+}
+
 public sealed class AddEquipmentFromModelsRequestValidator : AbstractValidator<AddEquipmentFromModelsRequest>
 {
     public AddEquipmentFromModelsRequestValidator()

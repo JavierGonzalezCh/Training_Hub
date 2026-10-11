@@ -35,4 +35,11 @@ public interface IEquipmentItemRepository
     Task<int> CountActiveByModelAsync(Guid modelId, CancellationToken cancellationToken = default);
 
     void Add(EquipmentItem item);
+
+    /// <summary>Añade una fila al historial de estado (solo se añaden).</summary>
+    void AddStatusChange(EquipmentStatusChange change);
+
+    /// <summary>Historial de estado de una máquina, el más reciente primero.</summary>
+    Task<IReadOnlyList<EquipmentStatusChange>> ListStatusChangesAsync(
+        Guid itemId, CancellationToken cancellationToken = default);
 }

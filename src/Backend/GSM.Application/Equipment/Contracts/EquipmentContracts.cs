@@ -33,7 +33,8 @@ public sealed record EquipmentItemResponse(
     DateOnly? ExpectedBackOn,
     DateOnly? AcquiredOn,
     string? Notes,
-    bool IsActive);
+    bool IsActive,
+    bool IsOverdue);
 
 /// <summary>Crea (máquina propia) o edita una máquina. El estado no se cambia aquí (E2).</summary>
 public sealed record SaveEquipmentRequest(
@@ -46,6 +47,23 @@ public sealed record SaveEquipmentRequest(
     int Quantity,
     DateOnly? AcquiredOn,
     string? Notes);
+
+/// <summary>
+/// Cambia el estado de una máquina. <c>Reason</c> es obligatorio al pasar a mantenimiento o fuera de
+/// servicio. <c>ExpectedBackOn</c> (opcional) solo aplica fuera de disponible y no puede ser pasada.
+/// </summary>
+public sealed record ChangeEquipmentStatusRequest(EquipmentStatus Status, string? Reason, DateOnly? ExpectedBackOn);
+
+/// <summary>Una fila del historial de estado. <c>ChangedByName</c> sale de Identity (null si la cuenta ya no existe).</summary>
+public sealed record EquipmentStatusChangeResponse(
+    Guid Id,
+    string FromStatus,
+    string ToStatus,
+    string? Reason,
+    DateOnly? ExpectedBackOn,
+    Guid? ChangedByUserId,
+    string? ChangedByName,
+    DateTimeOffset ChangedAt);
 
 /// <summary>Un modelo del catálogo que el gym tiene, con cuántos y en qué zona.</summary>
 public sealed record EquipmentFromModelItem(Guid ModelId, int Quantity, string? Zone);
