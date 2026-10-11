@@ -183,6 +183,7 @@ escribir notificaciones y correos: publica eventos (§4.3).
 | Tu premio vence en 3 días | Miembro con premio pendiente | Mi progreso | ✓ | ✓ | | | No aplica |
 | Clase nueva | Miembros activos | Novedades | ✓ | ✓ | | | Aplica |
 | Anuncio | Su audiencia | Novedades o Promociones | ✓ | ✓ | Si el anuncio lo pide | | Aplica |
+| Anuncio **importante** | Su audiencia | La del anuncio, sin preferencia | ✓ (feed, fijo arriba) | ✓ | Si el anuncio lo pide | | Exento |
 | Cumpleaños | Miembro | Novedades | ✓ | ✓ | | | Sale a las 8:00 |
 | Entrada con tu documento | Miembro | — (seguridad, sin preferencia) | ✓ | ✓ | ✓ | | Exento |
 | La máquina que reportaste ya funciona | Miembro que reportó | Novedades | ✓ | ✓ | | | Aplica |
@@ -217,6 +218,7 @@ recordatorio de clase **no** usan correo: llegarían tarde.
 - **Miembros:** por categoría y canal, como lo definió Comunicaciones (v2 §C). La bandeja siempre
   recibe todo. Los avisos de seguridad no tienen preferencia.
 - **Staff:** por tipo de aviso, solo para el push (§8).
+- **Anuncio importante** (decidido 2026-10-11): casilla al publicar, **solo el Owner**, y queda registrado quién la marcó. Se salta el horario sin avisos y las preferencias de Novedades/Promociones (como los avisos de seguridad), y queda fijo arriba en el feed hasta su fecha. No entra en la bandeja (pregunta 8).
 - **Horario sin avisos** del gym (21:00–7:00 por defecto): los avisos de las categorías que aplican
   quedan en `held` y salen al terminar. Lo exento sale siempre.
 
@@ -225,7 +227,7 @@ recordatorio de clase **no** usan correo: llegarían tarde.
 | Sub-etapa | Qué |
 |---|---|
 | **N1** | Schema `notifications`, migración de la bandeja y la cola de correos desde Comunicaciones, dispatcher con candado, bandeja general del staff (reemplaza la campana de intentos rechazados), avisos de acción compartidos. Sin push todavía. |
-| **N2** | Push web: Firebase, registro de dispositivos, PWA del miembro y panel instalable, pedido de permiso en contexto, preferencias de push del staff. |
+| **N2** | Push web: Firebase, registro de dispositivos, PWA del miembro y panel instalable, pedido de permiso en contexto, preferencias de push del staff. Incluye el **anuncio importante** (§9, decidido 2026-10-11). |
 | **N3** | Push en Android nativo (MAUI). Requiere probar en un teléfono o emulador real. |
 | **N4** | Preferencias del miembro por categoría y canal, y horario sin avisos (con Comunicaciones CO1 y CO6). |
 | **N5** | Avisos programados y cancelables: recordatorio de clase, cumpleaños, recordatorios de vencimiento. |
