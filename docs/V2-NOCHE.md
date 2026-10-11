@@ -47,9 +47,11 @@
 | S6 | **Unida** | Modos `read`/`write`, firma "GSM", auditoría por petición. Ver pregunta 17. **Ola 1 cerrada**; suite 309 + 144; `CLAUDE.md` actualizado |
 | B3 | **Unida** | Causa: nada fijaba la cultura y el selector no tenía `ToStringFunc`. Marcado corregido en `BUGS.md`. bUnit 135 |
 | G2 | **Unida** | Sin mapa con pin (solo lat/long y "Ver en el mapa"). Suite 327 + 150 |
-| E1 | En curso | — |
+| E1 | **Unida** | 55 modelos sembrados (lista en el commit del agente); sin imágenes (ícono por tipo); foto del inventario sin verificar con R2. Ver pregunta 18. Suite 354 + 162 |
+| G3 | En curso | — |
+| CO3 | En curso | — |
 | M2 | En curso | el texto base de las autorizaciones es un borrador pendiente de revisión legal |
-| I1 | **Terminada, SIN unir** (rama `v2-I1-bloqueo-y-enlaces`). Falta unir y correr la suite. Config nueva `Identity:PublicWebBaseUrl` (producción) | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
+| I1 | **Unida** | Config nueva `Identity:PublicWebBaseUrl` (producción). Suite 343 + 156 | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -72,6 +74,8 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 15. **MS1: membresía que empieza en el futuro.** Un miembro cuya única membresía empieza mañana queda `no_plan` y bloqueado hoy. La spec no lo define. ¿Debería tener otro estado (p. ej. "programada")?
 16. **MS1/A3: el kiosco todavía muestra nombres.** `/kiosk` sigue mostrando los nombres de pila de las últimas entradas y de los intentos rechazados; la spec (Memberships §5.3) dice que solo muestra el QR, "Bienvenido" y "¿Problemas para ingresar?…". Se dejó para A3 (kiosco con cuenta de dispositivo). ¿Correcto, o se corrige antes?
 17. **S6: un token de impersonación en modo escritura también sirve para `/api/admin/*`** (su rol real sigue siendo superadmin; antes de S6 solo pasaba con GET). Es la misma persona y queda auditado. ¿Se restringe el token de impersonación a los endpoints del gym?
+18. **E1: nombres de las unidades y catálogo.** Agregar "Bicicleta estática × 3" crea "Bicicleta estática 1…3" (la spec decía "Bicicleta 1…3" sin decir cómo acortar). Se sembraron 55 modelos (la spec decía ~40). El listado con bajas (`includeInactive`) no está restringido al Owner en la API, aunque la UI solo lo ofrece al Owner.
+19. **I1: activación y sesiones.** (a) Cada "Copiar enlace" genera un enlace nuevo y no invalida los anteriores; todos mueren cuando la persona define su contraseña. (b) Cambiar la contraseña cierra las otras sesiones revocando sus refresh tokens, pero sus access tokens viven hasta 60 min (relacionado con la pregunta 11). (c) El alta del Owner por SuperAdmin todavía pide contraseña; la invitación por enlace del Owner llega con G1.
 6. **R2: decisiones del agente para validar.** (a) Cambiar el modo (semanal ↔ rotativa) por `PUT` crea la rutina nueva, desactiva la anterior y **reinicia `starts_on` a hoy**; (b) en semanal no hay filas de descanso y mandar `dayOfWeek` en una rotativa es 422; (c) en semanal, "duración del ciclo" se muestra como "N días de entrenamiento".
 5. **R1 → R2: racha y días retirados.** Al retirar un día, deja de contar en el calendario de racha **también hacia atrás** (el calendario solo ve los días vigentes). Para el modo semanal (R2) conviene decidir si la racha se calcula con el calendario vigente en cada fecha.
 
@@ -108,6 +112,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- Reanudación tras el tercer corte por límite de uso. I1 unida (343 + 156; conflicto en `MemberLayout`, cliente regenerado). E1 unida (354 + 162; hubo que poner el alias `EquipmentType` en los Designers de S6, I1 y G2). Lanzadas G3 y CO3; M2 reanudada.
 - G2 unida (327 + 150). I1 terminada sin unir; E1 y M2 en curso. Sesión cortada por el límite de uso.
 - S6 unida (309 + 144): **Ola 1 cerrada**. Lanzada M2. Cliente regenerado (idéntico al unido, solo cambia `openapi-v1.json`). `CLAUDE.md` actualizado con las notas de I2, I3, N1, MS1, AP2 y S6.
 - S7 y MS1 unidas (300 + 141). En MS1 hubo que combinar a mano el diálogo de asignar con el arreglo de B3. Lanzadas G2 y E1.
