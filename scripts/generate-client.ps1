@@ -27,10 +27,12 @@ if ($PSVersionTable.PSVersion.Major -ge 6) {
     Invoke-WebRequest -Uri $OpenApiUrl -OutFile $specPath -SkipCertificateCheck
 }
 else {
-    # Windows PowerShell 5.1 no tiene -SkipCertificateCheck.
-    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
-    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest -Uri $OpenApiUrl -OutFile $specPath -UseBasicParsing
+    # Windows PowerShell 5.1: Invoke-WebRequest corta la conexión con el certificado de desarrollo
+    # ("Error inesperado de envío") aunque se fuerce TLS 1.2. curl.exe viene con Windows 10/11.
+    & curl.exe --silent --show-error --fail --insecure --output $specPath $OpenApiUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "No se pudo descargar $OpenApiUrl (curl.exe salió con $LASTEXITCODE). ¿Está corriendo la API?"
+    }
 }
 
 Write-Host "Generando el cliente con NSwag ..."
