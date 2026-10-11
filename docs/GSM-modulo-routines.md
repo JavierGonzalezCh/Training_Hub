@@ -288,6 +288,7 @@ datos sensibles.**
 | **R2** | Modo semanal + racha con calendario semanal. |
 | **R2b** | Racha con el calendario vigente en cada fecha (días retirados y rutinas anteriores). Decidido 2026-10-11. |
 | **R3** | Catálogo v2: tipo, `tracking_type`, unilateral, nivel, músculos nuevos (con la corrección de los ejercicios del sistema), grupo muscular derivado y filtro en dos pasos, ocultar y duplicar. |
+| **R3b** | Medida `weight_distance` (peso + distancia) y Paseo del granjero pasa a usarla. Decidido 2026-10-11. |
 | **R4** | Series planeadas una por una, superseries, registros por serie y comparación planeado vs hecho en la app. |
 | **R5** | (Requiere E1 y E2 de Equipment.) Alternativas: recomendadas (tabla) + sugeridas automáticamente, "Cambiar por…" en el editor y "Hacer otro ejercicio hoy" en la app (depende de R4 para el registro por serie). |
 | **R6** | Subida de imagen y video al ejercicio (depende de configurar R2). |
