@@ -1,0 +1,100 @@
+@page "/app/avisos"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@* Preferencias de avisos del miembro (N4/CO1): por categoría y canal (push y correo). La bandeja de la app
+   siempre recibe todo. Promociones empieza apagado y se ofrece aceptarlo aquí. *@
+@inject IMeClient Me
+@inject ISnackbar Snackbar
+
+<PageTitle>Preferencias de avisos — GSM</PageTitle>
+
+<h1 class="gsm-m-section gsm-m-section--page">Preferencias de avisos</h1>
+<p class="gsm-m-card__text mb-4">
+    Todos los avisos llegan siempre a tu bandeja en la app. Aquí eliges cuáles te llegan además como notificación
+    push y por correo. Los avisos de seguridad de tu cuenta se envían siempre.
+</p>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <ul class="gsm-pref-list">
+        @foreach (var item in _items)
+        {
+            <li class="gsm-m-card gsm-pref" data-category="@item.Category">
+                <div class="gsm-m-card__body">
+                    <h2 class="gsm-m-card__title">@item.Label</h2>
+                    <p class="gsm-m-card__text">@Describe(item.Category)</p>
+                    @if (item.Category == "Promotions" && !item.Push && !item.Email)
+                    {
+                        <p class="gsm-m-card__text"><strong>Apagado.</strong> Activa un canal si quieres recibir ofertas de tu gimnasio.</p>
+                    }
+                </div>
+                <div class="gsm-pref__switches">
+                    <MudSwitch T="bool" Value="item.Push" ValueChanged="v => ChangeAsync(item, v, item.Email)" Color="Color.Primary"
+                               Disabled="_saving" Label="Push" aria-label="@($"{item.Label}: notificaciones push")" />
+                    <MudSwitch T="bool" Value="item.Email" ValueChanged="v => ChangeAsync(item, item.Push, v)" Color="Color.Primary"
+                               Disabled="_saving" Label="Correo" aria-label="@($"{item.Label}: correo")" />
+                </div>
+            </li>
+        }
+    </ul>
+    <p class="gsm-m-card__text mt-4">
+        Los avisos de Novedades y Promociones no suenan en el horario sin avisos de tu gimnasio; llegan cuando termina.
+    </p>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private List<NotificationPreferenceItem> _items = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = (await Me.NotificationPreferencesGETAsync()).Items.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ChangeAsync(NotificationPreferenceItem item, bool push, bool email)
+    {
+        _saving = true;
+        try
+        {
+            var response = await Me.NotificationPreferencesPUTAsync(new UpdateNotificationPreferencesRequest
+            {
+                Items = [new NotificationPreferenceUpdate { Category = item.Category, Push = push, Email = email }],
+            });
+            _items = response.Items.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private static string Describe(string category) => category switch
+    {
+        "Membership" => "Cuando tu plan está por vencer o ya venció.",
+        "Classes" => "Recordatorio de tu clase, lista de espera, cancelaciones.",
+        "Progress" => "Logros, premios y ranking.",
+        "News" => "Anuncios del gimnasio, clases nuevas y cumpleaños.",
+        "Promotions" => "Ofertas y promociones del gimnasio.",
+        _ => string.Empty,
+    };
+}

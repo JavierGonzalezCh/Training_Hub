@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using GSM.Application.Achievements.Events;
 using GSM.Application.Classes.Events;
 using GSM.Application.Common.Events;
@@ -6,8 +6,11 @@ using GSM.Application.Communications;
 using GSM.Application.Communications.Abstractions;
 using GSM.Application.Communications.Contracts;
 using GSM.Application.Notifications;
+using GSM.Application.Notifications.Abstractions;
+using GSM.Application.Notifications.Contracts;
 using GSM.Domain.Achievements;
 using GSM.Domain.Classes;
+using GSM.Domain.Communications;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Notifications;
 using GSM.Domain.Gyms;
@@ -121,7 +124,7 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
 
         using (var scope = Staff(world.GymId))
         {
-            Assert.Equal(3, (await scope.ServiceProvider.GetRequiredService<GetEmailAudienceHandler>().HandleAsync(default)).Recipients);
+            Assert.Equal(3, (await scope.ServiceProvider.GetRequiredService<GetEmailAudienceHandler>().HandleAsync(AnnouncementCategory.GymNews, default)).Recipients);
             var publish = scope.ServiceProvider.GetRequiredService<PublishAnnouncementHandler>();
             var published = await publish.HandleAsync(withEmail, default);
             Assert.Equal(new EmailDelivery(3, 0, 0), published.Delivery);
@@ -233,7 +236,8 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         string url;
         using (var scope = System())
         {
-            url = scope.ServiceProvider.GetRequiredService<IUnsubscribeLinks>().BuildUrl(member.Id, world.GymId);
+            url = scope.ServiceProvider.GetRequiredService<IUnsubscribeLinks>()
+                .BuildUrl(member.Id, world.GymId, NotificationCategory.News);
         }
 
         var token = Uri.UnescapeDataString(url[(url.IndexOf("t=", StringComparison.Ordinal) + 2)..]);
@@ -245,8 +249,11 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         var ok = await client.GetAsync($"/api/public/unsubscribe?t={Uri.EscapeDataString(token)}");
         Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
 
+        // El enlace apaga el correo de esa categoría (Novedades), no el de las demás.
         using var check = Member(world.GymId, member.UserId);
-        Assert.True((await check.ServiceProvider.GetRequiredService<GetCommunicationPreferencesHandler>().HandleAsync(default)).EmailOptOut);
+        var prefs = (await check.ServiceProvider.GetRequiredService<GetMyNotificationPreferencesHandler>().HandleAsync(default)).Items;
+        Assert.False(prefs.Single(p => p.Category == "News").Email);
+        Assert.True(prefs.Single(p => p.Category == "Classes").Email);
     }
 
     [Fact]
@@ -356,8 +363,8 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
     private async Task OptOutAsync(Guid gymId, Guid memberUserId)
     {
         using var scope = Member(gymId, memberUserId);
-        await scope.ServiceProvider.GetRequiredService<UpdateCommunicationPreferencesHandler>()
-            .HandleAsync(new UpdateCommunicationPreferencesRequest(true), default);
+        await scope.ServiceProvider.GetRequiredService<UpdateMyNotificationPreferencesHandler>()
+            .HandleAsync(new UpdateNotificationPreferencesRequest([new NotificationPreferenceUpdate("News", true, false)]), default);
     }
 
     private async Task<int> CountNotificationsAsync(Guid gymId, NotificationType type)
@@ -374,7 +381,8 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         return await (
             from d in db.Set<NotificationDelivery>()
             join n in db.Set<Notification>() on d.NotificationId equals n.Id
-            where d.GymId == gymId && (status == null || d.Status == status) && (type == null || n.Type == type)
+            where d.GymId == gymId && (status == null ? d.Status != DeliveryStatus.Skipped : d.Status == status)
+                && (type == null || n.Type == type)
             select d.Id).CountAsync();
     }
 

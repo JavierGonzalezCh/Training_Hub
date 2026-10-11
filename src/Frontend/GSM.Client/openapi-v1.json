@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7299/"
+      "url": "http://localhost:7350/"
     }
   ],
   "paths": {
@@ -1511,6 +1511,16 @@
       "get": {
         "tags": [
           "Announcements"
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "default": 0,
+              "$ref": "#/components/schemas/AnnouncementCategory"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -5982,7 +5992,7 @@
         }
       }
     },
-    "/api/me/communication-preferences": {
+    "/api/me/notification-preferences": {
       "get": {
         "tags": [
           "Me"
@@ -5993,17 +6003,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/CommunicationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CommunicationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CommunicationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
                 }
               }
             }
@@ -6018,17 +6028,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCommunicationPreferencesRequest"
+                "$ref": "#/components/schemas/UpdateNotificationPreferencesRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCommunicationPreferencesRequest"
+                "$ref": "#/components/schemas/UpdateNotificationPreferencesRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCommunicationPreferencesRequest"
+                "$ref": "#/components/schemas/UpdateNotificationPreferencesRequest"
               }
             }
           },
@@ -6040,17 +6050,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/CommunicationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CommunicationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CommunicationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
                 }
               }
             }
@@ -8311,6 +8321,104 @@
         }
       }
     },
+    "/api/notifications/settings": {
+      "get": {
+        "tags": [
+          "NotificationSettings"
+        ],
+        "operationId": "GetNotificationSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "NotificationSettings"
+        ],
+        "operationId": "UpdateNotificationSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationSettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/payments": {
       "post": {
         "tags": [
@@ -9993,6 +10101,10 @@
           }
         }
       },
+      "AnnouncementCategory": {
+        "type": "integer",
+        "default": 0
+      },
       "AnnouncementResponse": {
         "required": [
           "id",
@@ -10005,7 +10117,8 @@
           "sendEmail",
           "createdAt",
           "reactions",
-          "delivery"
+          "delivery",
+          "category"
         ],
         "type": "object",
         "properties": {
@@ -10058,6 +10171,9 @@
                 "$ref": "#/components/schemas/EmailDelivery"
               }
             ]
+          },
+          "category": {
+            "type": "string"
           }
         }
       },
@@ -10685,17 +10801,6 @@
           }
         }
       },
-      "CommunicationPreferencesResponse": {
-        "required": [
-          "emailOptOut"
-        ],
-        "type": "object",
-        "properties": {
-          "emailOptOut": {
-            "type": "boolean"
-          }
-        }
-      },
       "CommunicationsSettingsResponse": {
         "required": [
           "reminderDaysBefore"
@@ -10778,6 +10883,9 @@
           },
           "sendEmail": {
             "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/AnnouncementCategory"
           }
         }
       },
@@ -13635,6 +13743,83 @@
           }
         }
       },
+      "NotificationPreferenceItem": {
+        "required": [
+          "category",
+          "label",
+          "push",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "push": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotificationPreferencesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationPreferenceItem"
+            }
+          }
+        }
+      },
+      "NotificationPreferenceUpdate": {
+        "required": [
+          "category",
+          "push",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "push": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotificationSettingsResponse": {
+        "required": [
+          "quietHoursEnabled",
+          "quietStart",
+          "quietEnd"
+        ],
+        "type": "object",
+        "properties": {
+          "quietHoursEnabled": {
+            "type": "boolean"
+          },
+          "quietStart": {
+            "type": "string",
+            "format": "time"
+          },
+          "quietEnd": {
+            "type": "string",
+            "format": "time"
+          }
+        }
+      },
       "OpenImpersonationRequest": {
         "required": [
           "reason"
@@ -16348,6 +16533,16 @@
           },
           "sendEmail": {
             "type": "boolean"
+          },
+          "category": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnnouncementCategory"
+              }
+            ]
           }
         }
       },
@@ -16359,17 +16554,6 @@
         "properties": {
           "mode": {
             "type": "string"
-          }
-        }
-      },
-      "UpdateCommunicationPreferencesRequest": {
-        "required": [
-          "emailOptOut"
-        ],
-        "type": "object",
-        "properties": {
-          "emailOptOut": {
-            "type": "boolean"
           }
         }
       },
@@ -16848,6 +17032,41 @@
           }
         }
       },
+      "UpdateNotificationPreferencesRequest": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationPreferenceUpdate"
+            }
+          }
+        }
+      },
+      "UpdateNotificationSettingsRequest": {
+        "required": [
+          "quietHoursEnabled",
+          "quietStart",
+          "quietEnd"
+        ],
+        "type": "object",
+        "properties": {
+          "quietHoursEnabled": {
+            "type": "boolean"
+          },
+          "quietStart": {
+            "type": "string",
+            "format": "time"
+          },
+          "quietEnd": {
+            "type": "string",
+            "format": "time"
+          }
+        }
+      },
       "UpdatePlanRequest": {
         "required": [
           "name",
@@ -17016,6 +17235,9 @@
     },
     {
       "name": "MembershipSettings"
+    },
+    {
+      "name": "NotificationSettings"
     },
     {
       "name": "Payments"

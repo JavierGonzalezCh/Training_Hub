@@ -169,3 +169,8 @@ public partial class EquipmentClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class NotificationSettingsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

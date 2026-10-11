@@ -14,6 +14,7 @@ public sealed class NotificationSettingsController : ControllerBase
 {
     /// <summary>Horario sin avisos del gym (21:00 a 7:00 por defecto), en hora local del gym.</summary>
     [HttpGet]
+    [EndpointName("GetNotificationSettings")]
     [ProducesResponseType<NotificationSettingsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<NotificationSettingsResponse>> Get(
         [FromServices] GetNotificationSettingsHandler handler, CancellationToken cancellationToken)
@@ -24,6 +25,7 @@ public sealed class NotificationSettingsController : ControllerBase
     /// clase, lista de espera, avisos al staff, seguridad) sale siempre.
     /// </summary>
     [HttpPut]
+    [EndpointName("UpdateNotificationSettings")]
     [ProducesResponseType<NotificationSettingsResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<NotificationSettingsResponse>> Update(

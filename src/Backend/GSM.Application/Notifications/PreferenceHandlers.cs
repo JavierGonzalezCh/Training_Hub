@@ -133,14 +133,16 @@ public sealed class UpdateNotificationSettingsHandler(
         UpdateNotificationSettingsRequest request, CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
-        var current = await settings.GetAsync(gymId, cancellationToken);
-        if (current is null)
+        var existing = await settings.GetAsync(gymId, cancellationToken);
+        var current = existing ?? NotificationSettings.Default(gymId);
+
+        // Se valida antes de agregarla: una fila inválida no debe quedar en el contexto.
+        current.Update(request.QuietHoursEnabled, request.QuietStart, request.QuietEnd);
+        if (existing is null)
         {
-            current = NotificationSettings.Default(gymId);
             settings.Add(current);
         }
 
-        current.Update(request.QuietHoursEnabled, request.QuietStart, request.QuietEnd);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
