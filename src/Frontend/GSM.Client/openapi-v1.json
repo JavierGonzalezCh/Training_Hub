@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7299/"
+      "url": "http://localhost:7390/"
     }
   ],
   "paths": {
@@ -4489,6 +4489,271 @@
         }
       }
     },
+    "/api/gym/opening-hours": {
+      "get": {
+        "tags": [
+          "Gym"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningHoursResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningHoursResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningHoursResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Gym"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOpeningHoursRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOpeningHoursRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOpeningHoursRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningHoursResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningHoursResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningHoursResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/holidays": {
+      "get": {
+        "tags": [
+          "Gym"
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HolidayResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HolidayResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HolidayResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/special-days": {
+      "get": {
+        "tags": [
+          "Gym"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpecialDayResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpecialDayResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpecialDayResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gym/special-days/{date}": {
+      "put": {
+        "tags": [
+          "Gym"
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertSpecialDayRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertSpecialDayRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertSpecialDayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialDayResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialDayResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialDayResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Gym"
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/gym/logo": {
       "post": {
         "tags": [
@@ -4648,6 +4913,35 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberGymResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/gym/hours": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymHoursResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymHoursResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberGymHoursResponse"
                 }
               }
             }
@@ -11147,6 +11441,47 @@
           }
         }
       },
+      "GymOpenStatusDto": {
+        "required": [
+          "hasSchedule",
+          "isOpen",
+          "closesAt",
+          "nextOpensOn",
+          "nextOpensAt",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "hasSchedule": {
+            "type": "boolean"
+          },
+          "isOpen": {
+            "type": "boolean"
+          },
+          "closesAt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nextOpensOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "nextOpensAt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "GymOwnerResponse": {
         "required": [
           "userId",
@@ -11413,6 +11748,44 @@
               "string"
             ],
             "format": "date"
+          }
+        }
+      },
+      "HolidayResponse": {
+        "required": [
+          "date",
+          "name",
+          "isAdjusted",
+          "isClosed",
+          "slots",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isAdjusted": {
+            "type": "boolean"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDto"
+            }
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -12200,6 +12573,31 @@
           }
         }
       },
+      "MemberGymHoursResponse": {
+        "required": [
+          "status",
+          "days",
+          "upcoming"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/GymOpenStatusDto"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpeningDayDto"
+            }
+          },
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecialDayResponse"
+            }
+          }
+        }
+      },
       "MemberGymResponse": {
         "required": [
           "name",
@@ -12855,6 +13253,46 @@
           "mode": {
             "type": "string",
             "default": "read"
+          }
+        }
+      },
+      "OpeningDayDto": {
+        "required": [
+          "day",
+          "slots"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDto"
+            }
+          }
+        }
+      },
+      "OpeningHoursResponse": {
+        "required": [
+          "hasSchedule",
+          "days",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "hasSchedule": {
+            "type": "boolean"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpeningDayDto"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/GymOpenStatusDto"
           }
         }
       },
@@ -14927,6 +15365,43 @@
           }
         }
       },
+      "SpecialDayResponse": {
+        "required": [
+          "date",
+          "isClosed",
+          "slots",
+          "note",
+          "holidayName"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDto"
+            }
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "holidayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "StaffAuditResponse": {
         "required": [
           "id",
@@ -15314,6 +15789,21 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "TimeSlotDto": {
+        "required": [
+          "opens",
+          "closes"
+        ],
+        "type": "object",
+        "properties": {
+          "opens": {
+            "type": "string"
+          },
+          "closes": {
+            "type": "string"
           }
         }
       },
@@ -15989,6 +16479,20 @@
           }
         }
       },
+      "UpdateOpeningHoursRequest": {
+        "required": [
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpeningDayDto"
+            }
+          }
+        }
+      },
       "UpdatePlanRequest": {
         "required": [
           "name",
@@ -16060,6 +16564,38 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "UpsertSpecialDayRequest": {
+        "required": [
+          "isClosed",
+          "confirmClosed",
+          "slots",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "isClosed": {
+            "type": "boolean"
+          },
+          "confirmClosed": {
+            "type": "boolean"
+          },
+          "slots": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDto"
+            }
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
