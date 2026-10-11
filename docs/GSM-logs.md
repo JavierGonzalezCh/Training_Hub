@@ -81,7 +81,7 @@ Cada vez que un manejador de un evento de dominio falla.
 | Campo | Notas |
 |---|---|
 | `EventType`, `HandlerType` | Por ejemplo `GymCreated` → `CreateSubscriptionOnGymCreated`. |
-| `Payload` | El evento completo, en JSON, **para poder reintentarlo**. Limpio según §3. Si el evento lleva un dato limpiado que el reintento necesita (p. ej. el código de `MemberInvited`), el reintento no usa el payload para ese dato: lo pide de nuevo al módulo dueño (un código nuevo). Decidido 2026-10-11. |
+| `Payload` | El evento completo, en JSON, **para poder reintentarlo**. Limpio según §3. Si el evento lleva un dato limpiado que el reintento necesita (p. ej. el código de `MemberInvited`), el reintento no usa el payload para ese dato: lo pide de nuevo al módulo dueño (un código nuevo). Decidido 2026-10-11. Tope de 64 KB; por encima se guarda `{"_truncated":true}` (nunca un JSON cortado). |
 | `ExceptionType`, `Message`, `StackTrace` | |
 | `RetryStatus` | `pending`, `retried_ok`, `retried_failed`, `ignored`. |
 | `RetriedAt`, `RetriedBy` | |
@@ -194,7 +194,7 @@ Sección **"Errores"** en `/admin`:
   - **Lentitud**: endpoints más lentos.
   - **Procesos**: ejecuciones de tareas y estado de los latidos.
 - **Detalle de un grupo:** cada ocurrencia con su código de rastreo, gym, usuario, traza y petición.
-- **Búsqueda por código de rastreo:** el usuario dice "me salió el código 7F3A2C" y se encuentra al
+- **Búsqueda por código de rastreo:** el usuario dice "me salió el código 7F3A2C" y se encuentra al (la búsqueda es por prefijo de 6 caracteres y puede devolver más de uno: se distinguen por fecha y gym; aceptado 2026-10-11)
   instante.
 - **Reintentar** un evento fallido, o todos los de un grupo.
 - Un grupo **resuelto que vuelve a ocurrir** se reabre solo.
