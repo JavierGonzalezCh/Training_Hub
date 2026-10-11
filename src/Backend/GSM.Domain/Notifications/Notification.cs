@@ -62,6 +62,9 @@ public sealed class Notification : BaseEntity, ITenantEntity
 
     public DateTimeOffset? SentAt { get; private set; }
 
+    /// <summary>Si está <see cref="NotificationStatus.Held"/>: cuándo termina el horario sin avisos y puede salir.</summary>
+    public DateTimeOffset? ReleaseAt { get; private set; }
+
     public static Notification CreateForMember(
         Guid gymId, Guid memberId, NotificationType type, NotificationCategory? category, Guid referenceId,
         string title, string body, string? link, DateTimeOffset scheduledFor,
@@ -173,6 +176,19 @@ public sealed class Notification : BaseEntity, ITenantEntity
     {
         Status = NotificationStatus.Sent;
         SentAt = now;
+    }
+
+    /// <summary>
+    /// Retiene el envío (push y correo) hasta que termine el horario sin avisos. La bandeja no se ve
+    /// afectada: el aviso ya aparece en ella.
+    /// </summary>
+    public void Hold(DateTimeOffset releaseAt)
+    {
+        if (Status is NotificationStatus.Pending or NotificationStatus.Held)
+        {
+            Status = NotificationStatus.Held;
+            ReleaseAt = releaseAt;
+        }
     }
 
     public void MarkFailed() => Status = NotificationStatus.Failed;

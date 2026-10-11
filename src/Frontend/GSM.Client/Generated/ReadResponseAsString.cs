@@ -189,3 +189,8 @@ public partial class MeConsentsClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class NotificationSettingsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

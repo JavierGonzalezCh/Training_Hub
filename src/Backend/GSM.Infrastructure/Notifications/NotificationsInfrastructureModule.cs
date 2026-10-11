@@ -12,6 +12,13 @@ public static class NotificationsInfrastructureRegistration
         IConfiguration configuration)
     {
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IMemberNotificationPreferenceRepository, MemberNotificationPreferenceRepository>();
+        services.AddScoped<INotificationSettingsRepository, NotificationSettingsRepository>();
+        services.AddSingleton<IUnsubscribeLinks, UnsubscribeLinks>();
+        services.AddOptions<NotificationLinkOptions>()
+            .Bind(configuration.GetSection(NotificationLinkOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         services.AddSingleton<INotificationDispatchLock, PostgresNotificationDispatchLock>();
 
         services.Configure<NotificationDispatcherOptions>(configuration.GetSection(NotificationDispatcherOptions.SectionName));

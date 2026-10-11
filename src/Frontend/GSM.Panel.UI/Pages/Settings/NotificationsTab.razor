@@ -1,0 +1,89 @@
+@* Pestaña "Avisos" de la configuración: horario sin avisos del gym (N4/CO1 §G). Solo Owner. *@
+@inject INotificationSettingsClient Settings
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <MudSwitch T="bool" @bind-Value="_enabled" Label="Respetar un horario sin avisos" Color="Color.Primary" Class="mb-2" />
+    <div class="d-flex gap-4 flex-wrap mb-4">
+        <MudTimePicker Label="Desde" @bind-Time="_start" Disabled="!_enabled" Style="max-width:200px" />
+        <MudTimePicker Label="Hasta" @bind-Time="_end" Disabled="!_enabled" Style="max-width:200px" />
+    </div>
+    <p class="mud-typography-body2 mb-2" style="max-width:640px">
+        Dentro de ese horario, los avisos de novedades, promociones y cumpleaños (push y correo) quedan en espera y
+        salen cuando termina. Siguen entrando de inmediato el recordatorio de clase, la lista de espera, los avisos
+        al equipo y los de seguridad. La bandeja de la app siempre recibe todo.
+    </p>
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" Style="max-width:640px">
+        En Colombia, la Ley 2300 de 2023 limita los horarios y la frecuencia de los contactos de cobranza y
+        publicidad. Cómo aplica a un gimnasio debe confirmarlo un abogado: este horario es una base, no una
+        garantía de cumplimiento.
+    </MudAlert>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
+        @(_saving ? "Guardando..." : "Guardar cambios")
+    </MudButton>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _enabled = true;
+    private TimeSpan? _start = new(21, 0, 0);
+    private TimeSpan? _end = new(7, 0, 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Apply(await Settings.GetNotificationSettingsAsync());
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Apply(NotificationSettingsResponse r)
+    {
+        _enabled = r.QuietHoursEnabled;
+        _start = r.QuietStart.ToTimeSpan();
+        _end = r.QuietEnd.ToTimeSpan();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_start is null || _end is null)
+        {
+            Snackbar.Add("Elige la hora de inicio y de fin.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            Apply(await Settings.UpdateNotificationSettingsAsync(new UpdateNotificationSettingsRequest
+            {
+                QuietHoursEnabled = _enabled,
+                QuietStart = TimeOnly.FromTimeSpan(_start.Value),
+                QuietEnd = TimeOnly.FromTimeSpan(_end.Value),
+            }));
+            Snackbar.Add("Horario sin avisos guardado.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

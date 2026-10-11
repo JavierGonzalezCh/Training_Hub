@@ -28,6 +28,11 @@
 
                 @if (Existing is null || Existing.Status == "Draft")
                 {
+                    <MudSelect T="int" Value="_category" ValueChanged="CategoryChangedAsync" Label="Tipo de anuncio" Class="mt-2"
+                               HelperText="Las promociones solo les llegan por push y correo a quienes las aceptaron.">
+                        <MudSelectItem T="int" Value="0">Novedades del gym</MudSelectItem>
+                        <MudSelectItem T="int" Value="1">Promoción</MudSelectItem>
+                    </MudSelect>
                     <MudSwitch T="bool" @bind-Value="_sendEmail" Label="Enviar también por email" Color="Color.Primary" />
                     @if (_sendEmail)
                     {
@@ -79,6 +84,7 @@
     private bool _pinned;
     private bool _sendEmail;
     private int? _audience;
+    private int _category;
     private string? _error;
     private bool _submitting;
 
@@ -95,11 +101,23 @@
             _expires = a.ExpiresOn?.ToDateTime(TimeOnly.MinValue);
             _pinned = a.Pinned;
             _sendEmail = a.SendEmail;
+            _category = a.Category == "Promotions" ? 1 : 0;
         }
 
+        await LoadAudienceAsync();
+    }
+
+    private async Task CategoryChangedAsync(int category)
+    {
+        _category = category;
+        await LoadAudienceAsync();
+    }
+
+    private async Task LoadAudienceAsync()
+    {
         try
         {
-            _audience = (await Announcements.EmailAudienceAsync()).Recipients;
+            _audience = (await Announcements.EmailAudienceAsync(_category)).Recipients;
         }
         catch (GsmApiException)
         {
@@ -130,7 +148,7 @@
             {
                 id = (await Announcements.AnnouncementsPOSTAsync(new CreateAnnouncementRequest
                 {
-                    Title = _title, Body = _body, Pinned = _pinned, ExpiresOn = expires, SendEmail = _sendEmail,
+                    Title = _title, Body = _body, Pinned = _pinned, ExpiresOn = expires, SendEmail = _sendEmail, Category = _category,
                 })).Id;
             }
             else
@@ -138,7 +156,7 @@
                 id = Existing.Id;
                 await Announcements.AnnouncementsPUTAsync(id, new UpdateAnnouncementRequest
                 {
-                    Title = _title, Body = _body, ExpiresOn = expires, SendEmail = _sendEmail,
+                    Title = _title, Body = _body, ExpiresOn = expires, SendEmail = _sendEmail, Category = _category,
                 });
             }
 

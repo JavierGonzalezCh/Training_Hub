@@ -1,4 +1,5 @@
 using GSM.Application.Common.Events;
+using GSM.Domain.Communications;
 
 namespace GSM.Application.Communications.Events;
 
@@ -13,4 +14,5 @@ public sealed record AnnouncementPublished(
     string Title,
     string Body,
     bool SendEmail,
-    IReadOnlyList<Guid> MemberIds) : IDomainEvent;
+    IReadOnlyList<Guid> MemberIds,
+    AnnouncementCategory Category = AnnouncementCategory.GymNews) : IDomainEvent;

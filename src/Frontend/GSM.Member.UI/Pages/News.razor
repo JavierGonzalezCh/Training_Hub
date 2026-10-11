@@ -115,11 +115,10 @@ else
 
         <section class="gsm-m-card gsm-news-prefs">
             <div class="gsm-m-card__body">
-                <h2 class="gsm-m-card__title">Avisos por email</h2>
-                <p class="gsm-m-card__text">Anuncios del gym, clases canceladas y vencimiento de tu plan.</p>
+                <h2 class="gsm-m-card__title">Preferencias de avisos</h2>
+                <p class="gsm-m-card__text">Elige qué avisos recibes por push y por correo.</p>
             </div>
-            <MudSwitch T="bool" Value="!_emailOptOut" ValueChanged="SetEmailAsync" Color="Color.Primary"
-                       Disabled="_savingPrefs" aria-label="Recibir avisos del gimnasio por email" />
+            <MudButton Variant="Variant.Outlined" Href="/app/avisos">Configurar</MudButton>
         </section>
     }
 }
@@ -132,8 +131,6 @@ else
     private List<FeedItem> _feed = [];
     private List<NotificationItem> _notifications = [];
     private int _unreadNotifications;
-    private bool _emailOptOut;
-    private bool _savingPrefs;
     private readonly HashSet<Guid> _reacting = [];
 
     protected override async Task OnInitializedAsync()
@@ -179,7 +176,6 @@ else
             else
             {
                 _notifications = (await Me.NotificationsAsync(1, 30)).Items.ToList();
-                _emailOptOut = (await Me.CommunicationPreferencesGETAsync()).EmailOptOut;
                 if (_notifications.Any(n => n.ReadAt is null))
                 {
                     await Me.ReadAllAsync();
@@ -251,25 +247,6 @@ else
         if (!string.IsNullOrEmpty(n.Link))
         {
             Navigation.NavigateTo(n.Link);
-        }
-    }
-
-    private async Task SetEmailAsync(bool receive)
-    {
-        _savingPrefs = true;
-        try
-        {
-            _emailOptOut = (await Me.CommunicationPreferencesPUTAsync(
-                new UpdateCommunicationPreferencesRequest { EmailOptOut = !receive })).EmailOptOut;
-            Snackbar.Add(receive ? "Recibirás los avisos por email." : "Ya no recibirás avisos por email.", Severity.Success);
-        }
-        catch (GsmApiException ex)
-        {
-            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
-        }
-        finally
-        {
-            _savingPrefs = false;
         }
     }
 }

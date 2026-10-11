@@ -13,7 +13,8 @@ public sealed record DispatchRoundResult(bool LockAcquired, int Processed, int F
 
 /// <summary>
 /// Una vuelta del <c>NotificationDispatcher</c> (spec §5). Toma el candado de Postgres, procesa los
-/// avisos pendientes cuya hora llegó y envía sus correos; reintenta los fallidos hasta 3 veces con espera
+/// avisos pendientes cuya hora llegó y envía sus correos; los de Novedades y Promociones que caen dentro del
+/// horario sin avisos del gym (N4) quedan <c>held</c> y salen al terminar; reintenta los fallidos hasta 3 veces con espera
 /// creciente. Corre sin usuario (Global Query Filter desactivado: ve todos los gyms).
 /// <para>
 /// Deja el latido <c>notifications_dispatcher</c> en cada vuelta y una fila en <c>logs.job_runs</c> solo
@@ -22,6 +23,7 @@ public sealed record DispatchRoundResult(bool LockAcquired, int Processed, int F
 /// </summary>
 public sealed class NotificationDispatchRunner(
     INotificationRepository notifications,
+    INotificationSettingsRepository settingsRepository,
     INotificationDispatchLock dispatchLock,
     IEmailSender emailSender,
     IUnitOfWork unitOfWork,
@@ -79,6 +81,9 @@ public sealed class NotificationDispatchRunner(
             return (0, 0);
         }
 
+        var settings = await settingsRepository.GetForGymsAsync(
+            due.Select(n => n.GymId).Distinct().ToList(), cancellationToken);
+
         var deliveries = (await notifications.GetDeliveriesAsync(due.Select(n => n.Id).ToList(), cancellationToken))
             .ToLookup(d => d.NotificationId);
 
@@ -86,6 +91,18 @@ public sealed class NotificationDispatchRunner(
         var failed = 0;
         foreach (var notification in due)
         {
+            if (QuietHours.Applies(notification))
+            {
+                var gymSettings = settings.GetValueOrDefault(notification.GymId)
+                    ?? NotificationSettings.Default(notification.GymId);
+                if (QuietHours.IsQuietNow(gymSettings, clock, now))
+                {
+                    notification.Hold(QuietHours.NextEnd(gymSettings, clock, now));
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                    continue;
+                }
+            }
+
             var mine = deliveries[notification.Id].ToList();
             foreach (var delivery in mine.Where(d =>
                          d.Status == DeliveryStatus.Pending && (d.NextAttemptAt is null || d.NextAttemptAt <= now)))

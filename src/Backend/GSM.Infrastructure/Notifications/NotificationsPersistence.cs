@@ -71,6 +71,76 @@ public sealed class NotificationDeliveryConfiguration : IEntityTypeConfiguration
     }
 }
 
+public sealed class MemberNotificationPreferenceConfiguration : IEntityTypeConfiguration<MemberNotificationPreference>
+{
+    public void Configure(EntityTypeBuilder<MemberNotificationPreference> builder)
+    {
+        builder.ToTable("member_notification_preferences", "notifications");
+
+        builder.Property(p => p.Category).HasColumnName("category");
+        builder.HasIndex(p => new { p.MemberId, p.Category }).IsUnique();
+    }
+}
+
+public sealed class NotificationSettingsConfiguration : IEntityTypeConfiguration<NotificationSettings>
+{
+    public void Configure(EntityTypeBuilder<NotificationSettings> builder)
+    {
+        builder.ToTable("notification_settings", "notifications");
+
+        builder.Property(s => s.QuietStart).HasColumnType("time without time zone");
+        builder.Property(s => s.QuietEnd).HasColumnType("time without time zone");
+        builder.HasIndex(s => s.GymId).IsUnique();
+    }
+}
+
+public sealed class MemberNotificationPreferenceRepository(GsmDbContext dbContext) : IMemberNotificationPreferenceRepository
+{
+    private DbSet<MemberNotificationPreference> Preferences => dbContext.Set<MemberNotificationPreference>();
+
+    public async Task<IReadOnlyList<MemberNotificationPreference>> GetForMemberAsync(
+        Guid memberId, CancellationToken cancellationToken = default)
+        => await Preferences.Where(p => p.MemberId == memberId).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, MemberNotificationPreference>> GetForMembersAsync(
+        IReadOnlyCollection<Guid> memberIds, NotificationCategory category, CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return new Dictionary<Guid, MemberNotificationPreference>();
+        }
+
+        var rows = await Preferences.AsNoTracking()
+            .Where(p => p.Category == category && memberIds.Contains(p.MemberId))
+            .ToListAsync(cancellationToken);
+        return rows.ToDictionary(p => p.MemberId);
+    }
+
+    public void Add(MemberNotificationPreference preference) => Preferences.Add(preference);
+}
+
+public sealed class NotificationSettingsRepository(GsmDbContext dbContext) : INotificationSettingsRepository
+{
+    private DbSet<NotificationSettings> Settings => dbContext.Set<NotificationSettings>();
+
+    public Task<NotificationSettings?> GetAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => Settings.FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, NotificationSettings>> GetForGymsAsync(
+        IReadOnlyCollection<Guid> gymIds, CancellationToken cancellationToken = default)
+    {
+        if (gymIds.Count == 0)
+        {
+            return new Dictionary<Guid, NotificationSettings>();
+        }
+
+        var rows = await Settings.AsNoTracking().Where(s => gymIds.Contains(s.GymId)).ToListAsync(cancellationToken);
+        return rows.ToDictionary(s => s.GymId);
+    }
+
+    public void Add(NotificationSettings settings) => Settings.Add(settings);
+}
+
 public sealed class NotificationRepository(GsmDbContext dbContext) : INotificationRepository
 {
     private DbSet<Notification> Notifications => dbContext.Set<Notification>();
@@ -198,7 +268,8 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
     public async Task<IReadOnlyList<Notification>> GetDueAsync(
         DateTimeOffset now, int take, CancellationToken cancellationToken = default)
         => await Notifications
-            .Where(n => n.Status == NotificationStatus.Pending && n.ScheduledFor <= now)
+            .Where(n => (n.Status == NotificationStatus.Pending && n.ScheduledFor <= now)
+                || (n.Status == NotificationStatus.Held && n.ReleaseAt <= now))
             .OrderBy(n => n.ScheduledFor)
             .Take(take)
             .ToListAsync(cancellationToken);

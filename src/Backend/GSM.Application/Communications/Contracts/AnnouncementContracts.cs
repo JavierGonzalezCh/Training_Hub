@@ -1,3 +1,5 @@
+using GSM.Domain.Communications;
+
 namespace GSM.Application.Communications.Contracts;
 
 public sealed record CreateAnnouncementRequest(
@@ -5,14 +7,16 @@ public sealed record CreateAnnouncementRequest(
     string Body,
     bool Pinned,
     DateOnly? ExpiresOn,
-    bool SendEmail);
+    bool SendEmail,
+    AnnouncementCategory Category = AnnouncementCategory.GymNews);
 
 /// <summary>Fijar y desfijar tienen sus propios endpoints; aquí solo el contenido.</summary>
 public sealed record UpdateAnnouncementRequest(
     string Title,
     string Body,
     DateOnly? ExpiresOn,
-    bool SendEmail);
+    bool SendEmail,
+    AnnouncementCategory? Category = null);
 
 public sealed record ListAnnouncementsQuery
 {
@@ -33,7 +37,8 @@ public sealed record AnnouncementResponse(
     bool SendEmail,
     DateTimeOffset CreatedAt,
     ReactionCounts Reactions,
-    EmailDelivery? Delivery);
+    EmailDelivery? Delivery,
+    string Category);
 
 /// <summary>Vista del feed del miembro: solo lo publicado y vigente.</summary>
 public sealed record FeedItem(

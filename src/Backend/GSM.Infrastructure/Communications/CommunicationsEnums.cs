@@ -8,6 +8,7 @@ public sealed class CommunicationsEnums : IModuleEnums
     public IEnumerable<PgEnumMapping> Enums { get; } =
     [
         PgEnumMapping.Of<GSM.Domain.Communications.AnnouncementStatus>("announcement_status", "communications", LowerCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Communications.AnnouncementCategory>("announcement_category", "communications", SnakeCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Communications.ReactionKind>("reaction_kind", "communications", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Communications.WhatsAppTemplateKind>("whatsapp_template_kind", "communications", SnakeCaseNameTranslator.Instance),
     ];

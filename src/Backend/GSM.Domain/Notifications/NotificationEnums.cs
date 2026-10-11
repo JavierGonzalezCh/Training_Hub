@@ -56,4 +56,7 @@ public enum DeliveryStatus
     Pending,
     Sent,
     Failed,
+
+    /// <summary>El miembro apagó ese canal para la categoría del aviso (N4): no se envía.</summary>
+    Skipped,
 }
