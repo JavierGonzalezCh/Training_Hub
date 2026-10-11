@@ -194,8 +194,9 @@ Sección **"Errores"** en `/admin`:
   - **Lentitud**: endpoints más lentos.
   - **Procesos**: ejecuciones de tareas y estado de los latidos.
 - **Detalle de un grupo:** cada ocurrencia con su código de rastreo, gym, usuario, traza y petición.
-- **Búsqueda por código de rastreo:** el usuario dice "me salió el código 7F3A2C" y se encuentra al (la búsqueda es por prefijo de 6 caracteres y puede devolver más de uno: se distinguen por fecha y gym; aceptado 2026-10-11)
-  instante.
+- **Búsqueda por código de rastreo:** el usuario dice "me salió el código 7F3A2C" y se encuentra al
+  instante. La búsqueda es por prefijo de 6 caracteres y puede devolver más de uno: se distinguen por
+  fecha y gym (aceptado 2026-10-11).
 - **Reintentar** un evento fallido, o todos los de un grupo.
 - Un grupo **resuelto que vuelve a ocurrir** se reabre solo.
 
