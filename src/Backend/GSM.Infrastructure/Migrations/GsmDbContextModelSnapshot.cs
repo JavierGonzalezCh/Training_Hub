@@ -44,6 +44,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "announcement_status", new[] { "draft", "published", "archived" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "reaction_kind", new[] { "like", "celebrate", "strong" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "communications", "whatsapp_template_kind", new[] { "expiring_soon", "expired", "app_invitation", "birthday" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_status", new[] { "available", "maintenance", "out_of_service" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_type", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
@@ -800,6 +801,89 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_feed_states_member_id");
 
                     b.ToTable("member_feed_states", "communications");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Communications.WhatsAppContact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ContactedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("contacted_at");
+
+                    b.Property<Guid>("ContactedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("contacted_by_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<WhatsAppTemplateKind>("Kind")
+                        .HasColumnType("communications.whatsapp_template_kind")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_whatsapp_contacts");
+
+                    b.HasIndex("MemberId", "ContactedAt")
+                        .HasDatabaseName("ix_whatsapp_contacts_member_id_contacted_at");
+
+                    b.ToTable("whatsapp_contacts", "communications");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Communications.WhatsAppTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<WhatsAppTemplateKind>("Kind")
+                        .HasColumnType("communications.whatsapp_template_kind")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_whatsapp_templates");
+
+                    b.HasIndex("GymId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_whatsapp_templates_gym_id_kind");
+
+                    b.ToTable("whatsapp_templates", "communications");
                 });
 
             modelBuilder.Entity("GSM.Domain.Equipment.EquipmentItem", b =>

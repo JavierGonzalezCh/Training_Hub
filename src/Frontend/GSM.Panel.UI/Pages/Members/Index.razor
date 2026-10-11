@@ -1,6 +1,7 @@
 ﻿@page "/members"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembersClient Members
+@inject IWhatsAppClient WhatsApp
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -78,6 +79,11 @@
         </MudTd>
         <MudTd DataLabel="Ingresó">@GsmFormat.Day(context.JoinedAt)</MudTd>
         <MudTd>
+            @if (context.Status != "Inactive")
+            {
+                <WhatsAppButton MemberId="context.Id" State="StateOf(context.Id)" AutoLoad="false" Compact="true"
+                                Kind="@WhatsAppLabels.KindForStatus(context.CommercialStatus)" />
+            }
             <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))"
                            aria-label="@($"Editar a {context.FirstName} {context.LastName}")" />
         </MudTd>
@@ -91,6 +97,7 @@
     private string _tag = string.Empty;
     private string _commercial = FilterValues.All;
     private int? _total;
+    private Dictionary<Guid, WhatsAppMemberStateResponse> _whatsApp = [];
 
     private static readonly (string Value, string Label)[] StatusFilters =
         [(FilterValues.All, "Todos"), ("0", "Activos"), ("1", "Inactivos")];
@@ -112,6 +119,7 @@
                 _ = InvokeAsync(StateHasChanged);
             }
 
+            await LoadWhatsAppStatesAsync(result.Items.Select(i => i.Id).ToList(), cancellationToken);
             return new ServerTablePage<MemberListItem>(result.Items.ToList(), result.Total);
         }
         catch (GsmApiException ex)
@@ -120,6 +128,23 @@
             return new ServerTablePage<MemberListItem>([], 0);
         }
     }
+
+    // Una sola consulta por página: quién tiene celular válido y a quién se contactó por última vez.
+    private async Task LoadWhatsAppStatesAsync(List<Guid> ids, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _whatsApp = ids.Count == 0
+                ? []
+                : (await WhatsApp.StatesAsync(ids, cancellationToken)).ToDictionary(s => s.MemberId);
+        }
+        catch (GsmApiException)
+        {
+            _whatsApp = [];
+        }
+    }
+
+    private WhatsAppMemberStateResponse? StateOf(Guid id) => _whatsApp.GetValueOrDefault(id);
 
     private async Task OnSearchChangedAsync(string value)
     {

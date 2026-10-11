@@ -1,0 +1,98 @@
+@* Plantillas de WhatsApp del gym (Comunicaciones v2, §B). Solo Owner, dentro de la pestaña Comunicaciones.
+   El mensaje se arma con estas plantillas y el staff lo envía desde su propio WhatsApp. *@
+@inject IWhatsAppClient WhatsApp
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h6" Class="mt-8 mb-1">Mensajes de WhatsApp</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+    El panel arma el mensaje con estos textos y abre WhatsApp para que lo envíes tú. El sistema no manda nada por su cuenta.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 d-block">
+        Variables: @string.Join("  ", _variables)
+    </MudText>
+
+    @foreach (var template in _templates)
+    {
+        var item = template;
+        <MudPaper Elevation="0" Class="pa-4 mb-3" Style="border:1px solid var(--gsm-border);max-width:640px">
+            <div class="d-flex align-center flex-wrap mb-2" style="gap:0.5rem">
+                <MudText Typo="Typo.subtitle1">@WhatsAppLabels.TemplateTitle(item.Kind)</MudText>
+                @if (item.IsDefault)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">Texto por defecto</MudChip>
+                }
+            </div>
+            <MudTextField T="string" @bind-Value="_drafts[item.Kind]" Lines="3" AutoGrow="true" MaxLength="1000"
+                          Label="@($"Texto · {WhatsAppLabels.TemplateTitle(item.Kind)}")" Immediate="true" />
+            <div class="d-flex mt-2" style="gap:0.5rem">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                           Disabled="@(_saving == item.Kind || string.IsNullOrWhiteSpace(_drafts[item.Kind]))"
+                           OnClick="@(() => SaveAsync(item.Kind))">
+                    @(_saving == item.Kind ? "Guardando..." : "Guardar")
+                </MudButton>
+                <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="@(_drafts[item.Kind] == item.DefaultText)"
+                           OnClick="@(() => _drafts[item.Kind] = item.DefaultText)">
+                    Restaurar texto por defecto
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
+}
+
+@code {
+    private bool _loading = true;
+    private string? _saving;
+    private List<WhatsAppTemplateResponse> _templates = [];
+    private List<string> _variables = [];
+    private readonly Dictionary<string, string> _drafts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await WhatsApp.TemplatesGETAsync();
+            _templates = response.Templates.ToList();
+            _variables = response.Variables.ToList();
+            foreach (var template in _templates)
+            {
+                _drafts[template.Kind] = template.Text;
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync(string kind)
+    {
+        _saving = kind;
+        try
+        {
+            var saved = await WhatsApp.TemplatesPUTAsync(kind, new UpdateWhatsAppTemplateRequest { Text = _drafts[kind] });
+            var index = _templates.FindIndex(t => t.Kind == kind);
+            _templates[index] = saved;
+            _drafts[kind] = saved.Text;
+            Snackbar.Add("Plantilla guardada.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = null;
+        }
+    }
+}

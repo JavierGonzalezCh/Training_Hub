@@ -169,3 +169,8 @@ public partial class EquipmentClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class WhatsAppClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

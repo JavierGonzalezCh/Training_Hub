@@ -9,6 +9,12 @@
             <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" OnClick="CopyAsync" title="Copiar" />
         </MudPaper>
         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">Expira: @GsmFormat.Instant(ExpiresAt)</MudText>
+        @if (MemberId is { } memberId)
+        {
+            <div class="mt-3">
+                <WhatsAppButton MemberId="memberId" Kind="AppInvitation" />
+            </div>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton Color="Color.Primary" OnClick="@(() => MudDialog.Close())">Listo</MudButton>
@@ -24,6 +30,10 @@
 
     [Parameter, EditorRequired]
     public DateTimeOffset ExpiresAt { get; set; }
+
+    /// <summary>Si viene, se ofrece mandar la invitación por WhatsApp con el enlace de registro.</summary>
+    [Parameter]
+    public Guid? MemberId { get; set; }
 
     private async Task CopyAsync()
     {

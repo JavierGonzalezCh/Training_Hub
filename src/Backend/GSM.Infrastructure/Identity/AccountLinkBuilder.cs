@@ -1,4 +1,5 @@
 using GSM.Application.Identity.Abstractions;
+using GSM.Application.Identity.Public;
 using Microsoft.Extensions.Options;
 
 namespace GSM.Infrastructure.Identity;
@@ -16,9 +17,11 @@ public sealed class AccountLinkOptions
     public string PublicWebBaseUrl { get; init; } = string.Empty;
 }
 
-public sealed class AccountLinkBuilder(IOptions<AccountLinkOptions> options) : IAccountLinkBuilder
+public sealed class AccountLinkBuilder(IOptions<AccountLinkOptions> options) : IAccountLinkBuilder, IMemberRegistrationLinks
 {
     private readonly string _baseUrl = options.Value.PublicWebBaseUrl.TrimEnd('/');
+
+    public string RegistrationUrl(string code) => $"{_baseUrl}/app/registro?code={Uri.EscapeDataString(code)}";
 
     public string ResetUrl(string email, string code) => Build("/restablecer", email, code);
 

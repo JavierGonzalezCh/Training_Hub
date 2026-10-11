@@ -1,0 +1,140 @@
+@* Botón de WhatsApp por enlace (Comunicaciones v2, §B). Arma el mensaje con la plantilla del gym, abre wa.me en el
+   WhatsApp del staff y registra el clic. El sistema no envía nada. Sin celular válido va deshabilitado.
+   Con Kind fijo es un solo botón (listas); sin Kind ofrece un menú con las plantillas (ficha y recepción). *@
+@inject IWhatsAppClient WhatsApp
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<div class="gsm-whatsapp d-inline-flex flex-column" style="gap:0.15rem">
+    @if (!_hasPhone)
+    {
+        @if (Compact)
+        {
+            <MudIconButton Icon="@Icons.Custom.Brands.WhatsApp" Disabled="true" Size="Size.Small"
+                           title="@WhatsAppLabels.MissingPhone" aria-label="@WhatsAppLabels.MissingPhone" />
+        }
+        else
+        {
+            <span title="@WhatsAppLabels.MissingPhone">
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Custom.Brands.WhatsApp" Disabled="true">
+                    @WhatsAppLabels.MissingPhone
+                </MudButton>
+            </span>
+        }
+    }
+    else if (Kind is not null)
+    {
+        @if (Compact)
+        {
+            <MudIconButton Icon="@Icons.Custom.Brands.WhatsApp" Color="Color.Success" Size="Size.Small" Disabled="_busy"
+                           title="@($"WhatsApp · plantilla {WhatsAppLabels.Kind(Kind)}")" aria-label="Enviar WhatsApp"
+                           OnClick="@(() => SendAsync(Kind))" />
+        }
+        else
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Success" StartIcon="@Icons.Custom.Brands.WhatsApp"
+                       Disabled="_busy" OnClick="@(() => SendAsync(Kind))">WhatsApp</MudButton>
+        }
+    }
+    else
+    {
+        <MudMenu Label="@(Compact ? null : "WhatsApp")" Icon="@(Compact ? Icons.Custom.Brands.WhatsApp : null)"
+                 StartIcon="@(Compact ? null : Icons.Custom.Brands.WhatsApp)" Variant="Variant.Outlined"
+                 Color="Color.Success" Disabled="_busy" Dense="true" Size="@(Compact ? Size.Small : Size.Medium)"
+                 AriaLabel="WhatsApp">
+            @foreach (var kind in Kinds)
+            {
+                var k = kind;
+                <MudMenuItem OnClick="@(() => SendAsync(k))">@WhatsAppLabels.TemplateTitle(k)</MudMenuItem>
+            }
+        </MudMenu>
+    }
+
+    @if (ShowNote && _state?.LastContact is { } last)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="gsm-whatsapp__note">
+            @WhatsAppLabels.ContactNote(last.ContactedByName, last.Kind, last.ContactedAt, DateTimeOffset.UtcNow)
+        </MudText>
+    }
+</div>
+
+@code {
+    private static readonly string[] Kinds = ["ExpiringSoon", "Expired", "AppInvitation", "Birthday"];
+
+    private WhatsAppMemberStateResponse? _state;
+    private Guid _loadedFor;
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    /// <summary>Plantilla fija (<c>ExpiringSoon</c>, <c>Expired</c>…). Nulo = menú con todas.</summary>
+    [Parameter]
+    public string? Kind { get; set; }
+
+    /// <summary>Estado ya cargado por quien dibuja una lista (evita una consulta por fila).</summary>
+    [Parameter]
+    public WhatsAppMemberStateResponse? State { get; set; }
+
+    /// <summary>Sin <see cref="State"/>, el botón lo consulta solo.</summary>
+    [Parameter]
+    public bool AutoLoad { get; set; } = true;
+
+    /// <summary>Solo el icono, para filas de lista y la tarjeta de recepción.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    /// <summary>Muestra "Ana contactó por WhatsApp · plantilla por vencer · hace 2 días".</summary>
+    [Parameter]
+    public bool ShowNote { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<WhatsAppContactResponse> OnContacted { get; set; }
+
+    // Mientras el estado no llega, el botón no se ofrece como "falta el celular": se habilita y la API decide (422).
+    private bool _hasPhone => _state?.HasValidPhone ?? true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (State is not null)
+        {
+            _state = State;
+            return;
+        }
+
+        if (AutoLoad && _loadedFor != MemberId)
+        {
+            _loadedFor = MemberId;
+            try
+            {
+                var states = await WhatsApp.StatesAsync([MemberId]);
+                _state = states.FirstOrDefault();
+            }
+            catch (GsmApiException)
+            {
+                // Sin estado el botón sigue disponible; la API responde con el motivo al pulsarlo.
+            }
+        }
+    }
+
+    private async Task SendAsync(string kind)
+    {
+        _busy = true;
+        try
+        {
+            var message = await WhatsApp.MessageAsync(MemberId, kind);
+            await JS.InvokeVoidAsync("open", message.Url, "_blank", "noopener");
+            var contact = await WhatsApp.ContactsAsync(new RegisterWhatsAppContactRequest { MemberId = MemberId, Kind = kind });
+            _state = new WhatsAppMemberStateResponse { MemberId = MemberId, HasValidPhone = true, LastContact = contact };
+            await OnContacted.InvokeAsync(contact);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
