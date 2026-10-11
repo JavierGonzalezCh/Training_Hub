@@ -421,6 +421,31 @@ public sealed class AccountSecurityTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Copying_a_new_link_voids_the_previous_one()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var owner = await LoggedInAsync(host, w.OwnerEmail, Password);
+        var email = NewEmail("anula");
+        var staff = (await (await owner.PostAsJsonAsync("/api/gym/staff", new CreateStaffRequest(email, "Anula Staff")))
+            .Content.ReadFromJsonAsync<StaffResponse>())!;
+
+        static string CodeOf(AccountLinkResponse l)
+            => System.Web.HttpUtility.ParseQueryString(new Uri("http://x" + l.Url).Query)["code"]!;
+        var first = (await (await owner.PostAsync($"/api/gym/staff/{staff.Id}/link", null))
+            .Content.ReadFromJsonAsync<AccountLinkResponse>())!;
+        var second = (await (await owner.PostAsync($"/api/gym/staff/{staff.Id}/link", null))
+            .Content.ReadFromJsonAsync<AccountLinkResponse>())!;
+
+        // P19a: el primero ya no sirve; vale el último.
+        var anon = host.CreateClient();
+        Assert.NotEqual(HttpStatusCode.OK,
+            (await anon.PostAsJsonAsync("/api/auth/activate", new ActivateAccountRequest(email, CodeOf(first), "StaffPass_12345"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,
+            (await anon.PostAsJsonAsync("/api/auth/activate", new ActivateAccountRequest(email, CodeOf(second), "StaffPass_12345"))).StatusCode);
+    }
+
+    [Fact]
     public async Task Copying_a_link_is_for_the_owner_of_that_gym_only()
     {
         var mine = await SeedAsync();

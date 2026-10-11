@@ -11,7 +11,7 @@ namespace GSM.Infrastructure.Identity;
 /// <summary>
 /// "Copiar enlace" de staff y owners (§4). Los códigos no se guardan —se firman con el usuario y su
 /// <c>SecurityStamp</c>—, así que "el enlace vigente" no se puede recuperar: cada copia emite uno nuevo de 72 h
-/// y los anteriores siguen sirviendo hasta que la persona defina su contraseña. Cada copia queda en la
+/// y anula los anteriores (renueva el <c>SecurityStamp</c>, decisión P19a). Cada copia queda en la
 /// auditoría de accesos (<see cref="StaffAccessAuditAction.LinkCopied"/>): quién, a quién, cuándo.
 /// </summary>
 public sealed class AccountLinkService(
@@ -60,6 +60,8 @@ public sealed class AccountLinkService(
         }
         else
         {
+            // P19a: renovar el SecurityStamp invalida los enlaces anteriores; siempre vale el último.
+            await userManager.UpdateSecurityStampAsync(user);
             var code = await userManager.GenerateUserTokenAsync(
                 user, ActivationTokenProvider.ProviderName, ActivationTokenProvider.Purpose);
             link = new AccountLink(
