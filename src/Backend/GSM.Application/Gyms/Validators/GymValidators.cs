@@ -73,3 +73,35 @@ public sealed class UpdateFeatureFlagsRequestValidator : AbstractValidator<Updat
 {
     // Todos los campos son bool no anulables; el binder ya garantiza forma. Sin reglas extra.
 }
+
+public sealed class TimeSlotDtoValidator : AbstractValidator<GSM.Application.Gyms.Contracts.TimeSlotDto>
+{
+    public TimeSlotDtoValidator()
+    {
+        RuleFor(x => x.Opens).Must(OpeningHoursSupport.IsValidTime).WithMessage("La hora de apertura debe tener el formato HH:mm.");
+        RuleFor(x => x.Closes).Must(OpeningHoursSupport.IsValidTime).WithMessage("La hora de cierre debe tener el formato HH:mm.");
+    }
+}
+
+public sealed class UpdateOpeningHoursRequestValidator : AbstractValidator<UpdateOpeningHoursRequest>
+{
+    public UpdateOpeningHoursRequestValidator()
+    {
+        RuleFor(x => x.Days).NotNull();
+        RuleForEach(x => x.Days).ChildRules(day =>
+        {
+            day.RuleFor(d => d.Day).NotEmpty();
+            day.RuleFor(d => d.Slots).NotNull();
+            day.RuleForEach(d => d.Slots).SetValidator(new TimeSlotDtoValidator());
+        });
+    }
+}
+
+public sealed class UpsertSpecialDayRequestValidator : AbstractValidator<UpsertSpecialDayRequest>
+{
+    public UpsertSpecialDayRequestValidator()
+    {
+        RuleFor(x => x.Note).MaximumLength(GSM.Domain.Gyms.GymSpecialDay.MaxNoteLength);
+        RuleForEach(x => x.Slots).SetValidator(new TimeSlotDtoValidator());
+    }
+}

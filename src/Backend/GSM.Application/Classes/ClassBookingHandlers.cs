@@ -3,6 +3,7 @@ using GSM.Application.Classes.Contracts;
 using GSM.Application.Classes.Events;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
+using GSM.Application.Gyms;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Members.Public;
 using GSM.Application.Memberships.Public;
@@ -200,6 +201,7 @@ public sealed class GetRosterHandler(
 public sealed class MarkAttendanceHandler(
     ICurrentUserService currentUser,
     IClock clock,
+    IGymReader gyms,
     IMemberReader members,
     IClassRepository classes,
     IClassSessionRepository sessions,
@@ -230,6 +232,17 @@ public sealed class MarkAttendanceHandler(
 
         var attended = (request.Attended ?? []).Distinct().ToList();
         var noShow = (request.NoShow ?? []).Distinct().Except(attended).ToList();
+
+        // Asistir a una clase cuenta como entrada del día: con el gym cerrado (gym_closed) no se registra,
+        // sin excepción. Se mide a la hora de inicio de la sesión, no a la hora en que el staff la marca.
+        if (attended.Count > 0)
+        {
+            var status = await gyms.GetOpenStatusAtLocalAsync(gymId, session.SessionDate, session.StartTime, cancellationToken);
+            if (!status.IsOpen)
+            {
+                throw new ConflictException(OpenStatusText.ClosedMessage(status, clock.Today));
+            }
+        }
         var now = clock.UtcNow;
         var current = await bookings.ListForSessionAsync(session.Id, cancellationToken);
         var byMember = current.ToDictionary(b => b.MemberId);

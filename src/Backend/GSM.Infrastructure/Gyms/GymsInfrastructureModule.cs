@@ -14,6 +14,7 @@ public static class GymsInfrastructureRegistration
         IConfiguration configuration)
     {
         services.AddScoped<IGymRepository, GymRepository>();
+        services.AddScoped<IGymScheduleRepository, GymScheduleRepository>();
         services.AddScoped<IGymReader, GymReader>();
         services.AddScoped<IGymAdministration, GymAdministration>();
 

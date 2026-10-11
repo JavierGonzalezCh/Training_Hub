@@ -52,6 +52,62 @@ public sealed class GymController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
 
+    [HttpGet("opening-hours")]
+    [ProducesResponseType<OpeningHoursResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<OpeningHoursResponse>> GetOpeningHours(
+        [FromServices] GetOpeningHoursHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Reemplaza el horario completo: los 7 días y el de festivos, cada uno con al menos un tramo.</summary>
+    [HttpPut("opening-hours")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<OpeningHoursResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<OpeningHoursResponse>> UpdateOpeningHours(
+        UpdateOpeningHoursRequest request,
+        [FromServices] UpdateOpeningHoursHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>Festivos de Colombia del año con el horario que aplica a cada uno (por defecto, el año en curso).</summary>
+    [HttpGet("holidays")]
+    [ProducesResponseType<IReadOnlyList<HolidayResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<HolidayResponse>>> ListHolidays(
+        [FromQuery] int? year,
+        [FromServices] ListHolidaysHandler handler,
+        [FromServices] GSM.Application.Common.Abstractions.IClock clock,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(year ?? clock.Today.Year, cancellationToken));
+
+    [HttpGet("special-days")]
+    [ProducesResponseType<IReadOnlyList<SpecialDayResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<SpecialDayResponse>>> ListSpecialDays(
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        [FromServices] ListSpecialDaysHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(from, to, cancellationToken));
+
+    /// <summary>Otro horario en una fecha, o el día completo cerrado (exige <c>confirmClosed</c>). También ajusta un festivo.</summary>
+    [HttpPut("special-days/{date}")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<SpecialDayResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<SpecialDayResponse>> UpsertSpecialDay(
+        DateOnly date,
+        UpsertSpecialDayRequest request,
+        [FromServices] UpsertSpecialDayHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(date, request, cancellationToken));
+
+    [HttpDelete("special-days/{date}")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteSpecialDay(
+        DateOnly date, [FromServices] DeleteSpecialDayHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(date, cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("logo")]
     [Authorize(Policy = AuthPolicies.RequireOwner)]
     [Consumes("multipart/form-data")]
