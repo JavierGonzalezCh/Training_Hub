@@ -51,6 +51,10 @@
 | G3 | **Unida** | Festivos 2026 verificados contra el calendario oficial. Ver pregunta 21 |
 | CO3 | **Unida** | Botón de WhatsApp en ficha, recepción y listas; plantillas por gym. `window.open` sin verificar en MAUI |
 | M2 | **Unida** | Texto base de las autorizaciones = **borrador pendiente de revisión legal**. Ver pregunta 20 |
+| N2 | En curso | sin Firebase: se construye detrás de `IPushSender`, sin verificar con el servicio real |
+| A1 | En curso (Ola 3) | — |
+| C1 | En curso (Ola 3) | — |
+| P2 | En curso (Ola 3) | — |
 | N4 | **Unida** (a99b982) | Preferencias por categoría y canal, horario sin avisos, categoría del anuncio (CO1). Ver pregunta 22. Suite 393 + 187 |
 | I1 | **Unida** | Config nueva `Identity:PublicWebBaseUrl` (producción). Suite 343 + 156 | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
 
@@ -117,6 +121,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- Lanzadas N2 (cierra la Ola 2) y A1, C1, P2 (Ola 3). Los prompts ahora exigen `--connection` en `dotnet ef`.
 - CO3, M2, G3 y N4 unidas (393 + 187). Cada unión tuvo choques de "ambos agregaron algo" (lectores de Members, `ReadResponseAsString`, inicio de la app, lista de pestañas) y el alias `EquipmentType` en Designers anteriores a E1; snapshot regenerado en CO3 y G3; cliente regenerado en cada una. **De la Ola 2 solo falta N2 (push web).**
 - Reanudación tras el tercer corte por límite de uso. I1 unida (343 + 156; conflicto en `MemberLayout`, cliente regenerado). E1 unida (354 + 162; hubo que poner el alias `EquipmentType` en los Designers de S6, I1 y G2). Lanzadas G3 y CO3; M2 reanudada.
 - G2 unida (327 + 150). I1 terminada sin unir; E1 y M2 en curso. Sesión cortada por el límite de uso.
