@@ -1021,6 +1021,63 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("equipment_models", "equipment");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Equipment.EquipmentStatusChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly?>("ExpectedBackOn")
+                        .HasColumnType("date")
+                        .HasColumnName("expected_back_on");
+
+                    b.Property<EquipmentStatus>("FromStatus")
+                        .HasColumnType("equipment.equipment_status")
+                        .HasColumnName("from_status");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<EquipmentStatus>("ToStatus")
+                        .HasColumnType("equipment.equipment_status")
+                        .HasColumnName("to_status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_equipment_status_changes");
+
+                    b.HasIndex("ItemId", "ChangedAt")
+                        .HasDatabaseName("ix_equipment_status_changes_item_id_changed_at");
+
+                    b.ToTable("equipment_status_changes", "equipment");
+                });
+
             modelBuilder.Entity("GSM.Domain.Gyms.Gym", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3506,6 +3563,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_announcement_reactions_announcements");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Equipment.EquipmentStatusChange", b =>
+                {
+                    b.HasOne("GSM.Domain.Equipment.EquipmentItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_equipment_status_changes_equipment_items");
                 });
 
             modelBuilder.Entity("GSM.Domain.Gyms.GymFeatureFlags", b =>

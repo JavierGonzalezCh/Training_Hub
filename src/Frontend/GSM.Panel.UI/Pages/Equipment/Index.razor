@@ -97,7 +97,7 @@ else
                 </MudAvatar>
             </MudTd>
             <MudTd DataLabel="Nombre">
-                <span style="@(context.IsActive ? null : "opacity:.55")">@context.Name</span>
+                <MudLink Href="@($"/equipment/{context.Id}")" Style="@(context.IsActive ? null : "opacity:.55")" data-testid="open-detail">@context.Name</MudLink>
                 @if (!context.HasOwnPhoto)
                 {
                     <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono ml-2" data-testid="no-photo">SIN FOTO PROPIA</MudChip>
@@ -118,10 +118,16 @@ else
                 <MudChip T="string" Color="@EquipmentDisplay.StatusColor(context.Status)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                     @EquipmentDisplay.StatusLabel(context.Status).ToUpperInvariant()
                 </MudChip>
+                @if (context.IsOverdue)
+                {
+                    <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small" Class="gsm-mono ml-1" data-testid="overdue-chip">VENCIDA</MudChip>
+                }
             </MudTd>
             <MudTd>
                 @if (context.IsActive)
                 {
+                    <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" OnClick="@(() => ChangeStatusAsync(context))"
+                                   title="Cambiar estado" data-testid="change-status" />
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" title="Editar" />
                     <MudFileUpload T="IBrowserFile" FilesChanged="@(f => UploadPhotoAsync(context, f))" Class="d-inline-block ma-0">
                         <ActivatorContent>
@@ -243,6 +249,23 @@ else
         if (result is { Canceled: false })
         {
             Snackbar.Add("Equipo actualizado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task ChangeStatusAsync(EquipmentItemResponse item)
+    {
+        var parameters = new DialogParameters<EquipmentStatusDialog>
+        {
+            { x => x.EquipmentId, item.Id },
+            { x => x.Name, item.Name },
+            { x => x.CurrentStatus, item.Status },
+        };
+        var dialog = await Dialogs.ShowAsync<EquipmentStatusDialog>("Cambiar estado", parameters, FormOptions);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Estado actualizado.", Severity.Success);
             await LoadAsync();
         }
     }

@@ -110,6 +110,32 @@ public sealed class EquipmentController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, request, cancellationToken));
 
+    /// <summary>
+    /// Cambia el estado de la máquina. Motivo obligatorio al sacarla de servicio; 409 si ya está en ese
+    /// estado o está dada de baja.
+    /// </summary>
+    [HttpPost("{id:guid}/status")]
+    [ProducesResponseType<EquipmentItemResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [EndpointName("ChangeEquipmentStatus")]
+    public async Task<ActionResult<EquipmentItemResponse>> ChangeStatus(
+        Guid id,
+        ChangeEquipmentStatusRequest request,
+        [FromServices] ChangeEquipmentStatusHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
+    /// <summary>Historial de cambios de estado de la máquina, el más reciente primero.</summary>
+    [HttpGet("{id:guid}/history")]
+    [ProducesResponseType<IReadOnlyList<EquipmentStatusChangeResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("GetEquipmentHistory")]
+    public async Task<ActionResult<IReadOnlyList<EquipmentStatusChangeResponse>>> History(
+        Guid id, [FromServices] GetEquipmentHistoryHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
     /// <summary>Foto de la máquina real (JPEG, PNG o WEBP, hasta 5 MB).</summary>
     [HttpPost("{id:guid}/photo")]
     [Consumes("multipart/form-data")]

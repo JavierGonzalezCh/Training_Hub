@@ -27,6 +27,7 @@ internal static class EquipmentResponses
     public static async Task<IReadOnlyList<EquipmentItemResponse>> BuildAsync(
         IEnumerable<EquipmentItem> items,
         IEquipmentModelRepository models,
+        IClock clock,
         CancellationToken cancellationToken)
     {
         var list = items.ToList();
@@ -36,19 +37,20 @@ internal static class EquipmentResponses
 
         return list
             .Select(i => EquipmentMapper.ToResponse(
-                i, i.ModelId is { } id ? images.GetValueOrDefault(id) : null))
+                i, i.ModelId is { } id ? images.GetValueOrDefault(id) : null, clock.Today))
             .ToList();
     }
 
     public static async Task<EquipmentItemResponse> BuildAsync(
-        EquipmentItem item, IEquipmentModelRepository models, CancellationToken cancellationToken)
-        => (await BuildAsync([item], models, cancellationToken))[0];
+        EquipmentItem item, IEquipmentModelRepository models, IClock clock, CancellationToken cancellationToken)
+        => (await BuildAsync([item], models, clock, cancellationToken))[0];
 }
 
 public sealed class ListEquipmentHandler(
     ICurrentUserService currentUser,
     IEquipmentItemRepository items,
-    IEquipmentModelRepository models)
+    IEquipmentModelRepository models,
+    IClock clock)
 {
     public async Task<IReadOnlyList<EquipmentItemResponse>> HandleAsync(
         EquipmentFilter filter, CancellationToken cancellationToken)
@@ -56,7 +58,7 @@ public sealed class ListEquipmentHandler(
         _ = currentUser.RequireGymId();
 
         var list = await items.ListAsync(filter, cancellationToken);
-        return await EquipmentResponses.BuildAsync(list, models, cancellationToken);
+        return await EquipmentResponses.BuildAsync(list, models, clock, cancellationToken);
     }
 }
 
@@ -72,7 +74,8 @@ public sealed class ListEquipmentZonesHandler(ICurrentUserService currentUser, I
 public sealed class GetEquipmentHandler(
     ICurrentUserService currentUser,
     IEquipmentItemRepository items,
-    IEquipmentModelRepository models)
+    IEquipmentModelRepository models,
+    IClock clock)
 {
     public async Task<EquipmentItemResponse> HandleAsync(Guid id, CancellationToken cancellationToken)
     {
@@ -81,7 +84,7 @@ public sealed class GetEquipmentHandler(
         var item = await items.GetAsync(id, cancellationToken)
             ?? throw new NotFoundException("Equipo no encontrado.");
 
-        return await EquipmentResponses.BuildAsync(item, models, cancellationToken);
+        return await EquipmentResponses.BuildAsync(item, models, clock, cancellationToken);
     }
 }
 
@@ -90,6 +93,7 @@ public sealed class CreateEquipmentHandler(
     ICurrentUserService currentUser,
     IEquipmentItemRepository items,
     IEquipmentModelRepository models,
+    IClock clock,
     IUnitOfWork unitOfWork,
     ILogger<CreateEquipmentHandler> logger)
 {
@@ -105,7 +109,7 @@ public sealed class CreateEquipmentHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Equipo propio {EquipmentId} creado en el gym {GymId}", item.Id, gymId);
-        return await EquipmentResponses.BuildAsync(item, models, cancellationToken);
+        return await EquipmentResponses.BuildAsync(item, models, clock, cancellationToken);
     }
 }
 
@@ -113,6 +117,7 @@ public sealed class UpdateEquipmentHandler(
     ICurrentUserService currentUser,
     IEquipmentItemRepository items,
     IEquipmentModelRepository models,
+    IClock clock,
     IUnitOfWork unitOfWork,
     ILogger<UpdateEquipmentHandler> logger)
 {
@@ -136,7 +141,7 @@ public sealed class UpdateEquipmentHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Equipo {EquipmentId} actualizado", item.Id);
-        return await EquipmentResponses.BuildAsync(item, models, cancellationToken);
+        return await EquipmentResponses.BuildAsync(item, models, clock, cancellationToken);
     }
 }
 
@@ -149,6 +154,7 @@ public sealed class AddEquipmentFromModelsHandler(
     ICurrentUserService currentUser,
     IEquipmentItemRepository items,
     IEquipmentModelRepository models,
+    IClock clock,
     IUnitOfWork unitOfWork,
     ILogger<AddEquipmentFromModelsHandler> logger)
 {
@@ -209,12 +215,80 @@ public sealed class AddEquipmentFromModelsHandler(
         logger.LogInformation(
             "Gym {GymId} agregó {Count} equipos desde {Models} modelos del catálogo", gymId, created.Count, modelIds.Count);
 
-        return await EquipmentResponses.BuildAsync(created, models, cancellationToken);
+        return await EquipmentResponses.BuildAsync(created, models, clock, cancellationToken);
     }
 
     private static EquipmentItem NewItem(Guid gymId, EquipmentModel model, string name, int quantity, string? zone)
         => EquipmentItem.Create(
             gymId, model.Id, name, model.Type, zone, null, null, model.DefaultInstructions, quantity, null, null);
+}
+
+/// <summary>
+/// Cambia el estado de una máquina y deja la fila de historial en la misma transacción. Las reglas
+/// (motivo obligatorio, mismo estado, baja, fecha pasada) las hace <see cref="EquipmentItem.ChangeStatus"/>.
+/// </summary>
+public sealed class ChangeEquipmentStatusHandler(
+    ICurrentUserService currentUser,
+    IEquipmentItemRepository items,
+    IEquipmentModelRepository models,
+    IClock clock,
+    IUnitOfWork unitOfWork,
+    ILogger<ChangeEquipmentStatusHandler> logger)
+{
+    public async Task<EquipmentItemResponse> HandleAsync(
+        Guid id, ChangeEquipmentStatusRequest request, CancellationToken cancellationToken)
+    {
+        _ = currentUser.RequireGymId();
+
+        var item = await items.GetAsync(id, cancellationToken)
+            ?? throw new NotFoundException("Equipo no encontrado.");
+
+        var change = item.ChangeStatus(
+            request.Status, request.Reason, request.ExpectedBackOn, clock.Today, currentUser.UserId, clock.UtcNow);
+
+        items.AddStatusChange(change);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Equipo {EquipmentId}: {From} -> {To}", item.Id, change.FromStatus, change.ToStatus);
+        return await EquipmentResponses.BuildAsync(item, models, clock, cancellationToken);
+    }
+}
+
+/// <summary>Historial de estado de una máquina, el más reciente primero, con el nombre de quien lo cambió.</summary>
+public sealed class GetEquipmentHistoryHandler(
+    ICurrentUserService currentUser,
+    IEquipmentItemRepository items,
+    GSM.Application.Identity.Public.IIdentityReader identity)
+{
+    public async Task<IReadOnlyList<EquipmentStatusChangeResponse>> HandleAsync(
+        Guid id, CancellationToken cancellationToken)
+    {
+        _ = currentUser.RequireGymId();
+
+        _ = await items.GetAsync(id, cancellationToken)
+            ?? throw new NotFoundException("Equipo no encontrado.");
+
+        var changes = await items.ListStatusChangesAsync(id, cancellationToken);
+
+        var names = new Dictionary<Guid, string?>();
+        foreach (var userId in changes.Where(c => c.ChangedByUserId.HasValue).Select(c => c.ChangedByUserId!.Value).Distinct())
+        {
+            names[userId] = (await identity.GetUserAsync(userId, cancellationToken))?.FullName;
+        }
+
+        return changes
+            .Select(c => new EquipmentStatusChangeResponse(
+                c.Id,
+                c.FromStatus.ToString(),
+                c.ToStatus.ToString(),
+                c.Reason,
+                c.ExpectedBackOn,
+                c.ChangedByUserId,
+                c.ChangedByUserId is { } u ? names.GetValueOrDefault(u) : null,
+                c.ChangedAt))
+            .ToList();
+    }
 }
 
 /// <summary>Baja lógica. Solo el Owner (lo impone la política del controller).</summary>
@@ -246,6 +320,7 @@ public sealed class UploadEquipmentPhotoHandler(
     ICurrentUserService currentUser,
     IEquipmentItemRepository items,
     IEquipmentModelRepository models,
+    IClock clock,
     IFileStorage storage,
     IUnitOfWork unitOfWork)
 {
@@ -269,6 +344,6 @@ public sealed class UploadEquipmentPhotoHandler(
             await storage.DeleteAsync(previous, cancellationToken);
         }
 
-        return await EquipmentResponses.BuildAsync(item, models, cancellationToken);
+        return await EquipmentResponses.BuildAsync(item, models, clock, cancellationToken);
     }
 }

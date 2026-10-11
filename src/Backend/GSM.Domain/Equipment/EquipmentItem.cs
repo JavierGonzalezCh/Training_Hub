@@ -94,6 +94,59 @@ public sealed class EquipmentItem : BaseEntity, ITenantEntity
 
     public void SetPhoto(string? photoUrl) => PhotoUrl = EquipmentText.Optional(photoUrl, 2048);
 
+    /// <summary>
+    /// Cambia el estado y devuelve la fila de historial que el caso de uso debe persistir. Solo
+    /// <see cref="EquipmentStatus.Available"/> se puede usar. Reglas: una máquina dada de baja no cambia de
+    /// estado (409); pasar al mismo estado es un choque (409); el motivo es obligatorio al salir de
+    /// disponible (422); la fecha de regreso esperada no puede ser pasada (422) y solo aplica fuera de
+    /// disponible. Al volver a disponible se borra la fecha esperada.
+    /// </summary>
+    public EquipmentStatusChange ChangeStatus(
+        EquipmentStatus newStatus,
+        string? reason,
+        DateOnly? expectedBackOn,
+        DateOnly today,
+        Guid? changedByUserId,
+        DateTimeOffset now)
+    {
+        if (!Enum.IsDefined(newStatus))
+        {
+            throw new ValidationDomainException("Estado de equipo no válido.");
+        }
+
+        if (!IsActive)
+        {
+            throw new ConflictException("El equipo está dado de baja y no se puede cambiar su estado.");
+        }
+
+        if (newStatus == Status)
+        {
+            throw new ConflictException("El equipo ya está en ese estado.");
+        }
+
+        var cleanReason = EquipmentText.Optional(reason, EquipmentStatusChange.ReasonMaxLength);
+        if (newStatus != EquipmentStatus.Available && cleanReason is null)
+        {
+            throw new ValidationDomainException("Indica el motivo para sacar el equipo de servicio.");
+        }
+
+        DateOnly? back = null;
+        if (newStatus != EquipmentStatus.Available && expectedBackOn is { } date)
+        {
+            if (date < today)
+            {
+                throw new ValidationDomainException("La fecha de regreso esperada no puede estar en el pasado.");
+            }
+
+            back = date;
+        }
+
+        var change = EquipmentStatusChange.Record(this, Status, newStatus, cleanReason, back, changedByUserId, now);
+        Status = newStatus;
+        ExpectedBackOn = back;
+        return change;
+    }
+
     /// <summary>Baja lógica. Idempotente.</summary>
     public void Deactivate() => IsActive = false;
 

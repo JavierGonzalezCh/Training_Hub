@@ -1,0 +1,111 @@
+@inject IEquipmentClient Equipment
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @Name — ahora: @EquipmentDisplay.StatusLabel(CurrentStatus)
+        </MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" data-testid="status-error">@_error</MudAlert>
+        }
+        <div class="d-flex flex-wrap mb-3" style="gap:1rem">
+            <label class="gsm-native-field">
+                <span>Nuevo estado</span>
+                <select data-testid="status-select" @onchange="OnStatusChanged">
+                    @foreach (var (value, name, label) in EquipmentDisplay.Statuses)
+                    {
+                        if (name == CurrentStatus)
+                        {
+                            continue;
+                        }
+                        <option value="@value" selected="@(_status == value)">@label</option>
+                    }
+                </select>
+            </label>
+            @if (_status != 0)
+            {
+                <label class="gsm-native-field">
+                    <span>Regresa el (opcional)</span>
+                    <input type="date" data-testid="status-back-on" min="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")"
+                           value="@(_expectedBackOn?.ToString("yyyy-MM-dd"))"
+                           @onchange="@(e => _expectedBackOn = DateOnly.TryParse(e.Value?.ToString(), out var d) ? d : null)" />
+                </label>
+            }
+        </div>
+        <MudTextField T="string" @bind-Value="_reason" Label="@(_status == 0 ? "Motivo (opcional)" : "Motivo (obligatorio)")"
+                      Lines="2" MaxLength="500" Immediate="true" data-testid="status-reason" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="status-save">
+            @(_submitting ? "Guardando..." : "Cambiar estado")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid EquipmentId { get; set; }
+
+    [Parameter]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Estado actual (nombre del enum, como lo devuelve la API).</summary>
+    [Parameter]
+    public string CurrentStatus { get; set; } = "Available";
+
+    private int _status;
+    private string? _reason;
+    private DateOnly? _expectedBackOn;
+    private bool _submitting;
+    private string? _error;
+
+    protected override void OnInitialized()
+        => _status = EquipmentDisplay.Statuses.First(s => s.Name != CurrentStatus).Value;
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        _status = int.TryParse(e.Value?.ToString(), out var n) ? n : _status;
+        if (_status == 0)
+        {
+            _expectedBackOn = null;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (_status != 0 && string.IsNullOrWhiteSpace(_reason))
+        {
+            _error = "Indica el motivo para sacar el equipo de servicio.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Equipment.ChangeEquipmentStatusAsync(EquipmentId, new ChangeEquipmentStatusRequest
+            {
+                Status = _status,
+                Reason = string.IsNullOrWhiteSpace(_reason) ? null : _reason.Trim(),
+                ExpectedBackOn = _status == 0 ? null : _expectedBackOn,
+            });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

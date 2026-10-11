@@ -16,7 +16,7 @@ public static class EquipmentMapper
             model.DefaultInstructions,
             model.TrackedPerUnit);
 
-    public static EquipmentItemResponse ToResponse(EquipmentItem item, string? modelImageUrl = null)
+    public static EquipmentItemResponse ToResponse(EquipmentItem item, string? modelImageUrl, DateOnly today)
         => new(
             item.Id,
             item.ModelId,
@@ -34,5 +34,6 @@ public static class EquipmentMapper
             item.ExpectedBackOn,
             item.AcquiredOn,
             item.Notes,
-            item.IsActive);
+            item.IsActive,
+            item.Status != EquipmentStatus.Available && item.ExpectedBackOn is { } back && back < today);
 }

@@ -62,6 +62,26 @@ public sealed class EquipmentItemConfiguration : IEntityTypeConfiguration<Equipm
     }
 }
 
+public sealed class EquipmentStatusChangeConfiguration : IEntityTypeConfiguration<EquipmentStatusChange>
+{
+    public void Configure(EntityTypeBuilder<EquipmentStatusChange> builder)
+    {
+        builder.ToTable("equipment_status_changes", "equipment");
+
+        builder.Property(c => c.FromStatus).HasColumnName("from_status");
+        builder.Property(c => c.ToStatus).HasColumnName("to_status");
+        builder.Property(c => c.Reason).HasMaxLength(EquipmentStatusChange.ReasonMaxLength);
+
+        builder.HasOne<EquipmentItem>()
+            .WithMany()
+            .HasForeignKey(c => c.ItemId)
+            .HasConstraintName("fk_equipment_status_changes_equipment_items")
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(c => new { c.ItemId, c.ChangedAt });
+    }
+}
+
 public sealed class EquipmentModelRepository(GsmDbContext dbContext) : IEquipmentModelRepository
 {
     private DbSet<EquipmentModel> Models => dbContext.Set<EquipmentModel>();
@@ -145,4 +165,15 @@ public sealed class EquipmentItemRepository(GsmDbContext dbContext) : IEquipment
         => Items.CountAsync(i => i.IsActive && i.ModelId == modelId, cancellationToken);
 
     public void Add(EquipmentItem item) => Items.Add(item);
+
+    public void AddStatusChange(EquipmentStatusChange change) => dbContext.Set<EquipmentStatusChange>().Add(change);
+
+    public async Task<IReadOnlyList<EquipmentStatusChange>> ListStatusChangesAsync(
+        Guid itemId, CancellationToken cancellationToken = default)
+        => await dbContext.Set<EquipmentStatusChange>()
+            .AsNoTracking()
+            .Where(c => c.ItemId == itemId)
+            .OrderByDescending(c => c.ChangedAt)
+            .ThenByDescending(c => c.Id)
+            .ToListAsync(cancellationToken);
 }
