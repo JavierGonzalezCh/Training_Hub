@@ -270,22 +270,24 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         right.Headers.Add("X-Job-Secret", "integration-tests-jobs-secret-32-bytes-min!!");
         Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(right)).StatusCode);
 
-        // Purga: leído hace 91 días se borra; leído hace 89 se conserva.
+        // Purga del miembro: de hace 91 días se borra, leído o no; leído hace 89 se conserva.
         var world = await SeedAsync(1);
-        Guid oldId, recentId;
+        Guid oldId, recentId, oldUnreadId;
         using (var scope = System())
         {
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
             var old = Notification.CreateForMember(world.GymId, world.Members[0].Id, NotificationType.AchievementUnlocked, NotificationCategory.Progress, Guid.CreateVersion7(), "Viejo", "", null, NowOf(Today));
             var recent = Notification.CreateForMember(world.GymId, world.Members[0].Id, NotificationType.AchievementUnlocked, NotificationCategory.Progress, Guid.CreateVersion7(), "Reciente", "", null, NowOf(Today));
+            var oldUnread = Notification.CreateForMember(world.GymId, world.Members[0].Id, NotificationType.AchievementUnlocked, NotificationCategory.Progress, Guid.CreateVersion7(), "Viejo sin leer", "", null, NowOf(Today));
             old.MarkRead(NowOf(Today));
             recent.MarkRead(NowOf(Today));
-            db.AddRange(old, recent);
+            db.AddRange(old, recent, oldUnread);
             await db.SaveChangesAsync();
             oldId = old.Id;
             recentId = recent.Id;
+            oldUnreadId = oldUnread.Id;
             var now = DateTimeOffset.UtcNow;
-            await db.Set<Notification>().Where(n => n.Id == oldId).ExecuteUpdateAsync(s => s.SetProperty(n => n.CreatedAt, now.AddDays(-91)));
+            await db.Set<Notification>().Where(n => n.Id == oldId || n.Id == oldUnreadId).ExecuteUpdateAsync(s => s.SetProperty(n => n.CreatedAt, now.AddDays(-91)));
             await db.Set<Notification>().Where(n => n.Id == recentId).ExecuteUpdateAsync(s => s.SetProperty(n => n.CreatedAt, now.AddDays(-89)));
         }
 
@@ -300,6 +302,7 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
             var ids = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
                 .Where(n => n.RecipientMemberId == world.Members[0].Id).Select(n => n.Id).ToListAsync();
             Assert.DoesNotContain(oldId, ids);
+            Assert.DoesNotContain(oldUnreadId, ids);
             Assert.Contains(recentId, ids);
         }
     }

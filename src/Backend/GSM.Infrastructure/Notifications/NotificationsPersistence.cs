@@ -280,7 +280,8 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
 
     public Task<int> PurgeAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
         => Notifications
-            .Where(n => n.CreatedAt < cutoff && (n.ReadAt != null || n.ResolvedAt != null))
+            .Where(n => n.CreatedAt < cutoff
+                && (n.RecipientMemberId != null || n.ReadAt != null || n.ResolvedAt != null))
             .ExecuteDeleteAsync(cancellationToken);
 
     public async Task<IReadOnlyDictionary<Guid, AnnouncementEmailDelivery>> GetEmailDeliveryAsync(

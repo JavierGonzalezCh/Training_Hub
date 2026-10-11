@@ -60,7 +60,10 @@ public interface INotificationRepository
 
     // ---- mantenimiento y lectura pública ----
 
-    /// <summary>Borra los avisos leídos o atendidos creados antes de <paramref name="cutoff"/> (todos los gyms).</summary>
+    /// <summary>
+    /// Borra los avisos creados antes de <paramref name="cutoff"/> (todos los gyms): los del miembro
+    /// siempre, leídos o no; los del staff solo si están leídos o atendidos (una acción pendiente no se pierde).
+    /// </summary>
     Task<int> PurgeAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<Guid, AnnouncementEmailDelivery>> GetEmailDeliveryAsync(

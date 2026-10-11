@@ -104,7 +104,7 @@ escribir notificaciones y correos: publica eventos (§4.3).
   (generar recordatorios, purgas, vencer ofertas de la lista de espera, anonimizar); el envío de correos
   pasa al dispatcher. Mover el resto al dispatcher queda como opción futura.
 - Toda lectura de tiempo pasa por `IClock`, como en el resto del sistema.
-- **Purga:** los avisos leídos de más de 90 días se borran (la regla actual de Comunicaciones).
+- **Purga:** los avisos del miembro de más de 90 días se borran, leídos o no (decidido 2026-10-11). Los del staff, solo si están leídos o atendidos: una acción pendiente no se pierde.
 
 ## 6. Push: plataformas
 

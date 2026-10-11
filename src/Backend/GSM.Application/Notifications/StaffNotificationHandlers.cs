@@ -147,7 +147,7 @@ public sealed class MarkStaffNotificationReadHandler(
     }
 }
 
-/// <summary>Tarea periódica: purga avisos leídos o atendidos de más de 90 días (todos los gyms).</summary>
+/// <summary>Tarea periódica: purga avisos de más de 90 días (todos los gyms; ver <see cref="INotificationRepository.PurgeAsync"/>).</summary>
 public sealed class PurgeNotificationsHandler(IClock clock, INotificationRepository notifications)
 {
     public Task<int> HandleAsync(CancellationToken cancellationToken)
