@@ -40,6 +40,7 @@ dueños**, **cómo empieza a usar el sistema** (alta y onboarding) y **qué func
 ### 3.1 Horario de atención — `GymOpeningHours` (nueva)
 
 - **Por día de la semana**, con uno o varios tramos: "lunes 5:00–12:00 y 15:00–22:00".
+- **Abierto 24 horas** (casilla por día): ese día no tiene tramos y el gym nunca está cerrado. Un tramo normal cierra como máximo a las 23:59; no hay tramos que crucen la medianoche. Decidido 2026-10-11, pendiente de construir (G3b).
 - **Todos los días tienen horario** (decidido 2026-10-07): se asume que el gym abre de lunes a
   domingo, y el domingo puede tener un horario distinto. El formulario exige al menos un tramo por día.
 - **Festivos de Colombia:** el gym **abre en festivos**, con su propio horario ("festivos:
