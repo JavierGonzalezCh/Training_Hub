@@ -86,7 +86,24 @@ Una **ola** es un grupo de tareas que pueden correr a la vez. Un **carril** es u
 (normalmente un módulo) con **un agente a la vez**; dentro de un carril, las tareas van en el orden
 indicado. **Entre olas, el integrador une todo y deja `v2` verde** antes de lanzar la siguiente.
 
-Agentes simultáneos por ola: entre 6 y 9. Tamaño: **S** (horas), **M** (un día de agente), **L** (varios).
+Agentes simultáneos: **3 o 4 como máximo** (corregido el 2026-10-11; el plan original decía 6 a 9).
+Tamaño: **S** (horas), **M** (un día de agente), **L** (varios).
+
+> **Por qué no más (lo aprendido en las olas 0 a 2):**
+> - **El cuello de botella es el límite de uso de la API, no la cantidad de agentes.** Hubo tres cortes,
+>   todos con 4 o más agentes corriendo; uno perdió un worktree entero (S7). Más agentes no hacen mas
+>   trabajo total: gastan la cuota antes y dejan más tareas a medias.
+> - **Cada agente arranca en frío** y relee `CLAUDE.md` y las specs: con N agentes, N veces lo mismo.
+> - **Unir cuesta y crece con el número de ramas:** choques en el snapshot, el cliente, lectores
+>   compartidos y Designers, y choques semánticos que git no marca (I2 rompió los tests de P1, R2, R3 y M1).
+> - **Incidentes por paralelismo:** la base `gsm` migrada por error, un agente contra `gsm_test`, un
+>   test intermitente y la suite de 2,5 a 8 minutos.
+> - **El dueño del producto también es un cuello de botella:** las preguntas se acumulan (22 al cerrar
+>   la Ola 2) y varias obligan a rehacer o agregar trabajo.
+>
+> **Cómo se lanza:** carriles que no se pisen; **en serie** las tareas que comparten terreno (p. ej.
+> A1, MS1b, G3b y C1 tocan estado comercial y horario); **unir cada tarea apenas termina**, sin esperar
+> al cierre de la ola. La columna "Carril" de cada ola no significa "todos a la vez".
 
 ### Ola 0 — Cimientos
 

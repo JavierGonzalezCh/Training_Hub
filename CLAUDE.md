@@ -54,6 +54,7 @@ Ningún módulo nuevo de backend está en construcción. **Del frontend están h
 
 ### Notas de la v2 que afectan a todo
 
+- **Agentes en paralelo: 3 o 4 como máximo, nunca 6–9** (decidido 2026-10-11). El límite de uso de la API es el cuello de botella real, cada agente arranca en frío, unir más ramas cuesta más y las preguntas al dueño se acumulan. Tareas que comparten terreno van en serie y cada una se une apenas termina. Detalle en `docs/V2-BUILD-PLAN.md` §3.
 - **Tests por carril:** `ApiFactory` lee la base de `GSM_TEST_DATABASE` (por defecto `gsm_test`). Cada agente usa `gsm_test_<carril>`; solo el integrador corre contra `gsm_test`.
 - **Registro por módulo:** lo de cada módulo se registra en `Application/{Módulo}/{Módulo}Module.cs` (`Add{Módulo}Module`) e `Infrastructure/{Módulo}/{Módulo}InfrastructureModule.cs` (`Add{Módulo}Infrastructure`); lo transversal en `AddCommonInfrastructure`. Los enums de Postgres de cada módulo se declaran **una sola vez** en `Infrastructure/{Módulo}/{Módulo}Enums.cs` (`IModuleEnums`), que alimenta modelo, proveedor y factory de diseño.
 - **SQL a mano de una migración** va en `GSM.Infrastructure/Migrations/Scripts/V2_<id>.sql` (recurso embebido) y la migración lo ejecuta con `migrationBuilder.SqlScript("<id>")`. Si una migración se regenera al unir, se conserva esa llamada.
