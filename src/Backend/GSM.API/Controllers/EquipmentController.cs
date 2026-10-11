@@ -39,9 +39,18 @@ public sealed class EquipmentController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] bool includeInactive,
         [FromServices] ListEquipmentHandler handler,
+        [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
-        => Ok(await handler.HandleAsync(
+    {
+        // Ver las bajas es solo del Owner, como darlas (P18).
+        if (includeInactive && !(await authorization.AuthorizeAsync(User, AuthPolicies.RequireOwner)).Succeeded)
+        {
+            return Forbid();
+        }
+
+        return Ok(await handler.HandleAsync(
             new EquipmentFilter(type, zone, status, search, includeInactive), cancellationToken));
+    }
 
     /// <summary>Zonas ya usadas en el gym, para autocompletar.</summary>
     [HttpGet("zones")]

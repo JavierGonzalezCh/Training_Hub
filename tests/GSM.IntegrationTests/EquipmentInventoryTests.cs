@@ -348,8 +348,11 @@ public sealed class EquipmentInventoryTests(ApiFactory factory) : IClassFixture<
         Assert.DoesNotContain(await ListNamesAsync(staff, "/api/equipment"), n => n == "Remo en polea");
         Assert.DoesNotContain(await ListNamesAsync(staff, "/api/equipment?zone=Espalda"), n => n == "Remo en polea");
 
-        // Con includeInactive aparece, marcada como baja; no se puede editar.
-        var withInactive = await staff.GetFromJsonAsync<JsonElement>("/api/equipment?includeInactive=true");
+        // Ver las bajas es solo del Owner (P18): el staff recibe 403.
+        Assert.Equal(HttpStatusCode.Forbidden, (await staff.GetAsync("/api/equipment?includeInactive=true")).StatusCode);
+
+        // Con includeInactive el Owner la ve, marcada como baja; no se puede editar.
+        var withInactive = await owner.GetFromJsonAsync<JsonElement>("/api/equipment?includeInactive=true");
         var row = Assert.Single(withInactive.EnumerateArray(), e => e.GetProperty("id").GetGuid() == id);
         Assert.False(row.GetProperty("isActive").GetBoolean());
         var edit = await staff.PutAsJsonAsync($"/api/equipment/{id}", new
