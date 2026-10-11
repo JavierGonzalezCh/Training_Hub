@@ -177,10 +177,10 @@ escribir notificaciones y correos: publica eventos (§4.3).
 | Recordatorio de clase (10 min) | Miembro con reserva | Mis clases | ✓ | ✓ | | | Exento |
 | Oferta de la lista de espera | Miembro | Mis clases | ✓ | ✓ | | ✓ | Exento |
 | Clase cancelada | Miembros con reserva | Mis clases | ✓ | ✓ | ✓ | | Exento |
-| Penalización por inasistencias | Miembro | Mis clases | ✓ | ✓ | | | Aplica |
+| Penalización por inasistencias | Miembro | Mis clases | ✓ | ✓ | | | No aplica |
 | Tu oferta de la lista de espera venció | Miembro | Mis clases | ✓ | ✓ | | | Exento |
-| Logro desbloqueado / premio | Miembro | Mi progreso | ✓ | ✓ | | | Aplica |
-| Tu premio vence en 3 días | Miembro con premio pendiente | Mi progreso | ✓ | ✓ | | | Aplica |
+| Logro desbloqueado / premio | Miembro | Mi progreso | ✓ | ✓ | | | No aplica |
+| Tu premio vence en 3 días | Miembro con premio pendiente | Mi progreso | ✓ | ✓ | | | No aplica |
 | Clase nueva | Miembros activos | Novedades | ✓ | ✓ | | | Aplica |
 | Anuncio | Su audiencia | Novedades o Promociones | ✓ | ✓ | Si el anuncio lo pide | | Aplica |
 | Cumpleaños | Miembro | Novedades | ✓ | ✓ | | | Sale a las 8:00 |
