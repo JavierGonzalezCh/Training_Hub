@@ -26248,6 +26248,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("lostGyms")]
         public int LostGyms { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("trialsNotConverted")]
+        public int TrialsNotConverted { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("activeGymsAtStart")]
         public int ActiveGymsAtStart { get; set; } = default!;
 

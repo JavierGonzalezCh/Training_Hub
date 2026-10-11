@@ -27,6 +27,7 @@ else
             <MudTh>Convertidos</MudTh>
             <MudTh>Perdidos</MudTh>
             <MudTh>Churn</MudTh>
+            <MudTh title="Gyms en prueba que se perdieron sin pagar. No cuentan para el churn.">Pruebas no convertidas</MudTh>
             <MudTh>Miembros activos</MudTh>
             <MudTh>Entradas</MudTh>
         </HeaderContent>
@@ -42,6 +43,7 @@ else
             <MudTd DataLabel="Convertidos">@context.ConvertedGyms</MudTd>
             <MudTd DataLabel="Perdidos">@context.LostGyms</MudTd>
             <MudTd DataLabel="Churn">@ChurnLabel(context.Churn)</MudTd>
+            <MudTd DataLabel="Pruebas no convertidas">@context.TrialsNotConverted</MudTd>
             <MudTd DataLabel="Miembros activos">@context.ActiveMembers</MudTd>
             <MudTd DataLabel="Entradas">@context.CheckIns</MudTd>
         </RowTemplate>

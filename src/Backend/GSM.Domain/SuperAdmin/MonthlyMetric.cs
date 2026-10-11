@@ -28,7 +28,11 @@ public sealed class MonthlyMetric : BaseEntity
 
     public int ConvertedGyms { get; private set; }
 
+    /// <summary>Gyms que eran clientes (al día o en mora) al inicio del mes y terminaron perdidos.</summary>
     public int LostGyms { get; private set; }
+
+    /// <summary>Gyms en prueba que se perdieron sin pagar. No cuentan para el churn.</summary>
+    public int TrialsNotConverted { get; private set; }
 
     public int ActiveGymsAtStart { get; private set; }
 
@@ -57,6 +61,7 @@ public sealed class MonthlyMetric : BaseEntity
         int trialGymsAtClose,
         int convertedGyms,
         int lostGyms,
+        int trialsNotConverted,
         int activeGymsAtStart,
         int activeGymsAtClose,
         int activeMembers,
@@ -68,7 +73,7 @@ public sealed class MonthlyMetric : BaseEntity
             throw new ValidationDomainException("El mes de la foto debe ser su primer día.");
         }
 
-        if (new[] { newGyms, trialGymsAtClose, convertedGyms, lostGyms, activeGymsAtStart, activeGymsAtClose, activeMembers, checkIns }
+        if (new[] { newGyms, trialGymsAtClose, convertedGyms, lostGyms, trialsNotConverted, activeGymsAtStart, activeGymsAtClose, activeMembers, checkIns }
             .Any(v => v < 0))
         {
             throw new ValidationDomainException("Los conteos de la foto no pueden ser negativos.");
@@ -83,6 +88,7 @@ public sealed class MonthlyMetric : BaseEntity
             TrialGymsAtClose = trialGymsAtClose,
             ConvertedGyms = convertedGyms,
             LostGyms = lostGyms,
+            TrialsNotConverted = trialsNotConverted,
             ActiveGymsAtStart = activeGymsAtStart,
             ActiveGymsAtClose = activeGymsAtClose,
             Churn = activeGymsAtStart == 0 ? null : decimal.Round((decimal)lostGyms / activeGymsAtStart, 4),

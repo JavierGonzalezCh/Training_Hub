@@ -2990,6 +2990,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("trial_gyms_at_close");
 
+                    b.Property<int>("TrialsNotConverted")
+                        .HasColumnType("integer")
+                        .HasColumnName("trials_not_converted");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");

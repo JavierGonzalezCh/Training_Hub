@@ -10,6 +10,7 @@ public sealed record GymCounts(
     int TrialGymsAtClose,
     int ConvertedGyms,
     int LostGyms,
+    int TrialsNotConverted,
     int ActiveGymsAtStart,
     int ActiveGymsAtClose,
     Dictionary<string, string> StatesAtClose);
@@ -39,7 +40,7 @@ public static class MonthlyMetricsCalculator
         var dayBefore = month.AddDays(-1);
         var states = new Dictionary<string, string>();
         decimal mrr = 0;
-        int created = 0, trial = 0, converted = 0, lost = 0, activeStart = 0, activeClose = 0;
+        int created = 0, trial = 0, converted = 0, lost = 0, trialsLost = 0, activeStart = 0, activeClose = 0;
 
         foreach (var gym in gyms)
         {
@@ -72,7 +73,8 @@ public static class MonthlyMetricsCalculator
                 start = GymSubscription.DeriveStatus(gym.ManualStatus, dayBefore, gym.PaidThrough, gym.TrialEndsOn);
             }
 
-            if (start is EffectiveSubscriptionStatus.Active or EffectiveSubscriptionStatus.Overdue)
+            var wasActive = start is EffectiveSubscriptionStatus.Active or EffectiveSubscriptionStatus.Overdue;
+            if (wasActive)
             {
                 activeStart++;
             }
@@ -88,21 +90,25 @@ public static class MonthlyMetricsCalculator
                 trial++;
             }
 
-            var startedLost = start is EffectiveSubscriptionStatus.Disabled or EffectiveSubscriptionStatus.Suspended;
             var endedLost = end is EffectiveSubscriptionStatus.Disabled or EffectiveSubscriptionStatus.Suspended;
-            if (!startedLost && endedLost)
+            var wasInTrial = start == EffectiveSubscriptionStatus.Trial
+                             || (start is null && gym.TrialEndsOn is not null);
+
+            // P13: el churn solo cuenta clientes (al día o en mora al inicio); una prueba que se cae va aparte.
+            if (wasActive && endedLost)
             {
                 lost++;
             }
-
-            var wasInTrial = start == EffectiveSubscriptionStatus.Trial
-                             || (start is null && gym.TrialEndsOn is not null);
+            else if (wasInTrial && endedLost)
+            {
+                trialsLost++;
+            }
             if (wasInTrial && end == EffectiveSubscriptionStatus.Active)
             {
                 converted++;
             }
         }
 
-        return new GymCounts(mrr, created, trial, converted, lost, activeStart, activeClose, states);
+        return new GymCounts(mrr, created, trial, converted, lost, trialsLost, activeStart, activeClose, states);
     }
 }

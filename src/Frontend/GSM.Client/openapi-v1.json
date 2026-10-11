@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:7299/"
+      "url": "https://localhost:7219/"
     }
   ],
   "paths": {
@@ -15028,6 +15028,7 @@
           "trialGymsAtClose",
           "convertedGyms",
           "lostGyms",
+          "trialsNotConverted",
           "activeGymsAtStart",
           "activeGymsAtClose",
           "churn",
@@ -15081,6 +15082,14 @@
             "format": "int32"
           },
           "lostGyms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "trialsNotConverted": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",

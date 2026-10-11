@@ -162,6 +162,7 @@ public sealed record MonthlyMetricItem(
     int TrialGymsAtClose,
     int ConvertedGyms,
     int LostGyms,
+    int TrialsNotConverted,
     int ActiveGymsAtStart,
     int ActiveGymsAtClose,
     decimal? Churn,

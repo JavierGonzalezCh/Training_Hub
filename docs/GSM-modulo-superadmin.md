@@ -109,7 +109,7 @@ El SuperAdmin ve en su panel los gyms con prueba terminada, en mora y por inhabi
   - **cobrado** en el mes;
   - **gyms**: nuevos, en prueba, convertidos de prueba a pago, perdidos (inhabilitados o suspendidos
     en el mes), activos al cierre;
-  - **churn** (gyms perdidos ÷ activos al inicio del mes);
+  - **churn**: gyms que eran clientes al inicio del mes (al día o en mora) y se perdieron ÷ activos al inicio del mes. Las pruebas que se caen sin pagar **no** cuentan: van aparte como **pruebas no convertidas** (decidido 2026-10-11);
   - **miembros activos** y **entradas** de toda la plataforma.
 - El panel muestra la evolución de los últimos 12 meses.
 - **Lo que no se guardó no se recupera**: la serie empieza el primer mes después de construirlo.

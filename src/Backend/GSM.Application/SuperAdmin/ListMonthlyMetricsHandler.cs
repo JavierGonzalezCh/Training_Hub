@@ -14,7 +14,7 @@ public sealed class ListMonthlyMetricsHandler(IMonthlyMetricRepository metrics)
         return new MonthlyMetricsResponse(rows
             .OrderBy(m => m.Month)
             .Select(m => new MonthlyMetricItem(
-                m.Month, m.Mrr, m.Collected, m.NewGyms, m.TrialGymsAtClose, m.ConvertedGyms, m.LostGyms,
+                m.Month, m.Mrr, m.Collected, m.NewGyms, m.TrialGymsAtClose, m.ConvertedGyms, m.LostGyms, m.TrialsNotConverted,
                 m.ActiveGymsAtStart, m.ActiveGymsAtClose, m.Churn, m.ActiveMembers, m.CheckIns))
             .ToList());
     }

@@ -57,6 +57,7 @@ public sealed class MonthlyMetricsTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.Equal(2, row.ActiveGymsAtStart);  // pagador (al día) + el que estaba en mora
         Assert.Equal(2, row.ActiveGymsAtClose);  // pagador + convertido
         Assert.Equal(0.5m, row.Churn);           // 1 perdido / 2 activos al inicio
+        Assert.Equal(1, row.TrialsNotConverted); // la prueba que no pagó: fuera del churn (P13)
 
         Assert.Equal(3, row.ActiveMembers);      // 2 + 1 con membresía que cubre el 30-sep; la vencida el 29 no
         Assert.Equal(3, row.CheckIns);           // 3 en septiembre; el del 1-oct no
@@ -141,7 +142,7 @@ public sealed class MonthlyMetricsTests(ApiFactory factory) : IClassFixture<ApiF
         await db.Database.ExecuteSqlRawAsync("truncate table superadmin.monthly_metrics");
         for (var i = 0; i < 14; i++)
         {
-            db.Add(MonthlyMetric.Create(new DateOnly(2025, 1, 1).AddMonths(i), 1000m * i, 0, 0, 0, 0, 0, 0, 0, 0, 0, new()));
+            db.Add(MonthlyMetric.Create(new DateOnly(2025, 1, 1).AddMonths(i), 1000m * i, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, new()));
         }
 
         await db.SaveChangesAsync();
@@ -217,6 +218,9 @@ public sealed class MonthlyMetricsTests(ApiFactory factory) : IClassFixture<ApiF
         // Su prueba terminó el 31-ago y pagó: convertido.
         MakeGym(db, "m-converted", GymStatus.Trial, September, 80_000m, startedOn: new DateOnly(2026, 8, 1),
             paidThrough: new DateOnly(2026, 10, 20), trialEndsOn: new DateOnly(2026, 8, 31));
+        // P13: prueba hasta el 31-ago que nunca pagó; inhabilitado en septiembre. No es churn: va aparte.
+        MakeGym(db, "m-trial-lost", GymStatus.Trial, September, 90_000m, startedOn: new DateOnly(2026, 8, 1),
+            paidThrough: new DateOnly(2026, 8, 31), trialEndsOn: new DateOnly(2026, 8, 31));
         var payer = MakeGym(db, "m-payer", GymStatus.Active, September, 100_000m, startedOn: new DateOnly(2026, 6, 1),
             paidThrough: new DateOnly(2026, 11, 5));
         // Venció el 20-ago: en mora el 31-ago, inhabilitado el 30-sep (20-ago + 15 días = 4-sep).

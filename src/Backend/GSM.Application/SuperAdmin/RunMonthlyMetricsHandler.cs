@@ -52,7 +52,7 @@ public sealed class RunMonthlyMetricsHandler(
 
         metrics.Add(MonthlyMetric.Create(
             month, counts.Mrr, collected, counts.NewGyms, counts.TrialGymsAtClose, counts.ConvertedGyms,
-            counts.LostGyms, counts.ActiveGymsAtStart, counts.ActiveGymsAtClose, activeMembers, checkIns,
+            counts.LostGyms, counts.TrialsNotConverted, counts.ActiveGymsAtStart, counts.ActiveGymsAtClose, activeMembers, checkIns,
             counts.StatesAtClose));
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
