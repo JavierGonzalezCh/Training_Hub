@@ -3465,6 +3465,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "ListEquipmentModels",
         "parameters": [
           {
             "name": "type",
@@ -3512,6 +3513,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "ListEquipment",
         "parameters": [
           {
             "name": "type",
@@ -3585,6 +3587,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "CreateEquipment",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3654,6 +3657,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "ListEquipmentZones",
         "responses": {
           "200": {
             "description": "OK",
@@ -3692,6 +3696,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "GetEquipment",
         "parameters": [
           {
             "name": "id",
@@ -3750,6 +3755,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "UpdateEquipment",
         "parameters": [
           {
             "name": "id",
@@ -3828,6 +3834,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "DeactivateEquipment",
         "parameters": [
           {
             "name": "id",
@@ -3891,6 +3898,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "AddEquipmentFromModels",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3969,6 +3977,7 @@
         "tags": [
           "Equipment"
         ],
+        "operationId": "UploadEquipmentPhoto",
         "parameters": [
           {
             "name": "id",

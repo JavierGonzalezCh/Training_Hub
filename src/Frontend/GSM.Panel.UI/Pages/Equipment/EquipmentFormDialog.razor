@@ -86,11 +86,11 @@
         _loading = true;
         try
         {
-            _zones = (await Equipment.ZonesAsync()).ToList();
+            _zones = (await Equipment.ListEquipmentZonesAsync()).ToList();
 
             if (EquipmentId is { } id)
             {
-                var item = await Equipment.EquipmentGETAsync(id);
+                var item = await Equipment.GetEquipmentAsync(id);
                 _model.Name = item.Name;
                 _model.Type = EquipmentDisplay.TypeValue(item.Type);
                 _model.Zone = item.Zone;
@@ -141,11 +141,11 @@
 
             if (EquipmentId is { } id)
             {
-                await Equipment.EquipmentPUTAsync(id, request);
+                await Equipment.UpdateEquipmentAsync(id, request);
             }
             else
             {
-                await Equipment.EquipmentPOSTAsync(request);
+                await Equipment.CreateEquipmentAsync(request);
             }
 
             MudDialog.Close(DialogResult.Ok(true));

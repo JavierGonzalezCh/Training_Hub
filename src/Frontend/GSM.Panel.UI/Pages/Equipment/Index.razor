@@ -161,14 +161,14 @@ else
         _loading = true;
         try
         {
-            var result = await Equipment.EquipmentAllAsync(
+            var result = await Equipment.ListEquipmentAsync(
                 ToFilter(_type),
                 FilterValues.IsAll(_zone) ? null : _zone,
                 ToFilter(_status),
                 string.IsNullOrWhiteSpace(_search) ? null : _search,
                 _includeInactive);
             _items = result.ToList();
-            _zones = (await Equipment.ZonesAsync()).ToList();
+            _zones = (await Equipment.ListEquipmentZonesAsync()).ToList();
         }
         catch (GsmApiException ex)
         {
@@ -259,7 +259,7 @@ else
 
         try
         {
-            await Equipment.EquipmentDELETEAsync(item.Id);
+            await Equipment.DeactivateEquipmentAsync(item.Id);
             Snackbar.Add("Equipo dado de baja.", Severity.Success);
             await LoadAsync();
         }
@@ -275,7 +275,7 @@ else
         {
             // 5 MB de tope: solo para no mandar archivos absurdos a la API.
             await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            await Equipment.PhotoAsync(item.Id, new FileParameter(stream, file.Name, file.ContentType));
+            await Equipment.UploadEquipmentPhotoAsync(item.Id, new FileParameter(stream, file.Name, file.ContentType));
             Snackbar.Add("Foto actualizada.", Severity.Success);
             await LoadAsync();
         }

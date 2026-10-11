@@ -118,8 +118,8 @@
     {
         try
         {
-            _models = (await Equipment.ModelsAsync()).ToList();
-            _zones = (await Equipment.ZonesAsync()).ToList();
+            _models = (await Equipment.ListEquipmentModelsAsync()).ToList();
+            _zones = (await Equipment.ListEquipmentZonesAsync()).ToList();
         }
         catch (GsmApiException ex)
         {
@@ -176,7 +176,7 @@
                 })
                 .ToList();
 
-            await Equipment.FromModelsAsync(new AddEquipmentFromModelsRequest { Items = items });
+            await Equipment.AddEquipmentFromModelsAsync(new AddEquipmentFromModelsRequest { Items = items });
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (GsmApiException ex)
