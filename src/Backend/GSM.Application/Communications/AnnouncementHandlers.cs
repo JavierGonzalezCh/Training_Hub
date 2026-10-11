@@ -62,6 +62,11 @@ public sealed class CreateAnnouncementHandler(
         var authorId = currentUser.UserId
             ?? throw new UnauthorizedDomainException("Sin usuario en el contexto.");
 
+        if (request.Important)
+        {
+            AnnouncementImportance.EnsureOwner(currentUser);
+        }
+
         if (request.Pinned)
         {
             await AnnouncementPinning.EnsureRoomAsync(announcements, null, cancellationToken);
@@ -69,7 +74,7 @@ public sealed class CreateAnnouncementHandler(
 
         var announcement = Announcement.CreateDraft(
             gymId, authorId, request.Title, request.Body, request.Pinned, request.ExpiresOn, request.SendEmail,
-            request.Category);
+            request.Category, request.Important);
         announcements.Add(announcement);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -79,6 +84,7 @@ public sealed class CreateAnnouncementHandler(
 }
 
 public sealed class UpdateAnnouncementHandler(
+    ICurrentUserService currentUser,
     IAnnouncementRepository announcements,
     IAnnouncementReactionRepository reactions,
     IUnitOfWork unitOfWork,
@@ -89,6 +95,13 @@ public sealed class UpdateAnnouncementHandler(
     {
         var announcement = await announcements.GetAsync(id, cancellationToken)
             ?? throw new NotFoundException("Anuncio no encontrado.");
+
+        // Marcar o desmarcar "importante" es solo del Owner (y solo en borrador, lo exige el dominio).
+        if (request.Important is { } important && important != announcement.IsImportant)
+        {
+            AnnouncementImportance.EnsureOwner(currentUser);
+            announcement.SetImportant(important, currentUser.UserId ?? Guid.Empty);
+        }
 
         announcement.Edit(request.Title, request.Body, request.ExpiresOn, request.SendEmail, request.Category);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -122,7 +135,7 @@ public sealed class PublishAnnouncementHandler(
         await events.PublishAsync(
             new AnnouncementPublished(
                 announcement.Id, announcement.GymId, announcement.Title, announcement.Body,
-                announcement.SendEmail, audience, announcement.Category),
+                announcement.SendEmail, audience, announcement.Category, announcement.IsImportant),
             cancellationToken);
 
         logger.LogInformation(
@@ -203,8 +216,21 @@ public sealed class GetMemberFeedHandler(
             items.Select(a => new FeedItem(
                 a.Id, a.Title, a.Body, a.PublishedAt!.Value, a.Pinned,
                 counts.GetValueOrDefault(a.Id) ?? ReactionCounts.None,
-                own.TryGetValue(a.Id, out var kind) ? kind.ToString() : null)).ToList(),
+                own.TryGetValue(a.Id, out var kind) ? kind.ToString() : null,
+                a.IsImportant)).ToList(),
             page, pageSize, total);
+    }
+}
+
+internal static class AnnouncementImportance
+{
+    /// <summary>Solo el Owner marca un anuncio como importante (un SuperAdmin impersonando opera como Owner).</summary>
+    public static void EnsureOwner(ICurrentUserService currentUser)
+    {
+        if (currentUser.Role != GSM.Domain.Identity.UserRole.Owner && !currentUser.IsImpersonating)
+        {
+            throw new ForbiddenDomainException("Solo el Owner puede marcar un anuncio como importante.");
+        }
     }
 }
 
@@ -242,7 +268,7 @@ internal static class AnnouncementMapper
 {
     public static AnnouncementResponse ToResponse(Announcement a, ReactionCounts? reactions, EmailDelivery? delivery) => new(
         a.Id, a.Title, a.Body, a.Status.ToString(), a.PublishedAt, a.Pinned, a.ExpiresOn, a.SendEmail, a.CreatedAt,
-        reactions ?? ReactionCounts.None, delivery, a.Category.ToString());
+        reactions ?? ReactionCounts.None, delivery, a.Category.ToString(), a.IsImportant, a.ImportantMarkedBy);
 
     public static async Task<IReadOnlyDictionary<Guid, EmailDelivery>> GetDeliveryAsync(
         INotificationReader notificationReader, IReadOnlyCollection<Guid> announcementIds, CancellationToken cancellationToken)

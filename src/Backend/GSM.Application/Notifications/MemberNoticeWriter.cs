@@ -73,7 +73,8 @@ public sealed class MemberNoticeWriter(
         string body,
         string? link,
         string? emailBody,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool bypassPreferences = false)
     {
         var already = await notifications.GetNotifiedMemberIdsAsync(type, referenceId, cancellationToken);
         var targets = memberIds.Distinct().Where(id => !already.Contains(id)).ToList();
@@ -91,7 +92,9 @@ public sealed class MemberNoticeWriter(
             contacts = (await members.GetEmailContactsAsync(gymId, cancellationToken))
                 .Where(c => wanted.Contains(c.Id))
                 .ToDictionary(c => c.Id);
-            emailEnabled = await EmailEnabledAsync(contacts.Keys.ToList(), category, cancellationToken);
+            emailEnabled = bypassPreferences
+                ? contacts.Keys.ToHashSet()
+                : await EmailEnabledAsync(contacts.Keys.ToList(), category, cancellationToken);
             gymName = await GymNameAsync(gymId, cancellationToken);
         }
 

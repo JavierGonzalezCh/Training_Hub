@@ -44,9 +44,18 @@ public sealed class Announcement : BaseEntity, ITenantEntity
     /// <summary>Novedades del gym o Promociones: define qué preferencia del miembro se respeta (CO1).</summary>
     public AnnouncementCategory Category { get; private set; } = AnnouncementCategory.GymNews;
 
+    /// <summary>
+    /// Anuncio importante (decidido 2026-10-11): solo lo marca el Owner. Se salta el horario sin avisos y las
+    /// preferencias de Novedades/Promociones, y queda fijo arriba en el feed hasta <see cref="ExpiresOn"/>.
+    /// </summary>
+    public bool IsImportant { get; private set; }
+
+    /// <summary>Quién marcó el anuncio como importante (auditoría). Nulo si no lo es.</summary>
+    public Guid? ImportantMarkedBy { get; private set; }
+
     public static Announcement CreateDraft(
         Guid gymId, Guid authorUserId, string title, string body, bool pinned, DateOnly? expiresOn, bool sendEmail,
-        AnnouncementCategory category = AnnouncementCategory.GymNews)
+        AnnouncementCategory category = AnnouncementCategory.GymNews, bool important = false)
     {
         if (gymId == Guid.Empty)
         {
@@ -61,7 +70,32 @@ public sealed class Announcement : BaseEntity, ITenantEntity
             Category = category,
         };
         announcement.Apply(title, body, expiresOn, sendEmail);
+        if (important)
+        {
+            announcement.SetImportant(true, authorUserId);
+        }
+
         return announcement;
+    }
+
+    /// <summary>
+    /// Marca o desmarca el anuncio como importante, solo mientras es borrador: ya publicado, decidió a quién
+    /// se le avisó y cómo, y no se cambia. El permiso (solo Owner) lo comprueba el caso de uso.
+    /// </summary>
+    public void SetImportant(bool important, Guid markedBy)
+    {
+        if (important == IsImportant)
+        {
+            return;
+        }
+
+        if (Status != AnnouncementStatus.Draft)
+        {
+            throw new ConflictException("Un anuncio publicado ya no puede cambiar de importante.");
+        }
+
+        IsImportant = important;
+        ImportantMarkedBy = important ? markedBy : null;
     }
 
     /// <summary>

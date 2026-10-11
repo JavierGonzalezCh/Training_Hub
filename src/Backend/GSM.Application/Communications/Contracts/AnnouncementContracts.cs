@@ -8,7 +8,8 @@ public sealed record CreateAnnouncementRequest(
     bool Pinned,
     DateOnly? ExpiresOn,
     bool SendEmail,
-    AnnouncementCategory Category = AnnouncementCategory.GymNews);
+    AnnouncementCategory Category = AnnouncementCategory.GymNews,
+    bool Important = false);
 
 /// <summary>Fijar y desfijar tienen sus propios endpoints; aquí solo el contenido.</summary>
 public sealed record UpdateAnnouncementRequest(
@@ -16,7 +17,8 @@ public sealed record UpdateAnnouncementRequest(
     string Body,
     DateOnly? ExpiresOn,
     bool SendEmail,
-    AnnouncementCategory? Category = null);
+    AnnouncementCategory? Category = null,
+    bool? Important = null);
 
 public sealed record ListAnnouncementsQuery
 {
@@ -38,7 +40,9 @@ public sealed record AnnouncementResponse(
     DateTimeOffset CreatedAt,
     ReactionCounts Reactions,
     EmailDelivery? Delivery,
-    string Category);
+    string Category,
+    bool Important,
+    Guid? ImportantMarkedBy);
 
 /// <summary>Vista del feed del miembro: solo lo publicado y vigente.</summary>
 public sealed record FeedItem(
@@ -48,7 +52,8 @@ public sealed record FeedItem(
     DateTimeOffset PublishedAt,
     bool Pinned,
     ReactionCounts Reactions,
-    string? MyReaction);
+    string? MyReaction,
+    bool Important = false);
 
 /// <summary>
 /// Totales por tipo, como campos y no como diccionario de enum: NSwag genera mal las colecciones
