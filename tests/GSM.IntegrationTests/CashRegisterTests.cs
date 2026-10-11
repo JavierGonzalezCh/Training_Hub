@@ -1,4 +1,4 @@
-using GSM.Application.Payments;
+﻿using GSM.Application.Payments;
 using GSM.Application.Payments.Contracts;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
@@ -67,6 +67,7 @@ public sealed class CashRegisterTests(ApiFactory factory) : IClassFixture<ApiFac
     {
         var scope = factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAs(staffId, gymId, UserRole.Staff);
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().Permissions.Add(StaffPermission.ViewFinances); // P2: finanzas
         return scope;
     }
 

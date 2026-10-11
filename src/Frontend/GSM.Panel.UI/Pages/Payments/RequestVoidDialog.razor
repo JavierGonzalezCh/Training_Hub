@@ -1,0 +1,60 @@
+@inject IPaymentsClient Payments
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-4">
+            No tienes permiso para anular pagos. Pide la anulación de «@Payment.Concept»
+            (<span class="gsm-mono">@GsmFormat.Money((decimal)Payment.Amount)</span>, @PaymentMethodLabels.Label(Payment.Method))
+            y el Owner, o quien pueda anular pagos, la aprobará o la rechazará. El pago no cambia hasta entonces.
+        </MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2"
+                      HelperText="Por ejemplo: monto mal digitado, cobro duplicado." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="send-void-request">
+            @(_submitting ? "Enviando..." : "Enviar solicitud")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public PaymentResponse Payment { get; set; } = null!;
+
+    private string _reason = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_reason) || _reason.Trim().Length < 3)
+        {
+            _error = "Escribe el motivo de la solicitud.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Payments.VoidRequestsPOSTAsync(Payment.Id, new RequestVoidRequest { Reason = _reason.Trim() });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

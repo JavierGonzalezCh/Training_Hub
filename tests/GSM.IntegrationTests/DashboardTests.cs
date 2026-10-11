@@ -1,4 +1,4 @@
-using GSM.Application.Dashboard;
+﻿using GSM.Application.Dashboard;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
@@ -23,6 +23,7 @@ public sealed class DashboardTests(ApiFactory factory) : IClassFixture<ApiFactor
 
         using var scope = factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAs(staffId, gymId, UserRole.Staff);
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().Permissions.Add(StaffPermission.ViewFinances); // P2: finanzas
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(day);
 
         var dash = await scope.ServiceProvider.GetRequiredService<GetDashboardHandler>()

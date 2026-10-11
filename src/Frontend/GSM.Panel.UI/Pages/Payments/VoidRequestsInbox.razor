@@ -1,0 +1,81 @@
+@inject IPaymentsClient Payments
+@inject ISnackbar Snackbar
+
+@* Bandeja de solicitudes de anulación pendientes. Solo se monta para quien puede resolverlas (Owner o
+   VoidPayments): la página la envuelve en un AuthorizeView, así no se consulta sin permiso. *@
+@if (_pending.Count > 0)
+{
+            <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)" data-testid="void-requests-inbox">
+                <MudText Typo="Typo.h6" Class="mb-2">Solicitudes de anulación (@_pending.Count)</MudText>
+                @foreach (var request in _pending)
+                {
+                    <div class="d-flex align-center flex-wrap py-2" style="gap:1rem" data-testid="void-request">
+                        <div style="flex:1 1 16rem">
+                            <MudText Typo="Typo.body1">
+                                @request.PaymentConcept · <span class="gsm-mono">@GsmFormat.Money((decimal)request.PaymentAmount)</span>
+                                · @PaymentMethodLabels.Label(request.PaymentMethod)
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @(request.RequestedByName ?? "Alguien del equipo") pidió anularlo · @GsmFormat.Instant(request.RequestedAt)
+                            </MudText>
+                            <MudText Typo="Typo.body2">Motivo: @request.Reason</MudText>
+                        </div>
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" Disabled="_busy"
+                                   data-testid="reject-void" OnClick="@(() => RejectAsync(request))">Rechazar</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" Disabled="_busy"
+                                   data-testid="approve-void" OnClick="@(() => ApproveAsync(request))">Aprobar y anular</MudButton>
+                    </div>
+                }
+    </MudPaper>
+}
+
+@code {
+    private List<VoidRequestResponse> _pending = [];
+    private bool _busy;
+
+    /// <summary>Se avisa al resolver una solicitud para que la tabla de pagos se refresque.</summary>
+    [Parameter]
+    public EventCallback OnResolved { get; set; }
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    public async Task LoadAsync()
+    {
+        try
+        {
+            _pending = (await Payments.VoidRequestsGETAsync("pending", 1, 50))?.Items.ToList() ?? [];
+        }
+        catch (GsmApiException)
+        {
+            // Sin el permiso (403) no hay bandeja: el AuthorizeView ya la oculta; esto cubre el desfase del token.
+            _pending = [];
+        }
+    }
+
+    private Task ApproveAsync(VoidRequestResponse request)
+        => ResolveAsync(async () => await Payments.ApproveAsync(request.Id), "Pago anulado.");
+
+    private Task RejectAsync(VoidRequestResponse request)
+        => ResolveAsync(() => Payments.RejectAsync(request.Id), "Solicitud rechazada.");
+
+    private async Task ResolveAsync(Func<Task> action, string success)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+            Snackbar.Add(success, Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+        await OnResolved.InvokeAsync();
+    }
+}
