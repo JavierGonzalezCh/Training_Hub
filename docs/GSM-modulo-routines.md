@@ -214,6 +214,32 @@ ya existían:
   (`deactivated_on`) si hubo cambio de rutina o de modo. Cambiar o editar la rutina nunca altera la
   racha ya ganada. Tarea **R2b**.
 
+### Quitar un ejercicio de las rutinas (decidido 2026-10-11, tarea R12)
+
+**Caso 1 — el ejercicio se desactiva en el gym** (máquina dañada, ejercicio no recomendado…). Lo hacen
+el Owner y el staff con permiso `trainer`.
+
+- Al desactivarlo se listan **todas las rutinas activas que lo usan** y es obligatorio elegir un
+  reemplazo (por defecto una alternativa recomendada, R5; se puede cambiar) y un **motivo** de una
+  lista: máquina dañada, ejercicio no recomendado, otro (con texto).
+- El reemplazo se aplica a todas esas rutinas de una vez, en el lugar del original (mismo día, series y
+  repeticiones). La línea original se retira (`retired_on`) y su historial se conserva.
+- Cada miembro afectado recibe un aviso (categoría "Mi rutina"): "En tu rutina, *X* se reemplazó por
+  *Y*: {motivo}".
+- **Nada se restablece solo**, sea cual sea el motivo. Cuando alguien **reactiva** el ejercicio a mano,
+  el sistema pregunta si lo restablece en las rutinas que lo tenían. Solo vuelve donde **sigue el
+  reemplazo** de esa desactivación (si el entrenador ya cambió esa línea, no se toca), y los miembros
+  reciben el aviso "*X* vuelve a tu rutina".
+- Se guarda cada reemplazo (rutina, línea original, línea nueva, motivo, quién, cuándo) para poder
+  restablecer y para la auditoría.
+
+**Caso 2 — se quita solo de una rutina.** Lo decide el entrenador en la edición normal: reemplazarlo o
+solo quitarlo. El miembro también recibe aviso ("*X* se quitó de tu rutina" o "*X* se reemplazó por
+*Y*").
+
+Encaja con R5 (alternativas) y con Equipment E2 (estado de máquinas): una máquina dañada puede
+proponer desactivar los ejercicios que dependen de ella.
+
 ### Entrenador asignado
 
 **Cada miembro puede tener, o no, un entrenador asignado** (decidido 2026-10-07).
@@ -269,6 +295,7 @@ datos sensibles.**
 | **R8** | Fecha de revisión: ajuste por gym, lista "por revisar" (filtrada por entrenador), acción "marcar revisada", tarjeta en el dashboard. Depende del entrenador asignado (Members + permiso `Trainer`). |
 | **R9** | Avisos de salud en el editor (depende de M3 de Members). |
 | **R10** | Limpieza de notas al anonimizar (depende de M6 de Members). |
+| **R12** | Quitar un ejercicio de las rutinas: desactivar con reemplazo masivo y motivo, aviso al miembro, restablecer a mano (depende de R5 y N1). Decidido 2026-10-11. |
 | **R11** | Plantillas. Al final del replanteamiento. |
 
 ### Pendiente de decidir

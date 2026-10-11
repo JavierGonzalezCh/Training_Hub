@@ -187,6 +187,7 @@ escribir notificaciones y correos: publica eventos (§4.3).
 | Cumpleaños | Miembro | Novedades | ✓ | ✓ | | | Sale a las 8:00 |
 | Entrada con tu documento | Miembro | — (seguridad, sin preferencia) | ✓ | ✓ | ✓ | | Exento |
 | La máquina que reportaste ya funciona | Miembro que reportó | Novedades | ✓ | ✓ | | | Aplica |
+| Tu rutina cambió (ejercicio reemplazado, quitado o restablecido, con motivo) — Routines R12 | Miembro | Mi rutina | ✓ | ✓ | | | No aplica |
 | Intento rechazado | Staff | — | ✓ (acción) | Opcional | | | — |
 | Falla de máquina | Owner y staff | — | ✓ (acción) | ✓ | | | — |
 | Máquina insegura | Owner y staff | — | ✓ (acción) | ✓ | ✓ (Owners) | ✓ | — |
