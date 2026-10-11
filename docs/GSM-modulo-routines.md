@@ -209,6 +209,10 @@ ya existían:
   son descanso y cuentan como día bueno, igual que en la v1.
 - **Modo rotativo:** sin cambios.
 - `IRoutineReader.GetTrainingCalendarAsync` resuelve los dos modos. `StreakCalculator` no cambia.
+- **Cada día se juzga con la rutina vigente ese día** (decidido 2026-10-11): el calendario hacia atrás
+  usa los días y líneas que estaban vigentes en cada fecha (`retired_on`), y la rutina anterior
+  (`deactivated_on`) si hubo cambio de rutina o de modo. Cambiar o editar la rutina nunca altera la
+  racha ya ganada. Tarea **R2b**.
 
 ### Entrenador asignado
 
@@ -256,6 +260,7 @@ datos sensibles.**
 |---|---|
 | **R1** | Edición en el lugar, `exercise_id` en los registros, FK `Restrict` (**corrige B1**). Primero va el test que lo reproduce. |
 | **R2** | Modo semanal + racha con calendario semanal. |
+| **R2b** | Racha con el calendario vigente en cada fecha (días retirados y rutinas anteriores). Decidido 2026-10-11. |
 | **R3** | Catálogo v2: tipo, `tracking_type`, unilateral, nivel, músculos nuevos (con la corrección de los ejercicios del sistema), grupo muscular derivado y filtro en dos pasos, ocultar y duplicar. |
 | **R4** | Series planeadas una por una, superseries, registros por serie y comparación planeado vs hecho en la app. |
 | **R5** | (Requiere E1 y E2 de Equipment.) Alternativas: recomendadas (tabla) + sugeridas automáticamente, "Cambiar por…" en el editor y "Hacer otro ejercicio hoy" en la app (depende de R4 para el registro por serie). |
