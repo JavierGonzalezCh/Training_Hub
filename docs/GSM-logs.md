@@ -81,7 +81,7 @@ Cada vez que un manejador de un evento de dominio falla.
 | Campo | Notas |
 |---|---|
 | `EventType`, `HandlerType` | Por ejemplo `GymCreated` → `CreateSubscriptionOnGymCreated`. |
-| `Payload` | El evento completo, en JSON, **para poder reintentarlo**. Limpio según §3. |
+| `Payload` | El evento completo, en JSON, **para poder reintentarlo**. Limpio según §3. Si el evento lleva un dato limpiado que el reintento necesita (p. ej. el código de `MemberInvited`), el reintento no usa el payload para ese dato: lo pide de nuevo al módulo dueño (un código nuevo). Decidido 2026-10-11. |
 | `ExceptionType`, `Message`, `StackTrace` | |
 | `RetryStatus` | `pending`, `retried_ok`, `retried_failed`, `ignored`. |
 | `RetriedAt`, `RetriedBy` | |
