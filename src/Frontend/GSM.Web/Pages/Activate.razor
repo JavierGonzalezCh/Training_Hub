@@ -1,0 +1,140 @@
+@page "/activar"
+@layout AuthLayout
+@attribute [AllowAnonymous]
+@inject SessionService Session
+@inject NavigationManager Navigation
+
+<PageTitle>Activar cuenta — GSM</PageTitle>
+
+@* Enlace de invitación (Identity §4): /activar?email=…&code=…. El formulario llega precargado, solo falta la
+   contraseña. Sin código, la persona ya tenía cuenta (se le agregó un acceso): se le pide entrar. *@
+@if (_selection is not null)
+{
+    <MudText Typo="Typo.h6" Class="mb-2">¿A qué gimnasio quieres entrar?</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Tu cuenta tiene acceso a varios.</MudText>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+    }
+
+    <GymAccessPicker Accesses="_selection.Accesses" Busy="_submitting" OnSelect="SelectAsync" />
+}
+else if (string.IsNullOrWhiteSpace(Code))
+{
+    <MudText Typo="Typo.h6" Class="mb-4">Ya tienes una cuenta</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6" data-testid="activate-has-account">
+        @(string.IsNullOrWhiteSpace(Email) ? "Entra" : $"Entra con {Email}") con tu contraseña de siempre para ver el acceso nuevo.
+        Si tienes varios gimnasios, podrás elegir a cuál entrar.
+    </MudText>
+    <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" Href="@LoginUrl">Entrar</MudButton>
+}
+else
+{
+    <MudText Typo="Typo.h6" Class="mb-2">Activa tu cuenta</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        Solo falta que elijas tu contraseña.
+    </MudText>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="activate-error">@_error</MudAlert>
+        @if (_linkProblem)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                Si ya definiste tu contraseña, <MudLink Href="@LoginUrl">entra</MudLink>. Si no,
+                <MudLink Href="/forgot-password">pide un enlace nuevo</MudLink> o pídeselo a quien te invitó.
+            </MudText>
+        }
+    }
+
+    <MudTextField T="string" Value="@Email" Label="Email" ReadOnly="true" Class="mb-3" autocomplete="username" />
+    <MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password"
+                  Immediate="true" Class="mb-3" autocomplete="new-password"
+                  HelperText="Mínimo 10 caracteres, con mayúscula, minúscula y número." />
+    <MudTextField T="string" @bind-Value="_confirm" Label="Repite la contraseña" InputType="InputType.Password"
+                  Immediate="true" Class="mb-4" autocomplete="new-password" />
+
+    <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
+        @(_submitting ? "Activando..." : "Activar cuenta")
+    </MudButton>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Email { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Code { get; set; }
+
+    private string _password = string.Empty;
+    private string _confirm = string.Empty;
+    private bool _submitting;
+    private bool _linkProblem;
+    private string? _error;
+    private GymSelection? _selection;
+
+    private string LoginUrl => string.IsNullOrWhiteSpace(Email) ? "/login" : $"/login?email={Uri.EscapeDataString(Email)}";
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _linkProblem = false;
+
+        if (_password.Length < 10)
+        {
+            _error = "La contraseña debe tener al menos 10 caracteres.";
+            return;
+        }
+
+        if (_password != _confirm)
+        {
+            _error = "Las contraseñas no coinciden.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var outcome = await Session.ActivateAsync(Email!, Code!, _password);
+            if (outcome.Selection is { } selection)
+            {
+                _selection = selection;
+                return;
+            }
+
+            Enter(outcome.Me!);
+        }
+        catch (ApiErrorException ex)
+        {
+            // 422: enlace vencido o ya usado, o contraseña que no cumple la política. El servidor no distingue
+            // los dos primeros a propósito, así que se ofrecen ambas salidas.
+            _error = ex.Error.DisplayMessage;
+            _linkProblem = ex.Error.IsUnprocessable;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task SelectAsync(GymAccessOption access)
+    {
+        _error = null;
+        _submitting = true;
+        try
+        {
+            Enter(await Session.SelectGymAsync(_selection!, access.AccessId));
+        }
+        catch (ApiErrorException ex)
+        {
+            _error = ex.Error.DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Enter(MeResponse me) => Navigation.NavigateTo(GsmRoles.HomeFor(me.Role), replace: true);
+}

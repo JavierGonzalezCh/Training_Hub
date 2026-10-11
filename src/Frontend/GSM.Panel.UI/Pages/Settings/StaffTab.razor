@@ -2,10 +2,12 @@
 @inject IStaffClient StaffApi
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
+@inject GSM.UI.Shared.IClipboard Clipboard
 
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" Style="max-width:640px">
-    Al dar de alta a alguien, le llega un email con un código para definir su contraseña en
-    "¿Olvidaste tu contraseña?" → restablecer. Desactivar no borra la cuenta: puedes reactivarla después.
+    Al dar de alta a alguien, le llega un email con un enlace (vence en 72 horas) que abre el formulario para
+    elegir su contraseña. Si no le llega, usa "Copiar enlace" y mándaselo por WhatsApp. Desactivar no borra la
+    cuenta: puedes reactivarla después.
 </MudText>
 
 <MudGrid Class="mb-4" Style="max-width:900px">
@@ -62,6 +64,7 @@ else
                 <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ShowAuditAsync(context.Id))">Historial</MudButton>
                 @if (context.IsActive)
                 {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => CopyLinkAsync(context))">Copiar enlace</MudButton>
                     <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="@(() => DeactivateAsync(context))">Desactivar</MudButton>
                 }
                 else
@@ -160,6 +163,32 @@ else
         finally
         {
             _creating = false;
+        }
+    }
+
+    // Un enlace nuevo cada vez (los códigos no se guardan): queda registrado quién lo copió, en el historial.
+    private async Task CopyLinkAsync(StaffResponse staff)
+    {
+        try
+        {
+            var link = await StaffApi.Link2Async(staff.Id);
+            var message = link.RequiresLogin
+                ? $"{staff.FullName} ya activó su cuenta: el enlace la lleva a entrar."
+                : $"Enlace de activación de {staff.FullName} copiado (vence en 72 horas).";
+
+            if (await Clipboard.CopyAsync(link.Url))
+            {
+                Snackbar.Add(message, Severity.Success);
+            }
+            else
+            {
+                // Sin portapapeles el enlace no se pierde: se muestra para copiarlo a mano.
+                await Dialogs.ShowMessageBox($"Enlace de {staff.FullName}", link.Url, yesText: "Cerrar");
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
     }
 

@@ -23,6 +23,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IAchievementsClient, AchievementsClient>(services, baseUri);
         AddApiClient<IAdminDashboardClient, AdminDashboardClient>(services, baseUri);
         AddApiClient<IAdminGymsClient, AdminGymsClient>(services, baseUri);
+        AddApiClient<IAdminGymOwnersClient, AdminGymOwnersClient>(services, baseUri);
         AddApiClient<IAdminImpersonationClient, AdminImpersonationClient>(services, baseUri);
         AddApiClient<IAdminMetricsClient, AdminMetricsClient>(services, baseUri);
         AddApiClient<IAdminPaymentsClient, AdminPaymentsClient>(services, baseUri);

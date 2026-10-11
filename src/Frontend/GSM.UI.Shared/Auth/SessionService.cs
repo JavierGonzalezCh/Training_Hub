@@ -31,12 +31,66 @@ public sealed class SessionService(
             throw new ApiErrorException(ApiError.FromException(ex));
         }
 
+        return await ToOutcomeAsync(response, cancellationToken);
+    }
+
+    /// <summary>
+    /// Activa una cuenta invitada con el enlace <c>/activar?email=…&amp;code=…</c>: crea la contraseña y deja la
+    /// sesión iniciada, o la selección de gym si la persona tiene varios accesos (igual que el login).
+    /// </summary>
+    public async Task<LoginOutcome> ActivateAsync(
+        string email, string code, string newPassword, CancellationToken cancellationToken = default)
+    {
+        LoginResponse response;
+        try
+        {
+            response = await auth.ActivateAsync(
+                new ActivateAccountRequest { Email = email, Code = code, NewPassword = newPassword }, cancellationToken);
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
+
+        return await ToOutcomeAsync(response, cancellationToken);
+    }
+
+    private async Task<LoginOutcome> ToOutcomeAsync(LoginResponse response, CancellationToken cancellationToken)
+    {
         if (response.RequiresGymSelection)
         {
             return new LoginOutcome(null, new GymSelection(response.SelectionToken!, response.Accesses!.ToList()));
         }
 
         return new LoginOutcome(await StartSessionAsync(response.Tokens!, cancellationToken), null);
+    }
+
+    /// <summary>
+    /// Cambia la contraseña de la sesión actual. El servidor cierra las demás sesiones de la persona y conserva
+    /// la que identifica el refresh token que va en la petición, así que antes se fuerza una llamada
+    /// autenticada: si el access token venció, el refresh (que rota el token) ocurre ahora y no a mitad del
+    /// cambio, cuando el cuerpo ya llevaría un refresh token revocado.
+    /// </summary>
+    public async Task ChangePasswordAsync(
+        string currentPassword, string newPassword, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await auth.MeAsync(cancellationToken);
+            var tokens = await tokenStore.GetAsync(cancellationToken);
+            await auth.PasswordAsync(
+                new ChangePasswordRequest
+                {
+                    CurrentPassword = currentPassword,
+                    NewPassword = newPassword,
+                    RefreshToken = tokens?.RefreshToken,
+                },
+                cancellationToken);
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
     }
 
     /// <summary>Segundo paso del login con varios gyms: con el boleto y el acceso elegido abre la sesión.</summary>

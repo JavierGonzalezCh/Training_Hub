@@ -23,6 +23,7 @@ public class StaffPermissionsUiTests : TestContext
         public Task<ICollection<StaffProfileInfo>> ProfilesAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<ICollection<StaffAuditResponse>> AuditAsync(Guid? userId = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task StaffDELETEAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<AccountLinkResponse> Link2Async(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<StaffResponse> Reactivate2Async(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<StaffResponse> PermissionsAsync(Guid id, UpdateStaffPermissionsRequest body, CancellationToken cancellationToken = default)

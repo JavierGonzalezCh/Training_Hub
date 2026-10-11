@@ -54,6 +54,11 @@
                         {
                             <MudMenuItem Icon="@Icons.Material.Filled.SwapHoriz" OnClick="SwitchGymAsync">Cambiar de gimnasio</MudMenuItem>
                         }
+                        @* Quien impersona un gym no es dueño de esa cuenta: no puede cambiar su contraseña desde aquí. *@
+                        @if (context.User.IsInRole("owner") || context.User.IsInRole("staff"))
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.Lock" Href="/cuenta/contrasena">Cambiar contraseña</MudMenuItem>
+                        }
                         <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">Cerrar sesión</MudMenuItem>
                     </ChildContent>
                 </MudMenu>

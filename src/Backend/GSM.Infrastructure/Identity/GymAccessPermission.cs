@@ -40,6 +40,12 @@ public enum StaffAccessAuditAction
 
     /// <summary>La persona perdió un permiso efectivo: sus sesiones en ese gym se cerraron.</summary>
     PermissionRevoked,
+
+    /// <summary>
+    /// Alguien copió el enlace de activación de la persona para mandárselo (<c>NewValue</c>: <c>activation</c>
+    /// o <c>login</c> si ya tenía contraseña). El actor es quien lo copió (Owner o SuperAdmin).
+    /// </summary>
+    LinkCopied,
 }
 
 /// <summary>

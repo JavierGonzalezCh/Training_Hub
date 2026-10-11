@@ -1,3 +1,5 @@
+using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Email;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Contracts;
@@ -6,11 +8,17 @@ using Microsoft.Extensions.Logging;
 
 namespace GSM.Application.Identity;
 
+/// <summary>Bloqueo por intentos (§7): 5 contraseñas incorrectas seguidas bloquean la cuenta 15 minutos.</summary>
+public static class LockoutPolicy
+{
+    public const int MaxFailedAttempts = 5;
+
+    public static readonly TimeSpan Duration = TimeSpan.FromMinutes(15);
+}
+
 public sealed class LoginHandler(
     IUserCredentialsService credentials,
-    IGymAccessService accesses,
-    IGymReader gyms,
-    IJwtTokenService jwtTokens,
+    IEmailSender emailSender,
     SessionIssuer sessions,
     ILogger<LoginHandler> logger)
 {
@@ -18,46 +26,35 @@ public sealed class LoginHandler(
     {
         logger.LogInformation("Login solicitado para {Email}", request.Email);
 
-        var account = await credentials.ValidateCredentialsAsync(request.Email, request.Password, cancellationToken)
+        // Email inexistente, contraseña mala, cuenta bloqueada o sin accesos: mismo mensaje y mismo código,
+        // para no revelar si el email tiene cuenta.
+        var check = await credentials.SignInAsync(request.Email, request.Password, cancellationToken);
+
+        if (check.LockedOutNow && check.LockedAccount is { } locked)
+        {
+            logger.LogWarning("Cuenta {UserId} bloqueada por intentos fallidos", locked.Id);
+            await NotifyLockoutAsync(locked, cancellationToken);
+        }
+
+        var account = check.Account
             ?? throw new UnauthorizedDomainException("Credenciales inválidas.");
 
-        if (account.IsSuperAdmin)
+        return await sessions.IssueLoginAsync(account, cancellationToken);
+    }
+
+    private async Task NotifyLockoutAsync(AccountIdentity account, CancellationToken cancellationToken)
+    {
+        try
         {
-            logger.LogInformation("Login correcto para el superadmin {UserId}", account.Id);
-            return new LoginResponse(false, await sessions.IssueForSuperAdminAsync(account, cancellationToken));
+            await emailSender.SendAsync(
+                EmailTemplates.AccountLockedOut(
+                    account.Email, account.FullName, (int)LockoutPolicy.Duration.TotalMinutes),
+                cancellationToken);
         }
-
-        var active = await accesses.ListActiveAsync(account.Id, cancellationToken);
-
-        // Sin ningún acceso activo (p. ej. staff desactivado) la cuenta no entra a ningún gym.
-        if (active.Count == 0)
+        catch (Exception ex)
         {
-            throw new UnauthorizedDomainException("Credenciales inválidas.");
+            logger.LogError(ex, "No se pudo enviar el aviso de bloqueo a la cuenta {UserId}", account.Id);
         }
-
-        if (active.Count == 1)
-        {
-            return new LoginResponse(false, await sessions.IssueForAccessAsync(account, active[0], cancellationToken));
-        }
-
-        // Varios accesos: la persona elige. El boleto prueba que ya validó su contraseña.
-        var options = new List<GymAccessOption>(active.Count);
-        foreach (var access in active)
-        {
-            var branding = await gyms.GetBrandingAsync(access.GymId, cancellationToken);
-            options.Add(new GymAccessOption(
-                access.Id,
-                access.GymId,
-                branding?.Name ?? "Gimnasio",
-                branding?.LogoUrl,
-                RoleName.ToClaim(access.Role),
-                access.LastUsedAt));
-        }
-
-        var ticket = jwtTokens.CreateGymSelectionTicket(account.Id);
-        logger.LogInformation("Login de {UserId}: {Count} accesos, falta elegir gym", account.Id, options.Count);
-
-        return new LoginResponse(true, SelectionToken: ticket.Value, Accesses: options);
     }
 }
 

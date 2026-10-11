@@ -100,6 +100,42 @@ public sealed class AuthController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Activar una cuenta invitada con el enlace <c>/activar?email=…&amp;code=…</c> (72 h): crea la contraseña y
+    /// deja la sesión iniciada; con varios accesos, la persona elige gym como en el login. 422 si el enlace
+    /// venció, ya se usó o la contraseña no cumple la política.
+    /// </summary>
+    [HttpPost("activate")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<LoginResponse>> Activate(
+        ActivateAccountRequest request,
+        [FromServices] ActivateAccountHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>
+    /// Cambiar la contraseña con la sesión iniciada (cualquier rol). Cierra las demás sesiones de la persona en
+    /// todos sus gyms: se conserva la del <c>refreshToken</c> que manda el cliente. 422 si la contraseña
+    /// actual es incorrecta.
+    /// </summary>
+    [HttpPost("~/api/me/password")]
+    [Authorize]
+    [SubscriptionGateExempt]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ChangePassword(
+        ChangePasswordRequest request,
+        [FromServices] ChangePasswordHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(request, cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType<MeResponse>(StatusCodes.Status200OK)]

@@ -42,9 +42,10 @@ public sealed class StaffManagementHttpTests(ApiFactory factory) : IClassFixture
         var early = await host.CreateClient().PostAsJsonAsync("/api/auth/login", new LoginRequest(staffEmail, "Whatever_12345"));
         Assert.Equal(HttpStatusCode.Unauthorized, early.StatusCode);
 
-        var token = emails.LastTo(staffEmail)!.TextBody!.Split("código: ")[1].Trim();
-        var reset = await host.CreateClient().PostAsJsonAsync("/api/auth/reset-password",
-            new ResetPasswordRequest(staffEmail, token, "StaffPass_12345"));
+        var link = EmailLinks.Parse(emails.LastTo(staffEmail)!);
+        Assert.Equal("/activar", link.Path);
+        var reset = await host.CreateClient().PostAsJsonAsync("/api/auth/activate",
+            new ActivateAccountRequest(link.Email, link.Code!, "StaffPass_12345"));
         Assert.True(reset.IsSuccessStatusCode, await reset.Content.ReadAsStringAsync());
 
         await LoggedInAsync(host, staffEmail, "StaffPass_12345");

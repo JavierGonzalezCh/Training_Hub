@@ -17,12 +17,13 @@ public sealed class ListStaffHandler(ICurrentUserService currentUser, IStaffAcco
 }
 
 /// <summary>
-/// Alta de staff: la cuenta nace sin contraseña y el usuario recibe por email un código para
-/// definirla en la pantalla de restablecimiento (el mismo flujo de "olvidé mi contraseña").
+/// Alta de staff: la cuenta nace sin contraseña y el usuario recibe por email un enlace de activación
+/// (<c>/activar</c>, 72 h) que abre el formulario para definirla. Si vence, sirve "olvidé mi contraseña".
 /// </summary>
 public sealed class CreateStaffHandler(
     ICurrentUserService currentUser,
     IStaffAccountService staff,
+    IAccountLinkBuilder links,
     IEmailSender emailSender,
     ILogger<CreateStaffHandler> logger)
 {
@@ -44,14 +45,17 @@ public sealed class CreateStaffHandler(
         var ticket = await staff.CreateAsync(
             gymId, request.Email.Trim(), request.FullName.Trim(), profile, actorId, cancellationToken);
 
-        // La cuenta ya existe: si el email falla, el usuario puede pedir el código con "olvidé mi contraseña".
+        // La cuenta ya existe: si el email falla, el usuario puede pedir un enlace con "olvidé mi contraseña" y el Owner puede copiarlo.
         try
         {
-            // Con cuenta previa solo se agregó el acceso: entra con su contraseña de siempre.
+            // Con cuenta previa solo se agregó el acceso: el enlace (sin código) la lleva a entrar con su
+            // contraseña de siempre. Cuenta nueva: el enlace de activación (72 h) abre el formulario.
             await emailSender.SendAsync(
                 ticket.Token is null
-                    ? EmailTemplates.StaffAccessGranted(ticket.Account.Email, ticket.Account.FullName)
-                    : EmailTemplates.StaffInvitation(ticket.Account.Email, ticket.Account.FullName, ticket.Token),
+                    ? EmailTemplates.StaffAccessGranted(
+                        ticket.Account.Email, ticket.Account.FullName, links.ActivationUrl(ticket.Account.Email, null))
+                    : EmailTemplates.StaffInvitation(
+                        ticket.Account.Email, ticket.Account.FullName, links.ActivationUrl(ticket.Account.Email, ticket.Token)),
                 cancellationToken);
         }
         catch (Exception ex)

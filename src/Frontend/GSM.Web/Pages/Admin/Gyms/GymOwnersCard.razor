@@ -1,0 +1,92 @@
+@* Owners del gym en la ficha del SuperAdmin: si ya activaron su cuenta y "Copiar enlace" (Identity §4) para
+   mandarles por WhatsApp el enlace de activación (72 h). Cada copia queda registrada con quién la hizo. *@
+@inject IAdminGymOwnersClient Owners
+@inject GSM.UI.Shared.IClipboard Clipboard
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h6" Class="mb-2">Owners</MudText>
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_owners.Count == 0)
+{
+    <MudText Color="Color.Secondary" Class="mb-6">Este gym no tiene owners.</MudText>
+}
+else
+{
+    <MudTable Items="_owners" Hover="true" Dense="true" Elevation="0" Class="mb-6">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Cuenta</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">@context.FullName</MudTd>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Cuenta">
+                <MudChip T="string" Color="@(!context.IsActive ? Color.Default : context.IsActivated ? Color.Info : Color.Warning)"
+                         Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @(!context.IsActive ? "INACTIVO" : context.IsActivated ? "ACTIVADA" : "PENDIENTE")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.IsActive)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => CopyLinkAsync(context))">Copiar enlace</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter]
+    public Guid GymId { get; set; }
+
+    private List<GymOwnerResponse> _owners = [];
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        try
+        {
+            _owners = (await Owners.OwnersAsync(GymId)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CopyLinkAsync(GymOwnerResponse owner)
+    {
+        try
+        {
+            var link = await Owners.LinkAsync(GymId, owner.UserId);
+            var message = link.RequiresLogin
+                ? $"{owner.FullName} ya activó su cuenta: el enlace lo lleva a entrar."
+                : $"Enlace de activación de {owner.FullName} copiado (vence en 72 horas).";
+
+            if (await Clipboard.CopyAsync(link.Url))
+            {
+                Snackbar.Add(message, Severity.Success);
+            }
+            else
+            {
+                await Dialogs.ShowMessageBox($"Enlace de {owner.FullName}", link.Url, yesText: "Cerrar");
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

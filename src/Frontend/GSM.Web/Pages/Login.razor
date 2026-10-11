@@ -57,6 +57,18 @@ else
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
 
+    // Los enlaces de invitación para quien ya tiene cuenta llegan con el email precargado.
+    [SupplyParameterFromQuery(Name = "email")]
+    public string? Email { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(Email))
+        {
+            _model.Email = Email;
+        }
+    }
+
     private readonly LoginModel _model = new();
     private MudForm _form = null!;
     private bool _submitting;

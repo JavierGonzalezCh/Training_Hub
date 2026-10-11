@@ -21,6 +21,13 @@ public interface IRefreshTokenService
 
     /// <summary>Revoca el token solo si pertenece a esa persona (para cambiar de gym sin tocar sesiones ajenas).</summary>
     Task RevokeOwnedAsync(string plaintextToken, Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Revoca todas las sesiones de la persona (en todos sus gyms) salvo, si se indica, la del
+    /// <paramref name="keepPlaintextToken"/> —solo se conserva si es de esa persona y sigue vigente—.
+    /// </summary>
+    Task RevokeAllForUserAsync(
+        Guid userId, string? keepPlaintextToken = null, CancellationToken cancellationToken = default);
 }
 
 public sealed record RefreshTokenOwner(Guid UserId, Guid? GymAccessId);

@@ -29,10 +29,27 @@ public static class IdentityInfrastructureRegistration
                 options.User.RequireUniqueEmail = true;
                 options.Password.RequiredLength = 10;
                 options.Password.RequireNonAlphanumeric = false;
+
+                // Bloqueo por intentos (§7). El conteo lo hace UserCredentialsService con IClock.
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = LockoutPolicy.MaxFailedAttempts;
+                options.Lockout.DefaultLockoutTimeSpan = LockoutPolicy.Duration;
+
+                // Los enlaces de restablecer (24 h) y activar (72 h) usan sus propios proveedores con IClock.
+                options.Tokens.ProviderMap[ResetTokenProvider.ProviderName] =
+                    new TokenProviderDescriptor(typeof(ResetTokenProvider));
+                options.Tokens.ProviderMap[ActivationTokenProvider.ProviderName] =
+                    new TokenProviderDescriptor(typeof(ActivationTokenProvider));
+                options.Tokens.PasswordResetTokenProvider = ResetTokenProvider.ProviderName;
             })
             .AddEntityFrameworkStores<GsmDbContext>()
             .AddDefaultTokenProviders();
 
+        services.AddOptions<AccountLinkOptions>().Bind(configuration.GetSection(AccountLinkOptions.SectionName));
+        services.AddTransient<ResetTokenProvider>();
+        services.AddTransient<ActivationTokenProvider>();
+        services.AddSingleton<IAccountLinkBuilder, AccountLinkBuilder>();
+        services.AddScoped<IAccountLinkService, AccountLinkService>();
         services.AddScoped<IUserCredentialsService, UserCredentialsService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IGymAccessService, GymAccessService>();

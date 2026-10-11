@@ -82,9 +82,9 @@ public sealed class StaffPermissionsHttpTests(ApiFactory factory) : IClassFixtur
         Assert.Equal("trainer", staff.Profile);
         Assert.False(staff.IsAdjusted);
 
-        var code = emails.LastTo(email)!.TextBody!.Split("código: ")[1].Trim();
-        (await host.CreateClient().PostAsJsonAsync("/api/auth/reset-password",
-            new ResetPasswordRequest(email, code, "CoachPass_12345"))).EnsureSuccessStatusCode();
+        var link = EmailLinks.Parse(emails.LastTo(email)!);
+        (await host.CreateClient().PostAsJsonAsync("/api/auth/activate",
+            new ActivateAccountRequest(link.Email, link.Code!, "CoachPass_12345"))).EnsureSuccessStatusCode();
 
         var login = await LoginAsync(host, email, "CoachPass_12345");
         Assert.Equal(

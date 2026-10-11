@@ -1,4 +1,5 @@
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Gyms.Public;
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -18,8 +19,55 @@ public sealed class SessionIssuer(
     IRefreshTokenService refreshTokens,
     IGymAccessService accesses,
     IGymLoginGate loginGate,
+    IGymReader gyms,
     ILogger<SessionIssuer> logger)
 {
+    /// <summary>
+    /// Lo que sigue a validar la identidad de una persona (contraseña correcta, enlace de activación): el
+    /// SuperAdmin entra directo; con un solo acceso se emite la sesión; con varios, devuelve el boleto y la
+    /// lista para elegir gym.
+    /// </summary>
+    public async Task<LoginResponse> IssueLoginAsync(AccountIdentity account, CancellationToken cancellationToken)
+    {
+        if (account.IsSuperAdmin)
+        {
+            logger.LogInformation("Login correcto para el superadmin {UserId}", account.Id);
+            return new LoginResponse(false, await IssueForSuperAdminAsync(account, cancellationToken));
+        }
+
+        var active = await accesses.ListActiveAsync(account.Id, cancellationToken);
+
+        // Sin ningún acceso activo (p. ej. staff desactivado) la cuenta no entra a ningún gym.
+        if (active.Count == 0)
+        {
+            throw new UnauthorizedDomainException("Credenciales inválidas.");
+        }
+
+        if (active.Count == 1)
+        {
+            return new LoginResponse(false, await IssueForAccessAsync(account, active[0], cancellationToken));
+        }
+
+        // Varios accesos: la persona elige. El boleto prueba que ya validó su identidad.
+        var options = new List<GymAccessOption>(active.Count);
+        foreach (var access in active)
+        {
+            var branding = await gyms.GetBrandingAsync(access.GymId, cancellationToken);
+            options.Add(new GymAccessOption(
+                access.Id,
+                access.GymId,
+                branding?.Name ?? "Gimnasio",
+                branding?.LogoUrl,
+                RoleName.ToClaim(access.Role),
+                access.LastUsedAt));
+        }
+
+        var ticket = jwtTokens.CreateGymSelectionTicket(account.Id);
+        logger.LogInformation("Login de {UserId}: {Count} accesos, falta elegir gym", account.Id, options.Count);
+
+        return new LoginResponse(true, SelectionToken: ticket.Value, Accesses: options);
+    }
+
     /// <summary>Sesión del SuperAdmin: sin gym.</summary>
     public async Task<AuthTokensResponse> IssueForSuperAdminAsync(
         AccountIdentity account, CancellationToken cancellationToken)

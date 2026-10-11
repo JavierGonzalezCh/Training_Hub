@@ -42,6 +42,9 @@ public static class StaffLabels
             "profile_changed" => $"{actor} cambió el perfil de {target}: {Profile(oldValue)} → {Profile(newValue)}",
             "permission_granted" => $"{actor} le dio a {target} el permiso «{Permission(permission)}»",
             "permission_revoked" => $"{actor} le quitó a {target} el permiso «{Permission(permission)}»",
+            "link_copied" => newValue == "login"
+                ? $"{actor} copió el enlace de acceso de {target}"
+                : $"{actor} copió el enlace de activación de {target}",
             _ => $"{actor} modificó el acceso de {target}",
         };
 }
