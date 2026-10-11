@@ -34,6 +34,16 @@ public sealed class SubscriptionGateFilter(ILogger<SubscriptionGateFilter> logge
                 "Impersonación {SessionId}: {Method} {Path} por superadmin {UserId} en gym {GymId}",
                 currentUser.ImpersonationSessionId, http.Request.Method, http.Request.Path,
                 currentUser.UserId, gymId);
+
+            // El token de impersonación solo sirve dentro del gym: /api/admin/* exige la sesión propia
+            // del superadmin. La excepción es cerrar la impersonación, que se hace con este token.
+            if (http.Request.Path.StartsWithSegments("/api/admin")
+                && !http.Request.Path.StartsWithSegments("/api/admin/impersonate/end"))
+            {
+                context.Result = Forbidden(
+                    "La sesión de impersonación solo sirve dentro del gimnasio. Termínala para volver al panel de plataforma.");
+                return;
+            }
         }
 
         var status = currentUser.IsSuperAdmin || isExempt
@@ -60,15 +70,17 @@ public sealed class SubscriptionGateFilter(ILogger<SubscriptionGateFilter> logge
                 "La suscripción del gimnasio está inhabilitada por falta de pago: solo lectura hasta regularizar el pago.",
         };
 
-        context.Result = new ObjectResult(new ProblemDetails
-        {
-            Status = StatusCodes.Status403Forbidden,
-            Title = "Operación no permitida",
-            Detail = detail,
-            Type = "https://httpstatuses.io/403",
-        })
-        {
-            StatusCode = StatusCodes.Status403Forbidden,
-        };
+        context.Result = Forbidden(detail);
     }
+
+    private static ObjectResult Forbidden(string detail) => new(new ProblemDetails
+    {
+        Status = StatusCodes.Status403Forbidden,
+        Title = "Operación no permitida",
+        Detail = detail,
+        Type = "https://httpstatuses.io/403",
+    })
+    {
+        StatusCode = StatusCodes.Status403Forbidden,
+    };
 }

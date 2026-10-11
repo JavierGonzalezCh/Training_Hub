@@ -95,6 +95,21 @@ public sealed class ImpersonationWriteHttpTests(ApiFactory factory) : IClassFixt
     }
 
     [Fact]
+    public async Task Impersonation_token_cannot_reach_the_platform_endpoints_but_can_end_itself()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var write = await ImpersonatingAsync(host, w, "write");
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await write.GetAsync("/api/admin/gyms")).StatusCode);
+        var suspend = await write.PostAsJsonAsync($"/api/admin/gyms/{w.GymId}/suspend", new { reason = "x" });
+        Assert.Equal(HttpStatusCode.Forbidden, suspend.StatusCode);
+        Assert.Contains("solo sirve dentro del gimnasio", (await suspend.Content.ReadFromJsonAsync<ProblemDetails>())!.Detail);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await write.PostAsync("/api/admin/impersonate/end", null)).StatusCode);
+    }
+
+    [Fact]
     public async Task Writes_are_signed_as_GSM_in_the_member_history()
     {
         var w = await SeedAsync();

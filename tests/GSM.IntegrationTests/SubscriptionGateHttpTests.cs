@@ -103,17 +103,15 @@ public sealed class SubscriptionGateHttpTests(ApiFactory factory) : IClassFixtur
         // ...y nada de otro gym: el Global Query Filter vuelve a aplicar con el gym del token.
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/members/{memberElsewhere}")).StatusCode);
 
-        // Cualquier escritura la corta el filtro, en el gym y en el panel, antes incluso de validar el cuerpo.
-        var writes = new[]
-        {
-            await client.PostAsJsonAsync("/api/members", new { }),
-            await client.PostAsJsonAsync($"/api/admin/gyms/{w.GymId}/renew", new { }),
-        };
-        foreach (var write in writes)
-        {
-            Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
-            Assert.Contains("solo lectura", (await write.Content.ReadFromJsonAsync<ProblemDetails>())!.Detail);
-        }
+        // Cualquier escritura en el gym la corta el filtro, antes incluso de validar el cuerpo.
+        var write = await client.PostAsJsonAsync("/api/members", new { });
+        Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+        Assert.Contains("solo lectura", (await write.Content.ReadFromJsonAsync<ProblemDetails>())!.Detail);
+
+        // El panel de plataforma no se alcanza con el token de impersonación (P17).
+        var admin = await client.PostAsJsonAsync($"/api/admin/gyms/{w.GymId}/renew", new { });
+        Assert.Equal(HttpStatusCode.Forbidden, admin.StatusCode);
+        Assert.Contains("solo sirve dentro del gimnasio", (await admin.Content.ReadFromJsonAsync<ProblemDetails>())!.Detail);
     }
 
     [Fact]
