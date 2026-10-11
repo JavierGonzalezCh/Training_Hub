@@ -14,6 +14,7 @@ public static class MembersInfrastructureRegistration
     {
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<IMemberReader, MemberReader>();
+        services.AddScoped<IConsentRepository, ConsentRepository>();
 
         return services;
     }

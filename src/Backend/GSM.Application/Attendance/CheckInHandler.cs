@@ -122,7 +122,8 @@ public sealed class CheckInHandler(
             GraceDaysLeft: access.GraceDaysLeft,
             Notice: access.Notice,
             DaysLeft: access.DaysLeft,
-            Authorized: record.AuthorizedBy is not null);
+            Authorized: record.AuthorizedBy is not null,
+            MissingWaiver: !await members.HasLiabilityWaiverAsync(member.Id, cancellationToken));
 
         return (response, created);
     }

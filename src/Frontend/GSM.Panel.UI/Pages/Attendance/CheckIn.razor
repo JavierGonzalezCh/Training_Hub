@@ -1,4 +1,4 @@
-﻿@page "/attendance/checkin"
+@page "/attendance/checkin"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Members
 @inject IAttendanceClient Attendance
@@ -85,6 +85,12 @@
                     <div class="mt-3">
                         <WhatsAppButton MemberId="_result.MemberId" Kind="Expired" />
                     </div>
+                }
+                @if (_result.MissingWaiver == true)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4" role="status" id="missing-waiver">
+                        Falta la exoneración de responsabilidad: pídele que la firme y regístrala en su ficha, pestaña Autorizaciones.
+                    </MudAlert>
                 }
                 @if (_result.AlreadyCheckedInToday)
                 {

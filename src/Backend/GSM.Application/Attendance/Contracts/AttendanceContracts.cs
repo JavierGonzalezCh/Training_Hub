@@ -13,6 +13,7 @@ public sealed record CheckInRequest(Guid? MemberId, string? GymCode, string? Aut
 /// <param name="Notice">Letrero de §5.3 (por vencer o en gracia). Nulo si no hay nada que avisar.</param>
 /// <param name="DaysLeft">Días que le quedan cubiertos (0 = vence hoy). Nulo en gracia o sin cobertura.</param>
 /// <param name="Authorized">La entrada fue autorizada por recepción fuera de la gracia.</param>
+/// <param name="MissingWaiver">El miembro no tiene la exoneración de responsabilidad aceptada (recepción debe pedirla). Sin más detalle.</param>
 public sealed record CheckInResponse(
     Guid AttendanceId,
     Guid MemberId,
@@ -26,7 +27,8 @@ public sealed record CheckInResponse(
     int? GraceDaysLeft,
     string? Notice = null,
     int? DaysLeft = null,
-    bool Authorized = false);
+    bool Authorized = false,
+    bool MissingWaiver = false);
 
 public sealed record CheckinAttemptItem(
     Guid Id,

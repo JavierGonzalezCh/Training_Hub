@@ -174,3 +174,18 @@ public partial class WhatsAppClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class ConsentDocumentsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class MemberConsentsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class MeConsentsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

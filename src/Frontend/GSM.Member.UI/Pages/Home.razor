@@ -6,6 +6,7 @@
 @inject IMemberAttendanceClient MemberAttendance
 @inject IQrScanner Scanner
 @inject IMeClient Me
+@inject IMeConsentsClient Consents
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -56,6 +57,21 @@
             </div>
         }
     </section>
+
+    @if (_pendingConsents > 0)
+    {
+        <a class="gsm-m-card gsm-m-pending-consents" href="/app/autorizaciones">
+            <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Gavel" /></span>
+            <div class="gsm-m-card__body">
+                <h2 class="gsm-m-card__title">Autorizaciones pendientes</h2>
+                <p class="gsm-m-card__text">
+                    @(_pendingConsents == 1 ? "Tienes 1 autorización por aceptar." : $"Tienes {_pendingConsents} autorizaciones por aceptar.")
+                    @(MemberCtx.Detail.IsMinor ? "Tu acudiente debe aceptarlas en recepción." : "Léelas y acéptalas.")
+                </p>
+            </div>
+            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
+        </a>
+    }
 
     @if (GymCtx.FeatureFlags?.CheckinQr == true)
     {
@@ -124,6 +140,7 @@
 }
 
 @code {
+    private int _pendingConsents;
     private MemberStreakResponse? _streak;
     private List<AttendanceListItem>? _recentAttendance;
     private TodayView? _today;
@@ -144,6 +161,14 @@
         if (MemberCtx.MemberId is not { } memberId)
         {
             return;
+        }
+
+        try
+        {
+            _pendingConsents = (await Consents.ListMyConsentsAsync()).Count(s => ConsentLabels.IsPending(s.Status));
+        }
+        catch (GsmApiException)
+        {
         }
 
         if (GymCtx.FeatureFlags?.ShowRoutines != false)

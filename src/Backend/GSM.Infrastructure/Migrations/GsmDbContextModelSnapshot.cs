@@ -53,6 +53,8 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_permission", new[] { "view_member_health", "trainer", "manage_attendance", "void_payments", "view_finances" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_profile", new[] { "reception", "trainer", "administrator" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "user_role", new[] { "superadmin", "owner", "staff", "member" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "consent_channel", new[] { "app", "front_desk", "import" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "consent_type", new[] { "data_processing", "liability_waiver" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "document_type", new[] { "cc", "ti", "ce", "pa", "ppt", "nit", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "gender", new[] { "female", "male", "other", "undisclosed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "members", "member_change_role", new[] { "member", "staff", "owner", "superadmin", "system" });
@@ -1274,6 +1276,57 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("gym_feature_flags", "gyms");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Members.ConsentDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_from");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid?>("PublishedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by_user_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("text");
+
+                    b.Property<ConsentType>("Type")
+                        .HasColumnType("members.consent_type")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_consent_documents");
+
+                    b.HasIndex("GymId", "Type", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_consent_documents_gym_id_type_version");
+
+                    b.ToTable("consent_documents", "members");
+                });
+
             modelBuilder.Entity("GSM.Domain.Members.Member", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1509,6 +1562,69 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_changes_member_id_changed_at");
 
                     b.ToTable("member_changes", "members");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberConsent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<bool>("AcceptedByGuardian")
+                        .HasColumnType("boolean")
+                        .HasColumnName("accepted_by_guardian");
+
+                    b.Property<Guid?>("AcceptedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("accepted_by_user_id");
+
+                    b.Property<ConsentChannel>("Channel")
+                        .HasColumnType("members.consent_channel")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DocumentVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("document_version");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<ConsentType>("Type")
+                        .HasColumnType("members.consent_type")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_member_consents");
+
+                    b.HasIndex("GymId")
+                        .HasDatabaseName("ix_member_consents_gym_id");
+
+                    b.HasIndex("MemberId", "Type", "AcceptedAt")
+                        .HasDatabaseName("ix_member_consents_member_id_type_accepted_at");
+
+                    b.ToTable("member_consents", "members");
                 });
 
             modelBuilder.Entity("GSM.Domain.Members.MemberInvitation", b =>
@@ -3227,6 +3343,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_member_changes_member_member_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberConsent", b =>
+                {
+                    b.HasOne("GSM.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_member_consents_members_member_id");
                 });
 
             modelBuilder.Entity("GSM.Domain.Members.MemberInvitation", b =>

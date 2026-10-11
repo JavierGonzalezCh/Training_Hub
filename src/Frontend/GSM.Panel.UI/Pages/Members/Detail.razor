@@ -153,6 +153,9 @@ else if (_member is not null)
         <MudTabPanel Text="Datos">
             <MemberProfileView Member="_member" />
         </MudTabPanel>
+        <MudTabPanel Text="Autorizaciones">
+            <MemberConsentsPanel MemberId="Id" IsMinor="_member.IsMinor" />
+        </MudTabPanel>
         <MudTabPanel Text="Membresías">
             @if (_memberships is null)
             {

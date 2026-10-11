@@ -1,0 +1,101 @@
+@page "/app/autorizaciones"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject IMeConsentsClient ConsentsApi
+@inject MemberContext MemberCtx
+@inject ISnackbar Snackbar
+
+<PageTitle>Autorizaciones — GSM</PageTitle>
+
+<h1 class="gsm-m-section">Autorizaciones</h1>
+
+@if (MemberCtx.Detail?.IsMinor == true)
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+        Eres menor de edad: tu acudiente debe aceptar las autorizaciones en recepción.
+    </MudAlert>
+}
+
+@if (_statuses is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @foreach (var item in _statuses)
+    {
+        <section class="gsm-m-card gsm-m-consent" data-consent="@item.Type" style="display:block">
+            <h2 class="gsm-m-card__title">@ConsentLabels.Type(item.Type)</h2>
+            <p class="gsm-m-card__text gsm-m-consent__status">
+                @ConsentLabels.Status(item.Status)
+                @if (item.AcceptedAt is { } at)
+                {
+                    <span> · @GsmFormat.Day(DateOnly.FromDateTime(at.LocalDateTime))</span>
+                }
+            </p>
+
+            @if (ConsentLabels.IsPending(item.Status))
+            {
+                <details class="mb-2">
+                    <summary>Leer el texto (@ConsentLabels.Version(item.CurrentVersion))</summary>
+                    <p class="gsm-m-card__text" style="white-space:pre-wrap">@item.CurrentText</p>
+                </details>
+                @if (MemberCtx.Detail?.IsMinor != true)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" Class="gsm-m-consent__accept"
+                               OnClick="@(() => AcceptAsync(item))">
+                        Acepto
+                    </MudButton>
+                }
+            }
+            else if (item.Type == ConsentLabels.DataProcessing && MemberCtx.Detail?.IsMinor != true)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" Class="gsm-m-consent__revoke"
+                           OnClick="@(() => RevokeAsync(item))">
+                    Revocar mi autorización
+                </MudButton>
+            }
+        </section>
+    }
+}
+
+@code {
+    private List<MemberConsentStatus>? _statuses;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _statuses = (await ConsentsApi.ListMyConsentsAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _statuses = [];
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private Task AcceptAsync(MemberConsentStatus item)
+        => RunAsync(() => ConsentsApi.AcceptMyConsentAsync(
+            new AcceptConsentRequest { Type = item.Type, DocumentVersion = item.CurrentVersion }));
+
+    private Task RevokeAsync(MemberConsentStatus item) => RunAsync(() => ConsentsApi.RevokeMyConsentAsync(item.Type));
+
+    private async Task RunAsync(Func<Task<ICollection<MemberConsentStatus>>> action)
+    {
+        _busy = true;
+        try
+        {
+            _statuses = (await action()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
