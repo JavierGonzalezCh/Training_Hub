@@ -54,34 +54,11 @@ else
                 }
             </div>
 
-            <aside class="gsm-kiosk__activity" aria-labelledby="kiosk-activity">
-                <h2 id="kiosk-activity" class="gsm-panel__title">Actividad de hoy</h2>
-                @if (_rejected.Count > 0)
-                {
-                    <ul class="gsm-feed gsm-feed--kiosk">
-                        @foreach (var a in _rejected)
-                        {
-                            <li class="gsm-feed__item gsm-feed__item--denied">
-                                <span class="gsm-feed__time">@GsmFormat.Time(a.AttemptedAt)</span>
-                                <span class="gsm-feed__name">@FirstName(a.MemberName)</span>
-                                <span class="gsm-kiosk__denied">Acceso denegado — pasa por recepción</span>
-                            </li>
-                        }
-                    </ul>
-                }
-                @if (_entries.Count == 0 && _rejected.Count == 0)
-                {
-                    <p class="gsm-kiosk__hint">Todavía no hay entradas hoy.</p>
-                }
-                <ul class="gsm-feed gsm-feed--kiosk">
-                    @foreach (var e in _entries)
-                    {
-                        <li class="gsm-feed__item">
-                            <span class="gsm-feed__time">@GsmFormat.Time(e.CheckedInAt)</span>
-                            <span class="gsm-feed__name">Hola, @FirstName(e.MemberName)</span>
-                        </li>
-                    }
-                </ul>
+            @* Sin nombres: la entrada es pública y un rechazo a la vista expone al miembro (Memberships §5.3). *@
+            <aside class="gsm-kiosk__activity">
+                <h2 class="gsm-panel__title">Bienvenido</h2>
+                <p class="gsm-kiosk__hint">Escanea el código con la cámara de tu teléfono o con la app del gimnasio.</p>
+                <p class="gsm-kiosk__hint">¿Problemas para ingresar? Acércate a recepción.</p>
             </aside>
         </div>
 
@@ -112,10 +89,7 @@ else
 
     private readonly CancellationTokenSource _cts = new();
     private KioskCodeResponse? _code;
-    private List<AttendanceListItem> _entries = [];
-    private List<CheckinAttemptItem> _rejected = [];
     private DateTimeOffset _now = DateTimeOffset.UtcNow;
-    private DateTimeOffset _nextActivity = DateTimeOffset.MinValue;
     private DateTimeOffset _nextCodeFetch = DateTimeOffset.MinValue;
     private bool _disabled;
     private Task? _loop;
@@ -128,7 +102,6 @@ else
             return;
         }
 
-        await RefreshActivityAsync();
         _loop = RunAsync();
     }
 
@@ -147,8 +120,7 @@ else
         }
     }
 
-    // Un solo reloj de 1 s: refresca el contador, pide el código nuevo poco antes de que caduque y
-    // la actividad cada ~5 s. Se detiene con el token al salir de la página.
+    // Un solo reloj de 1 s: refresca el contador y pide el código nuevo cuando caduca. Se detiene con el token al salir de la página.
     private async Task RunAsync()
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
@@ -162,11 +134,6 @@ else
                 if (_code?.ExpiresAtUtc is { } expires && _now >= expires && _now >= _nextCodeFetch)
                 {
                     await RefreshCodeAsync();
-                }
-
-                if (_now >= _nextActivity)
-                {
-                    await RefreshActivityAsync();
                 }
 
                 await InvokeAsync(StateHasChanged);
@@ -195,26 +162,8 @@ else
         }
     }
 
-    private async Task RefreshActivityAsync()
-    {
-        _nextActivity = DateTimeOffset.UtcNow.AddSeconds(5);
-        var today = GsmFormat.Today();
-        try
-        {
-            var entries = await Attendance.AttendanceGETAsync(null, today, today, null, 1, 6, _cts.Token);
-            _entries = entries.Items.OrderByDescending(i => i.CheckedInAt).ToList();
-            var attempts = await Attendance.AttemptsAsync(today, today, null, 1, 4, _cts.Token);
-            _rejected = attempts.Items.OrderByDescending(i => i.AttemptedAt).ToList();
-        }
-        catch (GsmApiException)
-        {
-        }
-    }
-
     // El enlace que lleva el QR: abre la app del miembro y registra la entrada.
     private string LinkFor(string code) => $"{Navigation.BaseUri}app/checkin?t={Uri.EscapeDataString(code)}";
-
-    private static string FirstName(string fullName) => fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? fullName;
 
     private async Task FullscreenAsync()
     {
