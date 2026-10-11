@@ -228,6 +228,7 @@ Lo calcula Memberships para cada miembro, a una fecha:
 | `grace` (en gracia) | Vencida, dentro de la gracia. |
 | `expired` (vencido) | Vencida, pasada la gracia. |
 | `frozen` (congelado) | Hoy cae dentro de un congelamiento. |
+| `scheduled` (programada) | No tiene membresía que cubra hoy, pero sí una que empieza más adelante (y ninguna vencida que mande). No entra por el escáner; recepción ve "Programada: empieza el {fecha}" y puede usar "Dejar pasar". No cuenta como "sin plan" en listas ni dashboard. Decidido 2026-10-11. |
 
 - `Member.Status` (activo / dado de baja) **no cambia de significado**, pero en pantalla se deja de
   mostrar como "Activo": la lista de miembros muestra el estado comercial, y "Dado de baja" solo cuando
