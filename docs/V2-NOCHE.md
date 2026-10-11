@@ -51,10 +51,10 @@
 | G3 | **Unida** | Festivos 2026 verificados contra el calendario oficial. Ver pregunta 21 |
 | CO3 | **Unida** | Botón de WhatsApp en ficha, recepción y listas; plantillas por gym. `window.open` sin verificar en MAUI |
 | M2 | **Unida** | Texto base de las autorizaciones = **borrador pendiente de revisión legal**. Ver pregunta 20 |
-| N2 | En curso | sin Firebase: se construye detrás de `IPushSender`, sin verificar con el servicio real |
-| A1 | En curso (Ola 3) | — |
-| C1 | En curso (Ola 3) | — |
-| P2 | En curso (Ola 3) | — |
+| N2 | En curso (relanzada 2026-10-11, con el anuncio importante) | sin Firebase: se construye detrás de `IPushSender`, sin verificar con el servicio real |
+| A1 | Pendiente (va en serie con MS1b, G3b y C1) | — |
+| C1 | Pendiente (va en serie después de A1) | — |
+| P2 | En curso (relanzada 2026-10-11 desde cero) | — |
 | N4 | **Unida** (a99b982) | Preferencias por categoría y canal, horario sin avisos, categoría del anuncio (CO1). Ver pregunta 22. Suite 393 + 187 |
 | I1 | **Unida** | Config nueva `Identity:PublicWebBaseUrl` (producción). Suite 343 + 156 | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
 
@@ -119,6 +119,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-11: resueltas las 22 preguntas (ver §2). Script del cliente arreglado (curl.exe en PS 5.1) y `new-lane.ps1` con `--context`. Base `gsm` respaldada y migrada. **Nuevo límite: 3–4 agentes a la vez** (`V2-BUILD-PLAN.md` §3). Lanzadas N2, P2, I7 y E2; I7 y E2 en sus filas cuando terminen.
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
 - Lanzadas N2 (cierra la Ola 2) y A1, C1, P2 (Ola 3). Los prompts ahora exigen `--connection` en `dotnet ef`.
