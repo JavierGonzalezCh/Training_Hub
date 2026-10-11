@@ -1,10 +1,11 @@
 namespace GSM.Application.Dashboard;
 
+/// <remarks>Los ingresos solo salen para el Owner o quien tiene <c>ViewFinances</c>; para el resto son nulos.</remarks>
 public sealed record DashboardResponse(
     int ActiveMembers,
     int CheckInsToday,
-    decimal RevenueThisMonth,
-    decimal RevenueLastMonth,
+    decimal? RevenueThisMonth,
+    decimal? RevenueLastMonth,
     int ExpiredMemberships,
     int ExpiringSoon,
     IReadOnlyList<ExpiringMemberRow> ExpiringMemberships,

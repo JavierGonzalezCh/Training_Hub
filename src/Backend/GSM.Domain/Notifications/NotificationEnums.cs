@@ -11,6 +11,7 @@ public enum NotificationType
     AchievementUnlocked,
     Announcement,
     CheckinRejected,
+    VoidRequested,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

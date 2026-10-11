@@ -8,8 +8,14 @@ namespace GSM.Application.Payments;
 public static partial class PaymentMapper
 {
     [MapperIgnoreTarget(nameof(PaymentResponse.IsReversed))]
+    [MapperIgnoreTarget(nameof(PaymentResponse.HasPendingVoidRequest))]
     public static partial PaymentResponse ToResponse(Payment payment);
 
-    public static PaymentResponse ToResponse(Payment payment, IReadOnlySet<Guid> reversedIds)
-        => ToResponse(payment) with { IsReversed = reversedIds.Contains(payment.Id) };
+    public static PaymentResponse ToResponse(
+        Payment payment, IReadOnlySet<Guid> reversedIds, IReadOnlySet<Guid>? pendingVoidIds = null)
+        => ToResponse(payment) with
+        {
+            IsReversed = reversedIds.Contains(payment.Id),
+            HasPendingVoidRequest = pendingVoidIds?.Contains(payment.Id) ?? false,
+        };
 }

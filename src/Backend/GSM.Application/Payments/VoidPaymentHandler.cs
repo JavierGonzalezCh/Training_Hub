@@ -17,6 +17,7 @@ public sealed class VoidPaymentHandler(
     ICurrentUserService currentUser,
     IClock clock,
     IPaymentRepository payments,
+    IVoidRequestRepository requests,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<VoidPaymentHandler> logger)
@@ -39,6 +40,11 @@ public sealed class VoidPaymentHandler(
         var reversal = Payment.CreateReversal(original, request.Reason, registeredBy, clock.UtcNow);
 
         payments.Add(reversal);
+
+        // Anular directo cierra la solicitud pendiente de ese pago (si la hay): ya no hay nada que decidir.
+        var pending = await requests.GetPendingForPaymentAsync(original.Id, cancellationToken);
+        pending?.Approve(registeredBy, clock.UtcNow);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
@@ -48,6 +54,13 @@ public sealed class VoidPaymentHandler(
         await events.PublishAsync(
             new PaymentRecorded(reversal.Id, gymId, reversal.MemberId, reversal.MembershipId, reversal.Amount),
             cancellationToken);
+
+        if (pending is not null)
+        {
+            await events.PublishAsync(
+                new VoidRequestResolved(gymId, pending.Id, original.Id, registeredBy, Approved: true),
+                cancellationToken);
+        }
 
         return PaymentMapper.ToResponse(reversal);
     }

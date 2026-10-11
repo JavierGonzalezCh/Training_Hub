@@ -70,8 +70,9 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_category", new[] { "membership", "classes", "progress", "news", "promotions", "security" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_priority", new[] { "normal", "urgent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_status", new[] { "pending", "held", "sent", "failed", "cancelled", "skipped" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "void_request_status", new[] { "pending", "approved", "rejected" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "difficulty", new[] { "beginner", "intermediate", "advanced" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "exercise_type", new[] { "strength", "cardio", "mobility", "stretching", "plyometrics" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "traps", "obliques", "adductors", "abductors" });
@@ -2358,6 +2359,69 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_payments_gym_id_paid_at");
 
                     b.ToTable("payments", "payments");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Payments.VoidRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("ResolvedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by");
+
+                    b.Property<VoidRequestStatus>("Status")
+                        .HasColumnType("payments.void_request_status")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_void_requests");
+
+                    b.HasIndex("PaymentId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_void_requests_pending_payment")
+                        .HasFilter("status = 'pending'");
+
+                    b.HasIndex("GymId", "Status", "RequestedAt")
+                        .HasDatabaseName("ix_void_requests_gym_id_status_requested_at");
+
+                    b.ToTable("void_requests", "payments");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.Exercise", b =>
