@@ -1,0 +1,193 @@
+@inject IEquipmentClient Equipment
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+
+            <MudText Color="Color.Secondary" Class="mb-3">
+                Marca las máquinas y equipos que tiene el gym, con cuántos y en qué zona. Las máquinas se registran una por
+                unidad; mancuernas, discos y similares van con cantidad.
+            </MudText>
+
+            <div class="d-flex flex-wrap align-end mb-3" style="gap:1rem">
+                <label class="gsm-native-field">
+                    <span>Tipo</span>
+                    <select data-testid="catalog-filter-type" @onchange="@(e => _filter = e.Value?.ToString() ?? FilterValues.All)">
+                        <option value="@FilterValues.All" selected="@FilterValues.IsAll(_filter)">Todos</option>
+                        @foreach (var (value, label) in RoutineLabels.Equipment)
+                        {
+                            <option value="@value" selected="@(_filter == value.ToString())">@label</option>
+                        }
+                    </select>
+                </label>
+            </div>
+
+            <datalist id="catalog-zones">
+                @foreach (var zone in _zones)
+                {
+                    <option value="@zone"></option>
+                }
+            </datalist>
+
+            @foreach (var group in Groups())
+            {
+                <MudText Typo="Typo.h6" Class="mt-4 mb-2" data-testid="group-title">@EquipmentDisplay.TypeLabel(group.Key)</MudText>
+                <div class="d-flex flex-wrap" style="gap:.75rem">
+                    @foreach (var model in group)
+                    {
+                        var picked = _picked.TryGetValue(model.Id, out var pick);
+                        <MudPaper Outlined="true" Class="pa-3" Style="@CardStyle(picked)" data-testid="@($"card-{model.Id}")">
+                            <label class="d-flex align-center" style="gap:.5rem; cursor:pointer">
+                                <input type="checkbox" checked="@picked" data-testid="@($"toggle-{model.Id}")"
+                                       @onchange="@(e => Toggle(model, e.Value is true))" />
+                                @if (!string.IsNullOrEmpty(model.ImageUrl))
+                                {
+                                    <img src="@model.ImageUrl" alt="" style="width:32px;height:32px;object-fit:cover;border-radius:4px" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@EquipmentDisplay.TypeIcon(model.Type)" Size="Size.Small" />
+                                }
+                                <span>@model.Name</span>
+                            </label>
+                            @if (!string.IsNullOrEmpty(model.Description))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">@model.Description</MudText>
+                            }
+                            @if (picked && pick is not null)
+                            {
+                                <div class="d-flex align-end mt-2" style="gap:.5rem">
+                                    <label class="gsm-native-field" style="max-width:90px">
+                                        <span>@(model.TrackedPerUnit ? "Unidades" : "Cantidad")</span>
+                                        <input type="number" min="1" max="@MaxFor(model)" value="@pick.Quantity" data-testid="@($"qty-{model.Id}")"
+                                               @onchange="@(e => pick.Quantity = ToQuantity(e.Value))" />
+                                    </label>
+                                    <label class="gsm-native-field">
+                                        <span>Zona</span>
+                                        <input type="text" list="catalog-zones" maxlength="60" value="@pick.Zone" data-testid="@($"zone-{model.Id}")"
+                                               @onchange="@(e => pick.Zone = e.Value?.ToString())" />
+                                    </label>
+                                </div>
+                            }
+                        </MudPaper>
+                    }
+                </div>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudText Class="mr-auto ml-4" Color="Color.Secondary" data-testid="picked-count">@_picked.Count seleccionados</MudText>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync"
+                   Disabled="_loading || _submitting || _picked.Count == 0" data-testid="catalog-save">
+            @(_submitting ? "Guardando..." : "Agregar al inventario")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private const int MaxUnitsPerMachine = 50;
+
+    private List<EquipmentModelResponse> _models = [];
+    private List<string> _zones = [];
+    private readonly Dictionary<Guid, Pick> _picked = [];
+    private string _filter = FilterValues.All;
+    private bool _loading = true;
+    private bool _submitting;
+    private string? _error;
+
+    private sealed class Pick
+    {
+        public int Quantity { get; set; } = 1;
+        public string? Zone { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _models = (await Equipment.ModelsAsync()).ToList();
+            _zones = (await Equipment.ZonesAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>El catálogo agrupado por tipo, en el orden del enum, con el filtro aplicado.</summary>
+    private IEnumerable<IGrouping<string, EquipmentModelResponse>> Groups()
+        => _models
+            .Where(m => FilterValues.IsAll(_filter) || EquipmentDisplay.TypeValue(m.Type) == int.Parse(_filter))
+            .GroupBy(m => m.Type)
+            .OrderBy(g => EquipmentDisplay.TypeValue(g.Key));
+
+    private static int MaxFor(EquipmentModelResponse model) => model.TrackedPerUnit ? MaxUnitsPerMachine : 1000;
+
+    private static int ToQuantity(object? value) => int.TryParse(value?.ToString(), out var n) && n >= 1 ? n : 1;
+
+    private static string CardStyle(bool picked)
+        => "width:260px;" + (picked ? "border-color:var(--mud-palette-primary);" : string.Empty);
+
+    private void Toggle(EquipmentModelResponse model, bool on)
+    {
+        if (on)
+        {
+            _picked.TryAdd(model.Id, new Pick());
+        }
+        else
+        {
+            _picked.Remove(model.Id);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _submitting = true;
+        try
+        {
+            var items = _picked
+                .Select(p =>
+                {
+                    var model = _models.First(m => m.Id == p.Key);
+                    return new EquipmentFromModelItem
+                    {
+                        ModelId = p.Key,
+                        Quantity = Math.Clamp(p.Value.Quantity, 1, MaxFor(model)),
+                        Zone = string.IsNullOrWhiteSpace(p.Value.Zone) ? null : p.Value.Zone.Trim(),
+                    };
+                })
+                .ToList();
+
+            await Equipment.FromModelsAsync(new AddEquipmentFromModelsRequest { Items = items });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -21,6 +21,7 @@ public sealed class EquipmentController : ControllerBase
     /// <summary>Catálogo del sistema para elegir, con filtro opcional por tipo.</summary>
     [HttpGet("models")]
     [ProducesResponseType<IReadOnlyList<EquipmentModelResponse>>(StatusCodes.Status200OK)]
+    [EndpointName("ListEquipmentModels")]
     public async Task<ActionResult<IReadOnlyList<EquipmentModelResponse>>> ListModels(
         [FromQuery] EquipmentType? type,
         [FromServices] ListEquipmentModelsHandler handler,
@@ -30,6 +31,7 @@ public sealed class EquipmentController : ControllerBase
     /// <summary>Inventario del gym, con filtros por tipo, zona y estado. Las bajas no salen salvo que se pidan.</summary>
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<EquipmentItemResponse>>(StatusCodes.Status200OK)]
+    [EndpointName("ListEquipment")]
     public async Task<ActionResult<IReadOnlyList<EquipmentItemResponse>>> List(
         [FromQuery] EquipmentType? type,
         [FromQuery] string? zone,
@@ -44,6 +46,7 @@ public sealed class EquipmentController : ControllerBase
     /// <summary>Zonas ya usadas en el gym, para autocompletar.</summary>
     [HttpGet("zones")]
     [ProducesResponseType<IReadOnlyList<string>>(StatusCodes.Status200OK)]
+    [EndpointName("ListEquipmentZones")]
     public async Task<ActionResult<IReadOnlyList<string>>> ListZones(
         [FromServices] ListEquipmentZonesHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
@@ -51,6 +54,7 @@ public sealed class EquipmentController : ControllerBase
     [HttpGet("{id:guid}")]
     [ProducesResponseType<EquipmentItemResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("GetEquipment")]
     public async Task<ActionResult<EquipmentItemResponse>> Get(
         Guid id, [FromServices] GetEquipmentHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
@@ -59,6 +63,7 @@ public sealed class EquipmentController : ControllerBase
     [HttpPost]
     [ProducesResponseType<EquipmentItemResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [EndpointName("CreateEquipment")]
     public async Task<ActionResult<EquipmentItemResponse>> Create(
         SaveEquipmentRequest request,
         [FromServices] CreateEquipmentHandler handler,
@@ -75,6 +80,7 @@ public sealed class EquipmentController : ControllerBase
     [HttpPost("from-models")]
     [ProducesResponseType<IReadOnlyList<EquipmentItemResponse>>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("AddEquipmentFromModels")]
     public async Task<ActionResult<IReadOnlyList<EquipmentItemResponse>>> AddFromModels(
         AddEquipmentFromModelsRequest request,
         [FromServices] AddEquipmentFromModelsHandler handler,
@@ -87,6 +93,7 @@ public sealed class EquipmentController : ControllerBase
     [HttpPut("{id:guid}")]
     [ProducesResponseType<EquipmentItemResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("UpdateEquipment")]
     public async Task<ActionResult<EquipmentItemResponse>> Update(
         Guid id,
         SaveEquipmentRequest request,
@@ -99,6 +106,7 @@ public sealed class EquipmentController : ControllerBase
     [Consumes("multipart/form-data")]
     [ProducesResponseType<EquipmentItemResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("UploadEquipmentPhoto")]
     public async Task<ActionResult<EquipmentItemResponse>> UploadPhoto(
         Guid id,
         IFormFile file,
@@ -112,6 +120,7 @@ public sealed class EquipmentController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("DeactivateEquipment")]
     public async Task<IActionResult> Deactivate(
         Guid id, [FromServices] DeactivateEquipmentHandler handler, CancellationToken cancellationToken)
     {
