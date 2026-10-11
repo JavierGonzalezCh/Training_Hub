@@ -4,6 +4,7 @@ using GSM.Application.Attendance.Contracts;
 using GSM.Application.Attendance.Events;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
+using GSM.Application.Gyms;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Members.Public;
 using GSM.Application.Memberships.Public;
@@ -55,6 +56,9 @@ public sealed class CheckInHandler(
                 throw new ForbiddenDomainException("Tu gimnasio no tiene activado el check-in con QR.");
             }
         }
+
+        // Gym cerrado según su horario: va antes que todo lo demás y no admite "Dejar pasar".
+        await EnsureGymOpenAsync(gymId, cancellationToken);
 
         if (member.Status != MemberStatus.Active)
         {
@@ -126,6 +130,17 @@ public sealed class CheckInHandler(
             MissingWaiver: !await members.HasLiabilityWaiverAsync(member.Id, cancellationToken));
 
         return (response, created);
+    }
+
+    private async Task EnsureGymOpenAsync(Guid gymId, CancellationToken cancellationToken)
+    {
+        var status = await gyms.GetOpenStatusAsync(gymId, clock.UtcNow, cancellationToken);
+        if (!status.IsOpen)
+        {
+            var today = DateOnly.FromDateTime(clock.ToBusinessLocal(clock.UtcNow));
+            logger.LogInformation("Check-in rechazado en el gym {GymId}: gym_closed", gymId);
+            throw new ConflictException(OpenStatusText.ClosedMessage(status, today));
+        }
     }
 
     /// <summary>

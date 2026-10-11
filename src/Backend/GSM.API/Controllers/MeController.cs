@@ -31,6 +31,13 @@ public sealed class MeController : ControllerBase
         [FromServices] GetMyGymHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>Horario de atención del gimnasio: abierto o cerrado ahora, la semana y las próximas excepciones.</summary>
+    [HttpGet("gym/hours")]
+    [ProducesResponseType<MemberGymHoursResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MemberGymHoursResponse>> MyGymHours(
+        [FromServices] GetMyGymHoursHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     [HttpGet("achievements")]
     [ProducesResponseType<IReadOnlyList<MemberAchievementItem>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<MemberAchievementItem>>> Achievements(

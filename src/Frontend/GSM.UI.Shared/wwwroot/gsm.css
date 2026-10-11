@@ -2821,3 +2821,79 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     flex: 1 1 auto;
     overflow-y: auto;
 }
+
+/* G3 — horario de atención */
+.gsm-hours__day {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gsm-border);
+}
+
+.gsm-hours__label {
+    padding-top: 0.6rem;
+    font-weight: 600;
+}
+
+.gsm-slots__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.gsm-slots__row .mud-input-control {
+    max-width: 9rem;
+}
+
+@media (max-width: 599px) {
+    .gsm-hours__day {
+        grid-template-columns: 1fr;
+    }
+
+    .gsm-hours__label {
+        padding-top: 0;
+    }
+}
+
+.gsm-m-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--gsm-border);
+    background: var(--gsm-surface);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.gsm-m-open::before {
+    content: "";
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--gsm-text-2);
+}
+
+.gsm-m-open.is-open::before { background: var(--gsm-ok); }
+.gsm-m-open.is-closed::before { background: var(--gsm-danger); }
+
+.gsm-m-week {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+}
+
+.gsm-m-week li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--gsm-border);
+    font-size: 0.9375rem;
+}
+
+.gsm-m-week li.is-today { font-weight: 700; }

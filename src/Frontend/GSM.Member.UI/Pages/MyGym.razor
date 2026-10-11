@@ -84,12 +84,43 @@ else
         </MudPaper>
     }
 
-    @* El horario de atención (G3) y la ocupación en vivo (A5) se sumarán aquí cuando existan;
-       mientras tanto no se muestra nada para no inventar datos. *@
+    @if (_hours is { Status.HasSchedule: true })
+    {
+        var todayName = TodayName();
+        <MudPaper Class="pa-4 mb-3" Elevation="0" id="gym-hours">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Horario de atención</MudText>
+            <div class="mb-2"><GymOpenBadge Status="_hours.Status" /></div>
+            <ul class="gsm-m-week">
+                @foreach (var day in _hours.Days)
+                {
+                    <li class="@(string.Equals(day.Day, todayName, StringComparison.OrdinalIgnoreCase) ? "is-today" : null)">
+                        <span>@OpeningHoursLabels.Label(day.Day)</span>
+                        <span>@OpeningHoursLabels.Describe(day.Slots)</span>
+                    </li>
+                }
+            </ul>
+            @if (_hours.Upcoming.Count > 0)
+            {
+                <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-3 d-block">Días con horario especial</MudText>
+                <ul class="gsm-m-week" id="gym-hours-special">
+                    @foreach (var special in _hours.Upcoming)
+                    {
+                        <li>
+                            <span>@GsmFormat.DayShort(special.Date)@(special.HolidayName is null ? "" : $" · {special.HolidayName}")</span>
+                            <span>@(special.IsClosed ? "Cerrado" : OpeningHoursLabels.Describe(special.Slots))</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </MudPaper>
+    }
+
+    @* La ocupación en vivo (A5) se suma aquí cuando exista. *@
 }
 
 @code {
     private MemberGymResponse? _gym;
+    private MemberGymHoursResponse? _hours;
     private bool _loading = true;
 
     private bool HasSocial => _gym is not null
@@ -112,11 +143,17 @@ else
         builder.CloseComponent();
     };
 
+    private static string TodayName()
+    {
+        return GsmFormat.Today().DayOfWeek.ToString();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _gym = await Me.GymGET2Async();
+            _hours = await Me.HoursAsync();
         }
         catch (GsmApiException ex)
         {

@@ -38,7 +38,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_mode", new[] { "rotating", "static" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership", "gym_closed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_booking_status", new[] { "booked", "cancelled", "attended", "no_show" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_session_status", new[] { "scheduled", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
@@ -1274,6 +1274,136 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_gym_feature_flags_gym_id");
 
                     b.ToTable("gym_feature_flags", "gyms");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Gyms.GymOpeningSlot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<TimeOnly>("ClosesAt")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("closes_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Day")
+                        .HasColumnType("integer")
+                        .HasColumnName("day");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<TimeOnly>("OpensAt")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("opens_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_gym_opening_slots");
+
+                    b.HasIndex("GymId", "Day")
+                        .HasDatabaseName("ix_gym_opening_slots_gym_id_day");
+
+                    b.ToTable("gym_opening_slots", "gyms", t =>
+                        {
+                            t.HasCheckConstraint("ck_gym_opening_slots_day", "day BETWEEN 0 AND 7");
+
+                            t.HasCheckConstraint("ck_gym_opening_slots_order", "opens_at < closes_at");
+                        });
+                });
+
+            modelBuilder.Entity("GSM.Domain.Gyms.GymSpecialDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_closed");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("note");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_gym_special_days");
+
+                    b.HasIndex("GymId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("ix_gym_special_days_gym_id_date");
+
+                    b.ToTable("gym_special_days", "gyms");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Gyms.GymSpecialDaySlot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<TimeOnly>("ClosesAt")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("closes_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<TimeOnly>("OpensAt")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("opens_at");
+
+                    b.Property<Guid>("SpecialDayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("special_day_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_gym_special_day_slots");
+
+                    b.HasIndex("SpecialDayId")
+                        .HasDatabaseName("ix_gym_special_day_slots_special_day_id");
+
+                    b.ToTable("gym_special_day_slots", "gyms", t =>
+                        {
+                            t.HasCheckConstraint("ck_gym_special_day_slots_order", "opens_at < closes_at");
+                        });
                 });
 
             modelBuilder.Entity("GSM.Domain.Members.ConsentDocument", b =>
@@ -3326,6 +3456,36 @@ namespace GSM.Infrastructure.Migrations
                         .HasConstraintName("fk_gym_feature_flags_gyms_gym_id");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Gyms.GymOpeningSlot", b =>
+                {
+                    b.HasOne("GSM.Domain.Gyms.Gym", null)
+                        .WithMany()
+                        .HasForeignKey("GymId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_gym_opening_slots_gyms");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Gyms.GymSpecialDay", b =>
+                {
+                    b.HasOne("GSM.Domain.Gyms.Gym", null)
+                        .WithMany()
+                        .HasForeignKey("GymId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_gym_special_days_gyms");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Gyms.GymSpecialDaySlot", b =>
+                {
+                    b.HasOne("GSM.Domain.Gyms.GymSpecialDay", null)
+                        .WithMany("Slots")
+                        .HasForeignKey("SpecialDayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_gym_special_day_slots_gym_special_days");
+                });
+
             modelBuilder.Entity("GSM.Domain.Members.Member", b =>
                 {
                     b.HasOne("GSM.Domain.Members.Member", null)
@@ -3523,6 +3683,11 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Gyms.GymSpecialDay", b =>
+                {
+                    b.Navigation("Slots");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.Routine", b =>

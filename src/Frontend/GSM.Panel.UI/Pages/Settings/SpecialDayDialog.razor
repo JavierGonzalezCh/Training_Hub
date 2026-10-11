@@ -1,0 +1,136 @@
+@* Excepción de una fecha: otro horario, o el gym cerrado todo el día (con confirmación). También ajusta un festivo. *@
+@inject IGymClient Gym
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (Date is null)
+        {
+            <MudDatePicker Date="_date" DateChanged="@((DateTime? v) => _date = v)" Label="Fecha" Variant="Variant.Outlined"
+                           MinDate="@DateTime.Today" Class="mb-3" id="special-date" />
+        }
+        else
+        {
+            <MudText Typo="Typo.subtitle1" Class="mb-1">@GsmFormat.Day(Date.Value)@(HolidayName is null ? "" : $" · {HolidayName}")</MudText>
+        }
+
+        <MudRadioGroup T="bool" Value="_closed" ValueChanged="@((bool v) => OnModeChanged(v))">
+            <MudRadio T="bool" Value="false" Color="Color.Primary" id="special-mode-hours">Otro horario ese día</MudRadio>
+            <MudRadio T="bool" Value="true" Color="Color.Primary" id="special-mode-closed">Cerrado todo el día</MudRadio>
+        </MudRadioGroup>
+
+        @if (_closed)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2" id="special-closed-warning">
+                ¿Seguro? Ese día nadie podrá entrar y las clases se cancelan.
+            </MudAlert>
+            <MudCheckBox T="bool" @bind-Value="_confirmed" Label="Sí, cerrar ese día" Color="Color.Primary"
+                         id="special-confirm" />
+        }
+        else
+        {
+            <div class="mt-2">
+                <SlotsEditor Slots="_slots" IdPrefix="special-slots" OnChanged="StateHasChanged" />
+                @if (_slotsError is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Error" id="special-slots-error">@_slotsError</MudText>
+                }
+            </div>
+        }
+
+        <MudTextField T="string" @bind-Value="_note" Label="Nota (opcional)" MaxLength="200" Class="mt-3"
+                      Variant="Variant.Outlined" HelperText="Por ejemplo: arreglo del local." id="special-note" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@(!CanSave)" id="special-save">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Fecha fija (ajustar un festivo o editar una excepción); <c>null</c> para elegirla en el diálogo.</summary>
+    [Parameter]
+    public DateOnly? Date { get; set; }
+
+    [Parameter]
+    public string? HolidayName { get; set; }
+
+    /// <summary>Excepción ya cargada, para editarla.</summary>
+    [Parameter]
+    public SpecialDayResponse? Existing { get; set; }
+
+    /// <summary>Horario con el que arranca el formulario cuando no hay excepción (el del festivo o el del día).</summary>
+    [Parameter]
+    public IReadOnlyList<TimeSlotDto> Suggested { get; set; } = [];
+
+    private DateTime? _date;
+    private bool _closed;
+    private bool _confirmed;
+    private string? _note;
+    private List<SlotDraft> _slots = [];
+    private bool _saving;
+    private string? _slotsError;
+
+    protected override void OnInitialized()
+    {
+        _date = Date?.ToDateTime(TimeOnly.MinValue);
+        IEnumerable<TimeSlotDto> source = Existing is { IsClosed: false } e ? e.Slots : Suggested;
+        _slots = source.Select(s => new SlotDraft(s.Opens, s.Closes)).ToList();
+        if (_slots.Count == 0)
+        {
+            _slots.Add(new SlotDraft("07:00", "13:00"));
+        }
+
+        _closed = Existing?.IsClosed == true;
+        _confirmed = false;
+        _note = Existing?.Note;
+    }
+
+    private DateOnly? Chosen => Date ?? (_date is { } d ? DateOnly.FromDateTime(d) : null);
+
+    private bool CanSave => !_saving && Chosen is not null
+        && (_closed ? _confirmed : OpeningHoursDraft.ValidateSlots(_slots) is null);
+
+    private void OnModeChanged(bool closed)
+    {
+        _closed = closed;
+        _confirmed = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!_closed)
+        {
+            _slotsError = OpeningHoursDraft.ValidateSlots(_slots);
+            if (_slotsError is not null)
+            {
+                return;
+            }
+        }
+
+        _saving = true;
+        try
+        {
+            await Gym.SpecialDaysPUTAsync(Chosen!.Value, new UpsertSpecialDayRequest
+            {
+                IsClosed = _closed,
+                ConfirmClosed = _closed && _confirmed,
+                Slots = _closed ? [] : _slots.Select(s => new TimeSlotDto { Opens = s.Opens, Closes = s.Closes }).ToList(),
+                Note = string.IsNullOrWhiteSpace(_note) ? null : _note.Trim(),
+            });
+            Snackbar.Add("Excepción guardada.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

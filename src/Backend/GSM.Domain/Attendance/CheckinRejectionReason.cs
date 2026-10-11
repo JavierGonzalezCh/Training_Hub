@@ -4,4 +4,5 @@ public enum CheckinRejectionReason
 {
     MembershipExpired,
     NoMembership,
+    GymClosed,
 }

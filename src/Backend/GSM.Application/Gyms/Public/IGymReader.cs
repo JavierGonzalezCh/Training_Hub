@@ -11,6 +11,20 @@ public interface IGymReader
 
     /// <summary>Ficha del gym para SuperAdmin, incluido su estado comercial manual. <c>null</c> si no existe.</summary>
     Task<GymAdminView?> GetAdminViewAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cómo está el gym en el instante dado, según su horario (semana, festivos de Colombia y excepciones),
+    /// con la hora local del gym. <b>Un gym sin horario cargado está siempre abierto.</b>
+    /// </summary>
+    Task<GSM.Domain.Gyms.GymOpenStatus> GetOpenStatusAsync(
+        Guid gymId, DateTimeOffset instant, CancellationToken cancellationToken = default);
+
+    /// <summary>Igual que <see cref="GetOpenStatusAsync"/> pero con la fecha y hora locales del gym ya resueltas.</summary>
+    Task<GSM.Domain.Gyms.GymOpenStatus> GetOpenStatusAtLocalAsync(
+        Guid gymId, DateOnly localDate, TimeOnly localTime, CancellationToken cancellationToken = default);
+
+    /// <summary>¿Está abierto el gym en ese instante? Sin horario cargado, siempre <c>true</c>.</summary>
+    Task<bool> IsOpenAtAsync(Guid gymId, DateTimeOffset instant, CancellationToken cancellationToken = default);
 }
 
 public sealed record GymAdminView(

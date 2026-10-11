@@ -1,0 +1,55 @@
+@* Tramos de atención de un día: "de 5:00 a 12:00", con más tramos para el horario partido. *@
+<div class="gsm-slots" id="@IdPrefix">
+    @for (var i = 0; i < Slots.Count; i++)
+    {
+        var slot = Slots[i];
+        var n = i;
+        <div class="gsm-slots__row">
+            <MudTextField T="string" Value="slot.Opens" ValueChanged="@((string v) => Set(() => slot.Opens = v))"
+                          InputType="InputType.Time" Label="Abre" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Immediate="true" id="@($"{IdPrefix}-opens-{n}")" />
+            <MudTextField T="string" Value="slot.Closes" ValueChanged="@((string v) => Set(() => slot.Closes = v))"
+                          InputType="InputType.Time" Label="Cierra" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Immediate="true" id="@($"{IdPrefix}-closes-{n}")" />
+            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" aria-label="Quitar este tramo"
+                           OnClick="@(() => Remove(slot))" id="@($"{IdPrefix}-remove-{n}")" />
+        </div>
+    }
+    @if (Slots.Count < OpeningHoursDraft.MaxSlotsPerDay)
+    {
+        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.Add"
+                   OnClick="Add" id="@($"{IdPrefix}-add")">
+            @(Slots.Count == 0 ? "Agregar tramo" : "Agregar otro tramo")
+        </MudButton>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public List<SlotDraft> Slots { get; set; } = [];
+
+    [Parameter]
+    public string IdPrefix { get; set; } = "slots";
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Task Set(Action change)
+    {
+        change();
+        return OnChanged.InvokeAsync();
+    }
+
+    private Task Add()
+    {
+        var last = Slots.LastOrDefault();
+        Slots.Add(last is null ? new SlotDraft("05:00", "22:00") : new SlotDraft(string.Empty, string.Empty));
+        return OnChanged.InvokeAsync();
+    }
+
+    private Task Remove(SlotDraft slot)
+    {
+        Slots.Remove(slot);
+        return OnChanged.InvokeAsync();
+    }
+}
