@@ -153,6 +153,9 @@ public class CommercialStatusUiTests : TestContext
         Services.AddSingleton(Fake<IMembersClient>().Client);
         Services.AddSingleton(Fake<IPaymentsClient>().Client);
         Services.AddSingleton(Fake<IMembershipPlansClient>().Client);
+        var (whatsApp, whatsAppFake) = Fake<IWhatsAppClient>();
+        whatsAppFake.Handlers["StatesAsync"] = _ => new List<WhatsAppMemberStateResponse>();
+        Services.AddSingleton(whatsApp);
         attendanceFake = a;
         membershipsFake = m;
 

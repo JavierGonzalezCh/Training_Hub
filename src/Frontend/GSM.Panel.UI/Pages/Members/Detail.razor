@@ -63,6 +63,7 @@ else if (_member is not null)
         </div>
         <div class="d-flex flex-wrap" style="gap:0.5rem">
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" OnClick="InviteAsync">Invitar</MudButton>
+            <WhatsAppButton MemberId="Id" />
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CardMembership" OnClick="AssignMembershipAsync">
                 Asignar membresía
             </MudButton>
@@ -413,6 +414,7 @@ else if (_member is not null)
             {
                 { x => x.Code, invite.Code },
                 { x => x.ExpiresAt, invite.ExpiresAt },
+                { x => x.MemberId, Id },
             };
             await Dialogs.ShowAsync<MemberInviteDialog>("Invitación", parameters);
         }

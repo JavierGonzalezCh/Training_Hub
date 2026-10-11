@@ -1,6 +1,7 @@
 @page "/memberships/expiring"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembershipsClient Memberships
+@inject IWhatsAppClient WhatsApp
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -32,6 +33,7 @@ else
             <MudTh>Plan</MudTh>
             <MudTh>Vence</MudTh>
             <MudTh>Días</MudTh>
+            <MudTh>WhatsApp</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Miembro">
@@ -44,6 +46,10 @@ else
             <MudTd DataLabel="Días" Class="gsm-mono">
                 <MudText Color="@(context.DaysLeft <= 3 ? Color.Error : Color.Default)">@context.DaysLeft</MudText>
             </MudTd>
+            <MudTd DataLabel="WhatsApp">
+                <WhatsAppButton MemberId="context.MemberId" State="StateOf(context.MemberId)" AutoLoad="false"
+                                Compact="true" Kind="ExpiringSoon" />
+            </MudTd>
         </RowTemplate>
     </MudTable>
 }
@@ -52,6 +58,7 @@ else
     private List<ExpiringMembershipItem> _items = [];
     private int _days = 7;
     private bool _loading = true;
+    private Dictionary<Guid, WhatsAppMemberStateResponse> _whatsApp = [];
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -61,6 +68,22 @@ else
         await LoadAsync();
     }
 
+    private WhatsAppMemberStateResponse? StateOf(Guid id) => _whatsApp.GetValueOrDefault(id);
+
+    private async Task LoadWhatsAppStatesAsync()
+    {
+        try
+        {
+            _whatsApp = _items.Count == 0
+                ? []
+                : (await WhatsApp.StatesAsync(_items.Select(i => i.MemberId).Distinct().ToList())).ToDictionary(s => s.MemberId);
+        }
+        catch (GsmApiException)
+        {
+            _whatsApp = [];
+        }
+    }
+
     private async Task LoadAsync()
     {
         _loading = true;
@@ -68,6 +91,7 @@ else
         {
             var result = await Memberships.ExpiringAsync(_days);
             _items = result.OrderBy(i => i.DaysLeft).ToList();
+            await LoadWhatsAppStatesAsync();
         }
         catch (GsmApiException ex)
         {

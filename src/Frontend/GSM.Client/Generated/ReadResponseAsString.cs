@@ -164,3 +164,8 @@ public partial class MembershipSettingsClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class WhatsAppClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
