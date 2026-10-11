@@ -222,7 +222,7 @@ Lo calcula Memberships para cada miembro, a una fecha:
 
 | Estado | Cuándo |
 |---|---|
-| `no_plan` | Nunca tuvo membresía, o la última fue cancelada sin otra vigente. |
+| `no_plan` | Nunca tuvo membresía, o solo tiene canceladas. Las canceladas no cuentan para el estado (siguen en el historial): cancelada + una vencida anterior = `expired`. |
 | `current` (al día) | Tiene una membresía que cubre hoy y le quedan más días que la ventana de aviso. |
 | `expiring` (por vencer) | Le quedan 7 días o menos (`expiring_days`, §5.3). En tiqueteras, también si le quedan 2 entradas o menos. El mismo número sirve para el estado, el letrero y la lista "Por vencer" del dashboard. |
 | `grace` (en gracia) | Vencida, dentro de la gracia. |
