@@ -139,7 +139,7 @@ registrar entradas, armar rutinas, manejar clases) **sigue abierto a cualquier s
 ### 5.3 Cuándo aplica un cambio de permisos
 
 - Los permisos viajan en el token (claim `perm`).
-- **Agregar** un permiso aplica en la próxima renovación del token (como mucho 60 minutos).
+- **Agregar** un permiso aplica en la próxima renovación del token (como mucho 15 minutos: el access token dura 15 min, decidido 2026-10-11).
 - **Quitar** un permiso **cierra las sesiones de esa persona en ese gym**: tiene que volver a entrar.
   Un permiso sensible (finanzas, salud) no puede seguir activo una hora después de quitarlo.
 - Todo cambio de perfil o de permisos queda registrado: quién, a quién, qué y cuándo.
