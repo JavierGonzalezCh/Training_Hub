@@ -348,7 +348,7 @@ public sealed class MemberProfileTests(ApiFactory factory) : IClassFixture<ApiFa
         var api = await LoggedInAsync(host, w.OwnerEmail);
 
         var a = Body("tag-a");
-        a["tags"] = new[] { "vip", "crossfit" };
+        a["tags"] = new[] { "VIP", "crossfit" };
         var b = Body("tag-b");
         b["tags"] = new[] { "crossfit" };
         var c = Body("tag-c");
@@ -358,7 +358,7 @@ public sealed class MemberProfileTests(ApiFactory factory) : IClassFixture<ApiFa
 
         var vip = (await api.GetFromJsonAsync<PagedResult<MemberListItem>>("/api/members?tag=vip"))!;
         Assert.Equal([idA], vip.Items.Select(m => m.Id));
-        Assert.Equal(["vip", "crossfit"], vip.Items[0].Tags);
+        Assert.Equal(["VIP", "crossfit"], vip.Items[0].Tags);   // se guarda como se escribe; el filtro ignora mayúsculas
 
         var crossfit = (await api.GetFromJsonAsync<PagedResult<MemberListItem>>("/api/members?tag=crossfit"))!;
         Assert.Equal(new[] { idA, idB }.Order(), crossfit.Items.Select(m => m.Id).Order());

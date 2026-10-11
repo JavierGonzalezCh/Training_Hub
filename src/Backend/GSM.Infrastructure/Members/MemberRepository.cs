@@ -31,8 +31,9 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
 
         if (!string.IsNullOrWhiteSpace(query.Tag))
         {
-            var tag = query.Tag.Trim();
-            q = q.Where(m => m.Tags.Contains(tag));
+            // Sin distinguir mayúsculas: "vip" encuentra "VIP" (P9).
+            var tag = query.Tag.Trim().ToLower();
+            q = q.Where(m => m.Tags.Any(t => t.ToLower() == tag));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
