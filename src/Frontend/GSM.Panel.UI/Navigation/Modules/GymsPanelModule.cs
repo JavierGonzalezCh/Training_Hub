@@ -18,5 +18,6 @@ public sealed class GymsPanelModule : IPanelModule
     [
         new("Datos del gym", 10, typeof(Pages.Settings.GymDataTab)),
         new("Módulos", 20, typeof(Pages.Settings.ModulesTab)),
+        new("Horario", 25, typeof(Pages.Settings.OpeningHoursTab)),
     ];
 }

@@ -1,0 +1,38 @@
+@* "Abierto · cierra a las 22:00" / "Cerrado · abre mañana a las 5:00". Sin horario cargado no muestra nada. *@
+@inject IMeClient Me
+
+@if (_status is { HasSchedule: true })
+{
+    <span class="gsm-m-open @(_status.IsOpen ? "is-open" : "is-closed")" id="gym-open-badge" role="status">@_status.Text</span>
+}
+
+@code {
+    /// <summary>Estado ya resuelto por quien aloja el componente; si es <c>null</c> se pide a la API.</summary>
+    [Parameter]
+    public GymOpenStatusDto? Status { get; set; }
+
+    private GymOpenStatusDto? _status;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Status is not null)
+        {
+            _status = Status;
+            return;
+        }
+
+        if (_status is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            _status = (await Me.HoursAsync())?.Status;
+        }
+        catch (GsmApiException)
+        {
+            // El indicador es un extra: si falla, la pantalla sigue sin él.
+        }
+    }
+}

@@ -1,0 +1,291 @@
+@* Pestaña "Horario" de la configuración (la registra GymsPanelModule): semana, festivos y excepciones. *@
+@inject IGymClient Gym
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <section class="gsm-hours" aria-labelledby="hours-week">
+        <h2 id="hours-week" class="gsm-module-section__title">Horario de atención</h2>
+        <p class="gsm-modules-intro">
+            El gimnasio abre todos los días. Con el gimnasio cerrado nadie puede registrar su entrada, ni por QR ni en recepción.
+            Los festivos de Colombia usan el horario de festivos.
+        </p>
+
+        @if (!_hasSchedule && !_templateApplied)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" id="hours-empty">
+                Aún no has cargado el horario: mientras tanto el gimnasio se considera siempre abierto.
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ApplyTemplate" id="hours-template">
+                    Empezar con una plantilla
+                </MudButton>
+            </MudAlert>
+        }
+
+        @foreach (var day in _draft.Days)
+        {
+            var d = day;
+            _errors.TryGetValue(d.Day, out var error);
+            <div class="gsm-hours__day" id="@($"hours-{d.Day}")">
+                <div class="gsm-hours__label">@d.Label</div>
+                <div class="gsm-hours__slots">
+                    <SlotsEditor Slots="d.Slots" IdPrefix="@($"hours-{d.Day}-slots")" OnChanged="Revalidate" />
+                    @if (error is not null)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Error" id="@($"hours-{d.Day}-error")">@error</MudText>
+                    }
+                </div>
+            </div>
+        }
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Class="mt-3"
+                   Disabled="@(_saving || !_draft.IsValid)" id="hours-save">
+            @(_saving ? "Guardando..." : "Guardar horario")
+        </MudButton>
+        @if (_status is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block" id="hours-status">Ahora: @_status</MudText>
+        }
+    </section>
+
+    <section class="gsm-hours mt-6" aria-labelledby="hours-holidays">
+        <h2 id="hours-holidays" class="gsm-module-section__title">Festivos de @_year</h2>
+        <div class="d-flex align-center mb-2" style="gap:0.5rem">
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" Disabled="@(_year <= DateTime.Today.Year)"
+                       OnClick="@(() => ChangeYearAsync(-1))" id="holidays-prev">Año anterior</MudButton>
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => ChangeYearAsync(1))"
+                       id="holidays-next">Año siguiente</MudButton>
+        </div>
+        <MudSimpleTable Dense="true" Hover="true" Style="max-width:720px" id="holidays-table">
+            <thead>
+                <tr><th>Fecha</th><th>Festivo</th><th>Horario</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var h in _holidays)
+                {
+                    var holiday = h;
+                    <tr>
+                        <td>@GsmFormat.DayShort(holiday.Date)</td>
+                        <td>@holiday.Name</td>
+                        <td>
+                            @(holiday.IsClosed ? "Cerrado" : OpeningHoursLabels.Describe(holiday.Slots))
+                            @if (holiday.IsAdjusted)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-1">Ajustado</MudChip>
+                            }
+                        </td>
+                        <td class="text-right">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => AdjustHolidayAsync(holiday))">
+                                Ajustar
+                            </MudButton>
+                            @if (holiday.IsAdjusted)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text"
+                                           OnClick="@(() => RemoveSpecialAsync(holiday.Date))">
+                                    Quitar ajuste
+                                </MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </section>
+
+    <section class="gsm-hours mt-6" aria-labelledby="hours-special">
+        <h2 id="hours-special" class="gsm-module-section__title">Excepciones por fecha</h2>
+        <p class="gsm-modules-intro">Otro horario en un día concreto, o cerrar el día completo (por ejemplo, por un arreglo del local).</p>
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Add"
+                   OnClick="AddSpecialAsync" id="special-add">Agregar excepción</MudButton>
+        @if (_specials.Count == 0)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">No hay excepciones próximas.</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Class="mt-2" Style="max-width:720px" id="special-table">
+                <thead>
+                    <tr><th>Fecha</th><th>Horario</th><th>Nota</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in _specials)
+                    {
+                        var special = s;
+                        <tr>
+                            <td>@GsmFormat.DayShort(special.Date)@(special.HolidayName is null ? "" : $" · {special.HolidayName}")</td>
+                            <td>@(special.IsClosed ? "Cerrado todo el día" : OpeningHoursLabels.Describe(special.Slots))</td>
+                            <td>@special.Note</td>
+                            <td class="text-right">
+                                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => EditSpecialAsync(special))">Editar</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Text"
+                                           OnClick="@(() => RemoveSpecialAsync(special.Date))">Quitar</MudButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </section>
+}
+
+@code {
+    private OpeningHoursDraft _draft = new();
+    private IReadOnlyDictionary<string, string> _errors = new Dictionary<string, string>();
+    private IReadOnlyList<HolidayResponse> _holidays = [];
+    private IReadOnlyList<SpecialDayResponse> _specials = [];
+    private bool _loading = true;
+    private bool _saving;
+    private bool _hasSchedule;
+    private bool _templateApplied;
+    private string? _status;
+    private int _year = DateTime.Today.Year;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadAllAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadAllAsync()
+    {
+        var hours = await Gym.OpeningHoursGETAsync();
+        _hasSchedule = hours.HasSchedule;
+        _status = hours.Status?.Text;
+        _draft = OpeningHoursDraft.From(hours.Days);
+        Revalidate();
+        await LoadHolidaysAsync();
+        await LoadSpecialsAsync();
+    }
+
+    private async Task LoadHolidaysAsync() => _holidays = (await Gym.HolidaysAsync(_year)).ToList();
+
+    private async Task LoadSpecialsAsync() => _specials = (await Gym.SpecialDaysAllAsync(null, null)).ToList();
+
+    private void ApplyTemplate()
+    {
+        _draft = OpeningHoursDraft.Template();
+        _templateApplied = true;
+        Revalidate();
+    }
+
+    private void Revalidate()
+    {
+        // Un día sin tramos solo es error cuando el gym ya tiene horario o el usuario empezó a cargarlo.
+        _errors = _hasSchedule || _templateApplied || _draft.Days.Any(d => d.Slots.Count > 0)
+            ? _draft.Validate()
+            : new Dictionary<string, string>();
+        StateHasChanged();
+    }
+
+    private async Task SaveAsync()
+    {
+        _errors = _draft.Validate();
+        if (_errors.Count > 0)
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var saved = await Gym.OpeningHoursPUTAsync(_draft.ToRequest());
+            _hasSchedule = saved.HasSchedule;
+            _status = saved.Status?.Text;
+            _draft = OpeningHoursDraft.From(saved.Days);
+            await LoadHolidaysAsync();
+            Snackbar.Add("Horario guardado.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task ChangeYearAsync(int delta)
+    {
+        _year += delta;
+        try
+        {
+            await LoadHolidaysAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private Task AdjustHolidayAsync(HolidayResponse holiday)
+        => OpenDialogAsync(
+            holiday.Date, holiday.Name,
+            existing: null, suggested: holiday.Slots.ToList(), title: $"Ajustar {holiday.Name}");
+
+    private Task AddSpecialAsync()
+        => OpenDialogAsync(null, null, null, [], "Agregar excepción");
+
+    private Task EditSpecialAsync(SpecialDayResponse special)
+        => OpenDialogAsync(special.Date, special.HolidayName, special, [], "Editar excepción");
+
+    private async Task OpenDialogAsync(
+        DateOnly? date, string? holidayName, SpecialDayResponse? existing, IReadOnlyList<TimeSlotDto> suggested, string title)
+    {
+        var dialog = await Dialogs.ShowAsync<SpecialDayDialog>(
+            title,
+            new DialogParameters<SpecialDayDialog>
+            {
+                { x => x.Date, date },
+                { x => x.HolidayName, holidayName },
+                { x => x.Existing, existing },
+                { x => x.Suggested, suggested },
+            });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await ReloadSpecialsAsync();
+        }
+    }
+
+    private async Task RemoveSpecialAsync(DateOnly date)
+    {
+        try
+        {
+            await Gym.SpecialDaysDELETEAsync(date);
+            Snackbar.Add("Excepción retirada.", Severity.Success);
+            await ReloadSpecialsAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task ReloadSpecialsAsync()
+    {
+        try
+        {
+            await LoadHolidaysAsync();
+            await LoadSpecialsAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}
