@@ -67,7 +67,8 @@ nuevo Notifications (`GSM-modulo-notifications.md`); este módulo decide el cont
 |---|---|---|---|---|
 | **Mi membresía** | Por vencer, en gracia, renovación | ✓ | ✓ | Encendido |
 | **Mis clases** | Recordatorio de 10 min, lista de espera, cancelaciones, penalización | ✓ | ✓ | Encendido |
-| **Mi progreso** | Logros, premios, ranking | ✓ | ✓ | Encendido |
+| **Mi rutina** | Cambios en el plan: ejercicio reemplazado, quitado o restablecido, con motivo (Routines R12). Solo lo del entrenamiento, nada de logros | ✓ | ✓ | Encendido |
+| **Mi progreso** | Logros, premios, ranking (separado de la rutina, decidido 2026-10-11) | ✓ | ✓ | Encendido |
 | **Novedades del gym** | Anuncios `gym_news`, clase nueva, cumpleaños | ✓ | ✓ | Encendido |
 | **Promociones** | Anuncios `promotions` | ✓ | ✓ | **Apagado** hasta que el miembro lo acepte |
 

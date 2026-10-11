@@ -162,8 +162,9 @@ de logros de la app pasa a ser **"Mi progreso"**, con tres pestañas:
    anterior y el interruptor para participar.
 
 En el inicio de la app se mantiene el resumen (racha y congeladores), y al tocarlo abre "Mi progreso".
-El progreso de carga por ejercicio (récords, gráficas) vive en la pantalla de la rutina (Routines R7)
-y "Mi progreso" enlaza a él.
+El progreso de carga por ejercicio (récords, gráficas) vive en la pantalla de la rutina (Routines R7),
+que es solo de entrenamiento: qué toca, próximos entrenamientos y registro de pesos. **Los logros no
+aparecen en la rutina** y la rutina no aparece en "Mi progreso" (decidido 2026-10-11).
 
 ## 9. Lo que cambia en otros módulos
 
