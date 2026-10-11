@@ -77,6 +77,12 @@
                 {
                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4" role="status" id="access-notice">@_result.Notice</MudAlert>
                 }
+                @if (_result.MissingWaiver == true)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4" role="status" id="missing-waiver">
+                        Falta la exoneración de responsabilidad: pídele que la firme y regístrala en su ficha, pestaña Autorizaciones.
+                    </MudAlert>
+                }
                 @if (_result.AlreadyCheckedInToday)
                 {
                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">Ya había entrado hoy.</MudAlert>

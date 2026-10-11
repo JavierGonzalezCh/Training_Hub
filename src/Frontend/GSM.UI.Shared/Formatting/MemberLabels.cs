@@ -99,6 +99,8 @@ public static partial class MemberLabels
         "guardian_phone" => "Acudiente: teléfono",
         "guardian_relationship" => "Acudiente: parentesco",
         "joined_at" => "Fecha de ingreso",
+        "consent_data_processing" => "Autorización de datos",
+        "consent_liability_waiver" => "Exoneración de responsabilidad",
         _ => field,
     };
 
@@ -117,6 +119,7 @@ public static partial class MemberLabels
             "source" => Source(value),
             "goal" => Goal(value),
             "status" => value == "active" ? "Activo" : value == "inactive" ? "Inactivo" : value,
+            "consent_data_processing" or "consent_liability_waiver" => ConsentLabels.ChangeValue(value),
             "photo_url" => "(imagen)",
             "referred_by_member_id" => "(otro miembro)",
             _ => value,

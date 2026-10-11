@@ -42,6 +42,9 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IMemberMembershipsClient, MemberMembershipsClient>(services, baseUri);
         AddApiClient<IMemberPaymentsClient, MemberPaymentsClient>(services, baseUri);
         AddApiClient<IMembersClient, MembersClient>(services, baseUri);
+        AddApiClient<IConsentDocumentsClient, ConsentDocumentsClient>(services, baseUri);
+        AddApiClient<IMemberConsentsClient, MemberConsentsClient>(services, baseUri);
+        AddApiClient<IMeConsentsClient, MeConsentsClient>(services, baseUri);
         AddApiClient<IMembershipPlansClient, MembershipPlansClient>(services, baseUri);
         AddApiClient<IMembershipsClient, MembershipsClient>(services, baseUri);
         AddApiClient<IMembershipSettingsClient, MembershipSettingsClient>(services, baseUri);

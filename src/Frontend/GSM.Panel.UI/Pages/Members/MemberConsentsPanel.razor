@@ -1,0 +1,146 @@
+@* Autorizaciones del miembro (Members v2, §3.4): estado de cada una frente a la versión vigente.
+   El staff registra la firmada en papel y, a pedido del titular, revoca la de datos. *@
+@inject IMemberConsentsClient Consents
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<div class="mt-4 gsm-consents">
+    @if (IsMinor)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            Es menor de edad: las autorizaciones las firma su acudiente en recepción.
+        </MudAlert>
+    }
+
+    @if (_statuses is null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        @foreach (var item in _statuses)
+        {
+            <MudPaper Class="pa-3 mb-3 gsm-consent" Elevation="0" Style="border:1px solid var(--gsm-border)" data-consent="@item.Type">
+                <div class="d-flex flex-wrap align-center" style="gap:0.75rem">
+                    <div style="flex:1;min-width:14rem">
+                        <MudText Typo="Typo.subtitle1">@ConsentLabels.Type(item.Type)</MudText>
+                        <MudText Typo="Typo.body2" Color="@(ConsentLabels.IsPending(item.Status) ? Color.Warning : Color.Success)" Class="gsm-consent__status">
+                            @ConsentLabels.Status(item.Status)
+                        </MudText>
+                        @if (item.AcceptedAt is { } at && item.AcceptedVersion is { } version)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+                                @ConsentLabels.Version(version) · @ConsentLabels.Channel(item.Channel) · @GsmFormat.Instant(at)
+                                @if (item.AcceptedByGuardian)
+                                {
+                                    <span> · aceptada por el acudiente</span>
+                                }
+                                @if (!string.IsNullOrEmpty(item.AcceptedByName))
+                                {
+                                    <span> · registró @item.AcceptedByName</span>
+                                }
+                            </MudText>
+                        }
+                        @if (item.RevokedAt is { } revoked)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Revocada el @GsmFormat.Instant(revoked)</MudText>
+                        }
+                        @if (ConsentLabels.IsPending(item.Status))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Versión vigente: @ConsentLabels.Version(item.CurrentVersion)</MudText>
+                        }
+                    </div>
+                    <div class="d-flex" style="gap:0.5rem">
+                        @if (ConsentLabels.IsPending(item.Status))
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy"
+                                       OnClick="@(() => RegisterAsync(item))" Class="gsm-consent__register">
+                                Registrar firma en papel
+                            </MudButton>
+                        }
+                        @if (item.Type == ConsentLabels.DataProcessing && item.Status is "accepted" or "outdated")
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="_busy"
+                                       OnClick="@(() => RevokeAsync(item))" Class="gsm-consent__revoke">
+                                Revocar
+                            </MudButton>
+                        }
+                    </div>
+                </div>
+            </MudPaper>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    [Parameter]
+    public bool IsMinor { get; set; }
+
+    private List<MemberConsentStatus>? _statuses;
+    private bool _busy;
+
+    protected override async Task OnParametersSetAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _statuses = (await Consents.ListMemberConsentsAsync(MemberId)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _statuses = [];
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task RegisterAsync(MemberConsentStatus item)
+    {
+        var who = IsMinor ? "El acudiente firmó" : "El miembro firmó";
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Registrar firma en papel",
+            $"{who} «{ConsentLabels.Type(item.Type)}» ({ConsentLabels.Version(item.CurrentVersion)}). Quedará registrada con tu nombre.",
+            yesText: "Registrar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        await RunAsync(() => Consents.RegisterMemberConsentAsync(
+            MemberId, new AcceptConsentRequest { Type = item.Type, DocumentVersion = item.CurrentVersion }));
+    }
+
+    private async Task RevokeAsync(MemberConsentStatus item)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Revocar autorización",
+            "Úsalo cuando el titular lo pida. Sin esta autorización no se podrán guardar sus datos de salud ni sus medidas.",
+            yesText: "Revocar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        await RunAsync(() => Consents.RevokeMemberConsentAsync(MemberId, item.Type));
+    }
+
+    private async Task RunAsync(Func<Task<ICollection<MemberConsentStatus>>> action)
+    {
+        _busy = true;
+        try
+        {
+            _statuses = (await action()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

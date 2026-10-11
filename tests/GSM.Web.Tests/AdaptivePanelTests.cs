@@ -101,7 +101,7 @@ public class AdaptivePanelTests : TestContext
 
         var titles = registry.GetSettingsSections(user).Select(s => s.Title).ToArray();
 
-        Assert.Equal(["Datos del gym", "Módulos", "Check-in", "Comunicaciones", "Staff", "Logros del gym", "Máquinas y fallas"], titles);
+        Assert.Equal(["Datos del gym", "Módulos", "Check-in", "Autorizaciones", "Comunicaciones", "Staff", "Logros del gym", "Máquinas y fallas"], titles);
     }
 
     [Fact]

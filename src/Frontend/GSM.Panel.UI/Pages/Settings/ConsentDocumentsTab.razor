@@ -1,0 +1,110 @@
+@* Pestaña "Autorizaciones" de la configuración: los textos que el miembro acepta. Publicar una versión
+   nueva no anula las aceptaciones anteriores; quien aceptó la anterior queda pendiente de aceptar la vigente.
+   Solo Owner. *@
+@inject IConsentDocumentsClient Documents
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+@if (_drafts is null)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-4 mb-4">
+        Redacta o ajusta los textos con tu asesor legal. Al publicar una versión nueva, los miembros que aceptaron la
+        anterior quedan pendientes de aceptar la vigente; sus aceptaciones previas se conservan.
+    </MudAlert>
+
+    @foreach (var draft in _drafts)
+    {
+        <MudPaper Class="pa-4 mb-4 gsm-consent-doc" Elevation="0" Style="border:1px solid var(--gsm-border)" data-consent="@draft.Type">
+            <MudText Typo="Typo.h6">@ConsentLabels.Type(draft.Type)</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
+                @if (draft.IsDefault)
+                {
+                    <span>Texto base del sistema (borrador pendiente de revisión legal). Publica el tuyo para reemplazarlo.</span>
+                }
+                else
+                {
+                    <span>Versión @draft.Version vigente desde @GsmFormat.Instant(draft.EffectiveFrom!.Value)</span>
+                }
+            </MudText>
+            <MudTextField T="string" @bind-Value="draft.Text" Lines="8" MaxLength="20000" Immediate="true"
+                          Disabled="draft.Saving" Label="Texto" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3 gsm-consent-doc__publish"
+                       OnClick="@(() => PublishAsync(draft))"
+                       Disabled="draft.Saving || !draft.IsDirty || (draft.Text?.Trim().Length ?? 0) < 20">
+                @(draft.Saving ? "Publicando..." : "Publicar nueva versión")
+            </MudButton>
+        </MudPaper>
+    }
+}
+
+@code {
+    private sealed class Draft(ConsentDocumentItem source)
+    {
+        public string Type { get; private set; } = source.Type;
+        public int Version { get; private set; } = source.Version;
+        public bool IsDefault { get; private set; } = source.IsDefault;
+        public DateTimeOffset? EffectiveFrom { get; private set; } = source.EffectiveFrom;
+        public string Text { get; set; } = source.Text;
+        public string Published { get; private set; } = source.Text;
+        public bool Saving { get; set; }
+
+        // Un texto base nunca se "publica sin cambios": el gym debe elegirlo conscientemente, así que también permite publicarlo.
+        public bool IsDirty => IsDefault || Text.Trim() != Published.Trim();
+
+        public void Apply(ConsentDocumentItem item)
+        {
+            Version = item.Version;
+            IsDefault = item.IsDefault;
+            EffectiveFrom = item.EffectiveFrom;
+            Text = Published = item.Text;
+        }
+    }
+
+    private List<Draft>? _drafts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _drafts = (await Documents.ListConsentDocumentsAsync()).Select(d => new Draft(d)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _drafts = [];
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task PublishAsync(Draft draft)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Publicar nueva versión",
+            "Los miembros que aceptaron la versión anterior quedarán pendientes de aceptar esta. Sus aceptaciones previas no se borran.",
+            yesText: "Publicar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        draft.Saving = true;
+        try
+        {
+            var item = await Documents.PublishConsentDocumentAsync(
+                new PublishConsentDocumentRequest { Type = draft.Type, Text = draft.Text.Trim() });
+            draft.Apply(item);
+            Snackbar.Add($"Publicada la versión {item.Version}.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            draft.Saving = false;
+        }
+    }
+}

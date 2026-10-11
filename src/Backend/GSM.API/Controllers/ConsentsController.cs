@@ -14,6 +14,7 @@ public sealed class ConsentDocumentsController : ControllerBase
 {
     /// <summary>El texto vigente de cada autorización: el del gym o, si no publicó, el texto base del sistema.</summary>
     [HttpGet]
+    [EndpointName("ListConsentDocuments")]
     [ProducesResponseType<IReadOnlyList<ConsentDocumentItem>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ConsentDocumentItem>>> List(
         [FromServices] ListConsentDocumentsHandler handler, CancellationToken cancellationToken)
@@ -21,6 +22,7 @@ public sealed class ConsentDocumentsController : ControllerBase
 
     /// <summary>Publica una versión nueva. No anula las aceptaciones de las anteriores.</summary>
     [HttpPut]
+    [EndpointName("PublishConsentDocument")]
     [ProducesResponseType<ConsentDocumentItem>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<ConsentDocumentItem>> Publish(
@@ -37,6 +39,7 @@ public sealed class ConsentDocumentsController : ControllerBase
 public sealed class MemberConsentsController : ControllerBase
 {
     [HttpGet]
+    [EndpointName("ListMemberConsents")]
     [ProducesResponseType<IReadOnlyList<MemberConsentStatus>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<MemberConsentStatus>>> List(
@@ -45,6 +48,7 @@ public sealed class MemberConsentsController : ControllerBase
 
     /// <summary>Registra una autorización firmada en papel (canal <c>front_desk</c>).</summary>
     [HttpPost]
+    [EndpointName("RegisterMemberConsent")]
     [ProducesResponseType<IReadOnlyList<MemberConsentStatus>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -57,6 +61,7 @@ public sealed class MemberConsentsController : ControllerBase
 
     /// <summary>Revoca la autorización de datos a pedido del titular.</summary>
     [HttpPost("{type}/revoke")]
+    [EndpointName("RevokeMemberConsent")]
     [ProducesResponseType<IReadOnlyList<MemberConsentStatus>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -76,6 +81,7 @@ public sealed class MeConsentsController : ControllerBase
 {
     /// <summary>Sus autorizaciones con el texto vigente de cada una.</summary>
     [HttpGet]
+    [EndpointName("ListMyConsents")]
     [ProducesResponseType<IReadOnlyList<MemberConsentStatus>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<MemberConsentStatus>>> List(
         [FromServices] GetMyConsentsHandler handler, CancellationToken cancellationToken)
@@ -83,6 +89,7 @@ public sealed class MeConsentsController : ControllerBase
 
     /// <summary>Acepta la versión vigente. Un menor de edad no puede (403): la acepta su acudiente en recepción.</summary>
     [HttpPost]
+    [EndpointName("AcceptMyConsent")]
     [ProducesResponseType<IReadOnlyList<MemberConsentStatus>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -92,6 +99,7 @@ public sealed class MeConsentsController : ControllerBase
 
     /// <summary>Revoca su autorización de datos.</summary>
     [HttpPost("{type}/revoke")]
+    [EndpointName("RevokeMyConsent")]
     [ProducesResponseType<IReadOnlyList<MemberConsentStatus>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
