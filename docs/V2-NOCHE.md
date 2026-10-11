@@ -48,9 +48,10 @@
 | B3 | **Unida** | Causa: nada fijaba la cultura y el selector no tenía `ToStringFunc`. Marcado corregido en `BUGS.md`. bUnit 135 |
 | G2 | **Unida** | Sin mapa con pin (solo lat/long y "Ver en el mapa"). Suite 327 + 150 |
 | E1 | **Unida** | 55 modelos sembrados (lista en el commit del agente); sin imágenes (ícono por tipo); foto del inventario sin verificar con R2. Ver pregunta 18. Suite 354 + 162 |
-| G3 | En curso | — |
-| CO3 | En curso | — |
-| M2 | En curso | el texto base de las autorizaciones es un borrador pendiente de revisión legal |
+| G3 | **Unida** | Festivos 2026 verificados contra el calendario oficial. Ver pregunta 21 |
+| CO3 | **Unida** | Botón de WhatsApp en ficha, recepción y listas; plantillas por gym. `window.open` sin verificar en MAUI |
+| M2 | **Unida** | Texto base de las autorizaciones = **borrador pendiente de revisión legal**. Ver pregunta 20 |
+| N4 | **Unida** (a99b982) | Preferencias por categoría y canal, horario sin avisos, categoría del anuncio (CO1). Ver pregunta 22. Suite 393 + 187 |
 | I1 | **Unida** | Config nueva `Identity:PublicWebBaseUrl` (producción). Suite 343 + 156 | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -76,6 +77,9 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 17. **S6: un token de impersonación en modo escritura también sirve para `/api/admin/*`** (su rol real sigue siendo superadmin; antes de S6 solo pasaba con GET). Es la misma persona y queda auditado. ¿Se restringe el token de impersonación a los endpoints del gym?
 18. **E1: nombres de las unidades y catálogo.** Agregar "Bicicleta estática × 3" crea "Bicicleta estática 1…3" (la spec decía "Bicicleta 1…3" sin decir cómo acortar). Se sembraron 55 modelos (la spec decía ~40). El listado con bajas (`includeInactive`) no está restringido al Owner en la API, aunque la UI solo lo ofrece al Owner.
 19. **I1: activación y sesiones.** (a) Cada "Copiar enlace" genera un enlace nuevo y no invalida los anteriores; todos mueren cuando la persona define su contraseña. (b) Cambiar la contraseña cierra las otras sesiones revocando sus refresh tokens, pero sus access tokens viven hasta 60 min (relacionado con la pregunta 11). (c) El alta del Owner por SuperAdmin todavía pide contraseña; la invitación por enlace del Owner llega con G1.
+20. **M2: qué cuenta como autorización de datos vigente.** El agente la definió como "la aceptación más reciente, de cualquier versión, no revocada": publicar un texto nuevo deja a la persona "pendiente de aceptar la versión vigente" pero **no** cierra el candado de salud y medidas. ¿O debe cerrarlo hasta que acepte la versión nueva? Además: un menor no puede aceptar en la app (lo hace el acudiente en recepción); la exoneración no se puede revocar (422).
+21. **G3: decisiones del agente.** (a) Un rechazo por `gym_closed` **no** crea intento rechazado ni aviso en la campana (no es accionable). (b) La asistencia por clase se valida con el gym abierto **a la hora de inicio de la clase**, no a la hora en que se marca. (c) Un tramo cierra como máximo a las 23:59: no se puede expresar un gym 24 h. (d) Las excepciones solo pueden ser de hoy en adelante.
+22. **N4: el horario sin avisos solo retiene Novedades y Promociones** (Comunicaciones §G). El catálogo de Notifications §9 marca "Aplica" también para logros y penalizaciones; hay contradicción entre los dos docs. Hoy no cambia nada (esos avisos no tienen correo ni push), pero hay que decidirlo antes de N2. Además: el `Down` de la migración de N4 no se puede ejecutar (Postgres no quita el valor `skipped` del enum).
 6. **R2: decisiones del agente para validar.** (a) Cambiar el modo (semanal ↔ rotativa) por `PUT` crea la rutina nueva, desactiva la anterior y **reinicia `starts_on` a hoy**; (b) en semanal no hay filas de descanso y mandar `dayOfWeek` en una rotativa es 422; (c) en semanal, "duración del ciclo" se muestra como "N días de entrenamiento".
 5. **R1 → R2: racha y días retirados.** Al retirar un día, deja de contar en el calendario de racha **también hacia atrás** (el calendario solo ve los días vigentes). Para el modo semanal (R2) conviene decidir si la racha se calcula con el calendario vigente en cada fecha.
 
@@ -106,12 +110,14 @@ Las del plan §4 (ninguna se hace esta noche):
 - **N1 retiró los enums viejos de Comunicaciones** (`EmailKind`, `EmailStatus`, `NotificationType` de `communications`): las migraciones históricas usan copias `Legacy*` en `Migrations/LegacyCommunicationsEnums.cs`.
 - **Interferencias semánticas al unir** (no son choques de texto): los tests de P1, R2, R3 y M1 sembraban `AppUser` con `Role`/`GymId` o leían el login viejo; se adaptaron a I2.
 - **Riesgo: un test de integración falla de forma esporádica** (1 de cada ~5 corridas completas tras unir N1); no se pudo aislar todavía. Las corridas repetidas pasan.
+- **Incidente — la base de desarrollo `gsm` quedó migrada a la v2.** Dos agentes (CO3 y M2) corrieron `dotnet ef database update` sin `--connection`, y esa herramienta apunta a `gsm` (lee `GSM_MIGRATIONS_CONNECTION`, no `ConnectionStrings__Postgres`). Cada uno revirtió su propia migración, pero las anteriores quedaron aplicadas: **`gsm` está en `V2_G2_GymProfile`**, con sus datos (43 miembros, 24 usuarios, 23 accesos creados por la migración de I2). No se borró nada; M2 avisa que, al pasar por `V2_S7` hacia atrás y adelante, una tabla vacía de métricas se recreó. Para usar `gsm` con la `v2` hay que aplicar las migraciones que faltan (`dotnet ef database update`). Desde entonces los prompts exigen `--connection` explícito.
 - **Worktrees:** los agentes trabajan en worktrees creados por la herramienta (`.claude/worktrees/`, ignorado por git), no en `../gsm-lanes/`. `scripts/new-lane.ps1 -SkipWorktree` sirve para crear solo las bases.
 
 ## 5. Registro cronológico
 
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
+- CO3, M2, G3 y N4 unidas (393 + 187). Cada unión tuvo choques de "ambos agregaron algo" (lectores de Members, `ReadResponseAsString`, inicio de la app, lista de pestañas) y el alias `EquipmentType` en Designers anteriores a E1; snapshot regenerado en CO3 y G3; cliente regenerado en cada una. **De la Ola 2 solo falta N2 (push web).**
 - Reanudación tras el tercer corte por límite de uso. I1 unida (343 + 156; conflicto en `MemberLayout`, cliente regenerado). E1 unida (354 + 162; hubo que poner el alias `EquipmentType` en los Designers de S6, I1 y G2). Lanzadas G3 y CO3; M2 reanudada.
 - G2 unida (327 + 150). I1 terminada sin unir; E1 y M2 en curso. Sesión cortada por el límite de uso.
 - S6 unida (309 + 144): **Ola 1 cerrada**. Lanzada M2. Cliente regenerado (idéntico al unido, solo cambia `openapi-v1.json`). `CLAUDE.md` actualizado con las notas de I2, I3, N1, MS1, AP2 y S6.
