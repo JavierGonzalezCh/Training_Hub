@@ -76,7 +76,8 @@ $infra = Join-Path $codeDir 'src\Backend\GSM.Infrastructure'
 foreach ($db in @($devDb, $testDb)) {
     $env:GSM_MIGRATIONS_CONNECTION = "Host=localhost;Port=5432;Database=$db;Username=gsm;Password=gsm"
     Write-Host "Aplicando migraciones a $db ..."
-    dotnet ef database update --project $infra | Out-Null
+    # --context: desde LG1 hay dos DbContext (GsmDbContext y LogsDbContext, este sin migraciones propias).
+    dotnet ef database update --project $infra --context GsmDbContext | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "dotnet ef database update falló en $db." }
 }
 Remove-Item Env:GSM_MIGRATIONS_CONNECTION -ErrorAction SilentlyContinue
