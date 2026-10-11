@@ -25,7 +25,7 @@ public sealed class ExerciseConfiguration : IEntityTypeConfiguration<Exercise>
 
         builder.Property(e => e.Equipment)
             .HasColumnName("equipment")
-            .HasColumnType("routines.equipment[]");
+            .HasColumnType("equipment.equipment_type[]");
 
         builder.Property(e => e.ExerciseType)
             .HasColumnName("exercise_type")

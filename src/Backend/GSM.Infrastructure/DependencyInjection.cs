@@ -3,6 +3,7 @@ using GSM.Infrastructure.Attendance;
 using GSM.Infrastructure.Classes;
 using GSM.Infrastructure.Common;
 using GSM.Infrastructure.Communications;
+using GSM.Infrastructure.Equipment;
 using GSM.Infrastructure.Gyms;
 using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Logs;
@@ -41,6 +42,7 @@ public static class DependencyInjection
             .AddAchievementsInfrastructure(configuration)
             .AddRoutinesInfrastructure(configuration)
             .AddClassesInfrastructure(configuration)
+            .AddEquipmentInfrastructure(configuration)
             .AddSuperAdminInfrastructure(configuration);
     }
 }

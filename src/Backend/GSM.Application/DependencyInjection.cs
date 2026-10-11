@@ -61,6 +61,7 @@ public static class DependencyInjection
             .AddAchievementsModule()
             .AddRoutinesModule()
             .AddClassesModule()
+            .AddEquipmentModule()
             .AddSuperAdminModule()
             .AddCommunicationsModule()
             .AddNotificationsModule();

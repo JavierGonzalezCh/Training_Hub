@@ -1,0 +1,292 @@
+@page "/equipment"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IEquipmentClient Equipment
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Equipos — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Equipos</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenOwnAsync" data-testid="add-own">
+        Máquina propia
+    </MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LibraryAdd"
+               OnClick="OpenCatalogAsync" data-testid="add-from-catalog">
+        Agregar del catálogo
+    </MudButton>
+</div>
+
+<div class="d-flex flex-wrap align-end mb-4" style="gap:1rem">
+    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Placeholder="Buscar"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                  DebounceInterval="400" Style="max-width:260px" />
+    <label class="gsm-native-field">
+        <span>Tipo</span>
+        <select data-testid="filter-type" @onchange="OnTypeChangedAsync">
+            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_type)">Todos</option>
+            @foreach (var (value, label) in RoutineLabels.Equipment)
+            {
+                <option value="@value" selected="@(_type == value.ToString())">@label</option>
+            }
+        </select>
+    </label>
+    <label class="gsm-native-field">
+        <span>Zona</span>
+        <select data-testid="filter-zone" @onchange="OnZoneChangedAsync">
+            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_zone)">Todas</option>
+            @foreach (var zone in _zones)
+            {
+                <option value="@zone" selected="@(_zone == zone)">@zone</option>
+            }
+        </select>
+    </label>
+    <label class="gsm-native-field">
+        <span>Estado</span>
+        <select data-testid="filter-status" @onchange="OnStatusChangedAsync">
+            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_status)">Todos</option>
+            @foreach (var (value, _, label) in EquipmentDisplay.Statuses)
+            {
+                <option value="@value" selected="@(_status == value.ToString())">@label</option>
+            }
+        </select>
+    </label>
+    <RequireRole Roles="@GsmRoles.Owner">
+        <MudCheckBox T="bool" Value="_includeInactive" ValueChanged="OnIncludeInactiveChangedAsync" Label="Ver bajas"
+                     data-testid="filter-inactive" />
+    </RequireRole>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="empty">
+        @(_hasFilters ? "Sin resultados." : "Todavía no hay equipos. Usa \"Agregar del catálogo\" para armar el inventario del gym.")
+    </MudText>
+}
+else
+{
+    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh></MudTh>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Zona</MudTh>
+            <MudTh>Cantidad</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                @{
+                    var image = context.PhotoUrl ?? context.ModelImageUrl;
+                }
+                <MudAvatar Size="Size.Medium" Variant="Variant.Outlined">
+                    @if (!string.IsNullOrEmpty(image))
+                    {
+                        <MudImage Src="@image" Alt="@context.Name" ObjectFit="ObjectFit.Cover" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@EquipmentDisplay.TypeIcon(context.Type)" />
+                    }
+                </MudAvatar>
+            </MudTd>
+            <MudTd DataLabel="Nombre">
+                <span style="@(context.IsActive ? null : "opacity:.55")">@context.Name</span>
+                @if (!context.HasOwnPhoto)
+                {
+                    <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono ml-2" data-testid="no-photo">SIN FOTO PROPIA</MudChip>
+                }
+                @if (!context.IsActive)
+                {
+                    <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono ml-2" data-testid="inactive-chip">DADO DE BAJA</MudChip>
+                }
+                @if (!string.IsNullOrEmpty(context.Brand) || !string.IsNullOrEmpty(context.Model))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@string.Join(" ", new[] { context.Brand, context.Model }.Where(s => !string.IsNullOrEmpty(s)))</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Tipo">@EquipmentDisplay.TypeLabel(context.Type)</MudTd>
+            <MudTd DataLabel="Zona">@(context.Zone ?? "—")</MudTd>
+            <MudTd DataLabel="Cantidad" Class="gsm-mono">@context.Quantity</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@EquipmentDisplay.StatusColor(context.Status)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @EquipmentDisplay.StatusLabel(context.Status).ToUpperInvariant()
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.IsActive)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" title="Editar" />
+                    <MudFileUpload T="IBrowserFile" FilesChanged="@(f => UploadPhotoAsync(context, f))" Class="d-inline-block ma-0">
+                        <ActivatorContent>
+                            <MudIconButton Icon="@Icons.Material.Filled.AddAPhoto" Size="Size.Small" title="Subir foto" />
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <RequireRole Roles="@GsmRoles.Owner">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => DeactivateAsync(context))" title="Dar de baja" data-testid="deactivate" />
+                    </RequireRole>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<EquipmentItemResponse> _items = [];
+    private List<string> _zones = [];
+    private bool _loading = true;
+    private string _search = string.Empty;
+    private string _type = FilterValues.All;
+    private string _zone = FilterValues.All;
+    private string _status = FilterValues.All;
+    private bool _includeInactive;
+
+    private bool _hasFilters =>
+        !string.IsNullOrWhiteSpace(_search) || !FilterValues.IsAll(_type) || !FilterValues.IsAll(_zone)
+        || !FilterValues.IsAll(_status);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private static int? ToFilter(string value) => FilterValues.IsAll(value) ? null : int.Parse(value);
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Equipment.ListEquipmentAsync(
+                ToFilter(_type),
+                FilterValues.IsAll(_zone) ? null : _zone,
+                ToFilter(_status),
+                string.IsNullOrWhiteSpace(_search) ? null : _search,
+                _includeInactive);
+            _items = result.ToList();
+            _zones = (await Equipment.ListEquipmentZonesAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearchChangedAsync(string value)
+    {
+        _search = value;
+        await LoadAsync();
+    }
+
+    private async Task OnTypeChangedAsync(ChangeEventArgs e)
+    {
+        _type = e.Value?.ToString() ?? FilterValues.All;
+        await LoadAsync();
+    }
+
+    private async Task OnZoneChangedAsync(ChangeEventArgs e)
+    {
+        _zone = e.Value?.ToString() ?? FilterValues.All;
+        await LoadAsync();
+    }
+
+    private async Task OnStatusChangedAsync(ChangeEventArgs e)
+    {
+        _status = e.Value?.ToString() ?? FilterValues.All;
+        await LoadAsync();
+    }
+
+    private async Task OnIncludeInactiveChangedAsync(bool value)
+    {
+        _includeInactive = value;
+        await LoadAsync();
+    }
+
+    private static readonly DialogOptions CatalogOptions = new() { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true };
+    private static readonly DialogOptions FormOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
+
+    private async Task OpenCatalogAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<AddFromCatalogDialog>("Agregar del catálogo", CatalogOptions);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Equipos agregados al inventario.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenOwnAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<EquipmentFormDialog>("Máquina propia", FormOptions);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Equipo creado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenEditAsync(EquipmentItemResponse item)
+    {
+        var parameters = new DialogParameters<EquipmentFormDialog> { { x => x.EquipmentId, item.Id } };
+        var dialog = await Dialogs.ShowAsync<EquipmentFormDialog>("Editar equipo", parameters, FormOptions);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Equipo actualizado.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeactivateAsync(EquipmentItemResponse item)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Dar de baja", $"¿Dar de baja \"{item.Name}\"? Deja de aparecer en el inventario (se vendió o se botó).",
+            yesText: "Dar de baja", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await Equipment.DeactivateEquipmentAsync(item.Id);
+            Snackbar.Add("Equipo dado de baja.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task UploadPhotoAsync(EquipmentItemResponse item, IBrowserFile file)
+    {
+        try
+        {
+            // 5 MB de tope: solo para no mandar archivos absurdos a la API.
+            await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            await Equipment.UploadEquipmentPhotoAsync(item.Id, new FileParameter(stream, file.Name, file.ContentType));
+            Snackbar.Add("Foto actualizada.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500)
+        {
+            // R2 no está configurado todavía (ver CLAUDE.md): la subida falla siempre con 500.
+            Snackbar.Add("Las fotos no están disponibles todavía: falta configurar el almacenamiento.", Severity.Warning);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

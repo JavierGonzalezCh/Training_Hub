@@ -1,0 +1,179 @@
+@inject IEquipmentClient Equipment
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+            <MudForm @ref="_form" Model="_model">
+                <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3"
+                              MaxLength="120" data-testid="equipment-name" />
+                <div class="d-flex flex-wrap mb-3" style="gap:1rem">
+                    <label class="gsm-native-field">
+                        <span>Tipo</span>
+                        <select data-testid="equipment-type" @onchange="@(e => _model.Type = ToInt(e.Value, 3))">
+                            @foreach (var (value, label) in RoutineLabels.Equipment)
+                            {
+                                <option value="@value" selected="@(_model.Type == value)">@label</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="gsm-native-field">
+                        <span>Zona</span>
+                        <input type="text" list="equipment-zones" maxlength="60" value="@_model.Zone" data-testid="equipment-zone"
+                               @onchange="@(e => _model.Zone = e.Value?.ToString())" />
+                        <datalist id="equipment-zones">
+                            @foreach (var zone in _zones)
+                            {
+                                <option value="@zone"></option>
+                            }
+                        </datalist>
+                    </label>
+                    <label class="gsm-native-field" style="max-width:110px">
+                        <span>Cantidad</span>
+                        <input type="number" min="1" max="1000" value="@_model.Quantity" data-testid="equipment-quantity"
+                               @onchange="@(e => _model.Quantity = Math.Max(1, ToInt(e.Value, 1)))" />
+                    </label>
+                </div>
+                <div class="d-flex flex-wrap mb-3" style="gap:1rem">
+                    <MudTextField T="string" @bind-Value="_model.Brand" Label="Marca" MaxLength="120" Style="max-width:220px" />
+                    <MudTextField T="string" @bind-Value="_model.Model" Label="Modelo" MaxLength="120" Style="max-width:220px" />
+                    <label class="gsm-native-field">
+                        <span>Adquirida el</span>
+                        <input type="date" value="@(_model.AcquiredOn?.ToString("yyyy-MM-dd"))"
+                               @onchange="@(e => _model.AcquiredOn = DateOnly.TryParse(e.Value?.ToString(), out var d) ? d : null)" />
+                    </label>
+                </div>
+                <MudTextField T="string" @bind-Value="_model.Instructions" Label="Instrucciones de ajuste (las ve el miembro)"
+                              Lines="2" MaxLength="1000" Class="mb-3" />
+                <MudTextField T="string" @bind-Value="_model.Notes" Label="Notas internas (solo staff)" Lines="2" MaxLength="1000" />
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting"
+                   data-testid="equipment-save">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Con valor edita esa máquina; sin él crea una máquina propia (sin modelo del catálogo).</summary>
+    [Parameter]
+    public Guid? EquipmentId { get; set; }
+
+    private readonly FormModel _model = new();
+    private List<string> _zones = [];
+    private MudForm _form = null!;
+    private bool _loading;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _zones = (await Equipment.ListEquipmentZonesAsync()).ToList();
+
+            if (EquipmentId is { } id)
+            {
+                var item = await Equipment.GetEquipmentAsync(id);
+                _model.Name = item.Name;
+                _model.Type = EquipmentDisplay.TypeValue(item.Type);
+                _model.Zone = item.Zone;
+                _model.Brand = item.Brand;
+                _model.Model = item.Model;
+                _model.Instructions = item.Instructions;
+                _model.Quantity = item.Quantity;
+                _model.AcquiredOn = item.AcquiredOn;
+                _model.Notes = item.Notes;
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static int ToInt(object? value, int fallback) => int.TryParse(value?.ToString(), out var n) ? n : fallback;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var request = new SaveEquipmentRequest
+            {
+                Name = _model.Name,
+                Type = _model.Type,
+                Zone = Clean(_model.Zone),
+                Brand = Clean(_model.Brand),
+                Model = Clean(_model.Model),
+                Instructions = Clean(_model.Instructions),
+                Quantity = _model.Quantity,
+                AcquiredOn = _model.AcquiredOn,
+                Notes = Clean(_model.Notes),
+            };
+
+            if (EquipmentId is { } id)
+            {
+                await Equipment.UpdateEquipmentAsync(id, request);
+            }
+            else
+            {
+                await Equipment.CreateEquipmentAsync(request);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private void Cancel() => MudDialog.Cancel();
+
+    internal sealed class FormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Type { get; set; } = 3;   // máquina
+        public string? Zone { get; set; }
+        public string? Brand { get; set; }
+        public string? Model { get; set; }
+        public string? Instructions { get; set; }
+        public int Quantity { get; set; } = 1;
+        public DateOnly? AcquiredOn { get; set; }
+        public string? Notes { get; set; }
+    }
+}

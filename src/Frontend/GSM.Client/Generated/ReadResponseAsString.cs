@@ -164,3 +164,8 @@ public partial class MembershipSettingsClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class EquipmentClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

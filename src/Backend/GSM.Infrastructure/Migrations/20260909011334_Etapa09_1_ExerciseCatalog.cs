@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EquipmentType = GSM.Domain.Equipment.EquipmentType;
+using System;
 using System.Collections.Generic;
 using GSM.Domain.Routines;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -47,7 +48,7 @@ namespace GSM.Infrastructure.Migrations
                     description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     primary_muscle = table.Column<Muscle>(type: "routines.muscle", nullable: false),
                     secondary_muscles = table.Column<List<Muscle>>(type: "routines.muscle[]", nullable: false),
-                    equipment = table.Column<List<Equipment>>(type: "routines.equipment[]", nullable: false),
+                    equipment = table.Column<List<EquipmentType>>(type: "routines.equipment[]", nullable: false),
                     video_url = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
                     image_url = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
                     is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),

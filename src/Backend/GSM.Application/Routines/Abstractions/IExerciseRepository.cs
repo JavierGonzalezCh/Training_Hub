@@ -1,3 +1,4 @@
+using GSM.Domain.Equipment;
 using GSM.Domain.Routines;
 
 namespace GSM.Application.Routines.Abstractions;
@@ -9,7 +10,7 @@ namespace GSM.Application.Routines.Abstractions;
 public sealed record ExerciseFilter(
     string? Search,
     Muscle? PrimaryMuscle,
-    Equipment? Equipment,
+    EquipmentType? Equipment,
     bool IncludeInactive,
     MuscleGroup? MuscleGroup = null,
     ExerciseType? ExerciseType = null,
