@@ -92,6 +92,7 @@ public static partial class MemberLabels
         "source" => "Cómo nos conoció",
         "referred_by_member_id" => "Referido por",
         "goal" => "Objetivo",
+        "trainer" => "Entrenador",
         "tags" => "Etiquetas",
         "guardian_name" => "Acudiente: nombre",
         "guardian_document_type" => "Acudiente: tipo de documento",

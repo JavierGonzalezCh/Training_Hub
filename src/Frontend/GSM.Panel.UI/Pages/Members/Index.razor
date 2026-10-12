@@ -5,6 +5,7 @@
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthState
 
 <PageTitle>Miembros — GSM</PageTitle>
 
@@ -34,6 +35,15 @@
                 <MudSelectItem Value="value">@label</MudSelectItem>
             }
         </MudSelect>
+        <MudSelect T="string" Value="_trainerFilter" ValueChanged="OnTrainerFilterChangedAsync" Label="Entrenador"
+                   Dense="true" Class="mr-4" Style="max-width:200px" Margin="Margin.Dense" id="trainer-filter">
+            <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
+            @if (_isTrainer)
+            {
+                <MudSelectItem Value="@TrainerFilterMine">Mis miembros</MudSelectItem>
+            }
+            <MudSelectItem Value="@TrainerFilterNone">Sin entrenador</MudSelectItem>
+        </MudSelect>
         @* Tres opciones caben a la vista: un desplegable las escondía detrás de un clic. *@
         <div class="gsm-segmented" role="group" aria-label="Filtrar por estado">
             @foreach (var (value, label) in StatusFilters)
@@ -48,6 +58,7 @@
         <MudTh>Miembro</MudTh>
         <MudTh>Documento</MudTh>
         <MudTh>Teléfono</MudTh>
+        <MudTh>Entrenador</MudTh>
         <MudTh>Situación</MudTh>
         <MudTh>Ingresó</MudTh>
         <MudTh></MudTh>
@@ -67,6 +78,7 @@
         </MudTd>
         <MudTd DataLabel="Documento" Class="gsm-num">@MemberLabels.DocumentShort(context.DocumentType) @context.DocumentNumber</MudTd>
         <MudTd DataLabel="Teléfono" Class="gsm-num">@(context.Phone ?? "—")</MudTd>
+        <MudTd DataLabel="Entrenador">@(context.TrainerName ?? (context.TrainerUserId is null ? "—" : "…"))</MudTd>
         <MudTd DataLabel="Situación">
             @if (context.Status == "Inactive")
             {
@@ -96,11 +108,29 @@
     private string _status = FilterValues.All;
     private string _tag = string.Empty;
     private string _commercial = FilterValues.All;
+    private string _trainerFilter = FilterValues.All;
+    private bool _isTrainer;
+    private Guid? _myUserId;
+    private const string TrainerFilterMine = "mine";
+    private const string TrainerFilterNone = "none";
     private int? _total;
     private Dictionary<Guid, WhatsAppMemberStateResponse> _whatsApp = [];
 
     private static readonly (string Value, string Label)[] StatusFilters =
         [(FilterValues.All, "Todos"), ("0", "Activos"), ("1", "Inactivos")];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isTrainer = user.HasPermission(GsmPermissions.Trainer);
+        _myUserId = Guid.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
+    }
+
+    private async Task OnTrainerFilterChangedAsync(string value)
+    {
+        _trainerFilter = value;
+        await _table.RefreshAsync();
+    }
 
     private async Task<ServerTablePage<MemberListItem>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -111,7 +141,10 @@
                 FilterValues.IsAll(_status) ? null : int.Parse(_status),
                 string.IsNullOrWhiteSpace(_tag) ? null : _tag.Trim(),
                 FilterValues.IsAll(_commercial) ? null : _commercial,
-                page, pageSize, cancellationToken);
+                page, pageSize,
+                _trainerFilter == TrainerFilterMine ? _myUserId : null,
+                _trainerFilter == TrainerFilterNone ? true : null,
+                cancellationToken);
             // La cabecera vive fuera de la tabla: hay que avisarla cuando cambia el total.
             if (_total != result.Total)
             {

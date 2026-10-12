@@ -151,6 +151,7 @@ else if (_member is not null)
 
     <MudTabs Rounded="true" Color="Color.Primary">
         <MudTabPanel Text="Datos">
+            <MemberTrainerPanel Member="_member" OnChanged="OnTrainerChanged" />
             <MemberProfileView Member="_member" />
         </MudTabPanel>
         <MudTabPanel Text="Autorizaciones">
@@ -365,6 +366,18 @@ else if (_member is not null)
     }
 
     protected override Task OnParametersSetAsync() => LoadAsync();
+
+    // La respuesta de asignar no trae membresía ni pagos: solo se actualiza lo del entrenador.
+    private void OnTrainerChanged(MemberDetail updated)
+    {
+        if (_member is null)
+        {
+            return;
+        }
+
+        _member.TrainerUserId = updated.TrainerUserId;
+        _member.TrainerName = updated.TrainerName;
+    }
 
     private async Task LoadAsync()
     {
