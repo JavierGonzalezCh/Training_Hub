@@ -34,7 +34,7 @@ public static class DevSeeder
         var createGym = services.GetRequiredService<CreateGymHandler>();
         var provisioning = services.GetRequiredService<IUserProvisioning>();
 
-        var result = await createGym.HandleAsync(
+        var result = await createGym.HandleWithOwnerPasswordAsync(
             new CreateGymRequest(
                 Name: "Gimnasio Demo",
                 Slug: DemoSlug,
@@ -42,7 +42,9 @@ public static class DevSeeder
                 Phone: "3000000000",
                 Email: "contacto@demo.local",
                 Plan: GymPlan.Pro,
-                Owner: new CreateGymOwner("owner@demo.local", "Demo Owner", "ChangeMe_123456")),
+                Owner: new CreateGymOwner("owner@demo.local", "Demo Owner"),
+                TrialDays: 30),
+            "ChangeMe_123456",
             cancellationToken);
 
         await provisioning.CreateGymUserAsync(
