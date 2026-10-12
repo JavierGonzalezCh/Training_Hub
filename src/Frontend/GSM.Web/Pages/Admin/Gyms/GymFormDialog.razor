@@ -1,4 +1,5 @@
 @inject IGymsClient Gyms
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <DialogContent>
@@ -23,7 +24,34 @@
             <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Owner</MudText>
             <MudTextField T="string" @bind-Value="_ownerName" Label="Nombre del owner" Required="true" Class="mb-3" />
             <MudTextField T="string" @bind-Value="_ownerEmail" Label="Email del owner" InputType="InputType.Email" Required="true" Class="mb-3" />
-            <MudTextField T="string" @bind-Value="_ownerPassword" Label="Contraseña inicial" InputType="InputType.Password" Required="true" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4" data-testid="owner-invite-note">
+                El owner recibe por correo un enlace para crear su contraseña (vence en 72 horas). También puedes copiarlo desde la ficha del gym.
+            </MudText>
+
+            <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Suscripción</MudText>
+            <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_monthlyPrice" Label="Precio mensual (COP)" Min="0" Class="mb-3" />
+            <MudSwitch T="bool" @bind-Value="_withTrial" Label="Con prueba gratis" Color="Color.Primary" data-testid="with-trial" Class="mb-2" />
+            @if (_withTrial)
+            {
+                <MudNumericField T="int" @bind-Value="_trialDays" Label="Días de prueba" Min="1" Max="365" data-testid="trial-days" />
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2" data-testid="first-payment-note">
+                    Sin prueba el gym nace activo y se registra su primer pago.
+                </MudText>
+                <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_paymentAmount" Label="Monto del primer pago (COP)" Min="1" Class="mb-3" data-testid="first-payment-amount" />
+                <MudSelect T="int" @bind-Value="_paymentMethod" Label="Método" Class="mb-3">
+                    @foreach (var (value, label) in PaymentMethodLabels.All)
+                    {
+                        <MudSelectItem Value="value">@label</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string" @bind-Value="_paymentReference" Label="Referencia" Class="mb-2" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Sin fechas, cubre desde hoy un mes.
+                </MudText>
+            }
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -47,7 +75,12 @@
     private int _plan;
     private string _ownerName = string.Empty;
     private string _ownerEmail = string.Empty;
-    private string _ownerPassword = string.Empty;
+    private decimal _monthlyPrice;
+    private bool _withTrial = true;
+    private int _trialDays = 30;
+    private decimal _paymentAmount;
+    private int _paymentMethod;
+    private string? _paymentReference;
     private bool _submitting;
     private string? _error;
 
@@ -57,6 +90,18 @@
         await _form.Validate();
         if (!_form.IsValid)
         {
+            return;
+        }
+
+        if (!_withTrial && _paymentAmount <= 0)
+        {
+            _error = "Sin prueba hay que registrar el primer pago: el monto debe ser mayor que cero.";
+            return;
+        }
+
+        if (_withTrial && _trialDays < 1)
+        {
+            _error = "Los días de prueba deben ser al menos 1.";
             return;
         }
 
@@ -71,8 +116,23 @@
                 Phone = _phone,
                 Email = _email,
                 Plan = _plan,
-                Owner = new CreateGymOwner { Email = _ownerEmail, FullName = _ownerName, Password = _ownerPassword },
+                Owner = new CreateGymOwner { Email = _ownerEmail, FullName = _ownerName },
+                MonthlyPrice = (double)_monthlyPrice,
+                TrialDays = _withTrial ? _trialDays : null,
+                FirstPayment = _withTrial
+                    ? null
+                    : new CreateGymFirstPayment
+                    {
+                        Amount = (double)_paymentAmount,
+                        Method = _paymentMethod,
+                        Reference = _paymentReference,
+                    },
             });
+
+            if (!result.OwnerInvitationSent)
+            {
+                Snackbar.Add("El gym se creó, pero el correo al owner falló. Copia su enlace desde la ficha.", Severity.Warning);
+            }
 
             MudDialog.Close(DialogResult.Ok(result.GymId));
         }
