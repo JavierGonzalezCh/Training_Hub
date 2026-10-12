@@ -16,6 +16,7 @@ public static class QuietHours
     public static bool Applies(Notification notification)
         => notification.RecipientMemberId is not null
             && notification.Priority != NotificationPriority.Urgent
+            && notification.Type != NotificationType.ImportantAnnouncement
             && (notification.Category == NotificationCategory.News
                 || notification.Category == NotificationCategory.Promotions);
 

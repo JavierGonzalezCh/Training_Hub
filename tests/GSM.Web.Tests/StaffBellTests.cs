@@ -83,6 +83,13 @@ public class StaffBellTests : TestContext
         public Task ResolveAllAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task Read2Async(Guid id, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<StaffPushPreferencesResponse> GetStaffPushPreferencesAsync(CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<StaffPushPreferencesResponse> UpdateStaffPushPreferencesAsync(
+            UpdateStaffPushPreferencesRequest body, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
     }
 
     private IRenderedComponent<StaffBell> RenderBell(int open)

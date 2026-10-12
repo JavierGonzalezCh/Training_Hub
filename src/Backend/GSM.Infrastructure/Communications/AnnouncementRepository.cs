@@ -47,7 +47,8 @@ public sealed class AnnouncementRepository(GsmDbContext dbContext) : IAnnounceme
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query
-            .OrderByDescending(a => a.Pinned)
+            .OrderByDescending(a => a.IsImportant)
+            .ThenByDescending(a => a.Pinned)
             .ThenByDescending(a => a.PublishedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

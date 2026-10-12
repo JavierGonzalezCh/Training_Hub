@@ -51,8 +51,12 @@ else
             <div class="gsm-feed-list">
                 @foreach (var item in _feed)
                 {
-                    <article class="gsm-feed-card @(item.Pinned ? "is-pinned" : null)">
+                    <article class="gsm-feed-card @(item.Pinned ? "is-pinned" : null) @(item.Important ? "is-important" : null)" data-important="@(item.Important ? "true" : "false")">
                         <div class="gsm-feed-card__meta">
+                            @if (item.Important)
+                            {
+                                <span class="gsm-important-tag">Importante</span>
+                            }
                             @if (item.Pinned)
                             {
                                 <span class="gsm-tag"><MudIcon Icon="@Icons.Material.Filled.PushPin" Style="font-size:0.8rem" /> Fijado</span>

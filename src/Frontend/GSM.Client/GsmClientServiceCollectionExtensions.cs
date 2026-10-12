@@ -59,6 +59,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IKiosksClient, KiosksClient>(services, baseUri);
         AddApiClient<IStaffNotificationsClient, StaffNotificationsClient>(services, baseUri);
         AddApiClient<INotificationSettingsClient, NotificationSettingsClient>(services, baseUri);
+        AddApiClient<IPushClient, PushClient>(services, baseUri);
 
         return services;
     }

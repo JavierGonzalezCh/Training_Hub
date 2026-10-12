@@ -15,4 +15,5 @@ public sealed record AnnouncementPublished(
     string Body,
     bool SendEmail,
     IReadOnlyList<Guid> MemberIds,
-    AnnouncementCategory Category = AnnouncementCategory.GymNews) : IDomainEvent;
+    AnnouncementCategory Category = AnnouncementCategory.GymNews,
+    bool Important = false) : IDomainEvent;

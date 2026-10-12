@@ -2,6 +2,7 @@
    lo verá el miembro en la app. Guardar deja un borrador; Publicar lo hace visible. *@
 @inject IAnnouncementsClient Announcements
 @inject IDialogService Dialogs
+@inject AuthenticationStateProvider AuthState
 
 <MudDialog>
     <DialogContent>
@@ -40,10 +41,30 @@
                             @(_audience is { } n ? $"Se enviará a {n} {(n == 1 ? "miembro" : "miembros")} con email al publicar." : "Se enviará al publicar.")
                         </p>
                     }
+
+                    @* Solo el Owner marca un anuncio como importante: se salta el horario sin avisos y las preferencias. *@
+                    @if (_canMarkImportant)
+                    {
+                        <MudSwitch T="bool" @bind-Value="_important" Label="Anuncio importante" Color="Color.Error"
+                                   Class="gsm-important-switch" />
+                        @if (_important)
+                        {
+                            <p class="gsm-editor__hint gsm-important-hint" role="note">
+                                Le llega a todos por push aunque tengan apagadas las novedades y aunque sea horario sin
+                                avisos, y queda fijo arriba del feed hasta la fecha «Visible hasta». Úsalo solo para
+                                cosas urgentes (un cierre, una emergencia). Quedará registrado que lo marcaste tú.
+                            </p>
+                        }
+                    }
                 }
                 else if (Existing.SendEmail)
                 {
                     <p class="gsm-editor__hint">Ya se envió por email: editar cambia lo que se ve en la app, pero no reenvía correos.</p>
+                }
+
+                @if (Existing is { Status: not "Draft", Important: true })
+                {
+                    <p class="gsm-editor__hint">Este anuncio se publicó como importante: ya no se puede cambiar.</p>
                 }
             </div>
 
@@ -83,6 +104,8 @@
     private DateTime? _expires;
     private bool _pinned;
     private bool _sendEmail;
+    private bool _important;
+    private bool _canMarkImportant;
     private int? _audience;
     private int _category;
     private string? _error;
@@ -102,7 +125,13 @@
             _pinned = a.Pinned;
             _sendEmail = a.SendEmail;
             _category = a.Category == "Promotions" ? 1 : 0;
+            _important = a.Important;
         }
+
+        // Solo el Owner (o un SuperAdmin impersonando) puede marcar el anuncio como importante, y solo en borrador.
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canMarkImportant = IsDraft
+            && (user.IsInRole(GsmRoles.Owner) || (user.IsInRole(GsmRoles.SuperAdmin) && user.IsImpersonating()));
 
         await LoadAudienceAsync();
     }
@@ -149,6 +178,7 @@
                 id = (await Announcements.AnnouncementsPOSTAsync(new CreateAnnouncementRequest
                 {
                     Title = _title, Body = _body, Pinned = _pinned, ExpiresOn = expires, SendEmail = _sendEmail, Category = _category,
+                    Important = _canMarkImportant && _important,
                 })).Id;
             }
             else
@@ -157,6 +187,7 @@
                 await Announcements.AnnouncementsPUTAsync(id, new UpdateAnnouncementRequest
                 {
                     Title = _title, Body = _body, ExpiresOn = expires, SendEmail = _sendEmail, Category = _category,
+                    Important = _canMarkImportant ? _important : null,
                 });
             }
 

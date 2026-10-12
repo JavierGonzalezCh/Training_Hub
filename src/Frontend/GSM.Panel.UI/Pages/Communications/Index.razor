@@ -48,6 +48,10 @@ else
                 <header class="gsm-announcement__header">
                     <div class="gsm-announcement__meta">
                         <span class="gsm-tag gsm-tag--@a.Status.ToLowerInvariant()">@CommunicationLabels.Status(a.Status)</span>
+                        @if (a.Important)
+                        {
+                            <span class="gsm-important-tag">Importante</span>
+                        }
                         @if (a.Pinned)
                         {
                             <span class="gsm-tag"><MudIcon Icon="@Icons.Material.Filled.PushPin" Style="font-size:0.85rem" /> Fijado</span>

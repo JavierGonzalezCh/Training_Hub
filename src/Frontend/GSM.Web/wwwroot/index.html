@@ -12,7 +12,19 @@
     <script src="_content/GSM.UI.Shared/gsm-theme.js"></script>
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="manifest" href="manifest.json" />
+    <!-- Dos apps instalables desde el mismo sitio: la del miembro (/app) y el panel del gym (todo lo demás).
+         Cada una con su manifiesto; se elige por la ruta con la que se abre la página. -->
+    <script>
+        (function () {
+            var link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = location.pathname === '/app' || location.pathname.indexOf('/app/') === 0
+                ? 'manifest.json'
+                : 'manifest-panel.json';
+            document.head.appendChild(link);
+        })();
+    </script>
+    <script src="gsm-push.js"></script>
     <meta name="theme-color" content="#0F0E0D" />
     <script type="importmap"></script>
 </head>

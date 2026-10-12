@@ -33,6 +33,24 @@ public sealed class StaffNotificationsController : ControllerBase
         [FromServices] GetStaffNotificationCountHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>Qué avisos quiere recibir esta persona como push en su teléfono (§8 de la especificación).</summary>
+    [HttpGet("push-preferences")]
+    [EndpointName("GetStaffPushPreferences")]
+    [ProducesResponseType<StaffPushPreferencesResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<StaffPushPreferencesResponse>> PushPreferences(
+        [FromServices] GetMyStaffPushPreferencesHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    [HttpPut("push-preferences")]
+    [EndpointName("UpdateStaffPushPreferences")]
+    [ProducesResponseType<StaffPushPreferencesResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<StaffPushPreferencesResponse>> UpdatePushPreferences(
+        UpdateStaffPushPreferencesRequest request,
+        [FromServices] UpdateMyStaffPushPreferencesHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
     /// <summary>Atiende un aviso de acción para todo el staff.</summary>
     [HttpPost("{id:guid}/resolve")]
     [ProducesResponseType<StaffNotificationItem>(StatusCodes.Status200OK)]

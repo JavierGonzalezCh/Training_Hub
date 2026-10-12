@@ -18,7 +18,83 @@ public sealed class NotificationsEnums : IModuleEnums
         PgEnumMapping.Of<NotificationStatus>("notification_status", "notifications", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<DeliveryChannel>("delivery_channel", "notifications", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<DeliveryStatus>("delivery_status", "notifications", LowerCaseNameTranslator.Instance),
+        PgEnumMapping.Of<PushPlatform>("push_platform", "notifications", SnakeCaseNameTranslator.Instance),
     ];
+}
+
+public sealed class PushDeviceConfiguration : IEntityTypeConfiguration<PushDevice>
+{
+    public void Configure(EntityTypeBuilder<PushDevice> builder)
+    {
+        builder.ToTable("push_devices", "notifications");
+
+        builder.Property(d => d.Platform).HasColumnName("platform");
+        builder.Property(d => d.Token).HasMaxLength(PushDevice.TokenMaxLength).IsRequired();
+
+        // Un token es de un solo dispositivo: registrarlo de nuevo lo reutiliza.
+        builder.HasIndex(d => d.Token).IsUnique();
+        builder.HasIndex(d => new { d.UserId, d.RevokedAt });
+    }
+}
+
+public sealed class StaffNotificationPreferenceConfiguration : IEntityTypeConfiguration<StaffNotificationPreference>
+{
+    public void Configure(EntityTypeBuilder<StaffNotificationPreference> builder)
+    {
+        builder.ToTable("staff_notification_preferences", "notifications");
+
+        builder.Property(p => p.Type).HasColumnName("type");
+        builder.HasIndex(p => new { p.GymId, p.UserId, p.Type }).IsUnique();
+    }
+}
+
+public sealed class PushDeviceRepository(GsmDbContext dbContext) : IPushDeviceRepository
+{
+    private DbSet<PushDevice> Devices => dbContext.Set<PushDevice>();
+
+    public Task<PushDevice?> FindByTokenAsync(string token, CancellationToken cancellationToken = default)
+        => Devices.FirstOrDefaultAsync(d => d.Token == token, cancellationToken);
+
+    public void Add(PushDevice device) => Devices.Add(device);
+
+    public async Task<IReadOnlyList<PushDevice>> GetActiveForUserAsync(
+        Guid userId, IReadOnlyCollection<PushPlatform> platforms, CancellationToken cancellationToken = default)
+        => await Devices
+            .Where(d => d.UserId == userId && d.RevokedAt == null && platforms.Contains(d.Platform))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, PushDevice>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
+        => ids.Count == 0
+            ? new Dictionary<Guid, PushDevice>()
+            : await Devices.Where(d => ids.Contains(d.Id)).ToDictionaryAsync(d => d.Id, cancellationToken);
+}
+
+public sealed class StaffNotificationPreferenceRepository(GsmDbContext dbContext) : IStaffNotificationPreferenceRepository
+{
+    private DbSet<StaffNotificationPreference> Preferences => dbContext.Set<StaffNotificationPreference>();
+
+    public async Task<IReadOnlyList<StaffNotificationPreference>> GetForUserAsync(
+        Guid gymId, Guid userId, CancellationToken cancellationToken = default)
+        => await Preferences.Where(p => p.GymId == gymId && p.UserId == userId).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> GetUserIdsWithPushAsync(
+        Guid gymId, NotificationType type, CancellationToken cancellationToken = default)
+        => await Preferences.AsNoTracking()
+            .Where(p => p.GymId == gymId && p.Type == type && p.Push)
+            .Select(p => p.UserId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<(Guid UserId, NotificationType Type), bool>> GetForUsersAsync(
+        Guid gymId, IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default)
+    {
+        var rows = await Preferences.AsNoTracking()
+            .Where(p => p.GymId == gymId && userIds.Contains(p.UserId))
+            .ToListAsync(cancellationToken);
+        return rows.ToDictionary(p => (p.UserId, p.Type), p => p.Push);
+    }
+
+    public void Add(StaffNotificationPreference preference) => Preferences.Add(preference);
 }
 
 public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notification>
@@ -197,7 +273,7 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
         Guid memberId, DateTimeOffset now, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var query = Visible(now).AsNoTracking()
-            .Where(n => n.RecipientMemberId == memberId && n.Type != NotificationType.Announcement);
+            .Where(n => n.RecipientMemberId == memberId && n.Type != NotificationType.Announcement && n.Type != NotificationType.ImportantAnnouncement);
         var total = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(n => n.ReadAt != null)
@@ -210,12 +286,12 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
 
     public Task<int> CountUnreadForMemberAsync(Guid memberId, DateTimeOffset now, CancellationToken cancellationToken = default)
         => Visible(now).CountAsync(
-            n => n.RecipientMemberId == memberId && n.Type != NotificationType.Announcement && n.ReadAt == null,
+            n => n.RecipientMemberId == memberId && n.Type != NotificationType.Announcement && n.Type != NotificationType.ImportantAnnouncement && n.ReadAt == null,
             cancellationToken);
 
     public Task MarkAllReadForMemberAsync(Guid memberId, DateTimeOffset now, CancellationToken cancellationToken = default)
         => Notifications
-            .Where(n => n.RecipientMemberId == memberId && n.Type != NotificationType.Announcement
+            .Where(n => n.RecipientMemberId == memberId && n.Type != NotificationType.Announcement && n.Type != NotificationType.ImportantAnnouncement
                 && n.ReadAt == null && n.ScheduledFor <= now)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(n => n.ReadAt, now)
@@ -295,7 +371,7 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
         var rows = await (
                 from d in Deliveries.AsNoTracking()
                 join n in Notifications.AsNoTracking() on d.NotificationId equals n.Id
-                where d.Channel == DeliveryChannel.Email && n.Type == type && referenceIds.Contains(n.ReferenceId)
+                where d.Channel == DeliveryChannel.Email && (n.Type == type || (type == NotificationType.Announcement && n.Type == NotificationType.ImportantAnnouncement)) && referenceIds.Contains(n.ReferenceId)
                 group d by new { n.ReferenceId, d.Status }
                 into g
                 select new { g.Key.ReferenceId, g.Key.Status, Count = g.Count() })

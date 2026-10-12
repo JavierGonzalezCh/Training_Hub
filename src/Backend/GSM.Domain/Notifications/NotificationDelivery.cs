@@ -75,6 +75,38 @@ public sealed class NotificationDelivery : BaseEntity, ITenantEntity
         return delivery;
     }
 
+    /// <summary>En push: a qué dispositivo va (nulo en el correo, y en la entrega <c>skipped</c> por preferencia).</summary>
+    public Guid? DeviceId { get; private set; }
+
+    /// <summary>Push a un dispositivo. El mensaje se compone al enviar desde el aviso, así que no lleva cuerpo.</summary>
+    public static NotificationDelivery CreatePush(Guid gymId, Guid notificationId, Guid deviceId)
+    {
+        var delivery = CreateEmail(gymId, notificationId, "push", "push", string.Empty, string.Empty);
+        delivery.Channel = DeliveryChannel.Push;
+        delivery.ToAddress = string.Empty;
+        delivery.Subject = string.Empty;
+        delivery.DeviceId = deviceId;
+        return delivery;
+    }
+
+    /// <summary>Marca que no se envió push: preferencia apagada del destinatario o Firebase sin configurar.</summary>
+    public static NotificationDelivery CreateSkippedPush(Guid gymId, Guid notificationId, string reason)
+    {
+        var delivery = CreatePush(gymId, notificationId, Guid.Empty);
+        delivery.DeviceId = null;
+        delivery.Status = DeliveryStatus.Skipped;
+        delivery.LastError = reason;
+        return delivery;
+    }
+
+    /// <summary>No se pudo ni se podrá enviar (token inválido, Firebase sin configurar): se cierra sin reintentos.</summary>
+    public void MarkSkipped(string reason)
+    {
+        Status = DeliveryStatus.Skipped;
+        LastError = reason.Length > 500 ? reason[..500] : reason;
+        NextAttemptAt = null;
+    }
+
     public void MarkSent(DateTimeOffset now)
     {
         Status = DeliveryStatus.Sent;

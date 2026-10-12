@@ -26,6 +26,9 @@ public sealed class NotificationDispatchRunner(
     INotificationSettingsRepository settingsRepository,
     INotificationDispatchLock dispatchLock,
     IEmailSender emailSender,
+    IPushSender pushSender,
+    PushDeliveryPlanner pushPlanner,
+    IPushDeviceRepository pushDeviceRepository,
     IUnitOfWork unitOfWork,
     IClock clock,
     ILogStore logStore,
@@ -72,6 +75,36 @@ public sealed class NotificationDispatchRunner(
         }
     }
 
+    private async Task SendPushAsync(
+        Notification notification, NotificationDelivery delivery,
+        IReadOnlyDictionary<Guid, PushDevice> devices, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (delivery.DeviceId is not { } deviceId || !devices.TryGetValue(deviceId, out var device) || !device.IsActive)
+        {
+            delivery.MarkSkipped("El dispositivo ya no está registrado.");
+            return;
+        }
+
+        var result = await pushSender.SendAsync(
+            new PushMessage(
+                device.Token, device.Platform, notification.Title, notification.Body, notification.Link,
+                notification.Id, notification.GymId),
+            cancellationToken);
+        switch (result)
+        {
+            case PushSendResult.Sent:
+                delivery.MarkSent(now);
+                break;
+            case PushSendResult.InvalidToken:
+                device.Revoke(now); // el token ya no sirve: se revoca solo (§6)
+                delivery.MarkSkipped("El proveedor ya no reconoce el token: dispositivo revocado.");
+                break;
+            default:
+                delivery.MarkSkipped("Firebase no está configurado.");
+                break;
+        }
+    }
+
     private async Task<(int Processed, int Failed)> ProcessAsync(CancellationToken cancellationToken)
     {
         var now = clock.UtcNow;
@@ -104,16 +137,40 @@ public sealed class NotificationDispatchRunner(
             }
 
             var mine = deliveries[notification.Id].ToList();
+
+            // Push (N2): el plan se hace una sola vez, al salir el aviso (no mientras está retenido).
+            if (!mine.Any(d => d.Channel == DeliveryChannel.Push))
+            {
+                var planned = await pushPlanner.PlanAsync(notification, cancellationToken);
+                if (planned.Count > 0)
+                {
+                    mine.AddRange(planned);
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+            }
+
+            var pushDevices = await pushDeviceRepository.GetByIdsAsync(
+                mine.Where(d => d.Channel == DeliveryChannel.Push && d.DeviceId is not null)
+                    .Select(d => d.DeviceId!.Value).ToList(),
+                cancellationToken);
+
             foreach (var delivery in mine.Where(d =>
                          d.Status == DeliveryStatus.Pending && (d.NextAttemptAt is null || d.NextAttemptAt <= now)))
             {
                 processed++;
                 try
                 {
-                    await emailSender.SendAsync(
-                        new EmailMessage(delivery.ToAddress, delivery.Subject, delivery.HtmlBody, delivery.TextBody),
-                        cancellationToken);
-                    delivery.MarkSent(now);
+                    if (delivery.Channel == DeliveryChannel.Push)
+                    {
+                        await SendPushAsync(notification, delivery, pushDevices, now, cancellationToken);
+                    }
+                    else
+                    {
+                        await emailSender.SendAsync(
+                            new EmailMessage(delivery.ToAddress, delivery.Subject, delivery.HtmlBody, delivery.TextBody),
+                            cancellationToken);
+                        delivery.MarkSent(now);
+                    }
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -124,7 +181,8 @@ public sealed class NotificationDispatchRunner(
                     }
 
                     logger.LogWarning(
-                        ex, "Fallo al enviar el correo {DeliveryId} (intento {Attempt})", delivery.Id, delivery.Attempts);
+                        ex, "Fallo al enviar {Channel} {DeliveryId} (intento {Attempt})",
+                        delivery.Channel, delivery.Id, delivery.Attempts);
                 }
 
                 // Se guarda tras cada envío: si la vuelta se corta, no se reenvía lo ya enviado.

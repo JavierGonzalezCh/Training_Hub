@@ -3,6 +3,7 @@ using GSM.UI.Shared.Auth;
 using GSM.UI.Shared.Theming;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace GSM.UI.Shared;
 
@@ -34,6 +35,10 @@ public static class GsmUiSharedServiceCollectionExtensions
         services.AddScoped<SessionService>();
         services.AddScoped<ImpersonationService>();
         services.AddScoped<GSM.UI.Shared.Components.ViewportState>();
+
+        // Push (N2): cada host registra su IPushNotifications (la web, el navegador); sin uno, no hay push.
+        services.TryAddScoped<GSM.UI.Shared.Push.IPushNotifications, GSM.UI.Shared.Push.UnsupportedPushNotifications>();
+        services.AddScoped<GSM.UI.Shared.Push.PushRegistrationService>();
         return services;
     }
 }

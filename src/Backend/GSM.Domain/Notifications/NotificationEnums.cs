@@ -12,6 +12,12 @@ public enum NotificationType
     Announcement,
     CheckinRejected,
     VoidRequested,
+
+    /// <summary>
+    /// Anuncio importante (N2): se salta el horario sin avisos y las preferencias de Novedades/Promociones, y
+    /// no entra en la bandeja (vive fijo en el feed). Solo lo marca el Owner.
+    /// </summary>
+    ImportantAnnouncement,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

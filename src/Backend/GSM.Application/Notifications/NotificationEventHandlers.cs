@@ -118,7 +118,7 @@ public sealed class AnnouncementPublishedCreatesNotices(
         var (notices, emails) = await writer.NotifyManyAsync(
             domainEvent.GymId,
             domainEvent.MemberIds,
-            NotificationType.Announcement,
+            domainEvent.Important ? NotificationType.ImportantAnnouncement : NotificationType.Announcement,
             domainEvent.Category == AnnouncementCategory.Promotions
                 ? NotificationCategory.Promotions
                 : NotificationCategory.News,
@@ -127,7 +127,8 @@ public sealed class AnnouncementPublishedCreatesNotices(
             domainEvent.Body,
             "/app",
             domainEvent.SendEmail ? domainEvent.Body : null,
-            cancellationToken);
+            cancellationToken,
+            bypassPreferences: domainEvent.Important);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation(
