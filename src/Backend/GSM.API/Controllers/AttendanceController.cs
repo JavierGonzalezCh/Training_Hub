@@ -9,11 +9,11 @@ namespace GSM.API.Controllers;
 
 [ApiController]
 [Route("api/attendance")]
-[Authorize]
 public sealed class AttendanceController : ControllerBase
 {
     /// <summary>Registrar entrada. Staff pasa memberId; un miembro se registra a sí mismo.</summary>
     [HttpPost("checkin")]
+    [Authorize]
     [ProducesResponseType<CheckInResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<CheckInResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CheckInResponse>> CheckIn(
@@ -60,7 +60,7 @@ public sealed class AttendanceController : ControllerBase
 
     /// <summary>Código vigente del gym para el kiosco o el cartel. 403 si el check-in por QR está apagado.</summary>
     [HttpGet("kiosk-code")]
-    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrKiosk)]
     [ProducesResponseType<KioskCodeResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<KioskCodeResponse>> GetKioskCode(
         [FromServices] GetKioskCodeHandler handler, CancellationToken cancellationToken)

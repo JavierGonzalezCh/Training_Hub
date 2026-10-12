@@ -15,4 +15,6 @@ public partial class GsmDbContext
     public DbSet<GymAccessPermission> GymAccessPermissions => Set<GymAccessPermission>();
 
     public DbSet<StaffAccessAudit> StaffAccessAudits => Set<StaffAccessAudit>();
+
+    public DbSet<KioskDevice> KioskDevices => Set<KioskDevice>();
 }

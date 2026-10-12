@@ -12,6 +12,12 @@ public interface IJwtTokenService
     AccessToken CreateImpersonationToken(ImpersonationTokenRequest request);
 
     /// <summary>
+    /// Access token de un kiosco (Identity §8): <c>sub</c> = id del dispositivo, rol <c>kiosk</c> y el
+    /// <c>gym_id</c> al que está emparejado; sin permisos.
+    /// </summary>
+    AccessToken CreateKioskAccessToken(Guid deviceId, string deviceName, Guid gymId);
+
+    /// <summary>
     /// Boleto de 5 minutos que prueba que la persona ya validó sus credenciales y debe elegir gym.
     /// Va firmado con otra audiencia: no sirve como access token.
     /// </summary>

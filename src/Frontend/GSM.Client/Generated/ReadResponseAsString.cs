@@ -145,6 +145,11 @@ public partial class StaffClient
     partial void Initialize() => ReadResponseAsString = true;
 }
 
+public partial class KiosksClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
 public partial class AnnouncementsClient
 {
     partial void Initialize() => ReadResponseAsString = true;

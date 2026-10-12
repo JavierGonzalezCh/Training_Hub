@@ -10,6 +10,12 @@ public static class RoleName
     public const string Staff = "staff";
     public const string Member = "member";
 
+    /// <summary>
+    /// Rol del token de un kiosco (Identity §8). No es un <see cref="UserRole"/>: no hay cuenta de
+    /// persona detrás ni acceso (<c>GymAccess</c>), así que no se persiste como enum de Postgres.
+    /// </summary>
+    public const string Kiosk = "kiosk";
+
     public static string ToClaim(UserRole role) => role switch
     {
         UserRole.SuperAdmin => SuperAdmin,
