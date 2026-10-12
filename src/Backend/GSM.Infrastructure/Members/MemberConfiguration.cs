@@ -36,6 +36,9 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
         builder.HasIndex(m => new { m.GymId, m.Status });
         builder.HasIndex(m => m.UserId);
         builder.HasIndex(m => m.ReferredByMemberId);
+
+        // Sin FK: el entrenador es una cuenta de Identity (otro schema). "Mis miembros" filtra por esta columna.
+        builder.HasIndex(m => new { m.GymId, m.TrainerUserId });
         builder.HasIndex(m => m.Tags).HasMethod("gin");
 
         // Mismo schema, así que la FK es válida. El gym lo comprueba el caso de uso (otro miembro del gym).
