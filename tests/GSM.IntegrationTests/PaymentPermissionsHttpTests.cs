@@ -193,6 +193,35 @@ public sealed class PaymentPermissionsHttpTests(ApiFactory factory) : IClassFixt
             (await staff.PostAsJsonAsync($"/api/payments/{payment.Id}/void-requests", new RequestVoidRequest("Otra vez"))).StatusCode);
     }
 
+    [Fact]
+    public async Task Rejecting_with_a_note_keeps_it_and_tells_the_requester_why()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var owner = await LoggedInAsync(host, w.OwnerEmail);
+        var staff = await LoggedInAsync(host, w.StaffEmail);
+        var payment = await RecordAsync(staff, 80_000m);
+        var request = await RequestAsync(staff, payment.Id, "Cobré de más");
+
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.PostAsJsonAsync(
+            $"/api/payments/void-requests/{request.Id}/reject", new RejectVoidRequestRequest("  Pagó dos meses, está bien  "))).StatusCode);
+
+        var rejected = (await owner.GetFromJsonAsync<PagedResult<VoidRequestResponse>>("/api/payments/void-requests?status=rejected"))!;
+        Assert.Equal("Pagó dos meses, está bien", Assert.Single(rejected.Items, r => r.Id == request.Id).RejectionNote);
+
+        // Quien pidió no ve la bandeja de solicitudes: le llega un aviso personal con la nota.
+        var bell = (await staff.GetFromJsonAsync<PagedResult<StaffNotificationItem>>("/api/staff/notifications?openOnly=false"))!;
+        var notice = Assert.Single(bell.Items, n => n.Type == "VoidRequestRejected");
+        Assert.Contains("Pagó dos meses, está bien", notice.Body);
+
+        // Nota demasiado larga: 422, y la solicitud sigue pendiente.
+        var other = await RequestAsync(staff, (await RecordAsync(staff, 10_000m)).Id, "Otra");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await owner.PostAsJsonAsync(
+            $"/api/payments/void-requests/{other.Id}/reject", new RejectVoidRequestRequest(new string('x', 501)))).StatusCode);
+        var pending = (await owner.GetFromJsonAsync<PagedResult<VoidRequestResponse>>("/api/payments/void-requests?status=pending"))!;
+        Assert.Contains(pending.Items, r => r.Id == other.Id);
+    }
+
     // ---- criterio 4: una pendiente por pago ----
 
     [Fact]

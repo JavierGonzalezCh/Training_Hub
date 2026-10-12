@@ -5,6 +5,7 @@ using GSM.Application.Payments.Contracts;
 using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace GSM.API.Controllers;
 
@@ -100,9 +101,10 @@ public sealed class PaymentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RejectVoidRequest(
-        Guid requestId, [FromServices] RejectVoidRequestHandler handler, CancellationToken cancellationToken)
+        Guid requestId, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RejectVoidRequestRequest? body,
+        [FromServices] RejectVoidRequestHandler handler, CancellationToken cancellationToken)
     {
-        await handler.HandleAsync(requestId, cancellationToken);
+        await handler.HandleAsync(requestId, body, cancellationToken);
         return NoContent();
     }
 }

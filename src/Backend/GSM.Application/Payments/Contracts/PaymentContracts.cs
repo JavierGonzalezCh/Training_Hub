@@ -38,6 +38,9 @@ public sealed record RequestVoidRequest(string Reason);
 /// Solicitud de anulación con un resumen del pago para decidir sin abrirlo. <c>Status</c> es
 /// <c>pending</c>, <c>approved</c> o <c>rejected</c> (texto, no enum: NSwag infiere mal los enums de cuerpos).
 /// </summary>
+/// <summary>Cuerpo opcional del rechazo: una nota para quien pidió la anulación.</summary>
+public sealed record RejectVoidRequestRequest(string? Note);
+
 public sealed record VoidRequestResponse(
     Guid Id,
     Guid PaymentId,
@@ -53,7 +56,8 @@ public sealed record VoidRequestResponse(
     decimal PaymentAmount,
     string PaymentMethod,
     Guid? PaymentMemberId,
-    DateTimeOffset PaymentPaidAt);
+    DateTimeOffset PaymentPaidAt,
+    string? RejectionNote = null);
 
 public sealed record ListVoidRequestsQuery
 {

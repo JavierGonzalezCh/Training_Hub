@@ -20,11 +20,27 @@
                             </MudText>
                             <MudText Typo="Typo.body2">Motivo: @request.Reason</MudText>
                         </div>
-                        <MudButton Variant="Variant.Outlined" Size="Size.Small" Disabled="_busy"
-                                   data-testid="reject-void" OnClick="@(() => RejectAsync(request))">Rechazar</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" Disabled="_busy"
-                                   data-testid="approve-void" OnClick="@(() => ApproveAsync(request))">Aprobar y anular</MudButton>
+                        @if (_rejectingId == request.Id)
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="_busy"
+                                       data-testid="cancel-reject" OnClick="@(() => _rejectingId = null)">Cancelar</MudButton>
+                            <MudButton Variant="Variant.Filled" Size="Size.Small" Disabled="_busy"
+                                       data-testid="confirm-reject" OnClick="@(() => RejectAsync(request))">Confirmar rechazo</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" Disabled="_busy"
+                                       data-testid="reject-void" OnClick="@(() => StartReject(request))">Rechazar</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" Disabled="_busy"
+                                       data-testid="approve-void" OnClick="@(() => ApproveAsync(request))">Aprobar y anular</MudButton>
+                        }
                     </div>
+                    @if (_rejectingId == request.Id)
+                    {
+                        @* La nota le llega a quien pidió la anulación, que no ve esta bandeja. *@
+                        <MudTextField T="string" @bind-Value="_rejectNote" Label="Nota para quien lo pidió (opcional)"
+                                      Lines="2" MaxLength="500" Immediate="true" Class="mb-2" data-testid="reject-note" />
+                    }
                 }
     </MudPaper>
 }
@@ -55,8 +71,22 @@
     private Task ApproveAsync(VoidRequestResponse request)
         => ResolveAsync(async () => await Payments.ApproveAsync(request.Id), "Pago anulado.");
 
+    private Guid? _rejectingId;
+    private string? _rejectNote;
+
+    private void StartReject(VoidRequestResponse request)
+    {
+        _rejectingId = request.Id;
+        _rejectNote = null;
+    }
+
     private Task RejectAsync(VoidRequestResponse request)
-        => ResolveAsync(() => Payments.RejectAsync(request.Id), "Solicitud rechazada.");
+    {
+        var note = string.IsNullOrWhiteSpace(_rejectNote) ? null : _rejectNote.Trim();
+        _rejectingId = null;
+        return ResolveAsync(
+            () => Payments.RejectAsync(request.Id, new RejectVoidRequestRequest { Note = note }), "Solicitud rechazada.");
+    }
 
     private async Task ResolveAsync(Func<Task> action, string success)
     {

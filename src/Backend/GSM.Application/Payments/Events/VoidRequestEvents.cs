@@ -14,5 +14,7 @@ public sealed record VoidRequested(
     string Reason) : IDomainEvent;
 
 /// <summary>Se aprobó o rechazó una solicitud (o el pago se anuló directo): el aviso queda atendido.</summary>
+/// <param name="RequestedBy">Quien pidió la anulación; en un rechazo recibe el aviso con la nota.</param>
 public sealed record VoidRequestResolved(
-    Guid GymId, Guid VoidRequestId, Guid PaymentId, Guid ResolvedBy, bool Approved) : IDomainEvent;
+    Guid GymId, Guid VoidRequestId, Guid PaymentId, Guid ResolvedBy, bool Approved,
+    Guid? RequestedBy = null, string? RejectionNote = null) : IDomainEvent;

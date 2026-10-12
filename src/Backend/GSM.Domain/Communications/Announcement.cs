@@ -94,6 +94,13 @@ public sealed class Announcement : BaseEntity, ITenantEntity
             throw new ConflictException("Un anuncio publicado ya no puede cambiar de importante.");
         }
 
+        // Importante se salta las preferencias; una promoción necesita la autorización previa del
+        // miembro (Ley 1581), así que nunca puede serlo (decidido 2026-10-12).
+        if (important && Category == AnnouncementCategory.Promotions)
+        {
+            throw new ValidationDomainException("Una promoción no puede marcarse como importante: solo las novedades del gym.");
+        }
+
         IsImportant = important;
         ImportantMarkedBy = important ? markedBy : null;
     }
@@ -108,6 +115,11 @@ public sealed class Announcement : BaseEntity, ITenantEntity
         EnsureNotArchived("editar");
         if (category is { } newCategory && Status == AnnouncementStatus.Draft)
         {
+            if (newCategory == AnnouncementCategory.Promotions && IsImportant)
+            {
+                throw new ValidationDomainException("Una promoción no puede marcarse como importante: solo las novedades del gym.");
+            }
+
             // Publicado, la categoría ya decidió a quién se le avisó: no cambia.
             Category = newCategory;
         }

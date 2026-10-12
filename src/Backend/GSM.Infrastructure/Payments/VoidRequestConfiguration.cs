@@ -12,6 +12,7 @@ public sealed class VoidRequestConfiguration : IEntityTypeConfiguration<VoidRequ
 
         builder.Property(r => r.Status).HasColumnName("status");
         builder.Property(r => r.Reason).HasMaxLength(VoidRequest.ReasonMaxLength).IsRequired();
+        builder.Property(r => r.RejectionNote).HasMaxLength(VoidRequest.ReasonMaxLength);
 
         // Un pago tiene a lo sumo una solicitud pendiente: dos pedidos simultáneos chocan aquí.
         builder.HasIndex(r => r.PaymentId)

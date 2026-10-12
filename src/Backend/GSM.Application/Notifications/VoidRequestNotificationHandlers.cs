@@ -69,3 +69,38 @@ public sealed class VoidRequestResolvedResolvesNotice(
         await notifications.TryResolveAsync(notice.Id, domainEvent.ResolvedBy, clock.UtcNow, cancellationToken);
     }
 }
+
+/// <summary>
+/// Un rechazo le avisa a quien pidió la anulación, con la nota de quien rechazó. Quien pide no tiene el
+/// permiso de ver la bandeja de solicitudes, así que sin esto no se enteraría. Idempotente por la solicitud.
+/// </summary>
+public sealed class VoidRequestRejectedNotifiesRequester(
+    INotificationRepository notifications,
+    IIdentityReader identity,
+    IClock clock,
+    IUnitOfWork unitOfWork) : IDomainEventHandler<VoidRequestResolved>
+{
+    public async Task HandleAsync(VoidRequestResolved domainEvent, CancellationToken cancellationToken = default)
+    {
+        if (domainEvent.Approved || domainEvent.RequestedBy is not { } requester
+            || await notifications.ExistsAsync(
+                NotificationType.VoidRequestRejected, requester, null, domainEvent.VoidRequestId, cancellationToken))
+        {
+            return;
+        }
+
+        var who = (await identity.GetUserAsync(domainEvent.ResolvedBy, cancellationToken))?.FullName ?? "Alguien del equipo";
+        var body = string.IsNullOrWhiteSpace(domainEvent.RejectionNote)
+            ? $"{who} rechazó tu solicitud de anulación."
+            : $"{who} rechazó tu solicitud de anulación: {domainEvent.RejectionNote}";
+        if (body.Length > Notification.BodyMaxLength)
+        {
+            body = body[..Notification.BodyMaxLength];
+        }
+
+        notifications.Add(Notification.CreateForUser(
+            domainEvent.GymId, requester, NotificationType.VoidRequestRejected, domainEvent.VoidRequestId,
+            "Solicitud de anulación rechazada", body, "/payments", clock.UtcNow));
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}

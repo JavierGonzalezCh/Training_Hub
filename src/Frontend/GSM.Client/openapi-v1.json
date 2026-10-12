@@ -10506,6 +10506,46 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RejectVoidRequestRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RejectVoidRequestRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RejectVoidRequestRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": "No Content"
@@ -18017,6 +18057,20 @@
           }
         }
       },
+      "RejectVoidRequestRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "RenewalPreviewResponse": {
         "required": [
           "kind",
@@ -20492,6 +20546,12 @@
           "paymentPaidAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "rejectionNote": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

@@ -70,7 +70,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_category", new[] { "membership", "classes", "progress", "news", "promotions", "security" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_priority", new[] { "normal", "urgent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_status", new[] { "pending", "held", "sent", "failed", "cancelled", "skipped" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement", "void_request_rejected" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "push_platform", new[] { "android", "web_member", "web_panel" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "void_request_status", new[] { "pending", "approved", "rejected" });
@@ -2546,6 +2546,11 @@ namespace GSM.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("reason");
+
+                    b.Property<string>("RejectionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("rejection_note");
 
                     b.Property<DateTimeOffset>("RequestedAt")
                         .HasColumnType("timestamp with time zone")

@@ -20146,7 +20146,7 @@ namespace GSM.Client.Generated
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>No Content</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task RejectAsync(System.Guid requestId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task RejectAsync(System.Guid requestId, RejectVoidRequestRequest? body = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -20893,7 +20893,7 @@ namespace GSM.Client.Generated
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>No Content</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task RejectAsync(System.Guid requestId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task RejectAsync(System.Guid requestId, RejectVoidRequestRequest? body = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (requestId == null)
                 throw new System.ArgumentNullException("requestId");
@@ -20904,7 +20904,10 @@ namespace GSM.Client.Generated
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
-                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
@@ -29541,6 +29544,24 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RejectVoidRequestRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("note")]
+        public string? Note { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RenewalPreviewResponse
     {
 
@@ -31430,6 +31451,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("paymentPaidAt")]
         public System.DateTimeOffset PaymentPaidAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rejectionNote")]
+        public string? RejectionNote { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

@@ -97,13 +97,25 @@ public sealed class UpdateAnnouncementHandler(
             ?? throw new NotFoundException("Anuncio no encontrado.");
 
         // Marcar o desmarcar "importante" es solo del Owner (y solo en borrador, lo exige el dominio).
-        if (request.Important is { } important && important != announcement.IsImportant)
+        // Desmarcar va antes de editar y marcar después: así la regla "una promoción no es importante"
+        // se comprueba contra la categoría final cuando el mismo cambio toca las dos cosas.
+        var changesImportance = request.Important is { } important && important != announcement.IsImportant;
+        if (changesImportance)
         {
             AnnouncementImportance.EnsureOwner(currentUser);
-            announcement.SetImportant(important, currentUser.UserId ?? Guid.Empty);
+        }
+
+        if (changesImportance && request.Important == false)
+        {
+            announcement.SetImportant(false, currentUser.UserId ?? Guid.Empty);
         }
 
         announcement.Edit(request.Title, request.Body, request.ExpiresOn, request.SendEmail, request.Category);
+
+        if (changesImportance && request.Important == true)
+        {
+            announcement.SetImportant(true, currentUser.UserId ?? Guid.Empty);
+        }
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Anuncio {AnnouncementId} editado", id);

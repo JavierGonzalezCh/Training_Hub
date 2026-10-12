@@ -43,7 +43,14 @@
                     }
 
                     @* Solo el Owner marca un anuncio como importante: se salta el horario sin avisos y las preferencias. *@
-                    @if (_canMarkImportant)
+                    @* Una promoción nunca es importante: necesita la autorización previa del miembro (Ley 1581). *@
+                    @if (_canMarkImportant && _category == 1)
+                    {
+                        <p class="gsm-editor__hint" data-testid="important-not-for-promotions">
+                            Las promociones no pueden marcarse como importantes.
+                        </p>
+                    }
+                    else if (_canMarkImportant)
                     {
                         <MudSwitch T="bool" @bind-Value="_important" Label="Anuncio importante" Color="Color.Error"
                                    Class="gsm-important-switch" />
@@ -139,6 +146,11 @@
     private async Task CategoryChangedAsync(int category)
     {
         _category = category;
+        if (_category == 1)
+        {
+            _important = false;
+        }
+
         await LoadAudienceAsync();
     }
 

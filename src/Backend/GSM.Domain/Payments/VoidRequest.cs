@@ -39,6 +39,9 @@ public sealed class VoidRequest : BaseEntity, ITenantEntity
 
     public DateTimeOffset? ResolvedAt { get; private set; }
 
+    /// <summary>Nota opcional de quien rechaza, para que quien pidió sepa por qué (decidido 2026-10-12).</summary>
+    public string? RejectionNote { get; private set; }
+
     public static VoidRequest Create(Guid gymId, Guid paymentId, string reason, Guid requestedBy, DateTimeOffset now)
     {
         if (gymId == Guid.Empty || paymentId == Guid.Empty || requestedBy == Guid.Empty)
@@ -65,7 +68,17 @@ public sealed class VoidRequest : BaseEntity, ITenantEntity
 
     public void Approve(Guid userId, DateTimeOffset now) => Resolve(VoidRequestStatus.Approved, userId, now);
 
-    public void Reject(Guid userId, DateTimeOffset now) => Resolve(VoidRequestStatus.Rejected, userId, now);
+    public void Reject(Guid userId, DateTimeOffset now, string? note = null)
+    {
+        var trimmed = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        if (trimmed is { Length: > ReasonMaxLength })
+        {
+            throw new ValidationDomainException($"La nota no puede superar {ReasonMaxLength} caracteres.");
+        }
+
+        Resolve(VoidRequestStatus.Rejected, userId, now);
+        RejectionNote = trimmed;
+    }
 
     private void Resolve(VoidRequestStatus status, Guid userId, DateTimeOffset now)
     {

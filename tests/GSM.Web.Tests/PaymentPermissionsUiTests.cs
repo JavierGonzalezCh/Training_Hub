@@ -206,8 +206,14 @@ public class PaymentPermissionsUiTests : TestContext
         var cut = RenderComponent<VoidRequestsInbox>();
         cut.Find("[data-testid='reject-void']").Click();
 
+        // Rechazar abre la nota (opcional) y pide confirmar; todavía no llama a la API.
+        Assert.DoesNotContain(_fake.Calls, c => c.Method == "RejectAsync");
+        cut.Find("textarea").Input("  Pagó dos meses  ");
+        cut.Find("[data-testid='confirm-reject']").Click();
+
         var reject = Assert.Single(_fake.Calls, c => c.Method == "RejectAsync");
         Assert.Equal(first.Id, reject.Args[0]);
+        Assert.Equal("Pagó dos meses", Assert.IsType<RejectVoidRequestRequest>(reject.Args[1]).Note);
         Assert.DoesNotContain(_fake.Calls, c => c.Method == "ApproveAsync");
     }
 

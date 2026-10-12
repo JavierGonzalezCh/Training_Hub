@@ -18,6 +18,9 @@ public enum NotificationType
     /// no entra en la bandeja (vive fijo en el feed). Solo lo marca el Owner.
     /// </summary>
     ImportantAnnouncement,
+
+    /// <summary>A quien pidió anular un pago: su solicitud fue rechazada, con la nota si la hay (P2).</summary>
+    VoidRequestRejected,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

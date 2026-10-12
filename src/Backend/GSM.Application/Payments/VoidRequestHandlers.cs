@@ -182,7 +182,7 @@ public sealed class RejectVoidRequestHandler(
     IDomainEventPublisher events,
     ILogger<RejectVoidRequestHandler> logger)
 {
-    public async Task HandleAsync(Guid requestId, CancellationToken cancellationToken)
+    public async Task HandleAsync(Guid requestId, RejectVoidRequestRequest? body, CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
         var userId = currentUser.UserId
@@ -191,12 +191,13 @@ public sealed class RejectVoidRequestHandler(
         var request = await requests.GetByIdAsync(requestId, cancellationToken)
             ?? throw new NotFoundException("Solicitud no encontrada.");
 
-        request.Reject(userId, clock.UtcNow); // 409 si ya estaba resuelta
+        request.Reject(userId, clock.UtcNow, body?.Note); // 409 si ya estaba resuelta
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Solicitud {RequestId} rechazada en gym {GymId}", request.Id, gymId);
         await events.PublishAsync(
-            new VoidRequestResolved(gymId, request.Id, request.PaymentId, userId, Approved: false), cancellationToken);
+            new VoidRequestResolved(gymId, request.Id, request.PaymentId, userId, Approved: false,
+                RequestedBy: request.RequestedBy, RejectionNote: request.RejectionNote), cancellationToken);
     }
 }
 
@@ -208,5 +209,6 @@ internal static class VoidRequestMapper
         names.GetValueOrDefault(r.RequestedBy), r.RequestedAt,
         r.Status.ToString().ToLowerInvariant(),
         r.ResolvedBy, r.ResolvedBy is { } by ? names.GetValueOrDefault(by) : null, r.ResolvedAt,
-        payment.Concept, payment.Amount, payment.Method.ToString(), payment.MemberId, payment.PaidAt);
+        payment.Concept, payment.Amount, payment.Method.ToString(), payment.MemberId, payment.PaidAt,
+        r.RejectionNote);
 }

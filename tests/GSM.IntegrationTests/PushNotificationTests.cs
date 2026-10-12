@@ -243,6 +243,37 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
     }
 
     [Fact]
+    public async Task A_promotion_can_never_be_important()
+    {
+        var world = await SeedAsync(1);
+        using var scope = Scope(world.GymId, Guid.CreateVersion7(), UserRole.Owner);
+        var create = scope.ServiceProvider.GetRequiredService<CreateAnnouncementHandler>();
+        var update = scope.ServiceProvider.GetRequiredService<UpdateAnnouncementHandler>();
+
+        // Crear una promoción importante: 422.
+        await Assert.ThrowsAsync<ValidationDomainException>(() => create.HandleAsync(
+            new CreateAnnouncementRequest("2x1", "Promo", false, null, false, AnnouncementCategory.Promotions, Important: true), default));
+
+        // Pasar a promoción una novedad importante: 422; marcar importante una promoción: 422.
+        var news = await create.HandleAsync(
+            new CreateAnnouncementRequest("Cierre", "Sin agua", false, null, false, AnnouncementCategory.GymNews, Important: true), default);
+        await Assert.ThrowsAsync<ValidationDomainException>(() => update.HandleAsync(
+            news.Id, new UpdateAnnouncementRequest("Cierre", "Sin agua", null, false, AnnouncementCategory.Promotions), default));
+        var promo = await create.HandleAsync(
+            new CreateAnnouncementRequest("3x2", "Promo", false, null, false, AnnouncementCategory.Promotions), default);
+        await Assert.ThrowsAsync<ValidationDomainException>(() => update.HandleAsync(
+            promo.Id, new UpdateAnnouncementRequest("3x2", "Promo", null, false, Important: true), default));
+
+        // En el mismo cambio: desmarcar y pasar a promoción vale; pasar a novedad y marcar, también.
+        var unmarked = await update.HandleAsync(
+            news.Id, new UpdateAnnouncementRequest("Cierre", "Sin agua", null, false, AnnouncementCategory.Promotions, Important: false), default);
+        Assert.False(unmarked.Important);
+        var marked = await update.HandleAsync(
+            promo.Id, new UpdateAnnouncementRequest("3x2", "Ahora es novedad", null, false, AnnouncementCategory.GymNews, Important: true), default);
+        Assert.True(marked.Important);
+    }
+
+    [Fact]
     public async Task An_important_announcement_ignores_preferences_and_quiet_hours_stays_first_in_the_feed_and_skips_the_inbox()
     {
         var world = await SeedAsync(1);
