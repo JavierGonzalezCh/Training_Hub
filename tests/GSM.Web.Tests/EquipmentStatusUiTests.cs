@@ -183,6 +183,32 @@ public class EquipmentStatusUiTests : TestContext
     }
 
     [Fact]
+    public async Task Dialog_offers_updating_the_return_date_of_a_machine_out_of_service()
+    {
+        var provider = await OpenDialogAsync("Maintenance");
+
+        var current = provider.Find("select[data-testid='status-select'] option[value='1']");
+        Assert.Contains("actualizar fecha de regreso", current.TextContent);
+
+        provider.Find("select[data-testid='status-select']").Change("1");
+        provider.Find("textarea").Input("El repuesto llega tarde");
+
+        // Sin fecha nueva no hay nada que actualizar.
+        await provider.InvokeAsync(() => provider.Find("[data-testid='status-save']").Click());
+        Assert.Contains("nueva fecha de regreso", provider.Find("[data-testid='status-error']").TextContent);
+        Assert.DoesNotContain(_api.Requests, r => r.Method == HttpMethod.Post);
+
+        var nextWeek = DateOnly.FromDateTime(DateTime.Today).AddDays(7).ToString("yyyy-MM-dd");
+        provider.Find("[data-testid='status-back-on']").Change(nextWeek);
+        await provider.InvokeAsync(() => provider.Find("[data-testid='status-save']").Click());
+
+        var post = Assert.Single(_api.Requests, r => r.Method == HttpMethod.Post);
+        using var doc = JsonDocument.Parse(post.Body);
+        Assert.Equal(1, doc.RootElement.GetProperty("status").GetInt32());
+        Assert.Equal(nextWeek, doc.RootElement.GetProperty("expectedBackOn").GetString());
+    }
+
+    [Fact]
     public async Task Dialog_shows_the_server_message_on_a_conflict()
     {
         _api.ChangeResult = HttpStatusCode.Conflict;

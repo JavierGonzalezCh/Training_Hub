@@ -17,6 +17,11 @@
                     {
                         if (name == CurrentStatus)
                         {
+                            // Fuera de servicio, repetir el estado sirve para mover la fecha de regreso.
+                            if (value != 0)
+                            {
+                                <option value="@value" selected="@(_status == value)">@label — actualizar fecha de regreso</option>
+                            }
                             continue;
                         }
                         <option value="@value" selected="@(_status == value)">@label</option>
@@ -85,6 +90,12 @@
         if (_status != 0 && string.IsNullOrWhiteSpace(_reason))
         {
             _error = "Indica el motivo para sacar el equipo de servicio.";
+            return;
+        }
+
+        if (EquipmentDisplay.Statuses.First(s => s.Value == _status).Name == CurrentStatus && _expectedBackOn is null)
+        {
+            _error = "Para actualizar el arreglo, indica la nueva fecha de regreso.";
             return;
         }
 

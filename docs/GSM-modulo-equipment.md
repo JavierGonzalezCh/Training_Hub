@@ -128,6 +128,7 @@ añaden filas. Es el historial de mantenimiento de la máquina.
   ¡Gracias por avisar!" (Notifications). Un reporte descartado no genera aviso.
 - Si `ExpectedBackOn` pasa y la máquina sigue sin volver, aparece como **"vencida"**. Se calcula; no
   hay tarea programada.
+- **Alargar el arreglo** (decidido 2026-10-11): repetir el estado actual (mantenimiento o fuera de servicio) con una fecha de regreso distinta y motivo mueve `ExpectedBackOn` y queda en el historial. Repetir sin fecha nueva, o repetir `available`, es 409. En el panel aparece como "{estado} — actualizar fecha de regreso".
 - Varios reportes de la misma máquina se agrupan en la notificación ("3 reportes de la Prensa 45°").
   Un miembro tiene como máximo un reporte abierto por máquina.
 
@@ -258,7 +259,7 @@ Lo hace un manejador de `MemberAnonymized` (`GSM-modulo-members.md` §11).
 |---|---|
 | **E1** | Catálogo del sistema (`EquipmentModel`, siembra de ~40 modelos) e inventario (`EquipmentItem`): "Agregar del catálogo", máquinas propias, zona, foto, baja solo Owner. Mover `EquipmentType` a este módulo. |
 | **E2** | Estado e historial; nivel 1 aplicado en el catálogo de ejercicios y en las alternativas. |
-| **E3** | Ligar ejercicios a modelos (sistema) y a máquinas (gym); avisos en el editor; foto, zona e instrucciones en la app. |
+| **E3** | Ligar ejercicios a modelos (sistema) y a máquinas (gym); avisos en el editor; foto, zona e instrucciones en la app. **También conecta el nivel 1** (decidido 2026-10-11): el filtro "Solo lo que se puede hacer en mi gym" del catálogo de ejercicios consume `IEquipmentReader.GetAvailabilityAsync` (hecho en E2) — toca Routines. |
 | **E4** | Reportes de fallas: botón en la app, campana general del panel, reportes urgentes, correo al owner por `unsafe`, tarjeta del dashboard, flag `MembersCanReportEquipment`. |
 
 E1 y E2 van **antes que R5** (alternativas) de Routines, porque las sugerencias filtran por

@@ -119,9 +119,14 @@ public sealed class EquipmentItem : BaseEntity, ITenantEntity
             throw new ConflictException("El equipo está dado de baja y no se puede cambiar su estado.");
         }
 
-        if (newStatus == Status)
+        // Repetir el estado solo sirve para mover la fecha de regreso de un equipo fuera de servicio
+        // (p. ej. el técnico avisa que tarda más). Queda en el historial como cualquier cambio.
+        if (newStatus == Status
+            && (newStatus == EquipmentStatus.Available || expectedBackOn is null || expectedBackOn == ExpectedBackOn))
         {
-            throw new ConflictException("El equipo ya está en ese estado.");
+            throw new ConflictException(newStatus == EquipmentStatus.Available
+                ? "El equipo ya está en ese estado."
+                : "El equipo ya está en ese estado. Para alargar el arreglo, indica una fecha de regreso distinta.");
         }
 
         var cleanReason = EquipmentText.Optional(reason, EquipmentStatusChange.ReasonMaxLength);

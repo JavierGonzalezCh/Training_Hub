@@ -158,6 +158,45 @@ public sealed class EquipmentStatusTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Repeating_the_status_with_a_new_back_date_extends_the_repair_and_is_recorded()
+    {
+        var world = await SeedHttpAsync();
+        await using var host = RealIdentityHost();
+        var staff = await LoggedInAsync(host, world.StaffEmail);
+        var id = await CreateMachineAsync(staff, "Prensa");
+        var friday = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5);
+        var nextWeek = friday.AddDays(7);
+
+        Assert.Equal(HttpStatusCode.OK, (await staff.PostAsJsonAsync($"/api/equipment/{id}/status", new
+        {
+            status = "Maintenance", reason = "Cambio de cable", expectedBackOn = friday.ToString("yyyy-MM-dd"),
+        })).StatusCode);
+
+        // El técnico avisa que tarda una semana más: mismo estado, fecha distinta y motivo.
+        var extended = await staff.PostAsJsonAsync($"/api/equipment/{id}/status", new
+        {
+            status = "Maintenance", reason = "El repuesto llega tarde", expectedBackOn = nextWeek.ToString("yyyy-MM-dd"),
+        });
+        Assert.Equal(HttpStatusCode.OK, extended.StatusCode);
+        Assert.Equal(nextWeek.ToString("yyyy-MM-dd"),
+            (await extended.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("expectedBackOn").GetString());
+
+        // La misma fecha otra vez no es un cambio: 409. Sin motivo: 422.
+        Assert.Equal(HttpStatusCode.Conflict, (await staff.PostAsJsonAsync($"/api/equipment/{id}/status", new
+        {
+            status = "Maintenance", reason = "x", expectedBackOn = nextWeek.ToString("yyyy-MM-dd"),
+        })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await staff.PostAsJsonAsync($"/api/equipment/{id}/status", new
+        {
+            status = "Maintenance", expectedBackOn = nextWeek.AddDays(1).ToString("yyyy-MM-dd"),
+        })).StatusCode);
+
+        var history = (await staff.GetFromJsonAsync<JsonElement>($"/api/equipment/{id}/history")).EnumerateArray().ToList();
+        Assert.Equal(2, history.Count);
+        Assert.Equal("El repuesto llega tarde", history[0].GetProperty("reason").GetString());
+    }
+
+    [Fact]
     public async Task Domain_rules_throw_the_expected_exceptions()
     {
         var (gymId, staffId) = await SeedGymAsync("st-dom");
