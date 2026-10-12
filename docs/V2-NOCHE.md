@@ -51,12 +51,14 @@
 | G3 | **Unida** | Festivos 2026 verificados contra el calendario oficial. Ver pregunta 21 |
 | CO3 | **Unida** | Botón de WhatsApp en ficha, recepción y listas; plantillas por gym. `window.open` sin verificar en MAUI |
 | M2 | **Unida** | Texto base de las autorizaciones = **borrador pendiente de revisión legal**. Ver pregunta 20 |
-| N2 | En curso (relanzada 2026-10-11, con el anuncio importante) | sin Firebase: se construye detrás de `IPushSender`, sin verificar con el servicio real |
+| N2 | **Unida** (67304c3), suite completa sin verificar (cortada por memoria) | Sin Firebase: detrás de `IPushSender`. Promoción no puede ser importante (añadido al unir) |
 | A1 | Pendiente (va en serie con MS1b, G3b y C1) | — |
 | C1 | Pendiente (va en serie después de A1) | — |
-| P2 | En curso (relanzada 2026-10-11 desde cero) | — |
+| P2 | **Unida** (07be3c8) | Rama `v2-P2-permisos-pagos-b`. Nota al rechazar añadida al unir |
 | N4 | **Unida** (a99b982) | Preferencias por categoría y canal, horario sin avisos, categoría del anuncio (CO1). Ver pregunta 22. Suite 393 + 187 |
 | I1 | **Unida** | Config nueva `Identity:PublicWebBaseUrl` (producción). Suite 343 + 156 | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
+| E2 | **Unida** (7f34d95) | Estado, historial, vencida, `IEquipmentReader` (nivel 1 sin conectar: E3). Alargar el arreglo añadido al unir |
+| I7 | **Unida** (d9e368b) | Cuenta `kiosk` con código de emparejamiento; sesión sin vencimiento hasta revocar |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -86,6 +88,17 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 22. **[DECIDIDA 2026-10-11: solo Novedades y Promociones; logros y penalizaciones salen siempre. Notifications §9 corregido.]** **N4: el horario sin avisos solo retiene Novedades y Promociones** (Comunicaciones §G). El catálogo de Notifications §9 marca "Aplica" también para logros y penalizaciones; hay contradicción entre los dos docs. Hoy no cambia nada (esos avisos no tienen correo ni push), pero hay que decidirlo antes de N2. Además: el `Down` de la migración de N4 no se puede ejecutar (Postgres no quita el valor `skipped` del enum).
 6. **[DECIDIDA 2026-10-11: (a), (b) y (c) se aceptan; el modo es de la rutina.]** **R2: decisiones del agente para validar.** (a) Cambiar el modo (semanal ↔ rotativa) por `PUT` crea la rutina nueva, desactiva la anterior y **reinicia `starts_on` a hoy**; (b) en semanal no hay filas de descanso y mandar `dayOfWeek` en una rotativa es 422; (c) en semanal, "duración del ciclo" se muestra como "N días de entrenamiento".
 5. **[DECIDIDA 2026-10-11: cada día se juzga con la rutina vigente ese día; PENDIENTE de construir: tarea R2b.]** **R1 → R2: racha y días retirados.** Al retirar un día, deja de contar en el calendario de racha **también hacia atrás** (el calendario solo ve los días vigentes). Para el modo semanal (R2) conviene decidir si la racha se calcula con el calendario vigente en cada fecha.
+
+**Decisiones del 2026-10-12 (preguntas de E2, P2, I7 y N2):**
+
+- **E2:** el nivel 1 (filtro "lo que se puede hacer en mi gym") lo conecta **E3**. Alargar el arreglo repitiendo el estado con fecha nueva: **hecho**.
+- **P2-1:** el aviso de "anulación solicitada" llega al Owner, a quien tiene `VoidPayments` y a quien tiene `ViewFinances` (solo ve) → tarea **N1b**, pendiente.
+- **P2-2:** "lo que cobró en su turno" va en **P3**.
+- **P2-3:** nota opcional al rechazar, con aviso personal a quien pidió (`VoidRequestRejected`): **hecho** (migración `V2_P2b_RejectionNote`).
+- **P2-4:** anular directo cierra la solicitud pendiente: aceptado.
+- **I7-5:** la sesión del kiosco no vence hasta que el Owner la revoca: aceptado.
+- **I7-6:** cerrar `/kiosk` a la sesión normal del staff va en **A3**.
+- **N2-7:** una promoción no puede marcarse como importante (Ley 1581): **hecho**. Resto de N2 aceptado (Firebase sin probar; importante sin fecha queda hasta archivarse; no cuenta para el límite de fijados).
 
 ## 3. Gestiones operativas pendientes
 

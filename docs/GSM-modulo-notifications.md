@@ -228,6 +228,7 @@ recordatorio de clase **no** usan correo: llegarían tarde.
 | Sub-etapa | Qué |
 |---|---|
 | **N1** | Schema `notifications`, migración de la bandeja y la cola de correos desde Comunicaciones, dispatcher con candado, bandeja general del staff (reemplaza la campana de intentos rechazados), avisos de acción compartidos. Sin push todavía. |
+| **N1b** | Avisos de acción filtrados por permiso (decidido 2026-10-12): la solicitud de anulación les llega al Owner, a quien tiene `VoidPayments` y a quien tiene `ViewFinances` (este último solo la ve, no la resuelve). Sirve de base para otros avisos sensibles. Hoy el aviso es una fila por gym que ve todo el staff. |
 | **N2** | Push web: Firebase, registro de dispositivos, PWA del miembro y panel instalable, pedido de permiso en contexto, preferencias de push del staff. Incluye el **anuncio importante** (§9, decidido 2026-10-11). |
 | **N3** | Push en Android nativo (MAUI). Requiere probar en un teléfono o emulador real. |
 | **N4** | Preferencias del miembro por categoría y canal, y horario sin avisos (con Comunicaciones CO1 y CO6). |
