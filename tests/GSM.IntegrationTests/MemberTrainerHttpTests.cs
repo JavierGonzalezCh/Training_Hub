@@ -197,7 +197,12 @@ public sealed class MemberTrainerHttpTests(ApiFactory factory) : IClassFixture<A
 
         var unassigned = (await owner.GetFromJsonAsync<PagedResult<MemberListItem>>(
             "/api/members?withoutTrainer=true"))!.Items;
-        Assert.Equal([none], unassigned.Select(m => m.Id).ToArray());
+        // El escenario base ya trae un miembro sin entrenador (el que tiene cuenta), así que no es el único.
+        var unassignedIds = unassigned.Select(m => m.Id).ToList();
+        Assert.Contains(none, unassignedIds);
+        Assert.Contains(w.MemberRecordId, unassignedIds);
+        Assert.DoesNotContain(mine, unassignedIds);
+        Assert.DoesNotContain(other, unassignedIds);
     }
 
     [Fact]
@@ -330,7 +335,7 @@ public sealed class MemberTrainerHttpTests(ApiFactory factory) : IClassFixture<A
             $"ownerb-{suffix}@test.local", "Other Owner", Password, UserRole.Owner, other.Id);
         other.AssignOwner(otherOwnerId);
 
-        var memberUserId = await provisioning.CreateGymUserAsync(memberEmail, "Mia Member", Password, UserRole.Member, gym.Id);
+        var memberUserId = await provisioning.CreateMemberUserAsync(memberEmail, "Mia Member", Password, gym.Id);
         var member = GSM.Domain.Members.Member.Create(
             gym.Id, "Mia", "Member", $"9{suffix}", new DateOnly(2026, 1, 1), email: memberEmail);
         member.LinkUser(memberUserId);

@@ -28,6 +28,7 @@ public class GymCreationDialogTests : TestContext
         var client = new FakeGymsClient();
         Services.AddSingleton<IGymsClient>(client);
 
+        RenderComponent<MudPopoverProvider>();   // el selector del método de pago lo necesita
         var provider = RenderComponent<MudDialogProvider>();
         var dialogs = Services.GetRequiredService<IDialogService>();
         await provider.InvokeAsync(() => dialogs.ShowAsync<GymFormDialog>("Nuevo gym"));
@@ -57,7 +58,7 @@ public class GymCreationDialogTests : TestContext
     {
         var (_, provider) = await OpenAsync();
 
-        provider.Find("[data-testid='with-trial'] input").Change(false);
+        provider.Find("input[data-testid='with-trial']").Change(false);
 
         Assert.Empty(provider.FindAll("[data-testid='trial-days']"));
         Assert.NotEmpty(provider.FindAll("[data-testid='first-payment-amount']"));
