@@ -1,3 +1,4 @@
+using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Public;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Identity;
@@ -7,7 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GSM.Infrastructure.Identity;
 
-public sealed class UserProvisioning(UserManager<AppUser> userManager, GsmDbContext dbContext) : IUserProvisioning
+public sealed class UserProvisioning(
+    UserManager<AppUser> userManager, GsmDbContext dbContext, IAccountLinkBuilder links) : IUserProvisioning
 {
     public async Task<Guid> CreateGymUserAsync(
         string email,
@@ -63,6 +65,44 @@ public sealed class UserProvisioning(UserManager<AppUser> userManager, GsmDbCont
 
         await GrantAsync(user.Id, gymId, UserRole.Member, cancellationToken);
         return user.Id;
+    }
+
+    public async Task<OwnerInvitation> InviteGymOwnerAsync(
+        string email, string fullName, Guid gymId, CancellationToken cancellationToken = default)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is not null)
+        {
+            EnsureUsable(user);
+            await GrantAsync(user.Id, gymId, UserRole.Owner, cancellationToken);
+
+            // Ya tiene cuenta: el enlace (sin código) la lleva a entrar con su contraseña de siempre.
+            return new OwnerInvitation(user.Id, links.ActivationUrl(user.Email!, null), HadAccount: true);
+        }
+
+        // Sin contraseña: no puede iniciar sesión hasta que la defina con el enlace de activación (72 h).
+        user = new AppUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            FullName = fullName,
+            IsActive = true,
+        };
+
+        var result = await userManager.CreateAsync(user);
+        if (!result.Succeeded)
+        {
+            throw new ValidationDomainException(
+                "No se pudo crear el usuario: " +
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
+
+        await GrantAsync(user.Id, gymId, UserRole.Owner, cancellationToken);
+
+        var code = await userManager.GenerateUserTokenAsync(
+            user, ActivationTokenProvider.ProviderName, ActivationTokenProvider.Purpose);
+        return new OwnerInvitation(user.Id, links.ActivationUrl(user.Email!, code), HadAccount: false);
     }
 
     public async Task<Guid> CreateSuperAdminAsync(
