@@ -104,6 +104,15 @@ Tamaño: **S** (horas), **M** (un día de agente), **L** (varios).
 > **Cómo se lanza:** carriles que no se pisen; **en serie** las tareas que comparten terreno (p. ej.
 > A1, MS1b, G3b y C1 tocan estado comercial y horario); **unir cada tarea apenas termina**, sin esperar
 > al cierre de la ola. La columna "Carril" de cada ola no significa "todos a la vez".
+>
+> **Agentes que solo escriben código (desde el 2026-10-12).** Los implementadores **no compilan, no
+> corren tests, no levantan la API ni ejecutan `dotnet ef`**: compilar varias soluciones a la vez agotaba
+> la memoria de la máquina. Escriben el código de todas las capas y sus tests, y entregan. El integrador,
+> cuando terminan todos los de la tanda, une cada rama, **genera las migraciones sobre el modelo ya unido**
+> (un solo snapshot, sin choques), regenera el cliente, corrige lo que no compile o no pase y corre la
+> suite completa **en primer plano**. Por eso: el SQL a mano va en `Migrations/Scripts/V2_<id>.sql` y la
+> tarea deja escrita la migración que espera; la UI usa los nombres de método que NSwag debería generar y
+> el agente anota cuáles supuso.
 
 ### Ola 0 — Cimientos
 
