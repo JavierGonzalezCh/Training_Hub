@@ -3,7 +3,6 @@
 @using GSM.Panel.UI.Pages.Members
 @inject IAttendanceClient Attendance
 @inject IMembersClient Members
-@inject IMemberMembershipsClient MemberMemberships
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
@@ -11,7 +10,7 @@
 
 <MudText Typo="Typo.h4" Class="mb-1">Recepción</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
-    Registro manual: busca al miembro por nombre o documento. Los miembros entran solos escaneando el QR del kiosco.
+    Busca al miembro por nombre o documento, revisa su tarjeta y registra la entrada. Los miembros entran solos escaneando el QR del kiosco.
 </MudText>
 
 <MudButton Variant="Variant.Outlined" Href="/kiosk" StartIcon="@Icons.Material.Outlined.QrCode2" Class="mb-6">Abrir kiosco</MudButton>
@@ -28,20 +27,73 @@
     </MudItem>
 
     <MudItem xs="12" md="5">
-        @if (_blocked is { } blocked)
+        @if (_card is { } card)
         {
-            <MudPaper Class="pa-6" Elevation="0" Style="border:1px solid var(--gsm-red-hot)" id="blocked-card">
-                <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Large" Color="Color.Error" Class="mb-2" />
-                <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
-                    <MudText Typo="Typo.h5">@blocked.Member.FirstName @blocked.Member.LastName</MudText>
-                    <CommercialStatusChip Status="@blocked.Access.Commercial" />
+            <MudPaper Class="pa-6" Elevation="0" id="reception-card"
+                      Style="@($"border:1px solid {(card.CanRegister ? "var(--gsm-cyan)" : "var(--gsm-red-hot)")}")">
+                <div class="d-flex align-center" style="gap:1rem">
+                    <MudAvatar Size="Size.Large">
+                        @if (!string.IsNullOrEmpty(card.PhotoUrl))
+                        {
+                            <MudImage Src="@card.PhotoUrl" Alt="@card.MemberName" />
+                        }
+                        else
+                        {
+                            @GsmFormat.Initials(card.MemberName)
+                        }
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.h5">@card.MemberName</MudText>
+                        <CommercialStatusChip Status="@card.Commercial" />
+                    </div>
                 </div>
-                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4" role="alert">
-                    @(blocked.Access.BlockMessage ?? "No puede entrar.")
-                </MudAlert>
-                <div class="mt-3">
-                    <WhatsAppButton MemberId="blocked.Member.Id" Kind="@WhatsAppLabels.KindForStatus(blocked.Access.Commercial)" />
-                </div>
+
+                @if (card.DaysLeft is { } daysLeft)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-3" id="days-left">
+                        @(daysLeft == 0 ? "Vence hoy" : daysLeft == 1 ? "Le queda 1 día" : $"Le quedan {daysLeft} días")
+                    </MudText>
+                }
+                @if (!string.IsNullOrEmpty(card.Notice))
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" role="status" id="access-notice">@card.Notice</MudAlert>
+                }
+                @if (card.GymClosed)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3" role="alert" id="gym-closed">
+                        @(card.GymClosedMessage ?? "El gimnasio está cerrado.")
+                    </MudAlert>
+                }
+                else if (!card.MemberActive)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3" role="alert" id="member-inactive">
+                        Está dado de baja. Reactiva su ficha para registrar su entrada.
+                    </MudAlert>
+                }
+                else if (card.AlreadyCheckedInToday)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3" role="status" id="already-in">
+                        Ya entró hoy a las @(card.CheckedInAt is { } at ? GsmFormat.Time(at) : "?")
+                    </MudAlert>
+                }
+                else if (card.CanLetThrough)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3" role="alert" id="block-message">
+                        @(card.BlockMessage ?? "No puede entrar.")
+                    </MudAlert>
+                }
+                @if (card.MissingWaiver)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" role="status" id="missing-waiver">
+                        Falta la exoneración de responsabilidad: pídele que la firme y regístrala en su ficha, pestaña Autorizaciones.
+                    </MudAlert>
+                }
+                @if (card.CanLetThrough)
+                {
+                    <div class="mt-3">
+                        <WhatsAppButton MemberId="card.MemberId" Kind="@WhatsAppLabels.KindForStatus(card.Commercial)" />
+                    </div>
+                }
 
                 @if (_askReason)
                 {
@@ -54,7 +106,15 @@
                         <MudButton OnClick="@(() => _askReason = false)">Volver</MudButton>
                     </div>
                 }
-                else
+                else if (card.CanRegister)
+                {
+                    <div class="d-flex flex-wrap mt-4" style="gap:0.5rem">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RegisterAsync" Disabled="_submitting" id="register-button">
+                            Registrar entrada
+                        </MudButton>
+                    </div>
+                }
+                else if (card.CanLetThrough)
                 {
                     <div class="d-flex flex-wrap mt-4" style="gap:0.5rem">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RenewAsync">Renovar y cobrar</MudButton>
@@ -70,7 +130,7 @@
                 <MudIcon Icon="@(_result.MembershipExpired ? Icons.Material.Filled.WarningAmber : Icons.Material.Filled.CheckCircle)"
                          Size="Size.Large" Color="@(_result.MembershipExpired ? Color.Error : Color.Info)" Class="mb-2" />
                 <MudText Typo="Typo.h4">@_result.MemberName</MudText>
-                <MudText Typo="Typo.body1" Class="gsm-mono mt-1">@GsmFormat.Instant(_result.CheckedInAt)</MudText>
+                <MudText Typo="Typo.body1" Class="gsm-mono mt-1" id="checkin-result">Entrada registrada · @GsmFormat.Time(_result.CheckedInAt)</MudText>
 
                 @if (_result.Authorized == true)
                 {
@@ -91,10 +151,6 @@
                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4" role="status" id="missing-waiver">
                         Falta la exoneración de responsabilidad: pídele que la firme y regístrala en su ficha, pestaña Autorizaciones.
                     </MudAlert>
-                }
-                @if (_result.AlreadyCheckedInToday)
-                {
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">Ya había entrado hoy.</MudAlert>
                 }
                 @if (_result.UnlockedAchievements is { Count: > 0 } achievements)
                 {
@@ -118,12 +174,10 @@
 
 @code {
     private CheckInResponse? _result;
-    private BlockedMember? _blocked;
+    private ReceptionCardResponse? _card;
     private bool _askReason;
     private string? _reason;
     private bool _submitting;
-
-    private sealed record BlockedMember(MemberListItem Member, AccessStatusResponse Access);
 
     private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
     {
@@ -144,32 +198,47 @@
         }
 
         _result = null;
-        _blocked = null;
+        _card = null;
         _askReason = false;
         _reason = null;
 
-        // Primero el estado: si no puede entrar, recepción decide entre renovar y dejarlo pasar.
+        // Paso 1: la tarjeta. Elegir al miembro no registra nada; la entrada es un botón (paso 2).
+        await LoadCardAsync(member.Id);
+    }
+
+    private async Task LoadCardAsync(Guid memberId)
+    {
         try
         {
-            var access = await MemberMemberships.AccessAsync(member.Id);
-            if (!access.CanEnter)
-            {
-                _blocked = new BlockedMember(member, access);
-                return;
-            }
+            _card = await Attendance.ReceptionCardAsync(memberId);
         }
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task RegisterAsync()
+    {
+        if (_card is not { CanRegister: true } card)
+        {
             return;
         }
 
-        await SubmitAsync(new CheckInRequest { MemberId = member.Id });
+        if (await SubmitAsync(new CheckInRequest { MemberId = card.MemberId }))
+        {
+            _card = null;
+        }
+        else
+        {
+            // Pudo cambiar el estado (otro recepcionista, el horario): se vuelve a leer la tarjeta.
+            await LoadCardAsync(card.MemberId);
+        }
     }
 
     private async Task LetThroughAsync()
     {
-        if (_blocked is not { } blocked)
+        if (_card is not { } card)
         {
             return;
         }
@@ -180,27 +249,28 @@
             return;
         }
 
-        if (await SubmitAsync(new CheckInRequest { MemberId = blocked.Member.Id, AuthorizationReason = _reason.Trim() }))
+        if (await SubmitAsync(new CheckInRequest { MemberId = card.MemberId, AuthorizationReason = _reason.Trim() }))
         {
-            _blocked = null;
+            _card = null;
             _askReason = false;
         }
     }
 
     private async Task RenewAsync()
     {
-        if (_blocked is not { } blocked)
+        if (_card is not { } card)
         {
             return;
         }
 
-        var parameters = new DialogParameters<AssignMembershipDialog> { { x => x.MemberId, blocked.Member.Id } };
+        var parameters = new DialogParameters<AssignMembershipDialog> { { x => x.MemberId, card.MemberId } };
         var dialog = await Dialogs.ShowAsync<AssignMembershipDialog>("Asignar membresía", parameters);
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {
-            Snackbar.Add("Membresía renovada. Vuelve a elegir al miembro para registrar la entrada.", Severity.Success);
-            _blocked = null;
+            Snackbar.Add("Membresía renovada.", Severity.Success);
+            _askReason = false;
+            await LoadCardAsync(card.MemberId);
         }
     }
 
@@ -226,7 +296,6 @@
     private string ResultStyle() => _result switch
     {
         { MembershipExpired: true } => "border:1px solid var(--gsm-red-hot)",
-        { AlreadyCheckedInToday: true } => "border:1px solid var(--gsm-border)",
         _ => "border:1px solid var(--gsm-cyan)",
     };
 }

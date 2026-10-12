@@ -38,6 +38,11 @@ public sealed class CheckinAttemptRepository(GsmDbContext dbContext) : ICheckinA
         if (query.PendingOnly)
         {
             q = q.Where(a => a.AcknowledgedAt == null);
+            if (query.Reason is null)
+            {
+                // "Entró dos veces" no es accionable (no suena en la campana): solo se ve filtrando por ese motivo.
+                q = q.Where(a => a.Reason != CheckinRejectionReason.AlreadyCheckedIn);
+            }
         }
 
         if (query.Reason is { } reason)

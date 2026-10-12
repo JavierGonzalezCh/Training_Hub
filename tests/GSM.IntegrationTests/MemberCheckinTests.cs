@@ -112,7 +112,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
 
         var item = Assert.Single(page.Items);
         Assert.Equal(2, item.AttemptCount);
-        Assert.Equal("MembershipExpired", item.Reason);
+        Assert.Equal("membership_expired", item.Reason);
         Assert.Equal(Today.AddDays(-4), item.MembershipEndedOn);
         Assert.Equal("Ana Prueba", item.MemberName);
 
@@ -132,7 +132,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         using var s = Scope(w, UserRole.Staff);
         var page = await s.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>()
             .HandleAsync(new ListCheckinAttemptsQuery(), default);
-        Assert.Equal("NoMembership", Assert.Single(page.Items).Reason);
+        Assert.Equal("no_membership", Assert.Single(page.Items).Reason);
     }
 
     [Fact]
