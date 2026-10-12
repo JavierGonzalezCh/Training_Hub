@@ -8,7 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace GSM.Application.SuperAdmin.Events;
 
 /// <summary>
-/// Al crear un gym se le da de alta su suscripción de prueba. Sin esto, un cliente creado después
+/// Al crear un gym se le da de alta su suscripción: de prueba (los días que eligió el SuperAdmin) o, sin
+/// prueba, con su primer pago registrado y el gym activo hasta donde ese pago cubre (SuperAdmin §V2). Sin esto, un cliente creado después
 /// de la migración de la etapa 11.1 se quedaba sin suscripción para siempre: no se le podía poner
 /// precio ni cobrarle, y nunca entraba en la cartera.
 /// </summary>
@@ -21,12 +22,15 @@ namespace GSM.Application.SuperAdmin.Events;
 public sealed class GymCreatedProvisionsSubscriptionHandler(
     IClock clock,
     IGymSubscriptionRepository subscriptions,
+    ISubscriptionPaymentRepository payments,
     IUnitOfWork unitOfWork,
     ILogger<GymCreatedProvisionsSubscriptionHandler> logger) : IDomainEventHandler<GymCreated>
 {
-    /// <summary>Duración de la prueba con la que nace todo gym. Tras ella manda <c>paid_through</c>.</summary>
+    /// <summary>Prueba por defecto de un evento sin días ni pago (eventos anteriores a G1+S1).</summary>
     public const int TrialDays = 30;
 
+    // Idempotente (un reintento desde logs.event_handler_failures no duplica nada): sin suscripción previa,
+    // suscripción y primer pago se guardan juntos en un solo SaveChanges.
     public async Task HandleAsync(GymCreated domainEvent, CancellationToken cancellationToken = default)
     {
         if (await subscriptions.GetByGymIdAsync(domainEvent.GymId, cancellationToken) is not null)
@@ -35,13 +39,47 @@ public sealed class GymCreatedProvisionsSubscriptionHandler(
         }
 
         var today = clock.Today;
-        var trialEndsOn = today.AddDays(TrialDays);
 
-        // El precio se negocia con el cliente: nace en 0 y el superadmin lo fija con el PUT.
+        if (domainEvent.FirstPayment is { } first)
+        {
+            var createdBy = domainEvent.CreatedBy
+                ?? throw new InvalidOperationException("El primer pago necesita el superadmin que dio de alta el gym.");
+
+            subscriptions.Add(GymSubscription.Create(
+                domainEvent.GymId,
+                domainEvent.Plan,
+                domainEvent.MonthlyPrice,
+                startedOn: today,
+                paidThrough: first.CoversThrough,
+                trialEndsOn: null,
+                notes: null));
+
+            // Pago del SaaS: no se mezcla con los pagos del gym.
+            payments.Add(SubscriptionPayment.Create(
+                domainEvent.GymId,
+                first.Amount,
+                first.Method,
+                first.CoversFrom,
+                first.CoversThrough,
+                clock.UtcNow,
+                createdBy,
+                first.Reference,
+                first.Notes));
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            logger.LogInformation(
+                "Suscripción del gym {GymId} creada sin prueba: primer pago {Amount} cubre hasta {CoversThrough}",
+                domainEvent.GymId, first.Amount, first.CoversThrough);
+            return;
+        }
+
+        var trialEndsOn = today.AddDays(domainEvent.TrialDays ?? TrialDays);
+
+        // El precio se negocia con el cliente: si no se indicó en el alta nace en 0 y el superadmin lo fija con el PUT.
         subscriptions.Add(GymSubscription.Create(
             domainEvent.GymId,
             domainEvent.Plan,
-            monthlyPrice: 0m,
+            monthlyPrice: domainEvent.MonthlyPrice,
             startedOn: today,
             paidThrough: trialEndsOn,
             trialEndsOn: trialEndsOn,

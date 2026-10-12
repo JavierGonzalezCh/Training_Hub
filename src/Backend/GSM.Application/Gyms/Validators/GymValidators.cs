@@ -25,8 +25,23 @@ public sealed class CreateGymRequestValidator : AbstractValidator<CreateGymReque
             .When(x => x.Owner is not null);
         RuleFor(x => x.Owner.FullName).NotEmpty().MaximumLength(200)
             .When(x => x.Owner is not null);
-        RuleFor(x => x.Owner.Password).NotEmpty().MinimumLength(10).MaximumLength(256)
-            .When(x => x.Owner is not null);
+
+        // Con prueba (días) o con primer pago, nunca ambos ni ninguno (SuperAdmin §V2).
+        RuleFor(x => x).Must(x => (x.TrialDays is not null) != (x.FirstPayment is not null))
+            .WithName("TrialDays")
+            .WithMessage("Elige una: o el gym tiene prueba (con sus días) o se registra su primer pago.");
+        RuleFor(x => x.TrialDays!.Value).InclusiveBetween(1, 365).When(x => x.TrialDays is not null)
+            .WithName("TrialDays");
+        RuleFor(x => x.MonthlyPrice!.Value).GreaterThanOrEqualTo(0).When(x => x.MonthlyPrice is not null)
+            .WithName("MonthlyPrice");
+
+        When(x => x.FirstPayment is not null, () =>
+        {
+            RuleFor(x => x.FirstPayment!.Amount).GreaterThan(0);
+            RuleFor(x => x.FirstPayment!.Method).IsInEnum();
+            RuleFor(x => x.FirstPayment!.Reference).MaximumLength(200);
+            RuleFor(x => x.FirstPayment!.Notes).MaximumLength(1000);
+        });
     }
 }
 

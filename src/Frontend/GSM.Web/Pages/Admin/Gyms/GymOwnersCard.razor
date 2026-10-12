@@ -35,6 +35,7 @@ else
             <MudTd>
                 @if (context.IsActive)
                 {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ResendAsync(context))" data-testid="resend-access">Reenviar acceso</MudButton>
                     <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => CopyLinkAsync(context))">Copiar enlace</MudButton>
                 }
             </MudTd>
@@ -63,6 +64,19 @@ else
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task ResendAsync(GymOwnerResponse owner)
+    {
+        try
+        {
+            await Owners.ResendAsync(GymId, owner.UserId);
+            Snackbar.Add($"Acceso reenviado a {owner.Email}. El enlace anterior ya no sirve.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
     }
 

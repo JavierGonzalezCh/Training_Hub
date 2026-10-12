@@ -1,6 +1,7 @@
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Email;
 using GSM.Application.Identity.Abstractions;
+using GSM.Application.Gyms.Public;
 using GSM.Application.Identity.Contracts;
 using GSM.Domain.Common.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -162,5 +163,37 @@ public sealed class CopyOwnerLinkHandler(
         var link = await links.CopyLinkAsync(gymId, userId, Domain.Identity.UserRole.Owner, actorId, cancellationToken);
         logger.LogInformation("Enlace del owner {UserId} copiado por {ActorId} en el gym {GymId}", userId, actorId, gymId);
         return new AccountLinkResponse(link.Url, link.RequiresLogin, link.ExpiresAt);
+    }
+}
+
+/// <summary>
+/// "Reenviar acceso" de un Owner (solo el SuperAdmin): genera un enlace nuevo, que anula los anteriores, y lo
+/// manda por correo (Gyms §4). Si el correo falla, el enlace se copia con "Copiar enlace".
+/// </summary>
+public sealed class ResendOwnerAccessHandler(
+    ICurrentUserService currentUser,
+    IAccountLinkService links,
+    IGymReader gyms,
+    IEmailSender emailSender,
+    ILogger<ResendOwnerAccessHandler> logger)
+{
+    public async Task HandleAsync(Guid gymId, Guid userId, CancellationToken cancellationToken)
+    {
+        var actorId = currentUser.UserId
+            ?? throw new UnauthorizedDomainException("No hay usuario autenticado en el contexto.");
+
+        var gym = await gyms.GetAdminViewAsync(gymId, cancellationToken)
+            ?? throw new NotFoundException("El gym no existe.");
+        var owner = (await links.ListOwnersAsync(gymId, cancellationToken)).FirstOrDefault(o => o.UserId == userId)
+            ?? throw new NotFoundException("No existe esa persona con ese acceso en el gimnasio.");
+
+        var link = await links.CopyLinkAsync(gymId, userId, Domain.Identity.UserRole.Owner, actorId, cancellationToken);
+
+        await emailSender.SendAsync(
+            link.RequiresLogin
+                ? EmailTemplates.OwnerAccessGranted(owner.Email, owner.FullName, gym.Name, link.Url)
+                : EmailTemplates.OwnerInvitation(owner.Email, owner.FullName, gym.Name, link.Url),
+            cancellationToken);
+        logger.LogInformation("Acceso reenviado al owner {UserId} del gym {GymId} por {ActorId}", userId, gymId, actorId);
     }
 }

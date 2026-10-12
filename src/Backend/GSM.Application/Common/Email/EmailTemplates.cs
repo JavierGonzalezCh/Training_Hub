@@ -44,6 +44,31 @@ public static class EmailTemplates
             $"Te dieron acceso al panel de un gimnasio más. Entra con tu contraseña de siempre y elige el gimnasio: {loginUrl}");
     }
 
+    /// <summary>Invitación al Owner de un gym nuevo (Gyms §4): el enlace de activación abre el formulario de contraseña.</summary>
+    public static EmailMessage OwnerInvitation(string to, string fullName, string gymName, string activationUrl)
+    {
+        var html = $"""
+            <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
+            <p>Bienvenido a GSM. Creamos el gimnasio <strong>{WebUtility.HtmlEncode(gymName)}</strong> y eres su Owner.</p>
+            <p><a href="{WebUtility.HtmlEncode(activationUrl)}">Activar mi cuenta</a></p>
+            <p>El enlace vence en 72 horas. Si vence, pide otro a quien te dio de alta o usa "¿Olvidaste tu contraseña?" en la pantalla de entrada.</p>
+            """;
+        return new EmailMessage(to, "Bienvenido a GSM, activa tu cuenta", html,
+            $"Bienvenido a GSM. Eres el Owner de {gymName}. Activa tu cuenta (vence en 72 horas): {activationUrl}");
+    }
+
+    /// <summary>Owner de un gym nuevo que ya tenía cuenta: el enlace lo lleva a entrar con su contraseña de siempre.</summary>
+    public static EmailMessage OwnerAccessGranted(string to, string fullName, string gymName, string loginUrl)
+    {
+        var html = $"""
+            <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
+            <p>Ahora eres Owner del gimnasio <strong>{WebUtility.HtmlEncode(gymName)}</strong> en GSM.</p>
+            <p><a href="{WebUtility.HtmlEncode(loginUrl)}">Entrar</a> con tu email y tu contraseña de siempre: al iniciar sesión podrás elegir a qué gimnasio entrar.</p>
+            """;
+        return new EmailMessage(to, "Nuevo gimnasio en GSM", html,
+            $"Ahora eres Owner de {gymName}. Entra con tu contraseña de siempre y elige el gimnasio: {loginUrl}");
+    }
+
     /// <summary>Aviso al dueño de la cuenta cuando 5 contraseñas incorrectas la bloquean 15 minutos.</summary>
     public static EmailMessage AccountLockedOut(string to, string fullName, int minutes)
     {

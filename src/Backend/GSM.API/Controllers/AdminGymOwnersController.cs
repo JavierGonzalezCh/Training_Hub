@@ -30,4 +30,16 @@ public sealed class AdminGymOwnersController : ControllerBase
     public async Task<ActionResult<AccountLinkResponse>> CopyLink(
         Guid gymId, Guid userId, [FromServices] CopyOwnerLinkHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(gymId, userId, cancellationToken));
+
+    /// <summary>"Reenviar acceso": manda al owner por correo un enlace de activación nuevo (anula los anteriores).</summary>
+    [HttpPost("{userId:guid}/resend")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Resend(
+        Guid gymId, Guid userId, [FromServices] ResendOwnerAccessHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(gymId, userId, cancellationToken);
+        return NoContent();
+    }
 }

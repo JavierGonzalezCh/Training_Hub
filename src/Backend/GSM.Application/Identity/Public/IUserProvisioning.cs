@@ -34,7 +34,20 @@ public interface IUserProvisioning
         Guid gymId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Alta del Owner de un gym nuevo <b>sin contraseña</b> (Gyms §4): la cuenta nace sin ella y el Owner la
+    /// define con el enlace de activación (72 h). Si el email ya tiene cuenta, solo se agrega el acceso y el
+    /// enlace lo lleva a entrar. <c>ConflictException</c> si la cuenta no puede recibir accesos.
+    /// </summary>
+    Task<OwnerInvitation> InviteGymOwnerAsync(
+        string email, string fullName, Guid gymId, CancellationToken cancellationToken = default);
+
     /// <summary>El SuperAdmin: cuenta global sin accesos.</summary>
     Task<Guid> CreateSuperAdminAsync(
         string email, string fullName, string password, CancellationToken cancellationToken = default);
 }
+
+/// <param name="UserId">La cuenta del Owner.</param>
+/// <param name="ActivationUrl">Enlace listo para mandar. Con cuenta nueva abre el formulario de contraseña.</param>
+/// <param name="HadAccount"><c>true</c> si la persona ya tenía cuenta: el enlace solo la lleva a entrar.</param>
+public sealed record OwnerInvitation(Guid UserId, string ActivationUrl, bool HadAccount);

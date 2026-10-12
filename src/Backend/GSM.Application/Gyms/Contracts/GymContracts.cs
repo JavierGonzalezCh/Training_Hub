@@ -1,8 +1,17 @@
 using GSM.Application.Common;
 using GSM.Domain.Gyms;
+using GSM.Domain.Payments;
 
 namespace GSM.Application.Gyms.Contracts;
 
+/// <summary>
+/// Alta de un gym por el SuperAdmin (Gyms §4, SuperAdmin §V2). El Owner <b>no lleva contraseña</b>: recibe un
+/// enlace de activación. Hay que elegir <b>una</b> de dos: <c>TrialDays</c> (con prueba) o <c>FirstPayment</c>
+/// (sin prueba, el gym nace activo con ese primer pago). No existe un gym sin prueba y sin pago.
+/// </summary>
+/// <param name="TrialDays">Días de prueba (1 a 365). Excluyente con <paramref name="FirstPayment"/>.</param>
+/// <param name="MonthlyPrice">Precio mensual negociado con el cliente; sin indicar, 0 (se fija luego).</param>
+/// <param name="FirstPayment">Primer pago del SaaS cuando no hay prueba.</param>
 public sealed record CreateGymRequest(
     string Name,
     string Slug,
@@ -10,11 +19,26 @@ public sealed record CreateGymRequest(
     string? Phone,
     string? Email,
     GymPlan Plan,
-    CreateGymOwner Owner);
+    CreateGymOwner Owner,
+    int? TrialDays = null,
+    decimal? MonthlyPrice = null,
+    CreateGymFirstPayment? FirstPayment = null);
 
-public sealed record CreateGymOwner(string Email, string FullName, string Password);
+public sealed record CreateGymOwner(string Email, string FullName);
 
-public sealed record CreateGymResponse(Guid GymId, Guid OwnerId);
+/// <summary>
+/// Primer pago del gym al SaaS (pago del SaaS, no del gym). Sin fechas, cubre desde hoy un mes.
+/// </summary>
+public sealed record CreateGymFirstPayment(
+    decimal Amount,
+    PaymentMethod Method,
+    DateOnly? CoversFrom = null,
+    DateOnly? CoversThrough = null,
+    string? Reference = null,
+    string? Notes = null);
+
+/// <param name="OwnerInvitationSent"><c>false</c> si el correo falló: la cuenta existe y el enlace se copia desde la ficha.</param>
+public sealed record CreateGymResponse(Guid GymId, Guid OwnerId, bool OwnerInvitationSent = true);
 
 public sealed record UpdateGymRequest(
     string Name,
