@@ -12,6 +12,7 @@ using GSM.Domain.Members;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using GSM.Domain.Common.Exceptions;
 using Xunit;
 
 namespace GSM.IntegrationTests;
@@ -42,7 +43,7 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
     }
 
     [Fact]
-    public async Task Checkin_is_idempotent_per_day_and_unlocks_achievements_by_threshold()
+    public async Task Checkin_is_once_per_day_and_unlocks_achievements_by_threshold()
     {
         var (gymId, staffId, memberId) = await SeedGymWithAchievementsAsync();
         var day1 = new DateOnly(2026, 5, 4);
@@ -58,15 +59,11 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
             Assert.Contains(res.UnlockedAchievements, a => a.Name == "Primera visita");
         }
 
-        // Día 1 otra vez: idempotente, sin nuevos desbloqueos.
+        // Día 1 otra vez: una sola entrada por día (A1), el segundo intento es 409 y no suma logros.
         using (var scope = Staff(gymId, staffId, day1))
         {
-            var (res, created) = await scope.ServiceProvider.GetRequiredService<CheckInHandler>()
-                .HandleAsync(new CheckInRequest(memberId, null, "Cortesía de prueba"), default);
-
-            Assert.False(created);
-            Assert.True(res.AlreadyCheckedInToday);
-            Assert.Empty(res.UnlockedAchievements);
+            await Assert.ThrowsAsync<ConflictException>(() => scope.ServiceProvider.GetRequiredService<CheckInHandler>()
+                .HandleAsync(new CheckInRequest(memberId, null, "Cortesía de prueba"), default));
         }
 
         // Días 2 y 3.
