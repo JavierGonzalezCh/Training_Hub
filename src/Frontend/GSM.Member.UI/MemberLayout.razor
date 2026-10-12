@@ -6,6 +6,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService Dialogs
+@inject GSM.UI.Shared.Push.PushRegistrationService PushRegistration
 @implements IDisposable
 
 <GsmThemeProvider Gym="@GymCtx.Gym" />
@@ -112,6 +113,12 @@
             }
 
             _accesses = await Session.GetAccessesAsync();
+
+            // Si la persona ya dio el permiso, el token de este dispositivo se registra al entrar (puede haber rotado).
+            if (user.IsInRole(GsmRoles.Member))
+            {
+                _ = PushRegistration.SyncAsync(GSM.UI.Shared.Push.PushPlatforms.WebMember);
+            }
         }
         catch (ApiErrorException ex) when (ex.Error.IsUnauthorized)
         {
@@ -132,6 +139,7 @@
 
     private async Task LogoutAsync()
     {
+        await PushRegistration.DisableAsync(); // da de baja el dispositivo mientras la sesión sigue válida
         await Session.LogoutAsync();
         MemberCtx.Clear();
         Navigation.NavigateTo("/login", replace: true);

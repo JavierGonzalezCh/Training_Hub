@@ -53,7 +53,7 @@ public sealed record FeedItem(
     bool Pinned,
     ReactionCounts Reactions,
     string? MyReaction,
-    bool Important = false);
+    bool Important);
 
 /// <summary>
 /// Totales por tipo, como campos y no como diccionario de enum: NSwag genera mal las colecciones

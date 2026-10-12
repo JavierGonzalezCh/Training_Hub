@@ -1,0 +1,92 @@
+@page "/cuenta/avisos"
+@attribute [Authorize(Roles = "owner,staff")]
+@inject IStaffNotificationsClient StaffNotifications
+@inject ISnackbar Snackbar
+@* Qué avisos quiere recibir esta persona en su teléfono (push), por tipo de aviso (Notifications §8). El horario
+   sin avisos del gym no aplica al equipo: cada persona apaga lo que no quiere. *@
+
+<PageTitle>Avisos en el teléfono — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">Avisos en el teléfono</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6" Style="max-width:560px">
+    Elige qué avisos del gimnasio quieres recibir como notificación en este teléfono. Siempre te llegan a la
+    campana del panel; esto solo decide cuáles suenan además.
+</MudText>
+
+<div style="max-width:560px">
+    <PushPermissionPrompt Platform="@GSM.UI.Shared.Push.PushPlatforms.WebPanel"
+                          Title="Activa las notificaciones en este dispositivo"
+                          Message="Para que los avisos que elijas aquí lleguen aunque el panel esté cerrado, activa las notificaciones en este dispositivo." />
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <ul class="gsm-pref-list">
+            @foreach (var item in _items)
+            {
+                <li class="gsm-m-card gsm-pref" data-type="@item.Type">
+                    <div class="gsm-m-card__body">
+                        <h2 class="gsm-m-card__title">@item.Label</h2>
+                        <p class="gsm-m-card__text">@Describe(item.Type)</p>
+                    </div>
+                    <div class="gsm-pref__switches">
+                        <MudSwitch T="bool" Value="item.Push" ValueChanged="v => ChangeAsync(item, v)" Color="Color.Primary"
+                                   Disabled="_saving" Label="Push" aria-label="@($"{item.Label}: notificación push")" />
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private List<StaffPushPreferenceItem> _items = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = (await StaffNotifications.GetStaffPushPreferencesAsync()).Items.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ChangeAsync(StaffPushPreferenceItem item, bool push)
+    {
+        _saving = true;
+        try
+        {
+            var response = await StaffNotifications.UpdateStaffPushPreferencesAsync(new UpdateStaffPushPreferencesRequest
+            {
+                Items = [new StaffPushPreferenceUpdate { Type = item.Type, Push = push }],
+            });
+            _items = response.Items.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private static string Describe(string type) => type switch
+    {
+        "CheckinRejected" => "Cuando un miembro intenta entrar sin membresía vigente. Puede haber muchos al día, por eso empieza apagado.",
+        _ => string.Empty,
+    };
+}

@@ -6,6 +6,7 @@
 @inject IBrowserViewportService BrowserViewport
 @inject ViewportState Viewport
 @inject IDialogService Dialogs
+@inject GSM.UI.Shared.Push.PushRegistrationService PushRegistration
 @implements IDisposable
 
 <GsmThemeProvider Gym="@GymContext.Gym" />
@@ -57,6 +58,7 @@
                         @* Quien impersona un gym no es dueño de esa cuenta: no puede cambiar su contraseña desde aquí. *@
                         @if (context.User.IsInRole("owner") || context.User.IsInRole("staff"))
                         {
+                            <MudMenuItem Icon="@Icons.Material.Filled.NotificationsActive" Href="/cuenta/avisos">Avisos en el teléfono</MudMenuItem>
                             <MudMenuItem Icon="@Icons.Material.Filled.Lock" Href="/cuenta/contrasena">Cambiar contraseña</MudMenuItem>
                         }
                         <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">Cerrar sesión</MudMenuItem>
@@ -77,6 +79,12 @@
     <MudMainContent Class="gsm-main">
         <SubscriptionBanner />
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="gsm-page">
+            @* Invitación a activar los avisos: solo con el panel instalado como app, que es cuando el push llega con él cerrado. *@
+            <AuthorizeView Roles="owner,staff">
+                <PushPermissionPrompt Platform="@GSM.UI.Shared.Push.PushPlatforms.WebPanel" RequireInstalled="true"
+                                      Title="Activa los avisos del gimnasio"
+                                      Message="Recibe en este teléfono las alertas del gimnasio aunque el panel esté cerrado. Elige cuáles quieres en «Avisos en el teléfono»." />
+            </AuthorizeView>
             @Body
         </MudContainer>
     </MudMainContent>
@@ -116,6 +124,12 @@
 
         // Con más de un acceso (otros gyms, o el otro modo de este gym) se ofrece "Cambiar de gimnasio".
         _accesses = await Session.GetAccessesAsync();
+
+        // Si la persona del equipo ya dio el permiso en este dispositivo, se registra su token (puede haber rotado).
+        if (state.User.IsInRole("owner") || state.User.IsInRole("staff"))
+        {
+            _ = PushRegistration.SyncAsync(GSM.UI.Shared.Push.PushPlatforms.WebPanel);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -155,6 +169,7 @@
 
     private async Task LogoutAsync()
     {
+        await PushRegistration.DisableAsync(); // da de baja el dispositivo mientras la sesión sigue válida
         await Session.LogoutAsync();
         Navigation.NavigateTo("/login", replace: true);
     }

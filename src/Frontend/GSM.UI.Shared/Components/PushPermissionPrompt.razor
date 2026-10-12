@@ -1,0 +1,117 @@
+@using GSM.UI.Shared.Push
+@inject PushRegistrationService Push
+@inject IPushNotifications Device
+@* Invitación a activar los avisos del teléfono. Nunca se muestra al abrir la app por primera vez: la página que
+   lo usa decide el momento ("Activa los avisos para que te recordemos tu clase") y la explicación. Solo aparece si
+   el servidor tiene Firebase, el dispositivo lo soporta y la persona no lo activó ni lo descartó. En iPhone sin
+   instalar muestra cómo instalar la app en la pantalla de inicio. *@
+
+@if (_done && _message is not null)
+{
+    <p class="gsm-push-prompt__status" role="status">@_message</p>
+}
+
+@if (_state is { } state && !_done)
+{
+    <aside class="gsm-push-prompt" role="region" aria-label="Activar avisos" data-state="@state">
+        <div class="gsm-push-prompt__text">
+            <strong class="gsm-push-prompt__title">@Title</strong>
+            @if (state == PushPermissionState.NeedsInstall)
+            {
+                <p class="gsm-push-prompt__body">
+                    En iPhone los avisos llegan solo si instalas la app: toca el botón Compartir y elige
+                    «Añadir a pantalla de inicio». Luego ábrela desde ahí y activa los avisos.
+                </p>
+            }
+            else
+            {
+                <p class="gsm-push-prompt__body">@Message</p>
+            }
+
+            @if (_message is not null)
+            {
+                <p class="gsm-push-prompt__status" role="status">@_message</p>
+            }
+        </div>
+        <div class="gsm-push-prompt__actions">
+            @if (state == PushPermissionState.Default)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="EnableAsync"
+                           Disabled="_busy" data-action="enable">Activar avisos</MudButton>
+            }
+            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="DismissAsync" Disabled="_busy"
+                       data-action="dismiss">@(state == PushPermissionState.NeedsInstall ? "Entendido" : "Ahora no")</MudButton>
+        </div>
+    </aside>
+}
+
+@code {
+    /// <summary><c>web_member</c> (app del miembro) o <c>web_panel</c> (panel del gym).</summary>
+    [Parameter, EditorRequired]
+    public string Platform { get; set; } = PushPlatforms.WebMember;
+
+    [Parameter]
+    public string Title { get; set; } = "Activa los avisos";
+
+    /// <summary>La explicación en contexto: por qué conviene activar los avisos justo aquí.</summary>
+    [Parameter]
+    public string Message { get; set; } = "Recibe avisos en este dispositivo aunque no tengas la app abierta.";
+
+    /// <summary>El panel solo lo pide cuando está instalado como app (§6: «al staff al entrar al panel instalado»).</summary>
+    [Parameter]
+    public bool RequireInstalled { get; set; }
+
+    /// <summary>Se dispara al terminar (activado, descartado o negado).</summary>
+    [Parameter]
+    public EventCallback<PushEnableResult> OnEnabled { get; set; }
+
+    private PushPermissionState? _state;
+    private bool _busy;
+    private bool _done;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RequireInstalled && !await Device.IsInstalledAsync())
+        {
+            return;
+        }
+
+        _state = await Push.GetOfferAsync();
+    }
+
+    private async Task EnableAsync()
+    {
+        _busy = true;
+        try
+        {
+            var result = await Push.EnableAsync(Platform);
+            switch (result)
+            {
+                case PushEnableResult.Enabled:
+                    _done = true;
+                    break;
+                case PushEnableResult.Denied:
+                    _message = "No diste el permiso. Puedes activarlo más tarde desde los ajustes del navegador.";
+                    await Push.DismissAsync();
+                    _done = true;
+                    break;
+                default:
+                    _message = "No pudimos activar los avisos ahora. Inténtalo de nuevo más tarde.";
+                    break;
+            }
+
+            await OnEnabled.InvokeAsync(result);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DismissAsync()
+    {
+        await Push.DismissAsync();
+        _done = true;
+    }
+}

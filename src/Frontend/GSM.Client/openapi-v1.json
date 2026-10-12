@@ -9678,6 +9678,139 @@
         }
       }
     },
+    "/api/push/config": {
+      "get": {
+        "tags": [
+          "Push"
+        ],
+        "operationId": "GetPushConfig",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushConfigResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushConfigResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push/devices": {
+      "post": {
+        "tags": [
+          "Push"
+        ],
+        "operationId": "RegisterPushDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushDeviceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushDeviceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDeviceResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDeviceResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDeviceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push/devices/unregister": {
+      "post": {
+        "tags": [
+          "Push"
+        ],
+        "operationId": "UnregisterPushDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnregisterPushDeviceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnregisterPushDeviceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnregisterPushDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/routine-exercises/{id}/log": {
       "post": {
         "tags": [
@@ -10641,6 +10774,104 @@
         }
       }
     },
+    "/api/staff/notifications/push-preferences": {
+      "get": {
+        "tags": [
+          "StaffNotifications"
+        ],
+        "operationId": "GetStaffPushPreferences",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPushPreferencesResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPushPreferencesResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPushPreferencesResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "StaffNotifications"
+        ],
+        "operationId": "UpdateStaffPushPreferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPushPreferencesRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPushPreferencesRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffPushPreferencesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPushPreferencesResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPushPreferencesResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPushPreferencesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/staff/notifications/{id}/resolve": {
       "post": {
         "tags": [
@@ -11375,7 +11606,9 @@
           "createdAt",
           "reactions",
           "delivery",
-          "category"
+          "category",
+          "important",
+          "importantMarkedBy"
         ],
         "type": "object",
         "properties": {
@@ -11431,6 +11664,16 @@
           },
           "category": {
             "type": "string"
+          },
+          "important": {
+            "type": "boolean"
+          },
+          "importantMarkedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -12183,6 +12426,10 @@
           },
           "category": {
             "$ref": "#/components/schemas/AnnouncementCategory"
+          },
+          "important": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -13173,7 +13420,8 @@
           "publishedAt",
           "pinned",
           "reactions",
-          "myReaction"
+          "myReaction",
+          "important"
         ],
         "type": "object",
         "properties": {
@@ -13202,6 +13450,9 @@
               "null",
               "string"
             ]
+          },
+          "important": {
+            "type": "boolean"
           }
         }
       },
@@ -16275,6 +16526,68 @@
           }
         }
       },
+      "PushConfigResponse": {
+        "required": [
+          "enabled",
+          "projectId",
+          "apiKey",
+          "appId",
+          "messagingSenderId",
+          "vapidKey"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "projectId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "apiKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "appId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "messagingSenderId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vapidKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PushDeviceResponse": {
+        "required": [
+          "id",
+          "platform"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "platform": {
+            "type": "string"
+          }
+        }
+      },
       "ReactionCounts": {
         "required": [
           "like",
@@ -16445,6 +16758,21 @@
           },
           "session": {
             "$ref": "#/components/schemas/AuthTokensResponse"
+          }
+        }
+      },
+      "RegisterPushDeviceRequest": {
+        "required": [
+          "token",
+          "platform"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
           }
         }
       },
@@ -17738,6 +18066,54 @@
           }
         }
       },
+      "StaffPushPreferenceItem": {
+        "required": [
+          "type",
+          "label",
+          "push"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "push": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StaffPushPreferencesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffPushPreferenceItem"
+            }
+          }
+        }
+      },
+      "StaffPushPreferenceUpdate": {
+        "required": [
+          "type",
+          "push"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "push": {
+            "type": "boolean"
+          }
+        }
+      },
       "StaffResponse": {
         "required": [
           "id",
@@ -18084,6 +18460,17 @@
           }
         }
       },
+      "UnregisterPushDeviceRequest": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
       "UpdateAchievementRequest": {
         "required": [
           "name",
@@ -18155,6 +18542,12 @@
               {
                 "$ref": "#/components/schemas/AnnouncementCategory"
               }
+            ]
+          },
+          "important": {
+            "type": [
+              "null",
+              "boolean"
             ]
           }
         }
@@ -18748,6 +19141,20 @@
           }
         }
       },
+      "UpdateStaffPushPreferencesRequest": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffPushPreferenceUpdate"
+            }
+          }
+        }
+      },
       "UpdateSubscriptionRequest": {
         "required": [
           "plan",
@@ -19043,6 +19450,9 @@
     },
     {
       "name": "PublicCommunications"
+    },
+    {
+      "name": "Push"
     },
     {
       "name": "RoutineExercises"

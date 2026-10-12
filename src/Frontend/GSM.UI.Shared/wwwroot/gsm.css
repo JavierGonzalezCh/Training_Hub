@@ -2897,3 +2897,60 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 }
 
 .gsm-m-week li.is-today { font-weight: 700; }
+
+/* ---------- N2: push web y anuncio importante ---------- */
+
+.gsm-push-prompt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    margin: 0 0 1rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-left: 3px solid var(--gsm-accent);
+    border-radius: var(--gsm-radius-lg);
+    color: var(--gsm-text);
+}
+
+.gsm-push-prompt__text {
+    flex: 1 1 16rem;
+}
+
+.gsm-push-prompt__title {
+    display: block;
+    font-weight: 600;
+}
+
+.gsm-push-prompt__body,
+.gsm-push-prompt__status {
+    margin: 0.25rem 0 0;
+    color: var(--gsm-text-2);
+    font-size: 0.9rem;
+}
+
+.gsm-push-prompt__actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Anuncio importante: fijo arriba del feed, con el acento de la marca y su etiqueta. */
+.gsm-feed-card.is-important {
+    border-color: var(--gsm-accent);
+    box-shadow: inset 4px 0 0 var(--gsm-accent);
+}
+
+.gsm-important-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: var(--gsm-accent);
+    color: #fff;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}

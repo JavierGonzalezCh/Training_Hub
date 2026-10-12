@@ -10,6 +10,13 @@
 
 <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Clases</MudText>
 
+@if (_offerPush)
+{
+    <PushPermissionPrompt Platform="@GSM.UI.Shared.Push.PushPlatforms.WebMember"
+                          Title="Activa los avisos"
+                          Message="Activa los avisos para que te recordemos tu clase y te contemos si se cancela." />
+}
+
 @if (GymCtx.FeatureFlags?.ShowClasses == false)
 {
     <MudAlert Severity="Severity.Normal">Las clases no están activadas en este gimnasio.</MudAlert>
@@ -139,6 +146,7 @@ else
     }
     private List<ScheduleEntry> _entries = [];
     private bool _loading = true;
+    private bool _offerPush;
 
     protected override Task OnInitializedAsync() => GymCtx.FeatureFlags?.ShowClasses == false ? Task.CompletedTask : LoadAsync();
 
@@ -178,6 +186,7 @@ else
         {
             await MemberClasses.BookPOSTAsync(entry.ClassId, entry.SessionDate);
             Snackbar.Add("Reserva confirmada.", Severity.Success);
+            _offerPush = true; // el momento con sentido para pedir el permiso de avisos
             await LoadAsync();
         }
         catch (GsmApiException ex)

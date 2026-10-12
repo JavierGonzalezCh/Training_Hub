@@ -23,6 +23,7 @@ builder.Services.AddGsmUiShared();
 builder.Services.AddGsmMemberUi();
 builder.Services.AddGsmPanel();
 builder.Services.AddScoped<GSM.UI.Shared.IClipboard, BrowserClipboard>();
+builder.Services.AddScoped<GSM.UI.Shared.Push.IPushNotifications, BrowserPushNotifications>();
 builder.Services.AddSingleton<GSM.Member.UI.IQrScanner, GSM.Member.UI.UnsupportedQrScanner>();
 
 await builder.Build().RunAsync();
