@@ -15,9 +15,10 @@ public sealed class CheckinAttemptRepository(GsmDbContext dbContext) : ICheckinA
         => Attempts.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
     public Task<CheckinAttempt?> GetPendingForMemberOnDateAsync(
-        Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
+        Guid memberId, DateOnly date, CheckinRejectionReason reason, CancellationToken cancellationToken = default)
         => Attempts.FirstOrDefaultAsync(
-            a => a.MemberId == memberId && a.AttemptDate == date && a.AcknowledgedAt == null, cancellationToken);
+            a => a.MemberId == memberId && a.AttemptDate == date && a.Reason == reason && a.AcknowledgedAt == null,
+            cancellationToken);
 
     public async Task<(IReadOnlyList<CheckinAttempt> Items, int Total)> GetPageAsync(
         AttemptPageQuery query, CancellationToken cancellationToken = default)
@@ -37,6 +38,11 @@ public sealed class CheckinAttemptRepository(GsmDbContext dbContext) : ICheckinA
         if (query.PendingOnly)
         {
             q = q.Where(a => a.AcknowledgedAt == null);
+        }
+
+        if (query.Reason is { } reason)
+        {
+            q = q.Where(a => a.Reason == reason);
         }
 
         var total = await q.CountAsync(cancellationToken);
