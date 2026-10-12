@@ -14,6 +14,7 @@ public static class PaymentsInfrastructureRegistration
     {
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IPaymentReader, PaymentReader>();
+        services.AddScoped<IVoidRequestRepository, VoidRequestRepository>();
 
         return services;
     }

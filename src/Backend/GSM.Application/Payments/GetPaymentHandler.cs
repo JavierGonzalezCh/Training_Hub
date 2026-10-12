@@ -5,7 +5,8 @@ using GSM.Domain.Common.Exceptions;
 
 namespace GSM.Application.Payments;
 
-public sealed class GetPaymentHandler(ICurrentUserService currentUser, IPaymentRepository payments)
+public sealed class GetPaymentHandler(
+    ICurrentUserService currentUser, IPaymentRepository payments, IVoidRequestRepository voidRequests)
 {
     public async Task<PaymentResponse> HandleAsync(Guid paymentId, CancellationToken cancellationToken)
     {
@@ -17,6 +18,7 @@ public sealed class GetPaymentHandler(ICurrentUserService currentUser, IPaymentR
         return PaymentMapper.ToResponse(payment) with
         {
             IsReversed = await payments.IsReversedAsync(payment.Id, cancellationToken),
+            HasPendingVoidRequest = await voidRequests.GetPendingForPaymentAsync(payment.Id, cancellationToken) is not null,
         };
     }
 }

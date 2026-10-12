@@ -10,15 +10,25 @@
 <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
     <MudText Typo="Typo.h4">Pagos</MudText>
     <MudSpacer />
-    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PointOfSale"
-               OnClick="@(() => Navigation.NavigateTo("/cash-register"))">
-        Cierre de caja
-    </MudButton>
+    <AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.ViewFinances)">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PointOfSale"
+                   OnClick="@(() => Navigation.NavigateTo("/cash-register"))">
+            Cierre de caja
+        </MudButton>
+    </AuthorizeView>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenRecordAsync">
         Registrar pago
     </MudButton>
 </div>
 
+<AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.VoidPayments)">
+    <VoidRequestsInbox OnResolved="RefreshTableAsync" />
+</AuthorizeView>
+
+@* La lista completa de pagos del gym es financiera (Payments v2 §7): Owner o ViewFinances. Los pagos de un
+   miembro los ve todo el staff en la pestaña Pagos de su ficha. *@
+<AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.ViewFinances)">
+<Authorized Context="finance">
 <ServerTable @ref="_table" TItem="PaymentResponse" Load="LoadAsync">
     <ToolBarContent>
         <MudDatePicker Label="Desde" Date="_from" DateChanged="OnFromChangedAsync" Class="mr-4" Style="max-width:180px" />
@@ -54,12 +64,28 @@
         <div class="gsm-card__actions"><PaymentVoidAction Payment="context" OnVoided="@(() => _table.RefreshAsync())" /></div>
     </CardTemplate>
 </ServerTable>
+</Authorized>
+<NotAuthorized>
+    <MudAlert Severity="Severity.Info" Dense="true" data-testid="no-finances">
+        La lista completa de pagos es solo para el Owner o quien tenga el permiso de ver finanzas. Puedes registrar
+        cobros aquí y ver los pagos de cada miembro en su ficha.
+    </MudAlert>
+</NotAuthorized>
+</AuthorizeView>
 
 @code {
     private ServerTable<PaymentResponse> _table = null!;
     private DateTime? _from;
     private DateTime? _to;
     private string _method = FilterValues.All;
+
+    private async Task RefreshTableAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.RefreshAsync();
+        }
+    }
 
     private async Task<ServerTablePage<PaymentResponse>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -104,7 +130,7 @@
         if (result is { Canceled: false })
         {
             Snackbar.Add("Pago registrado.", Severity.Success);
-            await _table.RefreshAsync();
+            await RefreshTableAsync();
         }
     }
 }

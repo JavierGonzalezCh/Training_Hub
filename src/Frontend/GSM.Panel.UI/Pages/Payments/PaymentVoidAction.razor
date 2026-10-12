@@ -10,12 +10,29 @@ else if (Payment.ReversesPaymentId is not null)
 {
     <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">ANULACIÓN</MudChip>
 }
+else if (Payment.HasPendingVoidRequest == true)
+{
+    <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono"
+             data-testid="void-requested">ANULACIÓN SOLICITADA</MudChip>
+}
 else
 {
-    <MudTooltip Text="Anular pago">
-        <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small" aria-label="@($"Anular {Payment.Concept}")"
-                       OnClick="VoidAsync" />
-    </MudTooltip>
+    @* Anular directo es del Owner o de quien tiene VoidPayments; el resto pide la anulación (Payments v2 §6). *@
+    <AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.VoidPayments)">
+        <Authorized>
+            <MudTooltip Text="Anular pago">
+                <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small" aria-label="@($"Anular {Payment.Concept}")"
+                               data-testid="void-payment" OnClick="VoidAsync" />
+            </MudTooltip>
+        </Authorized>
+        <NotAuthorized>
+            <MudTooltip Text="Solicitar anulación">
+                <MudIconButton Icon="@Icons.Material.Filled.ReportProblem" Size="Size.Small"
+                               aria-label="@($"Solicitar anulación de {Payment.Concept}")"
+                               data-testid="request-void" OnClick="RequestVoidAsync" />
+            </MudTooltip>
+        </NotAuthorized>
+    </AuthorizeView>
 }
 
 @code {
@@ -24,6 +41,18 @@ else
 
     [Parameter]
     public EventCallback OnVoided { get; set; }
+
+    private async Task RequestVoidAsync()
+    {
+        var parameters = new DialogParameters<RequestVoidDialog> { { x => x.Payment, Payment } };
+        var dialog = await Dialogs.ShowAsync<RequestVoidDialog>("Solicitar anulación", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Solicitud enviada. Quien puede anular pagos la verá en su campana.", Severity.Success);
+            await OnVoided.InvokeAsync();
+        }
+    }
 
     private async Task VoidAsync()
     {

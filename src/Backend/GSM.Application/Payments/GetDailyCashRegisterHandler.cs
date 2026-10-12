@@ -1,6 +1,8 @@
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Payments.Abstractions;
 using GSM.Application.Payments.Contracts;
+using GSM.Domain.Common.Exceptions;
+using GSM.Domain.Identity;
 
 namespace GSM.Application.Payments;
 
@@ -8,12 +10,17 @@ namespace GSM.Application.Payments;
 public sealed class GetDailyCashRegisterHandler(
     ICurrentUserService currentUser,
     IClock clock,
-    IPaymentRepository payments)
+    IPaymentRepository payments,
+    IVoidRequestRepository voidRequests)
 {
     public async Task<DailyCashRegisterResponse> HandleAsync(
         DateOnly? date, CancellationToken cancellationToken)
     {
         _ = currentUser.RequireGymId();
+        if (!currentUser.HasPermission(StaffPermission.ViewFinances))
+        {
+            throw new ForbiddenDomainException("No tienes permiso para ver el cierre de caja.");
+        }
 
         var day = date ?? clock.Today;
         var (fromUtc, toUtc) = clock.BusinessDayRange(day);
@@ -21,6 +28,8 @@ public sealed class GetDailyCashRegisterHandler(
         var dayPayments = await payments.GetInRangeAsync(fromUtc, toUtc, cancellationToken);
 
         var reversed = await payments.GetReversedIdsAsync(dayPayments.Select(p => p.Id).ToList(), cancellationToken);
+
+        var pending = await voidRequests.GetPendingPaymentIdsAsync(dayPayments.Select(p => p.Id).ToList(), cancellationToken);
 
         var totalsByMethod = dayPayments
             .GroupBy(p => p.Method.ToString())
@@ -31,6 +40,6 @@ public sealed class GetDailyCashRegisterHandler(
             dayPayments.Sum(p => p.Amount),
             dayPayments.Count,
             totalsByMethod,
-            dayPayments.Select(p => PaymentMapper.ToResponse(p, reversed)).ToList());
+            dayPayments.Select(p => PaymentMapper.ToResponse(p, reversed, pending)).ToList());
     }
 }

@@ -1,0 +1,239 @@
+﻿using System;
+using GSM.Domain.Payments;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace GSM.Infrastructure.Migrations
+{
+    /// <inheritdoc />
+    public partial class V2_P2_VoidRequests : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AlterDatabase()
+                .Annotation("Npgsql:Enum:achievements.condition_type", "visits,streak,routine_sessions,classes")
+                .Annotation("Npgsql:Enum:attendance.attendance_method", "qr,manual")
+                .Annotation("Npgsql:Enum:attendance.checkin_mode", "rotating,static")
+                .Annotation("Npgsql:Enum:attendance.checkin_rejection_reason", "membership_expired,no_membership,gym_closed")
+                .Annotation("Npgsql:Enum:classes.class_booking_status", "booked,cancelled,attended,no_show")
+                .Annotation("Npgsql:Enum:classes.class_session_status", "scheduled,cancelled")
+                .Annotation("Npgsql:Enum:classes.day_of_week", "monday,tuesday,wednesday,thursday,friday,saturday,sunday")
+                .Annotation("Npgsql:Enum:communications.announcement_category", "gym_news,promotions")
+                .Annotation("Npgsql:Enum:communications.announcement_status", "draft,published,archived")
+                .Annotation("Npgsql:Enum:communications.reaction_kind", "like,celebrate,strong")
+                .Annotation("Npgsql:Enum:communications.whatsapp_template_kind", "expiring_soon,expired,app_invitation,birthday")
+                .Annotation("Npgsql:Enum:equipment.equipment_status", "available,maintenance,out_of_service")
+                .Annotation("Npgsql:Enum:equipment.equipment_type", "barbell,dumbbell,kettlebell,machine,cable,smith_machine,bench,rack,resistance_band,trx,medicine_ball,mat,box,jump_rope,bodyweight,cardio_machine")
+                .Annotation("Npgsql:Enum:gyms.gym_plan", "basic,pro,enterprise")
+                .Annotation("Npgsql:Enum:gyms.gym_status", "trial,active,suspended")
+                .Annotation("Npgsql:Enum:identity.staff_access_audit_action", "invited,profile_changed,permission_granted,permission_revoked,link_copied")
+                .Annotation("Npgsql:Enum:identity.staff_permission", "view_member_health,trainer,manage_attendance,void_payments,view_finances")
+                .Annotation("Npgsql:Enum:identity.staff_profile", "reception,trainer,administrator")
+                .Annotation("Npgsql:Enum:identity.user_role", "superadmin,owner,staff,member")
+                .Annotation("Npgsql:Enum:members.consent_channel", "app,front_desk,import")
+                .Annotation("Npgsql:Enum:members.consent_type", "data_processing,liability_waiver")
+                .Annotation("Npgsql:Enum:members.document_type", "cc,ti,ce,pa,ppt,nit,other")
+                .Annotation("Npgsql:Enum:members.gender", "female,male,other,undisclosed")
+                .Annotation("Npgsql:Enum:members.member_change_role", "member,staff,owner,superadmin,system")
+                .Annotation("Npgsql:Enum:members.member_change_source", "panel,app,import,system")
+                .Annotation("Npgsql:Enum:members.member_goal", "weight_loss,muscle_gain,fitness,health,sport,other")
+                .Annotation("Npgsql:Enum:members.member_source", "walk_in,referral,social_media,google,flyer,corporate,other")
+                .Annotation("Npgsql:Enum:members.member_status", "active,inactive")
+                .Annotation("Npgsql:Enum:memberships.membership_status", "active,expired,paused,cancelled")
+                .Annotation("Npgsql:Enum:memberships.renewal_kind", "new,early,in_grace,after_grace")
+                .Annotation("Npgsql:Enum:notifications.delivery_channel", "push,email")
+                .Annotation("Npgsql:Enum:notifications.delivery_status", "pending,sent,failed,skipped")
+                .Annotation("Npgsql:Enum:notifications.notification_category", "membership,classes,progress,news,promotions,security")
+                .Annotation("Npgsql:Enum:notifications.notification_priority", "normal,urgent")
+                .Annotation("Npgsql:Enum:notifications.notification_status", "pending,held,sent,failed,cancelled,skipped")
+                .Annotation("Npgsql:Enum:notifications.notification_type", "class_cancelled,membership_expiring,achievement_unlocked,announcement,checkin_rejected,void_requested")
+                .Annotation("Npgsql:Enum:payments.payment_method", "cash,card,nequi,daviplata,breb,bank_transfer,bank_deposit,other")
+                .Annotation("Npgsql:Enum:payments.void_request_status", "pending,approved,rejected")
+                .Annotation("Npgsql:Enum:routines.difficulty", "beginner,intermediate,advanced")
+                .Annotation("Npgsql:Enum:routines.exercise_type", "strength,cardio,mobility,stretching,plyometrics")
+                .Annotation("Npgsql:Enum:routines.muscle", "chest,back,shoulders,biceps,triceps,forearms,quadriceps,hamstrings,glutes,calves,abs,lower_back,neck,full_body,traps,obliques,adductors,abductors")
+                .Annotation("Npgsql:Enum:routines.schedule_mode", "rotating,weekly")
+                .Annotation("Npgsql:Enum:routines.tracking_type", "reps_weight,reps,time,distance,time_distance")
+                .Annotation("Npgsql:Enum:superadmin.impersonation_mode", "read,write")
+                .OldAnnotation("Npgsql:Enum:achievements.condition_type", "visits,streak,routine_sessions,classes")
+                .OldAnnotation("Npgsql:Enum:attendance.attendance_method", "qr,manual")
+                .OldAnnotation("Npgsql:Enum:attendance.checkin_mode", "rotating,static")
+                .OldAnnotation("Npgsql:Enum:attendance.checkin_rejection_reason", "membership_expired,no_membership,gym_closed")
+                .OldAnnotation("Npgsql:Enum:classes.class_booking_status", "booked,cancelled,attended,no_show")
+                .OldAnnotation("Npgsql:Enum:classes.class_session_status", "scheduled,cancelled")
+                .OldAnnotation("Npgsql:Enum:classes.day_of_week", "monday,tuesday,wednesday,thursday,friday,saturday,sunday")
+                .OldAnnotation("Npgsql:Enum:communications.announcement_category", "gym_news,promotions")
+                .OldAnnotation("Npgsql:Enum:communications.announcement_status", "draft,published,archived")
+                .OldAnnotation("Npgsql:Enum:communications.reaction_kind", "like,celebrate,strong")
+                .OldAnnotation("Npgsql:Enum:communications.whatsapp_template_kind", "expiring_soon,expired,app_invitation,birthday")
+                .OldAnnotation("Npgsql:Enum:equipment.equipment_status", "available,maintenance,out_of_service")
+                .OldAnnotation("Npgsql:Enum:equipment.equipment_type", "barbell,dumbbell,kettlebell,machine,cable,smith_machine,bench,rack,resistance_band,trx,medicine_ball,mat,box,jump_rope,bodyweight,cardio_machine")
+                .OldAnnotation("Npgsql:Enum:gyms.gym_plan", "basic,pro,enterprise")
+                .OldAnnotation("Npgsql:Enum:gyms.gym_status", "trial,active,suspended")
+                .OldAnnotation("Npgsql:Enum:identity.staff_access_audit_action", "invited,profile_changed,permission_granted,permission_revoked,link_copied")
+                .OldAnnotation("Npgsql:Enum:identity.staff_permission", "view_member_health,trainer,manage_attendance,void_payments,view_finances")
+                .OldAnnotation("Npgsql:Enum:identity.staff_profile", "reception,trainer,administrator")
+                .OldAnnotation("Npgsql:Enum:identity.user_role", "superadmin,owner,staff,member")
+                .OldAnnotation("Npgsql:Enum:members.consent_channel", "app,front_desk,import")
+                .OldAnnotation("Npgsql:Enum:members.consent_type", "data_processing,liability_waiver")
+                .OldAnnotation("Npgsql:Enum:members.document_type", "cc,ti,ce,pa,ppt,nit,other")
+                .OldAnnotation("Npgsql:Enum:members.gender", "female,male,other,undisclosed")
+                .OldAnnotation("Npgsql:Enum:members.member_change_role", "member,staff,owner,superadmin,system")
+                .OldAnnotation("Npgsql:Enum:members.member_change_source", "panel,app,import,system")
+                .OldAnnotation("Npgsql:Enum:members.member_goal", "weight_loss,muscle_gain,fitness,health,sport,other")
+                .OldAnnotation("Npgsql:Enum:members.member_source", "walk_in,referral,social_media,google,flyer,corporate,other")
+                .OldAnnotation("Npgsql:Enum:members.member_status", "active,inactive")
+                .OldAnnotation("Npgsql:Enum:memberships.membership_status", "active,expired,paused,cancelled")
+                .OldAnnotation("Npgsql:Enum:memberships.renewal_kind", "new,early,in_grace,after_grace")
+                .OldAnnotation("Npgsql:Enum:notifications.delivery_channel", "push,email")
+                .OldAnnotation("Npgsql:Enum:notifications.delivery_status", "pending,sent,failed,skipped")
+                .OldAnnotation("Npgsql:Enum:notifications.notification_category", "membership,classes,progress,news,promotions,security")
+                .OldAnnotation("Npgsql:Enum:notifications.notification_priority", "normal,urgent")
+                .OldAnnotation("Npgsql:Enum:notifications.notification_status", "pending,held,sent,failed,cancelled,skipped")
+                .OldAnnotation("Npgsql:Enum:notifications.notification_type", "class_cancelled,membership_expiring,achievement_unlocked,announcement,checkin_rejected")
+                .OldAnnotation("Npgsql:Enum:payments.payment_method", "cash,card,nequi,daviplata,breb,bank_transfer,bank_deposit,other")
+                .OldAnnotation("Npgsql:Enum:routines.difficulty", "beginner,intermediate,advanced")
+                .OldAnnotation("Npgsql:Enum:routines.exercise_type", "strength,cardio,mobility,stretching,plyometrics")
+                .OldAnnotation("Npgsql:Enum:routines.muscle", "chest,back,shoulders,biceps,triceps,forearms,quadriceps,hamstrings,glutes,calves,abs,lower_back,neck,full_body,traps,obliques,adductors,abductors")
+                .OldAnnotation("Npgsql:Enum:routines.schedule_mode", "rotating,weekly")
+                .OldAnnotation("Npgsql:Enum:routines.tracking_type", "reps_weight,reps,time,distance,time_distance")
+                .OldAnnotation("Npgsql:Enum:superadmin.impersonation_mode", "read,write");
+
+            migrationBuilder.CreateTable(
+                name: "void_requests",
+                schema: "payments",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    gym_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    payment_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    requested_by = table.Column<Guid>(type: "uuid", nullable: false),
+                    requested_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    status = table.Column<VoidRequestStatus>(type: "payments.void_request_status", nullable: false),
+                    resolved_by = table.Column<Guid>(type: "uuid", nullable: true),
+                    resolved_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_void_requests", x => x.id);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_void_requests_gym_id_status_requested_at",
+                schema: "payments",
+                table: "void_requests",
+                columns: new[] { "gym_id", "status", "requested_at" });
+
+            migrationBuilder.CreateIndex(
+                name: "ux_void_requests_pending_payment",
+                schema: "payments",
+                table: "void_requests",
+                column: "payment_id",
+                unique: true,
+                filter: "status = 'pending'");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "void_requests",
+                schema: "payments");
+
+
+            migrationBuilder.AlterDatabase()
+                .Annotation("Npgsql:Enum:achievements.condition_type", "visits,streak,routine_sessions,classes")
+                .Annotation("Npgsql:Enum:attendance.attendance_method", "qr,manual")
+                .Annotation("Npgsql:Enum:attendance.checkin_mode", "rotating,static")
+                .Annotation("Npgsql:Enum:attendance.checkin_rejection_reason", "membership_expired,no_membership,gym_closed")
+                .Annotation("Npgsql:Enum:classes.class_booking_status", "booked,cancelled,attended,no_show")
+                .Annotation("Npgsql:Enum:classes.class_session_status", "scheduled,cancelled")
+                .Annotation("Npgsql:Enum:classes.day_of_week", "monday,tuesday,wednesday,thursday,friday,saturday,sunday")
+                .Annotation("Npgsql:Enum:communications.announcement_category", "gym_news,promotions")
+                .Annotation("Npgsql:Enum:communications.announcement_status", "draft,published,archived")
+                .Annotation("Npgsql:Enum:communications.reaction_kind", "like,celebrate,strong")
+                .Annotation("Npgsql:Enum:communications.whatsapp_template_kind", "expiring_soon,expired,app_invitation,birthday")
+                .Annotation("Npgsql:Enum:equipment.equipment_status", "available,maintenance,out_of_service")
+                .Annotation("Npgsql:Enum:equipment.equipment_type", "barbell,dumbbell,kettlebell,machine,cable,smith_machine,bench,rack,resistance_band,trx,medicine_ball,mat,box,jump_rope,bodyweight,cardio_machine")
+                .Annotation("Npgsql:Enum:gyms.gym_plan", "basic,pro,enterprise")
+                .Annotation("Npgsql:Enum:gyms.gym_status", "trial,active,suspended")
+                .Annotation("Npgsql:Enum:identity.staff_access_audit_action", "invited,profile_changed,permission_granted,permission_revoked,link_copied")
+                .Annotation("Npgsql:Enum:identity.staff_permission", "view_member_health,trainer,manage_attendance,void_payments,view_finances")
+                .Annotation("Npgsql:Enum:identity.staff_profile", "reception,trainer,administrator")
+                .Annotation("Npgsql:Enum:identity.user_role", "superadmin,owner,staff,member")
+                .Annotation("Npgsql:Enum:members.consent_channel", "app,front_desk,import")
+                .Annotation("Npgsql:Enum:members.consent_type", "data_processing,liability_waiver")
+                .Annotation("Npgsql:Enum:members.document_type", "cc,ti,ce,pa,ppt,nit,other")
+                .Annotation("Npgsql:Enum:members.gender", "female,male,other,undisclosed")
+                .Annotation("Npgsql:Enum:members.member_change_role", "member,staff,owner,superadmin,system")
+                .Annotation("Npgsql:Enum:members.member_change_source", "panel,app,import,system")
+                .Annotation("Npgsql:Enum:members.member_goal", "weight_loss,muscle_gain,fitness,health,sport,other")
+                .Annotation("Npgsql:Enum:members.member_source", "walk_in,referral,social_media,google,flyer,corporate,other")
+                .Annotation("Npgsql:Enum:members.member_status", "active,inactive")
+                .Annotation("Npgsql:Enum:memberships.membership_status", "active,expired,paused,cancelled")
+                .Annotation("Npgsql:Enum:memberships.renewal_kind", "new,early,in_grace,after_grace")
+                .Annotation("Npgsql:Enum:notifications.delivery_channel", "push,email")
+                .Annotation("Npgsql:Enum:notifications.delivery_status", "pending,sent,failed,skipped")
+                .Annotation("Npgsql:Enum:notifications.notification_category", "membership,classes,progress,news,promotions,security")
+                .Annotation("Npgsql:Enum:notifications.notification_priority", "normal,urgent")
+                .Annotation("Npgsql:Enum:notifications.notification_status", "pending,held,sent,failed,cancelled,skipped")
+                .Annotation("Npgsql:Enum:notifications.notification_type", "class_cancelled,membership_expiring,achievement_unlocked,announcement,checkin_rejected")
+                .Annotation("Npgsql:Enum:payments.payment_method", "cash,card,nequi,daviplata,breb,bank_transfer,bank_deposit,other")
+                .Annotation("Npgsql:Enum:routines.difficulty", "beginner,intermediate,advanced")
+                .Annotation("Npgsql:Enum:routines.exercise_type", "strength,cardio,mobility,stretching,plyometrics")
+                .Annotation("Npgsql:Enum:routines.muscle", "chest,back,shoulders,biceps,triceps,forearms,quadriceps,hamstrings,glutes,calves,abs,lower_back,neck,full_body,traps,obliques,adductors,abductors")
+                .Annotation("Npgsql:Enum:routines.schedule_mode", "rotating,weekly")
+                .Annotation("Npgsql:Enum:routines.tracking_type", "reps_weight,reps,time,distance,time_distance")
+                .Annotation("Npgsql:Enum:superadmin.impersonation_mode", "read,write")
+                .OldAnnotation("Npgsql:Enum:achievements.condition_type", "visits,streak,routine_sessions,classes")
+                .OldAnnotation("Npgsql:Enum:attendance.attendance_method", "qr,manual")
+                .OldAnnotation("Npgsql:Enum:attendance.checkin_mode", "rotating,static")
+                .OldAnnotation("Npgsql:Enum:attendance.checkin_rejection_reason", "membership_expired,no_membership,gym_closed")
+                .OldAnnotation("Npgsql:Enum:classes.class_booking_status", "booked,cancelled,attended,no_show")
+                .OldAnnotation("Npgsql:Enum:classes.class_session_status", "scheduled,cancelled")
+                .OldAnnotation("Npgsql:Enum:classes.day_of_week", "monday,tuesday,wednesday,thursday,friday,saturday,sunday")
+                .OldAnnotation("Npgsql:Enum:communications.announcement_category", "gym_news,promotions")
+                .OldAnnotation("Npgsql:Enum:communications.announcement_status", "draft,published,archived")
+                .OldAnnotation("Npgsql:Enum:communications.reaction_kind", "like,celebrate,strong")
+                .OldAnnotation("Npgsql:Enum:communications.whatsapp_template_kind", "expiring_soon,expired,app_invitation,birthday")
+                .OldAnnotation("Npgsql:Enum:equipment.equipment_status", "available,maintenance,out_of_service")
+                .OldAnnotation("Npgsql:Enum:equipment.equipment_type", "barbell,dumbbell,kettlebell,machine,cable,smith_machine,bench,rack,resistance_band,trx,medicine_ball,mat,box,jump_rope,bodyweight,cardio_machine")
+                .OldAnnotation("Npgsql:Enum:gyms.gym_plan", "basic,pro,enterprise")
+                .OldAnnotation("Npgsql:Enum:gyms.gym_status", "trial,active,suspended")
+                .OldAnnotation("Npgsql:Enum:identity.staff_access_audit_action", "invited,profile_changed,permission_granted,permission_revoked,link_copied")
+                .OldAnnotation("Npgsql:Enum:identity.staff_permission", "view_member_health,trainer,manage_attendance,void_payments,view_finances")
+                .OldAnnotation("Npgsql:Enum:identity.staff_profile", "reception,trainer,administrator")
+                .OldAnnotation("Npgsql:Enum:identity.user_role", "superadmin,owner,staff,member")
+                .OldAnnotation("Npgsql:Enum:members.consent_channel", "app,front_desk,import")
+                .OldAnnotation("Npgsql:Enum:members.consent_type", "data_processing,liability_waiver")
+                .OldAnnotation("Npgsql:Enum:members.document_type", "cc,ti,ce,pa,ppt,nit,other")
+                .OldAnnotation("Npgsql:Enum:members.gender", "female,male,other,undisclosed")
+                .OldAnnotation("Npgsql:Enum:members.member_change_role", "member,staff,owner,superadmin,system")
+                .OldAnnotation("Npgsql:Enum:members.member_change_source", "panel,app,import,system")
+                .OldAnnotation("Npgsql:Enum:members.member_goal", "weight_loss,muscle_gain,fitness,health,sport,other")
+                .OldAnnotation("Npgsql:Enum:members.member_source", "walk_in,referral,social_media,google,flyer,corporate,other")
+                .OldAnnotation("Npgsql:Enum:members.member_status", "active,inactive")
+                .OldAnnotation("Npgsql:Enum:memberships.membership_status", "active,expired,paused,cancelled")
+                .OldAnnotation("Npgsql:Enum:memberships.renewal_kind", "new,early,in_grace,after_grace")
+                .OldAnnotation("Npgsql:Enum:notifications.delivery_channel", "push,email")
+                .OldAnnotation("Npgsql:Enum:notifications.delivery_status", "pending,sent,failed,skipped")
+                .OldAnnotation("Npgsql:Enum:notifications.notification_category", "membership,classes,progress,news,promotions,security")
+                .OldAnnotation("Npgsql:Enum:notifications.notification_priority", "normal,urgent")
+                .OldAnnotation("Npgsql:Enum:notifications.notification_status", "pending,held,sent,failed,cancelled,skipped")
+                .OldAnnotation("Npgsql:Enum:notifications.notification_type", "class_cancelled,membership_expiring,achievement_unlocked,announcement,checkin_rejected,void_requested")
+                .OldAnnotation("Npgsql:Enum:payments.payment_method", "cash,card,nequi,daviplata,breb,bank_transfer,bank_deposit,other")
+                .OldAnnotation("Npgsql:Enum:payments.void_request_status", "pending,approved,rejected")
+                .OldAnnotation("Npgsql:Enum:routines.difficulty", "beginner,intermediate,advanced")
+                .OldAnnotation("Npgsql:Enum:routines.exercise_type", "strength,cardio,mobility,stretching,plyometrics")
+                .OldAnnotation("Npgsql:Enum:routines.muscle", "chest,back,shoulders,biceps,triceps,forearms,quadriceps,hamstrings,glutes,calves,abs,lower_back,neck,full_body,traps,obliques,adductors,abductors")
+                .OldAnnotation("Npgsql:Enum:routines.schedule_mode", "rotating,weekly")
+                .OldAnnotation("Npgsql:Enum:routines.tracking_type", "reps_weight,reps,time,distance,time_distance")
+                .OldAnnotation("Npgsql:Enum:superadmin.impersonation_mode", "read,write");
+        }
+    }
+}

@@ -3,6 +3,7 @@ using GSM.Application.Common.Abstractions;
 using GSM.Application.Members.Public;
 using GSM.Application.Memberships.Public;
 using GSM.Application.Payments.Public;
+using GSM.Domain.Identity;
 
 namespace GSM.Application.Dashboard;
 
@@ -22,6 +23,7 @@ public sealed class GetDashboardHandler(
         var gymId = currentUser.RequireGymId();
         var today = clock.Today;
         var lastMonth = today.AddMonths(-1);
+        var canViewFinances = currentUser.HasPermission(StaffPermission.ViewFinances);
 
         var settings = await memberships.GetSettingsAsync(gymId, cancellationToken);
         var expiring = await memberships.GetExpiringAsync(gymId, settings.ExpiringDays, cancellationToken);
@@ -42,8 +44,8 @@ public sealed class GetDashboardHandler(
         return new DashboardResponse(
             ActiveMembers: await members.GetActiveCountAsync(gymId, cancellationToken),
             CheckInsToday: await attendance.GetTodayCountAsync(gymId, cancellationToken),
-            RevenueThisMonth: await payments.GetMonthlyRevenueAsync(gymId, today.Year, today.Month, cancellationToken),
-            RevenueLastMonth: await payments.GetMonthlyRevenueAsync(gymId, lastMonth.Year, lastMonth.Month, cancellationToken),
+            RevenueThisMonth: !canViewFinances ? null : await payments.GetMonthlyRevenueAsync(gymId, today.Year, today.Month, cancellationToken),
+            RevenueLastMonth: !canViewFinances ? null : await payments.GetMonthlyRevenueAsync(gymId, lastMonth.Year, lastMonth.Month, cancellationToken),
             ExpiredMemberships: await memberships.GetExpiredCountAsync(gymId, cancellationToken),
             ExpiringSoon: expiring.Count,
             ExpiringMemberships: rows,

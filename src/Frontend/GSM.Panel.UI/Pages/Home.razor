@@ -33,8 +33,11 @@ else if (_dashboard is { } dashboard)
         <StatCard Label="Check-ins hoy" Value="@dashboard.CheckInsToday.ToString()" Accent="Color.Info"
                   Meter="@Ratio(dashboard.CheckInsToday, dashboard.ActiveMembers)"
                   Hint="@($"{Percent(dashboard.CheckInsToday, dashboard.ActiveMembers)} de los activos")" />
-        <StatCard Label="Ingresos del mes" Value="@GsmFormat.Money((decimal)dashboard.RevenueThisMonth)"
-                  Hint="@RevenueHint(dashboard)" />
+        @if (dashboard.RevenueThisMonth is { } revenue)
+        {
+            <StatCard Label="Ingresos del mes" Value="@GsmFormat.Money((decimal)revenue)"
+                      Hint="@RevenueHint(dashboard)" />
+        }
         <StatCard Label="@($"Por vencer · {dashboard.ExpiringDays} días")" Value="@dashboard.ExpiringSoon.ToString()"
                   Accent="@(dashboard.ExpiringSoon > 0 ? Color.Error : Color.Default)"
                   Hint="@($"{dashboard.ExpiredMemberships} ya vencidas")" />
@@ -298,12 +301,12 @@ else if (_dashboard is { } dashboard)
 
     private static string RevenueHint(DashboardResponse dashboard)
     {
-        if (dashboard.RevenueLastMonth <= 0)
+        if (dashboard.RevenueThisMonth is not { } thisMonth || dashboard.RevenueLastMonth is not { } lastMonth || lastMonth <= 0)
         {
             return "Sin datos del mes anterior";
         }
 
-        var change = (dashboard.RevenueThisMonth - dashboard.RevenueLastMonth) / dashboard.RevenueLastMonth * 100;
+        var change = (thisMonth - lastMonth) / lastMonth * 100;
         var sign = change >= 0 ? "+" : "";
         return $"{sign}{change:0} % vs mes anterior";
     }

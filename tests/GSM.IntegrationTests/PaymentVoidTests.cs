@@ -1,4 +1,4 @@
-using GSM.Application.Payments;
+﻿using GSM.Application.Payments;
 using GSM.Application.Payments.Contracts;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Gyms;
@@ -85,6 +85,7 @@ public sealed class PaymentVoidTests(ApiFactory factory) : IClassFixture<ApiFact
     {
         var scope = factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAs(staffId, gymId, UserRole.Staff);
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().Permissions.Add(StaffPermission.ViewFinances); // P2: finanzas
         return scope;
     }
 

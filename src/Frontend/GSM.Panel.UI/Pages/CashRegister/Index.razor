@@ -1,6 +1,7 @@
 @page "/cash-register"
 @using GSM.Panel.UI.Pages.Payments
-@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@* El cierre diario es financiero (Payments v2 §7): Owner o ViewFinances. *@
+@attribute [Authorize(Policy = "Permission:view_finances")]
 @inject ICashRegisterClient CashRegister
 @inject ISnackbar Snackbar
 

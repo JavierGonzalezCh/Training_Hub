@@ -24,9 +24,44 @@ public sealed record PaymentResponse(
 {
     /// <summary>Ya existe una anulación de este pago. No viene de la entidad: lo resuelve el caso de uso.</summary>
     public bool IsReversed { get; init; }
+
+    /// <summary>Hay una solicitud de anulación pendiente ("anulación solicitada"). La resuelve el caso de uso.</summary>
+    public bool HasPendingVoidRequest { get; init; }
 }
 
 public sealed record VoidPaymentRequest(string Reason);
+
+/// <summary>Pide anular un pago. El motivo es obligatorio (lo valida el dominio: 422).</summary>
+public sealed record RequestVoidRequest(string Reason);
+
+/// <summary>
+/// Solicitud de anulación con un resumen del pago para decidir sin abrirlo. <c>Status</c> es
+/// <c>pending</c>, <c>approved</c> o <c>rejected</c> (texto, no enum: NSwag infiere mal los enums de cuerpos).
+/// </summary>
+public sealed record VoidRequestResponse(
+    Guid Id,
+    Guid PaymentId,
+    string Reason,
+    Guid RequestedBy,
+    string? RequestedByName,
+    DateTimeOffset RequestedAt,
+    string Status,
+    Guid? ResolvedBy,
+    string? ResolvedByName,
+    DateTimeOffset? ResolvedAt,
+    string PaymentConcept,
+    decimal PaymentAmount,
+    string PaymentMethod,
+    Guid? PaymentMemberId,
+    DateTimeOffset PaymentPaidAt);
+
+public sealed record ListVoidRequestsQuery
+{
+    /// <summary><c>pending</c>, <c>approved</c> o <c>rejected</c>; sin valor, todas.</summary>
+    public string? Status { get; init; }
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 20;
+}
 
 public sealed record ListPaymentsQuery
 {
