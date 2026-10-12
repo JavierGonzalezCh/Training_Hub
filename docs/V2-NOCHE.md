@@ -51,7 +51,7 @@
 | G3 | **Unida** | Festivos 2026 verificados contra el calendario oficial. Ver pregunta 21 |
 | CO3 | **Unida** | Botón de WhatsApp en ficha, recepción y listas; plantillas por gym. `window.open` sin verificar en MAUI |
 | M2 | **Unida** | Texto base de las autorizaciones = **borrador pendiente de revisión legal**. Ver pregunta 20 |
-| N2 | **Unida** (67304c3), suite completa sin verificar (cortada por memoria) | Sin Firebase: detrás de `IPushSender`. Promoción no puede ser importante (añadido al unir) |
+| N2 | **Unida** (67304c3) | Sin Firebase: detrás de `IPushSender`. Promoción no puede ser importante (añadido al unir) |
 | A1 | Pendiente (va en serie con MS1b, G3b y C1) | — |
 | C1 | Pendiente (va en serie después de A1) | — |
 | P2 | **Unida** (07be3c8) | Rama `v2-P2-permisos-pagos-b`. Nota al rechazar añadida al unir |
@@ -132,6 +132,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-12: E2, P2, I7 y N2 unidas, con la nota al rechazar (P2) y "promoción no es importante" (N2) añadidas al unir. **Suite completa en verde: 432 integración + 219 bUnit.** Dos cortes de la suite por memoria en segundo plano: correrla en primer plano.
 - 2026-10-11: resueltas las 22 preguntas (ver §2). Script del cliente arreglado (curl.exe en PS 5.1) y `new-lane.ps1` con `--context`. Base `gsm` respaldada y migrada. **Nuevo límite: 3–4 agentes a la vez** (`V2-BUILD-PLAN.md` §3). Lanzadas N2, P2, I7 y E2; I7 y E2 en sus filas cuando terminen.
 - Línea base: 160 + 68 en verde.
 - Lanzadas T1, I2, P1 y R2 (4 agentes).
