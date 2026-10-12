@@ -1,5 +1,6 @@
 using GSM.Application.Common;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Identity.Public;
 using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
 using GSM.Application.Memberships.Public;
@@ -12,7 +13,8 @@ namespace GSM.Application.Members;
 /// guarda en la ficha): para filtrar, entrega los ids de cada estado y aquí se acota la consulta.
 /// </summary>
 public sealed class ListMembersHandler(
-    ICurrentUserService currentUser, IMemberRepository members, IMembershipReader memberships)
+    ICurrentUserService currentUser, IMemberRepository members, IMembershipReader memberships,
+    IIdentityReader identity)
 {
     private static readonly CommercialStatus[] WithPlan =
         [CommercialStatus.Current, CommercialStatus.Expiring, CommercialStatus.Grace,
@@ -43,15 +45,19 @@ public sealed class ListMembersHandler(
         }
 
         var (items, total) = await members.GetPageAsync(
-            new MemberPageQuery(query.Search?.Trim(), query.Status, query.Tag?.Trim(), page, pageSize, ids, exclude),
+            new MemberPageQuery(query.Search?.Trim(), query.Status, query.Tag?.Trim(), page, pageSize, ids, exclude, query.TrainerUserId, query.WithoutTrainer),
             cancellationToken);
 
         var statuses = await memberships.GetCommercialStatusesAsync(
             items.Select(m => m.Id).ToList(), cancellationToken);
 
+        var trainerNames = await AuthorNames.ResolveAsync(
+            identity, items.Select(m => m.TrainerUserId), cancellationToken);
+
         return new PagedResult<MemberListItem>(
             items.Select(m => MemberMapper.ToListItem(m) with
             {
+                TrainerName = m.TrainerUserId is { } t && trainerNames.TryGetValue(t, out var tn) ? tn : null,
                 CommercialStatus = EnumText.Snake(statuses.GetValueOrDefault(m.Id, CommercialStatus.NoPlan))!,
             }).ToList(),
             page, pageSize, total);

@@ -1,5 +1,7 @@
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Email;
+using GSM.Application.Common.Events;
+using GSM.Application.Identity.Events;
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -71,6 +73,7 @@ public sealed class CreateStaffHandler(
 public sealed class DeactivateStaffHandler(
     ICurrentUserService currentUser,
     IStaffAccountService staff,
+    IDomainEventPublisher events,
     ILogger<DeactivateStaffHandler> logger)
 {
     public async Task<StaffResponse> HandleAsync(Guid userId, CancellationToken cancellationToken)
@@ -78,6 +81,7 @@ public sealed class DeactivateStaffHandler(
         var gymId = currentUser.RequireGymId();
         var account = await staff.SetActiveAsync(gymId, userId, active: false, cancellationToken);
         logger.LogInformation("Staff {UserId} desactivado en el gym {GymId}", userId, gymId);
+        await events.PublishAsync(new StaffTrainerRoleLost(gymId, userId), cancellationToken);
         return StaffMapping.ToResponse(account);
     }
 }
@@ -103,6 +107,7 @@ public sealed class ReactivateStaffHandler(
 public sealed class UpdateStaffPermissionsHandler(
     ICurrentUserService currentUser,
     IStaffAccountService staff,
+    IDomainEventPublisher events,
     ILogger<UpdateStaffPermissionsHandler> logger)
 {
     public async Task<StaffResponse> HandleAsync(
@@ -121,6 +126,12 @@ public sealed class UpdateStaffPermissionsHandler(
             .ToList();
 
         var account = await staff.UpdateAccessAsync(gymId, userId, profile, permissions, actorId, cancellationToken);
+
+        // Sin Trainer, sus miembros quedan sin entrenador asignado (M1b). Idempotente si nunca lo tuvo.
+        if (!account.Permissions.Contains(Domain.Identity.StaffPermission.Trainer))
+        {
+            await events.PublishAsync(new StaffTrainerRoleLost(gymId, userId), cancellationToken);
+        }
 
         logger.LogInformation(
             "Perfil y permisos del staff {UserId} actualizados en el gym {GymId}: perfil {Profile}, {Count} permisos",

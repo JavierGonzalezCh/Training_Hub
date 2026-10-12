@@ -26,6 +26,29 @@ public sealed class MembersController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(query, cancellationToken));
 
+    /// <summary>Quienes pueden ser entrenador asignado: el Owner y el staff con el permiso Trainer.</summary>
+    [HttpGet("trainers")]
+    [EndpointName("ListMemberTrainers")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<IReadOnlyList<TrainerOption>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<TrainerOption>>> ListTrainers(
+        [FromServices] ListTrainersHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Asigna, cambia o quita (<c>trainerUserId</c> nulo) el entrenador del miembro. 422 si no puede serlo.</summary>
+    [HttpPut("{id:guid}/trainer")]
+    [EndpointName("AssignMemberTrainer")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<MemberDetail>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<MemberDetail>> AssignTrainer(
+        Guid id,
+        AssignTrainerRequest request,
+        [FromServices] AssignMemberTrainerHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType<MemberDetail>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

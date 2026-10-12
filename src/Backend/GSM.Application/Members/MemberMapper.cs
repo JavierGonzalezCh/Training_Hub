@@ -42,7 +42,10 @@ public static class MemberMapper
         m.JoinedAt,
         m.CreatedAt,
         m.IsMinor(today),
-        m.IsProfileIncomplete);
+        m.IsProfileIncomplete)
+    {
+        TrainerUserId = m.TrainerUserId,
+    };
 
     public static MemberListItem ToListItem(Member m) => new(
         m.Id,
@@ -54,7 +57,8 @@ public static class MemberMapper
         m.Status.ToString(),
         m.JoinedAt,
         m.Tags,
-        m.IsProfileIncomplete);
+        m.IsProfileIncomplete,
+        TrainerUserId: m.TrainerUserId);
 
     public static MemberProfile ToProfile(IMemberProfileInput r) => new(
         r.FirstName,

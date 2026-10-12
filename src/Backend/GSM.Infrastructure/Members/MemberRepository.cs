@@ -12,6 +12,10 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
     public Task<Member?> GetByIdAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Members.FirstOrDefaultAsync(m => m.Id == memberId, cancellationToken);
 
+    public async Task<IReadOnlyList<Member>> GetByTrainerAsync(
+        Guid trainerUserId, CancellationToken cancellationToken = default)
+        => await Members.Where(m => m.TrainerUserId == trainerUserId).ToListAsync(cancellationToken);
+
     public async Task<(IReadOnlyList<Member> Items, int Total)> GetPageAsync(
         MemberPageQuery query, CancellationToken cancellationToken = default)
     {
@@ -27,6 +31,15 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
             q = query.ExcludeIds
                 ? q.Where(m => !ids.Contains(m.Id))
                 : q.Where(m => ids.Contains(m.Id));
+        }
+
+        if (query.WithoutTrainer)
+        {
+            q = q.Where(m => m.TrainerUserId == null);
+        }
+        else if (query.TrainerUserId is { } trainerId)
+        {
+            q = q.Where(m => m.TrainerUserId == trainerId);
         }
 
         if (!string.IsNullOrWhiteSpace(query.Tag))
