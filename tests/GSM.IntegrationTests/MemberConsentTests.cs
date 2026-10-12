@@ -273,14 +273,15 @@ public sealed class MemberConsentTests(ApiFactory factory) : IClassFixture<ApiFa
         Assert.True(first.IsSuccessStatusCode, await first.Content.ReadAsStringAsync());
         Assert.True((await first.Content.ReadFromJsonAsync<CheckInResponse>())!.MissingWaiver);
 
+        // Una entrada por día: lo que sigue se lee en la tarjeta de recepción, que no registra nada.
         // Con la autorización de datos pero sin exoneración, sigue faltando.
         await RegisterAsync(staff, id, Data);
-        var second = await staff.PostAsJsonAsync("/api/attendance/checkin", new CheckInRequest(id, null, "Visita de prueba"));
-        Assert.True((await second.Content.ReadFromJsonAsync<CheckInResponse>())!.MissingWaiver);
+        var second = await staff.GetFromJsonAsync<GSM.Application.Attendance.Contracts.ReceptionCardResponse>($"/api/attendance/reception/{id}");
+        Assert.True(second!.MissingWaiver);
 
         await RegisterAsync(staff, id, Waiver);
-        var third = await staff.PostAsJsonAsync("/api/attendance/checkin", new CheckInRequest(id, null, "Visita de prueba"));
-        Assert.False((await third.Content.ReadFromJsonAsync<CheckInResponse>())!.MissingWaiver);
+        var third = await staff.GetFromJsonAsync<GSM.Application.Attendance.Contracts.ReceptionCardResponse>($"/api/attendance/reception/{id}");
+        Assert.False(third!.MissingWaiver);
     }
 
     // --- 7. Contrato público para M3/M4 ---

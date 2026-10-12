@@ -112,7 +112,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
 
         var item = Assert.Single(page.Items);
         Assert.Equal(2, item.AttemptCount);
-        Assert.Equal("MembershipExpired", item.Reason);
+        Assert.Equal("membership_expired", item.Reason);
         Assert.Equal(Today.AddDays(-4), item.MembershipEndedOn);
         Assert.Equal("Ana Prueba", item.MemberName);
 
@@ -132,7 +132,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         using var s = Scope(w, UserRole.Staff);
         var page = await s.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>()
             .HandleAsync(new ListCheckinAttemptsQuery(), default);
-        Assert.Equal("NoMembership", Assert.Single(page.Items).Reason);
+        Assert.Equal("no_membership", Assert.Single(page.Items).Reason);
     }
 
     [Fact]
@@ -150,23 +150,206 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
-    public async Task Someone_who_already_checked_in_today_is_not_rejected_later_the_same_day()
+    public async Task Second_qr_attempt_the_same_day_is_rejected_with_already_checked_in_and_never_rings_the_bell()
     {
-        var w = await SeedAsync(endedDaysAgo: 1);
+        var w = await SeedAsync(endedDaysAgo: -10);
         var code = CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today));
         await CheckInAsMember(w, code);
 
-        // Pasa la gracia (se acorta a 0) y vuelve a escanear el mismo dia.
+        var first = await Assert.ThrowsAsync<ConflictException>(() => CheckInAsMember(w, code));
+        Assert.Contains("Ya registraste tu entrada hoy a las", first.Message);
+        await Assert.ThrowsAsync<ConflictException>(() => CheckInAsMember(w, code));
+        await Assert.ThrowsAsync<ConflictException>(() => CheckInAsMember(w, code));
+
+        using var s = Scope(w, UserRole.Staff);
+        var list = s.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>();
+
+        // Un solo registro que cuenta las repeticiones (3 o más: el panel lo resalta).
+        var byReason = await list.HandleAsync(new ListCheckinAttemptsQuery { Reason = "already_checked_in" }, default);
+        var item = Assert.Single(byReason.Items);
+        Assert.Equal("already_checked_in", item.Reason);
+        Assert.Equal(3, item.AttemptCount);
+
+        // No es accionable: ni campana ni lista de pendientes; una sola asistencia.
+        Assert.Equal(0, await PendingCountAsync(w));
+        Assert.Empty((await list.HandleAsync(new ListCheckinAttemptsQuery { PendingOnly = true }, default)).Items);
+        var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
+        Assert.Equal(1, await db.Set<GSM.Domain.Attendance.Attendance>().CountAsync(a => a.GymId == w.GymId));
+    }
+
+    [Fact]
+    public async Task Staff_cannot_register_a_second_entry_the_same_day_even_with_a_reason()
+    {
+        var w = await SeedAsync(endedDaysAgo: -10);
+        await CheckInAsStaff(w);
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => CheckInAsStaff(w, "Otra vez"));
+        Assert.Contains("ya entró hoy a las", ex.Message);
+
+        using var s = Scope(w, UserRole.Staff);
+        var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
+        Assert.Equal(1, await db.Set<GSM.Domain.Attendance.Attendance>().CountAsync(a => a.GymId == w.GymId));
+        // Recepción no deja intento: el staff no "insiste", solo mira la tarjeta.
+        Assert.Equal(0, await db.Set<CheckinAttempt>().CountAsync(a => a.GymId == w.GymId));
+    }
+
+    [Fact]
+    public async Task Someone_who_entered_today_is_rejected_as_already_checked_in_not_for_membership()
+    {
+        var w = await SeedAsync(endedDaysAgo: 1);
+        await CheckInAsMember(w, CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today)));
+
+        // Pasa la gracia (se acorta a 0) y escanea de nuevo: el motivo es "ya entró", no la membresía.
         using (var s = Scope(w, UserRole.Owner))
         {
             await s.ServiceProvider.GetRequiredService<UpdateMembershipSettingsHandler>()
                 .HandleAsync(new UpdateMembershipSettingsRequest(0, 7), default);
         }
 
-        var (res, created) = await CheckInAsMember(w, code);
-        Assert.False(created);
-        Assert.True(res.AlreadyCheckedInToday);
+        await Assert.ThrowsAsync<ConflictException>(
+            () => CheckInAsMember(w, CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today))));
+
+        using var s2 = Scope(w, UserRole.Staff);
+        var list = s2.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>();
+        Assert.Equal("already_checked_in", Assert.Single((await list.HandleAsync(new ListCheckinAttemptsQuery(), default)).Items).Reason);
         Assert.Equal(0, await PendingCountAsync(w));
+    }
+
+    [Fact]
+    public async Task Frozen_membership_is_rejected_as_membership_frozen_and_staff_can_let_it_through()
+    {
+        var w = await SeedAsync(endedDaysAgo: -10);
+        using (var s = Scope(w, UserRole.Staff))
+        {
+            var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
+            var membership = await db.Set<Membership>().FirstAsync(m => m.MemberId == w.MemberId);
+            membership.Pause(Today);
+            await db.SaveChangesAsync();
+        }
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(
+            () => CheckInAsMember(w, CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today))));
+        Assert.Contains("congelada", ex.Message);
+
+        using (var s = Scope(w, UserRole.Staff))
+        {
+            var attempt = Assert.Single((await s.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>()
+                .HandleAsync(new ListCheckinAttemptsQuery { Reason = "membership_frozen" }, default)).Items);
+            Assert.Equal("membership_frozen", attempt.Reason);
+        }
+
+        // Recepción: sin motivo 422, con motivo entra como entrada autorizada.
+        await Assert.ThrowsAsync<ValidationDomainException>(() => CheckInAsStaff(w));
+        var (res, _) = await CheckInAsStaff(w, "El dueño lo autorizó");
+        Assert.True(res.Authorized);
+    }
+
+    [Fact]
+    public async Task Inactive_member_is_rejected_by_qr_with_a_recorded_attempt_and_staff_cannot_let_through()
+    {
+        var w = await SeedAsync(endedDaysAgo: -10);
+        await DeactivateAsync(w);
+
+        await Assert.ThrowsAsync<ConflictException>(
+            () => CheckInAsMember(w, CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today))));
+        // "Dejar pasar" no aplica a un miembro dado de baja: primero se reactiva la ficha.
+        await Assert.ThrowsAsync<ConflictException>(() => CheckInAsStaff(w, "Motivo cualquiera"));
+
+        using var s2 = Scope(w, UserRole.Staff);
+        var attempt = Assert.Single((await s2.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>()
+            .HandleAsync(new ListCheckinAttemptsQuery { Reason = "member_inactive" }, default)).Items);
+        Assert.Equal(1, attempt.AttemptCount);
+    }
+
+    [Fact]
+    public async Task Unknown_reason_filter_is_a_422()
+    {
+        var w = await SeedAsync(endedDaysAgo: -10);
+        using var s = Scope(w, UserRole.Staff);
+        await Assert.ThrowsAsync<ValidationDomainException>(() => s.ServiceProvider.GetRequiredService<ListCheckinAttemptsHandler>()
+            .HandleAsync(new ListCheckinAttemptsQuery { Reason = "nope" }, default));
+    }
+
+    [Fact]
+    public async Task Reception_card_reports_each_case_without_registering_anything()
+    {
+        var covered = await SeedAsync(endedDaysAgo: -10);
+        var expired = await SeedAsync(endedDaysAgo: 10);
+        var none = await SeedAsync(endedDaysAgo: null);
+
+        var ok = await CardOf(covered);
+        Assert.True(ok.CanRegister);
+        Assert.False(ok.CanLetThrough);
+        Assert.Null(ok.RejectionReason);
+        Assert.Equal("Ana Prueba", ok.MemberName);
+
+        var blocked = await CardOf(expired);
+        Assert.False(blocked.CanRegister);
+        Assert.True(blocked.CanLetThrough);
+        Assert.Equal("membership_expired", blocked.RejectionReason);
+
+        var noPlan = await CardOf(none);
+        Assert.True(noPlan.CanLetThrough);
+        Assert.Equal("no_membership", noPlan.RejectionReason);
+
+        // Ver la tarjeta no registra nada ni deja intentos.
+        using var s2 = Scope(covered, UserRole.Staff);
+        var db = s2.ServiceProvider.GetRequiredService<GsmDbContext>();
+        Assert.Equal(0, await db.Set<GSM.Domain.Attendance.Attendance>().CountAsync(a => a.GymId == covered.GymId));
+        Assert.Equal(0, await db.Set<CheckinAttempt>().CountAsync(a => a.GymId == covered.GymId));
+    }
+
+    [Fact]
+    public async Task Reception_card_after_entering_says_already_checked_in_and_offers_nothing()
+    {
+        var w = await SeedAsync(endedDaysAgo: -10);
+        await CheckInAsStaff(w);
+
+        var card = await CardOf(w);
+
+        Assert.True(card.AlreadyCheckedInToday);
+        Assert.NotNull(card.CheckedInAt);
+        Assert.False(card.CanRegister);
+        Assert.False(card.CanLetThrough);
+        Assert.Equal("already_checked_in", card.RejectionReason);
+    }
+
+    [Fact]
+    public async Task Reception_card_for_an_inactive_member_offers_no_let_through()
+    {
+        var w = await SeedAsync(endedDaysAgo: 10);
+        await DeactivateAsync(w);
+
+        var card = await CardOf(w);
+        Assert.False(card.MemberActive);
+        Assert.False(card.CanRegister);
+        Assert.False(card.CanLetThrough);
+        Assert.Equal("member_inactive", card.RejectionReason);
+    }
+
+    [Fact]
+    public async Task Reception_card_is_for_staff_only_over_http()
+    {
+        var w = await SeedAsync(endedDaysAgo: -10);
+        var client = factory.CreateClient();
+
+        // Sin token: 401.
+        var anonymous = await client.GetAsync($"/api/attendance/reception/{w.MemberId}");
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, anonymous.StatusCode);
+    }
+
+    private async Task<ReceptionCardResponse> CardOf(World w)
+    {
+        using var s = Scope(w, UserRole.Staff);
+        return await s.ServiceProvider.GetRequiredService<GetReceptionCardHandler>().HandleAsync(w.MemberId, default);
+    }
+
+    private async Task DeactivateAsync(World w)
+    {
+        using var s = Scope(w, UserRole.Staff);
+        var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
+        (await db.Set<Member>().FirstAsync(m => m.Id == w.MemberId)).Deactivate();
+        await db.SaveChangesAsync();
     }
 
     [Fact]

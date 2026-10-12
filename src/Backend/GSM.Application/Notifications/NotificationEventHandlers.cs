@@ -192,11 +192,16 @@ public sealed class CheckInRejectedCreatesActionNotice(
         var member = await members.GetAsync(domainEvent.MemberId, cancellationToken);
         var name = member is null ? "Un miembro" : $"{member.FirstName} {member.LastName}".Trim();
 
-        var reason = domainEvent.Reason == CheckinRejectionReason.NoMembership
-            ? "Sin membresía"
-            : domainEvent.MembershipEndedOn is { } ended
+        var reason = domainEvent.Reason switch
+        {
+            CheckinRejectionReason.NoMembership => "Sin membresía",
+            CheckinRejectionReason.MembershipFrozen => "Membresía congelada",
+            CheckinRejectionReason.PassExhausted => "Sin entradas en la tiquetera",
+            CheckinRejectionReason.MemberInactive => "Miembro dado de baja",
+            _ => domainEvent.MembershipEndedOn is { } ended
                 ? $"Venció el {ended.ToString("d 'de' MMMM", Colombia)}"
-                : "Membresía vencida";
+                : "Membresía vencida",
+        };
         var body = domainEvent.AttemptCount > 1
             ? $"{name} · {reason} · {domainEvent.AttemptCount} intentos"
             : $"{name} · {reason}";

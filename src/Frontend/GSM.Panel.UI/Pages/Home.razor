@@ -143,7 +143,7 @@ else if (_dashboard is { } dashboard)
                         <span class="gsm-feed__time">@GsmFormat.Time(item.AttemptedAt)</span>
                         <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(item.MemberName)</span>
                         <a class="gsm-feed__name" href="@($"/members/{item.MemberId}")">@item.MemberName</a>
-                        <span class="gsm-tag">@(item.Reason == "NoMembership" ? "Sin membresía" : "Vencida")@(item.AttemptCount > 1 ? $" · x{item.AttemptCount}" : "")</span>
+                        <span class="gsm-tag">@AttemptLabel(item.Reason)@(item.AttemptCount > 1 ? $" · x{item.AttemptCount}" : "")</span>
                     </li>
                 }
             </ol>
@@ -194,6 +194,16 @@ else if (_dashboard is { } dashboard)
 }
 
 @code {
+    private static string AttemptLabel(string reason) => reason switch
+    {
+        "no_membership" => "Sin membresía",
+        "membership_frozen" => "Congelada",
+        "pass_exhausted" => "Sin entradas",
+        "member_inactive" => "De baja",
+        "already_checked_in" => "Ya entró hoy",
+        _ => "Vencida",
+    };
+
     private const int PeakWindowDays = 30;
 
     private readonly DateOnly _today = GsmFormat.Today();
@@ -215,7 +225,7 @@ else if (_dashboard is { } dashboard)
         var dashboardTask = Dashboard.Dashboard2Async();
         var peakTask = Attendance.PeakHoursAsync(_today.AddDays(-PeakWindowDays), _today);
         var feedTask = Attendance.AttendanceGETAsync(null, _today, _today, null, 1, 8);
-        var rejectedTask = Attendance.AttemptsAsync(_today, _today, null, 1, 6);
+        var rejectedTask = Attendance.AttemptsAsync(_today, _today, null, null, 1, 6);
 
         try
         {

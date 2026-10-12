@@ -20,7 +20,6 @@ public sealed record CheckInResponse(
     string MemberName,
     DateTimeOffset CheckedInAt,
     string Method,
-    bool AlreadyCheckedInToday,
     bool MembershipExpired,
     IReadOnlyList<UnlockedAchievement> UnlockedAchievements,
     DateOnly? MembershipEndsOn,
@@ -45,6 +44,10 @@ public sealed record ListCheckinAttemptsQuery
     public DateOnly? From { get; init; }
     public DateOnly? To { get; init; }
     public bool PendingOnly { get; init; }
+
+    /// <summary>Filtra por motivo (snake_case: <c>already_checked_in</c>, <c>membership_expired</c>…). Vacío = todos.</summary>
+    public string? Reason { get; init; }
+
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }
@@ -83,3 +86,34 @@ public sealed record UpdateCheckinSettingsRequest(string Mode);
 
 /// <summary>Código vigente del gym. <c>ExpiresAtUtc</c> solo en modo rotativo.</summary>
 public sealed record KioskCodeResponse(string Mode, string Code, DateTimeOffset? ExpiresAtUtc);
+
+/// <summary>
+/// Tarjeta de recepción (paso 1 de §4): lo que se ve del miembro antes de registrar nada. No cambia
+/// datos. <c>RejectionReason</c> (snake_case) explica por qué no se puede registrar; nulo si se puede.
+/// </summary>
+/// <param name="Commercial"><c>no_plan</c>, <c>current</c>, <c>expiring</c>, <c>grace</c>, <c>expired</c> o <c>frozen</c>.</param>
+/// <param name="Kind"><c>covered</c>, <c>expiring</c>, <c>grace</c> o <c>blocked</c>.</param>
+/// <param name="RejectionReason"><c>gym_closed</c>, <c>member_inactive</c>, <c>already_checked_in</c>, <c>no_membership</c>, <c>membership_expired</c> o <c>membership_frozen</c>.</param>
+/// <param name="CanRegister">Se puede pulsar "Registrar entrada" (abierto, activo, no entró hoy y cubierto o en gracia).</param>
+/// <param name="CanLetThrough">Se puede "Dejar pasar" con motivo: bloqueado por la membresía, con el gym abierto y el miembro activo.</param>
+/// <param name="CheckedInAt">Instante de la entrada de hoy, si ya entró.</param>
+public sealed record ReceptionCardResponse(
+    Guid MemberId,
+    string MemberName,
+    string? PhotoUrl,
+    bool MemberActive,
+    string Commercial,
+    string Kind,
+    DateOnly? EndsOn,
+    int? DaysLeft,
+    int? GraceDaysLeft,
+    string? Notice,
+    string? BlockMessage,
+    bool AlreadyCheckedInToday,
+    DateTimeOffset? CheckedInAt,
+    bool MissingWaiver,
+    bool GymClosed,
+    string? GymClosedMessage,
+    bool CanRegister,
+    bool CanLetThrough,
+    string? RejectionReason);

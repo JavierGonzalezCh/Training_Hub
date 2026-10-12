@@ -91,7 +91,8 @@ else
             {
                 case 409:
                     _state = State.Rejected;
-                    _detail = $"{error.DisplayMessage} El gimnasio ya fue avisado.";
+                    // El mensaje del servidor ya dice qué hacer ("Ya registraste tu entrada hoy a las 6:12", "Pasa por recepción").
+                    _detail = error.DisplayMessage;
                     break;
                 case 422:
                     _state = State.Invalid;
@@ -114,12 +115,7 @@ else
 
     private void Resolve(CheckInResponse result)
     {
-        if (result.AlreadyCheckedInToday)
-        {
-            _state = State.Already;
-            _detail = $"{result.MemberName}, tu entrada de hoy ya estaba registrada ({GsmFormat.Time(result.CheckedInAt)}).";
-        }
-        else if (result.GraceDaysLeft is not null)
+        if (result.GraceDaysLeft is not null)
         {
             // El detalle de la gracia va en el letrero (Notice), que lo redacta Memberships.
             _state = State.Grace;

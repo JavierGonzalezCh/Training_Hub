@@ -91,10 +91,11 @@ public class CommercialStatusUiTests : TestContext
     {
         var member = new MemberListItem { Id = Guid.NewGuid(), FirstName = "Ana", LastName = "Prueba", DocumentNumber = "1", DocumentType = "cc", Status = "Active" };
         var page = Render(out var attendanceFake, out var membershipsFake);
-        membershipsFake.Handlers["AccessAsync"] = _ => new AccessStatusResponse
+        attendanceFake.Handlers["ReceptionCardAsync"] = _ => new ReceptionCardResponse
         {
-            Commercial = "expired", Kind = "blocked", BlockReason = "expired", CanEnter = false,
-            BlockMessage = "Membresía vencida el 7 oct, fuera de la gracia.",
+            MemberId = member.Id, MemberName = "Ana Prueba", MemberActive = true, Commercial = "expired", Kind = "blocked",
+            BlockMessage = "Membresía vencida el 7 oct, fuera de la gracia.", CanRegister = false, CanLetThrough = true,
+            RejectionReason = "membership_expired",
         };
 
         await Pick(page, member);
@@ -115,7 +116,7 @@ public class CommercialStatusUiTests : TestContext
             CheckedInAt = DateTimeOffset.UtcNow, Authorized = true, MembershipExpired = true,
         };
         page.FindAll("button").First(b => b.TextContent.Contains("Dejar pasar")).Click();
-        page.Find("#blocked-card input").Change("Paga mañana");
+        page.Find("#reception-card input").Change("Paga mañana");
         page.FindAll("button").First(b => b.TextContent.Contains("Confirmar entrada")).Click();
 
         page.WaitForAssertion(() => Assert.Contains("Entrada autorizada por recepción", page.Markup));
@@ -129,7 +130,12 @@ public class CommercialStatusUiTests : TestContext
     {
         var member = new MemberListItem { Id = Guid.NewGuid(), FirstName = "Ana", LastName = "Prueba", DocumentNumber = "1", DocumentType = "cc", Status = "Active" };
         var page = Render(out var attendanceFake, out var membershipsFake);
-        membershipsFake.Handlers["AccessAsync"] = _ => new AccessStatusResponse { Commercial = "expiring", Kind = "expiring", CanEnter = true };
+        attendanceFake.Handlers["ReceptionCardAsync"] = _ => new ReceptionCardResponse
+        {
+            MemberId = member.Id, MemberName = "Ana Prueba", MemberActive = true, Commercial = "expiring", Kind = "expiring",
+            DaysLeft = 3, Notice = "Tu plan vence en 3 días (el 13 oct). Renueva en recepción para no perder tu fecha.",
+            CanRegister = true,
+        };
         attendanceFake.Handlers["CheckinAsync"] = _ => new CheckInResponse
         {
             AttendanceId = Guid.NewGuid(), MemberId = member.Id, MemberName = "Ana Prueba", Method = "Manual",
@@ -138,8 +144,14 @@ public class CommercialStatusUiTests : TestContext
 
         await Pick(page, member);
 
+        // Paso 1: la tarjeta con el letrero; todavía no se registró nada.
         page.WaitForAssertion(() => Assert.Contains("Tu plan vence en 3 días", page.Find("#access-notice").TextContent));
         Assert.DoesNotContain("Dejar pasar", page.Markup);
+        Assert.DoesNotContain(attendanceFake.Calls, c => c.Method == "CheckinAsync");
+
+        // Paso 2: el botón registra.
+        page.Find("#register-button").Click();
+        page.WaitForAssertion(() => Assert.Contains("Entrada registrada", page.Find("#checkin-result").TextContent));
     }
 
     private IRenderedComponent<CheckIn> Render(out FakeClient attendanceFake, out FakeClient membershipsFake)

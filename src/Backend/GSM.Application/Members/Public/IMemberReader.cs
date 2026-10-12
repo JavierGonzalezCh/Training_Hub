@@ -69,4 +69,5 @@ public sealed record MemberInfo(
     Guid? UserId,
     string FirstName,
     string LastName,
-    MemberStatus Status);
+    MemberStatus Status,
+    string? PhotoUrl = null);
