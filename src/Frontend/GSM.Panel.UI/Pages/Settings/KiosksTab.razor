@@ -1,0 +1,160 @@
+@* Pestaña "Kioscos" de la configuración (Identity §8): el Owner agrega el equipo de la entrada, recibe un código
+   de 8 caracteres (vence en 10 minutos) para digitarlo en /kiosk, y puede revocar cada kiosco. Solo Owner. *@
+@inject IKiosksClient KiosksApi
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" Style="max-width:640px">
+    Cada equipo que muestra el QR en la entrada se empareja una sola vez: al agregarlo recibes un código de 8
+    caracteres, válido por 10 minutos, que se digita en la pantalla del kiosco. Un kiosco solo puede mostrar el QR
+    del gimnasio; no ve miembros, pagos ni configuración. Si lo revocas, el equipo pide un código nuevo.
+</MudText>
+
+<MudGrid Class="mb-4" Style="max-width:700px">
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="_name" Label="Nombre del kiosco" Placeholder="Entrada principal" Dense="true" MaxLength="100" />
+    </MudItem>
+    <MudItem xs="12" sm="3" Class="d-flex align-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" Disabled="_creating" FullWidth="true">
+            @(_creating ? "Creando..." : "Agregar kiosco")
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_created is not null)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4" Style="max-width:700px" id="pairing-code-alert">
+        Código de <b>@_created.Device.Name</b>:
+        <span class="gsm-mono" style="font-size:1.4rem;letter-spacing:.2em" id="pairing-code">@_created.PairingCode</span>
+        <br />
+        Digítalo en la pantalla del kiosco antes de las @_created.ExpiresAt.ToLocalTime().ToString("HH:mm"). Solo se muestra esta vez.
+    </MudAlert>
+}
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_kiosks.Count == 0)
+{
+    <MudText Color="Color.Secondary">Todavía no hay kioscos.</MudText>
+}
+else
+{
+    <MudTable Items="_kiosks" Hover="true" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">@context.Name</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@StatusColor(context.Status)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @StatusLabel(context.Status)
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.Status != "revoked")
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="@(() => RevokeAsync(context))">Revocar</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<KioskDeviceResponse> _kiosks = [];
+    private KioskCreatedResponse? _created;
+    private string _name = string.Empty;
+    private bool _loading = true;
+    private bool _creating;
+
+    internal static string StatusLabel(string status) => status switch
+    {
+        "pending" => "ESPERANDO CÓDIGO",
+        "expired" => "CÓDIGO VENCIDO",
+        "paired" => "EMPAREJADO",
+        "revoked" => "REVOCADO",
+        _ => status.ToUpperInvariant(),
+    };
+
+    private static Color StatusColor(string status) => status switch
+    {
+        "paired" => Color.Info,
+        "pending" => Color.Warning,
+        _ => Color.Default,
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _kiosks = (await KiosksApi.KiosksAllAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            Snackbar.Add("Ponle un nombre al kiosco, por ejemplo \"Entrada principal\".", Severity.Warning);
+            return;
+        }
+
+        _creating = true;
+        try
+        {
+            _created = await KiosksApi.KiosksPOSTAsync(new CreateKioskRequest { Name = _name.Trim() });
+            _name = string.Empty;
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _creating = false;
+        }
+    }
+
+    private async Task RevokeAsync(KioskDeviceResponse kiosk)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Revocar kiosco", $"¿Revocar \"{kiosk.Name}\"? El equipo dejará de mostrar el QR y pedirá un código nuevo.",
+            yesText: "Revocar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await KiosksApi.KiosksDELETEAsync(kiosk.Id);
+            if (_created?.Device.Id == kiosk.Id)
+            {
+                _created = null;
+            }
+
+            Snackbar.Add($"\"{kiosk.Name}\" revocado.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

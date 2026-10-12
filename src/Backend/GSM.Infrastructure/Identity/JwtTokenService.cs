@@ -38,6 +38,17 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
         return Issue(claims, _options.AccessTokenMinutes);
     }
 
+    public AccessToken CreateKioskAccessToken(Guid deviceId, string deviceName, Guid gymId)
+        => Issue(
+            new Dictionary<string, object>
+            {
+                [GsmClaims.Subject] = deviceId.ToString(),
+                [GsmClaims.Role] = RoleName.Kiosk,
+                [GsmClaims.Name] = deviceName,
+                [GsmClaims.GymId] = gymId.ToString(),
+            },
+            _options.AccessTokenMinutes);
+
     public AccessToken CreateImpersonationToken(ImpersonationTokenRequest request)
     {
         var claims = new Dictionary<string, object>

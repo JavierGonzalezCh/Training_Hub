@@ -63,6 +63,30 @@ public sealed class AuthController : ControllerBase
         RefreshRequest request, [FromServices] RefreshTokenHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
 
+    /// <summary>El equipo del kiosco canjea el código de emparejamiento y recibe su sesión de dispositivo (rol kiosk).</summary>
+    [HttpPost("kiosk/pair")]
+    [AllowAnonymous]
+    [SubscriptionGateExempt]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AuthTokensResponse>> PairKiosk(
+        PairKioskRequest request, [FromServices] PairKioskHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>Renueva el access token del kiosco con su token de renovación (no rota). 401 si el Owner lo revocó.</summary>
+    [HttpPost("kiosk/refresh")]
+    [AllowAnonymous]
+    [SubscriptionGateExempt]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AuthTokensResponse>> RefreshKiosk(
+        KioskRefreshRequest request, [FromServices] RefreshKioskHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
     [HttpPost("logout")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

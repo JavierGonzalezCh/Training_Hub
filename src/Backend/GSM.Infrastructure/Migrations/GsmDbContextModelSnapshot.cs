@@ -3276,6 +3276,76 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("gym_access_permissions", "identity");
                 });
 
+            modelBuilder.Entity("GSM.Infrastructure.Identity.KioskDevice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("PairedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paired_at");
+
+                    b.Property<Guid>("PairedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("paired_by");
+
+                    b.Property<DateTimeOffset?>("PairingCodeExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("pairing_code_expires_at");
+
+                    b.Property<string>("PairingCodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("pairing_code_hash");
+
+                    b.Property<string>("RefreshTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("refresh_token_hash");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_kiosk_devices");
+
+                    b.HasIndex("GymId")
+                        .HasDatabaseName("ix_kiosk_devices_gym_id");
+
+                    b.HasIndex("PairingCodeHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_kiosk_devices_pairing_code_hash")
+                        .HasFilter("pairing_code_hash IS NOT NULL");
+
+                    b.HasIndex("RefreshTokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_kiosk_devices_refresh_token_hash")
+                        .HasFilter("refresh_token_hash IS NOT NULL");
+
+                    b.ToTable("kiosk_devices", "identity");
+                });
+
             modelBuilder.Entity("GSM.Infrastructure.Identity.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")

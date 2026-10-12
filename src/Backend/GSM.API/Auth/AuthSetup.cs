@@ -3,6 +3,7 @@ using System.Text;
 using GSM.Application.Identity;
 using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
 namespace GSM.API.Auth;
@@ -36,6 +37,16 @@ public static class AuthSetup
             });
 
         var authorization = services.AddAuthorizationBuilder()
+            // `[Authorize]` a secas = cualquier sesión de persona. El token de un kiosco (Identity §8) solo
+            // abre los endpoints que lo nombran (`RequireStaffOrKiosk`): sin esto pasaría por todos los
+            // controllers que no declaran política.
+            .SetDefaultPolicy(new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .RequireAssertion(ctx => !ctx.User.IsInRole(RoleName.Kiosk))
+                .Build())
+            .AddPolicy(AuthPolicies.RequireStaffOrKiosk, p => p.RequireAssertion(ctx =>
+                ctx.User.IsInRole(RoleName.Owner) || ctx.User.IsInRole(RoleName.Staff)
+                || ctx.User.IsInRole(RoleName.Kiosk) || IsImpersonating(ctx.User)))
             .AddPolicy(AuthPolicies.RequireSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin))
             .AddPolicy(AuthPolicies.RequireOwner, p => p.RequireAssertion(ctx =>
                 ctx.User.IsInRole(RoleName.Owner) || IsImpersonating(ctx.User)))
@@ -73,7 +84,9 @@ public static class AuthPolicies
     public const string RequireSuperAdmin = "RequireSuperAdmin";
     public const string RequireOwner = "RequireOwner";
     public const string RequireStaff = "RequireStaff";
-    public const string RequireStaffOrSuperAdmin = "RequireStaffOrSuperAdmin";
+    /// <summary>Equipo del gym o el kiosco emparejado (solo para lo que el kiosco necesita, hoy el código del QR).</summary>
+    public const string RequireStaffOrKiosk = "RequireStaffOrKiosk";
+    public const string RequireStaffOrSuperAdmin ="RequireStaffOrSuperAdmin";
     public const string RequireMember = "RequireMember";
 
     /// <summary>Política que exige un permiso especial de staff (<see cref="RequirePermissionAttribute"/>).</summary>
