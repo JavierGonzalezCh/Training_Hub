@@ -59,6 +59,9 @@
 | I1 | **Unida** | Config nueva `Identity:PublicWebBaseUrl` (producción). Suite 343 + 156 | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
 | E2 | **Unida** (7f34d95) | Estado, historial, vencida, `IEquipmentReader` (nivel 1 sin conectar: E3). Alargar el arreglo añadido al unir |
 | I7 | **Unida** (d9e368b) | Cuenta `kiosk` con código de emparejamiento; sesión sin vencimiento hasta revocar |
+| A1 | **Unida** | Recepción en dos pasos (tarjeta), una entrada por día (409, intento `already_checked_in` sin campana), motivos `membership_frozen`/`pass_exhausted`/`member_inactive`. Migración V2_A1_M1b |
+| M1b | **Unida** | Entrenador asignado validado contra `Trainer`; se limpia al perder el permiso o desactivar la cuenta |
+| G1+S1 | **Unida** | Owner invitado sin contraseña, reenviar acceso, prueba opcional o primer pago. Falta S1b (fin de la prueba) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -132,6 +135,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-12: primera tanda con agentes que solo escriben código (A1, M1b, G1+S1). Se cortaron una vez por conexión y se retomaron. Al integrar: backend compiló a la primera; 2 errores de compilación y 3 de tests, todos menores. Migración única `V2_A1_M1b_MotivosYEntrenador`. **Suite: 460 + 234 en verde.**
 - 2026-10-12: E2, P2, I7 y N2 unidas, con la nota al rechazar (P2) y "promoción no es importante" (N2) añadidas al unir. **Suite completa en verde: 432 integración + 219 bUnit.** Dos cortes de la suite por memoria en segundo plano: correrla en primer plano.
 - 2026-10-11: resueltas las 22 preguntas (ver §2). Script del cliente arreglado (curl.exe en PS 5.1) y `new-lane.ps1` con `--context`. Base `gsm` respaldada y migrada. **Nuevo límite: 3–4 agentes a la vez** (`V2-BUILD-PLAN.md` §3). Lanzadas N2, P2, I7 y E2; I7 y E2 en sus filas cuando terminen.
 - Línea base: 160 + 68 en verde.
