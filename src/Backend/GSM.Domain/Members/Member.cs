@@ -5,7 +5,7 @@ using GSM.Domain.Common.Exceptions;
 namespace GSM.Domain.Members;
 
 /// <summary>
-/// Datos editables de la ficha de un miembro (Members v2, §3.1). Sin salud, entrenador ni
+/// Datos editables de la ficha de un miembro (Members v2, §3.1). Sin salud, entrenador (se asigna aparte) ni
 /// autorizaciones: esas piezas llegan en sub-etapas posteriores.
 /// </summary>
 public sealed record MemberProfile(
@@ -93,6 +93,14 @@ public sealed class Member : BaseEntity, ITenantEntity
     public MemberGoal? Goal { get; private set; }
 
     public string[] Tags { get; private set; } = [];
+
+    /// <summary>
+    /// Entrenador asignado (M1b): cuenta de Identity con el permiso <c>Trainer</c>, o el Owner. Nulo = sin
+    /// entrenador. Es una referencia, no un candado, y no hay FK: Identity es otro módulo, así que el caso
+    /// de uso lo valida contra <c>IIdentityReader</c>. No forma parte de <see cref="MemberProfile"/>: la
+    /// edición de la ficha no lo toca.
+    /// </summary>
+    public Guid? TrainerUserId { get; private set; }
 
     public string? GuardianName { get; private set; }
 
@@ -188,6 +196,23 @@ public sealed class Member : BaseEntity, ITenantEntity
         }
 
         return changes;
+    }
+
+    /// <summary>Asigna, cambia o quita (<c>null</c>) el entrenador. Devuelve si algo cambió.</summary>
+    public bool AssignTrainer(Guid? trainerUserId)
+    {
+        if (trainerUserId == Guid.Empty)
+        {
+            throw new ValidationDomainException("El entrenador no es válido.");
+        }
+
+        if (TrainerUserId == trainerUserId)
+        {
+            return false;
+        }
+
+        TrainerUserId = trainerUserId;
+        return true;
     }
 
     public void Deactivate() => Status = MemberStatus.Inactive;

@@ -108,7 +108,19 @@ public sealed record ListMembersQuery
 
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
+
+    /// <summary>Solo los miembros de este entrenador asignado ("mis miembros"). Se ignora si <see cref="WithoutTrainer"/>.</summary>
+    public Guid? TrainerUserId { get; init; }
+
+    /// <summary>Solo los miembros sin entrenador asignado (la lista para reasignar).</summary>
+    public bool WithoutTrainer { get; init; }
 }
+
+/// <summary>Asigna o cambia el entrenador; <c>null</c> lo quita.</summary>
+public sealed record AssignTrainerRequest(Guid? TrainerUserId);
+
+/// <summary>Quien puede ser entrenador asignado: el Owner o el staff con el permiso <c>Trainer</c>.</summary>
+public sealed record TrainerOption(Guid UserId, string FullName, bool IsOwner);
 
 public sealed record CreateMemberResponse(Guid Id);
 
@@ -145,7 +157,9 @@ public sealed record MemberListItem(
     DateOnly JoinedAt,
     IReadOnlyList<string> Tags,
     bool IsProfileIncomplete,
-    string CommercialStatus = "no_plan");
+    string CommercialStatus = "no_plan",
+    Guid? TrainerUserId = null,
+    string? TrainerName = null);
 
 public sealed record MemberDetail(
     Guid Id,
@@ -180,6 +194,12 @@ public sealed record MemberDetail(
     bool IsMinor,
     bool IsProfileIncomplete)
 {
+    /// <summary>Entrenador asignado (nulo = sin entrenador). El miembro también lo ve.</summary>
+    public Guid? TrainerUserId { get; init; }
+
+    /// <summary>Nombre del entrenador asignado; lo resuelve el caso de uso de lectura vía Identity.</summary>
+    public string? TrainerName { get; init; }
+
     /// <summary>Membresía vigente hoy. La rellena el controller vía IMembershipReader; <c>null</c> si no hay.</summary>
     public MemberCurrentMembership? CurrentMembership { get; init; }
 

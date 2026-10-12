@@ -1,0 +1,89 @@
+@* Entrenador asignado de la ficha (Members M1b): quién es y un selector para asignar, cambiar o quitar. *@
+@inject IMembersClient Members
+@inject ISnackbar Snackbar
+
+<div class="mt-4 mb-2">
+    <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">Entrenador asignado</MudText>
+        <DataRow Label="Entrenador" Value="@CurrentName" />
+        <div class="d-flex flex-wrap align-center mt-2" style="gap:0.75rem">
+            <label for="member-trainer-select" class="mud-typography mud-typography-body2">Cambiar entrenador</label>
+            <select id="member-trainer-select" class="gsm-native-select" value="@(_selected?.ToString() ?? string.Empty)"
+                    @onchange="OnSelectedChanged" disabled="@_saving">
+                <option value="">Sin entrenador</option>
+                @foreach (var trainer in _trainers)
+                {
+                    <option value="@trainer.UserId">@trainer.FullName@(trainer.IsOwner ? " (dueño)" : string.Empty)</option>
+                }
+            </select>
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="SaveAsync"
+                       Disabled="@(_saving || _selected == Member.TrainerUserId)">
+                Guardar entrenador
+            </MudButton>
+        </div>
+    </MudPaper>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public MemberDetail Member { get; set; } = null!;
+
+    /// <summary>Se invoca con la ficha devuelta por la API tras asignar o quitar.</summary>
+    [Parameter]
+    public EventCallback<MemberDetail> OnChanged { get; set; }
+
+    private List<TrainerOption> _trainers = [];
+    private Guid? _selected;
+    private Guid? _syncedTrainer;
+    private bool _firstSync = true;
+    private bool _saving;
+
+    private string CurrentName => Member.TrainerName
+        ?? _trainers.FirstOrDefault(t => t.UserId == Member.TrainerUserId)?.FullName
+        ?? (Member.TrainerUserId is null ? "Sin entrenador" : "—");
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _trainers = (await Members.ListMemberTrainersAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_firstSync || _syncedTrainer != Member.TrainerUserId)
+        {
+            _selected = Member.TrainerUserId;
+            _syncedTrainer = Member.TrainerUserId;
+            _firstSync = false;
+        }
+    }
+
+    private void OnSelectedChanged(ChangeEventArgs e)
+        => _selected = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var updated = await Members.AssignMemberTrainerAsync(
+                Member.Id, new AssignTrainerRequest { TrainerUserId = _selected });
+            await OnChanged.InvokeAsync(updated);
+            Snackbar.Add(_selected is null ? "Entrenador quitado." : "Entrenador asignado.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

@@ -8,7 +8,8 @@ namespace GSM.Application.Members.Abstractions;
 /// </summary>
 public sealed record MemberPageQuery(
     string? Search, MemberStatus? Status, string? Tag, int Page, int PageSize,
-    IReadOnlyCollection<Guid>? Ids = null, bool ExcludeIds = false);
+    IReadOnlyCollection<Guid>? Ids = null, bool ExcludeIds = false,
+    Guid? TrainerUserId = null, bool WithoutTrainer = false);
 
 /// <summary>Acceso de escritura/consulta a las entidades del módulo Members. Sin <c>SaveChanges</c>.</summary>
 public interface IMemberRepository
@@ -25,6 +26,9 @@ public interface IMemberRepository
 
     /// <summary>¿Existe el miembro en el gym en contexto? (valida el referente).</summary>
     Task<bool> ExistsAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>Miembros (seguidos) que tienen a esta cuenta como entrenador asignado.</summary>
+    Task<IReadOnlyList<Member>> GetByTrainerAsync(Guid trainerUserId, CancellationToken cancellationToken = default);
 
     void Add(Member member);
 

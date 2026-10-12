@@ -1,4 +1,5 @@
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Identity.Public;
 using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -6,7 +7,7 @@ using GSM.Domain.Identity;
 
 namespace GSM.Application.Members;
 
-public sealed class GetMemberHandler(ICurrentUserService currentUser, IClock clock, IMemberRepository members)
+public sealed class GetMemberHandler(ICurrentUserService currentUser, IClock clock, IMemberRepository members, IIdentityReader identity)
 {
     public async Task<MemberDetail> HandleAsync(Guid memberId, CancellationToken cancellationToken)
     {
@@ -22,6 +23,10 @@ public sealed class GetMemberHandler(ICurrentUserService currentUser, IClock clo
         }
 
         var detail = MemberMapper.ToDetail(member, clock.Today);
+        if (member.TrainerUserId is { } trainerId)
+        {
+            detail = detail with { TrainerName = (await identity.GetUserAsync(trainerId, cancellationToken))?.FullName };
+        }
 
         // Source, Tags y el referente son solo del staff (Members v2, §3.1): el miembro no los ve.
         return currentUser.Role == UserRole.Member

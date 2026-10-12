@@ -431,6 +431,12 @@ public sealed class NotificationsTests(ApiFactory factory) : IClassFixture<ApiFa
     {
         public Task<IdentityUserDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default)
             => Task.FromResult<IdentityUserDto?>(userId == id ? new IdentityUserDto(id, name, false) : null);
+
+        public Task<IReadOnlyList<TrainerCandidateDto>> ListTrainersAsync(Guid gymId, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<TrainerCandidateDto>>([]);
+
+        public Task<bool> CanBeTrainerAsync(Guid userId, Guid gymId, CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
     }
 
     private async Task PublishAsync<TEvent>(Guid gymId, TEvent evt) where TEvent : IDomainEvent

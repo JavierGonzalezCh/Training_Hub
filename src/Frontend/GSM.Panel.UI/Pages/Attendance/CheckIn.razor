@@ -186,7 +186,7 @@
             return [];
         }
 
-        var result = await Members.MembersGETAsync(search, null, null, null, 1, 10, cancellationToken);
+        var result = await Members.MembersGETAsync(search, null, null, null, 1, 10, null, null, cancellationToken);
         return result.Items;
     }
 

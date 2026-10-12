@@ -1,4 +1,5 @@
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Identity.Public;
 using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -10,6 +11,7 @@ public sealed class UpdateMemberHandler(
     ICurrentUserService currentUser,
     IClock clock,
     IMemberRepository members,
+    IIdentityReader identity,
     MemberChangeRecorder changes,
     IUnitOfWork unitOfWork,
     ILogger<UpdateMemberHandler> logger)
@@ -44,6 +46,9 @@ public sealed class UpdateMemberHandler(
         logger.LogInformation(
             "Miembro {MemberId} actualizado ({ChangedFields} campos)", memberId, fieldChanges.Count);
 
-        return MemberMapper.ToDetail(member, today);
+        var detail = MemberMapper.ToDetail(member, today);
+        return member.TrainerUserId is { } trainerId
+            ? detail with { TrainerName = (await identity.GetUserAsync(trainerId, cancellationToken))?.FullName }
+            : detail;
     }
 }
