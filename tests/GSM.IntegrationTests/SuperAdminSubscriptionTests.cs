@@ -1,4 +1,4 @@
-﻿using GSM.Application.Gyms;
+using GSM.Application.Gyms;
 using GSM.Application.Gyms.Contracts;
 using GSM.Application.SuperAdmin;
 using GSM.Application.SuperAdmin.Contracts;
@@ -121,7 +121,7 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
             var created = await scope.ServiceProvider.GetRequiredService<CreateGymHandler>()
                 .HandleAsync(new CreateGymRequest(
                     "Nuevo Gym", $"nuevo-{Guid.NewGuid():N}"[..18], null, null, null, GymPlan.Pro,
-                    new CreateGymOwner($"owner-{Guid.NewGuid():N}@nuevo.local", "Nuevo Owner", "OwnerPass_123")),
+                    new CreateGymOwner($"owner-{Guid.NewGuid():N}@nuevo.local", "Nuevo Owner"), TrialDays: 30),
                     default);
             gymId = created.GymId;
         }

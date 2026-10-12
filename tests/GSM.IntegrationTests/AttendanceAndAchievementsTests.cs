@@ -1,4 +1,4 @@
-﻿using GSM.Application.Achievements;
+using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
 using GSM.Application.Attendance;
 using GSM.Application.Attendance.Contracts;
@@ -27,9 +27,9 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
         using (var scope = System())
         {
             var result = await scope.ServiceProvider.GetRequiredService<CreateGymHandler>()
-                .HandleAsync(new CreateGymRequest(
+                .HandleWithOwnerPasswordAsync(new CreateGymRequest(
                     "Seed Gym", $"seed-{Guid.NewGuid():N}"[..18], null, null, null, GymPlan.Basic,
-                    new CreateGymOwner("owner@seed.local", "Seed Owner", "OwnerPass_123")), default);
+                    new CreateGymOwner("owner@seed.local", "Seed Owner"), TrialDays: 30), "OwnerPass_123", default);
             gymId = result.GymId;
         }
 
