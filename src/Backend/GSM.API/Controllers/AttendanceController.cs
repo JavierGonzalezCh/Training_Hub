@@ -11,17 +11,29 @@ namespace GSM.API.Controllers;
 [Route("api/attendance")]
 public sealed class AttendanceController : ControllerBase
 {
-    /// <summary>Registrar entrada. Staff pasa memberId; un miembro se registra a sí mismo.</summary>
+    /// <summary>
+    /// Registrar entrada. Staff pasa memberId; un miembro se registra a sí mismo. Una sola entrada por día:
+    /// repetir el mismo día es 409 (`already_checked_in`).
+    /// </summary>
     [HttpPost("checkin")]
     [Authorize]
     [ProducesResponseType<CheckInResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType<CheckInResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CheckInResponse>> CheckIn(
         CheckInRequest request, [FromServices] CheckInHandler handler, CancellationToken cancellationToken)
     {
-        var (response, created) = await handler.HandleAsync(request, cancellationToken);
-        return created ? StatusCode(StatusCodes.Status201Created, response) : Ok(response);
+        var (response, _) = await handler.HandleAsync(request, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, response);
     }
+
+    /// <summary>Tarjeta de recepción: estado del miembro antes de registrar su entrada. No cambia datos.</summary>
+    [HttpGet("reception/{memberId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [EndpointName("ReceptionCard")]
+    [ProducesResponseType<ReceptionCardResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReceptionCardResponse>> ReceptionCard(
+        Guid memberId, [FromServices] GetReceptionCardHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, cancellationToken));
 
     [HttpGet]
     [Authorize(Policy = AuthPolicies.RequireStaff)]
