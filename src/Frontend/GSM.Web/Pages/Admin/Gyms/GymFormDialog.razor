@@ -129,7 +129,7 @@
                     },
             });
 
-            if (!result.OwnerInvitationSent)
+            if (result.OwnerInvitationSent != true)
             {
                 Snackbar.Add("El gym se creó, pero el correo al owner falló. Copia su enlace desde la ficha.", Severity.Warning);
             }

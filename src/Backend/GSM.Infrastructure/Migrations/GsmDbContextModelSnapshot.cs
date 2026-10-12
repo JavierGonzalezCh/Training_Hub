@@ -38,7 +38,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_mode", new[] { "rotating", "static" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership", "gym_closed" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership", "gym_closed", "membership_frozen", "pass_exhausted", "member_inactive", "already_checked_in" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_booking_status", new[] { "booked", "cancelled", "attended", "no_show" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_session_status", new[] { "scheduled", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
@@ -1626,6 +1626,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("tags");
 
+                    b.Property<Guid?>("TrainerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_user_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1650,6 +1654,9 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasIndex("GymId", "Status")
                         .HasDatabaseName("ix_members_gym_id_status");
+
+                    b.HasIndex("GymId", "TrainerUserId")
+                        .HasDatabaseName("ix_members_gym_id_trainer_user_id");
 
                     b.HasIndex("GymId", "DocumentType", "DocumentNumber")
                         .IsUnique()

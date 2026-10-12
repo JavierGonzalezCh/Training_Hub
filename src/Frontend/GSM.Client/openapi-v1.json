@@ -456,6 +456,78 @@
         }
       }
     },
+    "/api/admin/gyms/{gymId}/owners/{userId}/resend": {
+      "post": {
+        "tags": [
+          "AdminGymOwners"
+        ],
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/gyms": {
       "get": {
         "tags": [
@@ -2025,23 +2097,64 @@
                 }
               }
             }
-          },
+          }
+        }
+      }
+    },
+    "/api/attendance/reception/{memberId}": {
+      "get": {
+        "tags": [
+          "Attendance"
+        ],
+        "operationId": "ReceptionCard",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
           "200": {
             "description": "OK",
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckInResponse"
+                  "$ref": "#/components/schemas/ReceptionCardResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckInResponse"
+                  "$ref": "#/components/schemas/ReceptionCardResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckInResponse"
+                  "$ref": "#/components/schemas/ReceptionCardResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -2352,6 +2465,13 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "Reason",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -8507,6 +8627,21 @@
               ],
               "format": "int32"
             }
+          },
+          {
+            "name": "TrainerUserId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "WithoutTrainer",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -8579,6 +8714,146 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/trainers": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "operationId": "ListMemberTrainers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainerOption"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainerOption"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainerOption"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{id}/trainer": {
+      "put": {
+        "tags": [
+          "Members"
+        ],
+        "operationId": "AssignMemberTrainer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTrainerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTrainerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTrainerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "text/plain": {
                 "schema": {
@@ -12662,6 +12937,21 @@
           }
         }
       },
+      "AssignTrainerRequest": {
+        "required": [
+          "trainerUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "trainerUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
       "AttendanceListItem": {
         "required": [
           "id",
@@ -12941,7 +13231,6 @@
           "memberName",
           "checkedInAt",
           "method",
-          "alreadyCheckedInToday",
           "membershipExpired",
           "unlockedAchievements",
           "membershipEndsOn",
@@ -12966,9 +13255,6 @@
           },
           "method": {
             "type": "string"
-          },
-          "alreadyCheckedInToday": {
-            "type": "boolean"
           },
           "membershipExpired": {
             "type": "boolean"
@@ -13510,11 +13796,56 @@
           }
         }
       },
+      "CreateGymFirstPayment": {
+        "required": [
+          "amount",
+          "method"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          },
+          "coversFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "coversThrough": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "reference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CreateGymOwner": {
         "required": [
           "email",
-          "fullName",
-          "password"
+          "fullName"
         ],
         "type": "object",
         "properties": {
@@ -13522,9 +13853,6 @@
             "type": "string"
           },
           "fullName": {
-            "type": "string"
-          },
-          "password": {
             "type": "string"
           }
         }
@@ -13570,6 +13898,34 @@
           },
           "owner": {
             "$ref": "#/components/schemas/CreateGymOwner"
+          },
+          "trialDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "monthlyPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "firstPayment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CreateGymFirstPayment"
+              }
+            ]
           }
         }
       },
@@ -13587,6 +13943,10 @@
           "ownerId": {
             "type": "string",
             "format": "uuid"
+          },
+          "ownerInvitationSent": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -15917,6 +16277,19 @@
           "isProfileIncomplete": {
             "type": "boolean"
           },
+          "trainerUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "trainerName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "currentMembership": {
             "oneOf": [
               {
@@ -16127,6 +16500,19 @@
           "commercialStatus": {
             "type": "string",
             "default": "no_plan"
+          },
+          "trainerUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "trainerName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -17853,6 +18239,125 @@
         "properties": {
           "kind": {
             "type": "string"
+          }
+        }
+      },
+      "ReceptionCardResponse": {
+        "required": [
+          "memberId",
+          "memberName",
+          "photoUrl",
+          "memberActive",
+          "commercial",
+          "kind",
+          "endsOn",
+          "daysLeft",
+          "graceDaysLeft",
+          "notice",
+          "blockMessage",
+          "alreadyCheckedInToday",
+          "checkedInAt",
+          "missingWaiver",
+          "gymClosed",
+          "gymClosedMessage",
+          "canRegister",
+          "canLetThrough",
+          "rejectionReason"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "memberActive": {
+            "type": "boolean"
+          },
+          "commercial": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "daysLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "graceDaysLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "notice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "blockMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "alreadyCheckedInToday": {
+            "type": "boolean"
+          },
+          "checkedInAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "missingWaiver": {
+            "type": "boolean"
+          },
+          "gymClosed": {
+            "type": "boolean"
+          },
+          "gymClosedMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "canRegister": {
+            "type": "boolean"
+          },
+          "canLetThrough": {
+            "type": "boolean"
+          },
+          "rejectionReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -19631,6 +20136,26 @@
       },
       "TrackingType": {
         "type": "integer"
+      },
+      "TrainerOption": {
+        "required": [
+          "userId",
+          "fullName",
+          "isOwner"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "isOwner": {
+            "type": "boolean"
+          }
+        }
       },
       "UnlockedAchievement": {
         "required": [
