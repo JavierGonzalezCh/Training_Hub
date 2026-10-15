@@ -14,7 +14,7 @@ namespace GSM.Application.Classes;
 internal static class ClassSettingsMapper
 {
     public static ClassSettingsResponse ToResponse(ClassSettings s)
-        => new(s.CancelDeadlineHours, s.NoShowLimit, s.NoShowWindowDays, s.NoShowBlockDays, s.BookingWindowDays, s.MaxActiveBookings);
+        => new(s.CancelDeadlineHours, s.NoShowLimit, s.NoShowWindowDays, s.NoShowBlockDays, s.BookingWindowDays, s.MaxActiveBookings, s.WaitlistOfferMinutes);
 }
 
 /// <summary>Reglas de reserva del gym (C3). Sin fila devuelve los valores por defecto.</summary>
@@ -47,7 +47,7 @@ public sealed class UpdateClassSettingsHandler(
 
         current.Update(
             request.CancelDeadlineHours, request.NoShowLimit, request.NoShowWindowDays,
-            request.NoShowBlockDays, request.BookingWindowDays, request.MaxActiveBookings);
+            request.NoShowBlockDays, request.BookingWindowDays, request.MaxActiveBookings, request.WaitlistOfferMinutes);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Reglas de reserva del gym {GymId} actualizadas", gymId);
@@ -63,6 +63,7 @@ public sealed class GetMyBookingStatusHandler(
     IMemberReader members,
     IClassSettingsRepository settings,
     IClassBookingRepository bookings,
+    IWaitlistRepository waitlist,
     IBookingBlockRepository blocks)
 {
     public async Task<MyBookingStatusResponse> HandleAsync(CancellationToken cancellationToken)
@@ -75,7 +76,7 @@ public sealed class GetMyBookingStatusHandler(
 
         var rules = await ClassBookingRules.LoadAsync(settings, gymId, cancellationToken);
         var block = await blocks.GetActiveAsync(self.Id, clock.Today, cancellationToken);
-        var active = await ClassBookingRules.CountActiveAsync(clock, bookings, self.Id, cancellationToken);
+        var active = await ClassBookingRules.CountActiveAsync(clock, bookings, waitlist, self.Id, cancellationToken);
 
         return new MyBookingStatusResponse(
             block?.BlockedUntil, active, rules.MaxActiveBookings, rules.CancelDeadlineHours, rules.BookingWindowDays);

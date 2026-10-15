@@ -10,5 +10,6 @@ public sealed class ClassesEnums : IModuleEnums
         PgEnumMapping.Of<GSM.Domain.Classes.ClassDayOfWeek>("day_of_week", "classes", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Classes.ClassSessionStatus>("class_session_status", "classes", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Classes.ClassBookingStatus>("class_booking_status", "classes", SnakeCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Classes.WaitlistEntryStatus>("waitlist_entry_status", "classes", LowerCaseNameTranslator.Instance),
     ];
 }

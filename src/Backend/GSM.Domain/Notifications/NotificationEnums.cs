@@ -33,6 +33,15 @@ public enum NotificationType
 
     /// <summary>N5: felicitación de cumpleaños, programada para las 8:00 por Comunicaciones (CO5).</summary>
     Birthday,
+
+    /// <summary>
+    /// C4: se liberó un cupo y es para ti; confirma antes de que venza la oferta. Urgente (sale siempre, sin esperar
+    /// el horario sin avisos). Referencia: la entrada de la lista de espera.
+    /// </summary>
+    WaitlistOffer,
+
+    /// <summary>C4: no confirmaste a tiempo; el cupo pasó al siguiente. Referencia: la entrada de la lista de espera.</summary>
+    WaitlistOfferExpired,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

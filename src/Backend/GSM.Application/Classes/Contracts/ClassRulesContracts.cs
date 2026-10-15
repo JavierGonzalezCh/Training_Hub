@@ -7,15 +7,18 @@ public sealed record ClassSettingsResponse(
     int NoShowWindowDays,
     int NoShowBlockDays,
     int BookingWindowDays,
-    int MaxActiveBookings);
+    int MaxActiveBookings,
+    int WaitlistOfferMinutes);
 
+/// <param name="WaitlistOfferMinutes">C4: minutos para confirmar una oferta de la lista de espera; nulo conserva el valor actual.</param>
 public sealed record UpdateClassSettingsRequest(
     int CancelDeadlineHours,
     int NoShowLimit,
     int NoShowWindowDays,
     int NoShowBlockDays,
     int BookingWindowDays,
-    int MaxActiveBookings);
+    int MaxActiveBookings,
+    int? WaitlistOfferMinutes = null);
 
 /// <summary>
 /// Lo que el miembro necesita saber para reservar sin sorpresas: si está bloqueado y hasta cuándo, cuántas

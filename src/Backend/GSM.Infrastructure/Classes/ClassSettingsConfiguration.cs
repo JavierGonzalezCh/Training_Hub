@@ -11,6 +11,9 @@ public sealed class ClassSettingsConfiguration : IEntityTypeConfiguration<ClassS
         builder.ToTable("class_settings", "classes");
 
         builder.HasIndex(s => s.GymId).IsUnique();
+
+        // C4: las filas que ya existían reciben el valor por defecto en vez de 0.
+        builder.Property(s => s.WaitlistOfferMinutes).HasDefaultValue(ClassSettings.DefaultWaitlistOfferMinutes);
     }
 }
 

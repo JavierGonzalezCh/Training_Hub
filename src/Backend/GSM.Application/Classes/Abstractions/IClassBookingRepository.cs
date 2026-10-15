@@ -13,6 +13,10 @@ public interface IClassBookingRepository
     /// <summary>Nº de reservas en estado <c>booked</c> de la sesión (control de cupo).</summary>
     Task<int> CountActiveAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
+    /// <summary>C4: reservas en estado <c>booked</c> por sesión, para marcar cuáles están llenas en el horario del miembro.</summary>
+    Task<IReadOnlyDictionary<Guid, int>> CountActiveBySessionsAsync(
+        IReadOnlyCollection<Guid> sessionIds, CancellationToken cancellationToken = default);
+
     /// <summary>Reservas de un miembro en un rango de fechas de sesión, con la sesión y la clase resueltas.</summary>
     Task<IReadOnlyList<(ClassBooking Booking, ClassSession Session, GymClass Class)>> ListForMemberAsync(
         Guid memberId, DateOnly? from, DateOnly? to, CancellationToken cancellationToken = default);

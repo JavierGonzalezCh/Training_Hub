@@ -4,6 +4,7 @@
 @inject GymContext GymCtx
 @inject IMeClient Me
 @inject IMemberClassesClient MemberClasses
+@inject IMemberWaitlistClient Waitlist
 @inject IMeClassBookingStatusClient BookingStatus
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -117,6 +118,41 @@ else
                             {
                                 <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => CancelAsync(entry))">
                                     Cancelar
+                                </MudButton>
+                            }
+                            else if (entry.MyWaitlistStatus is "Offered")
+                            {
+                                <div class="waitlist-offer">
+                                    <span class="gsm-cal-card__meta waitlist-offer-text">
+                                        Se liberó un cupo. Confirma antes de las @(entry.MyOfferExpiresAt is { } until ? GsmFormat.Time(until) : "")
+                                    </span>
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" id="@($"confirm-offer-{entry.ClassId}")"
+                                               OnClick="@(() => ConfirmOfferAsync(entry))">
+                                        Confirmar
+                                    </MudButton>
+                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" id="@($"decline-offer-{entry.ClassId}")"
+                                               OnClick="@(() => LeaveWaitlistAsync(entry))">
+                                        Rechazar
+                                    </MudButton>
+                                </div>
+                            }
+                            else if (entry.MyWaitlistStatus is "Waiting")
+                            {
+                                <div class="waitlist-waiting">
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono waitlist-position-chip">
+                                        EN ESPERA · Eres el @entry.MyWaitlistPosition
+                                    </MudChip>
+                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" id="@($"leave-waitlist-{entry.ClassId}")"
+                                               OnClick="@(() => LeaveWaitlistAsync(entry))">
+                                        Salir de la lista
+                                    </MudButton>
+                                </div>
+                            }
+                            else if (entry.Capacity is not null && entry.IsFull == true && entry.SessionDate <= _today.AddDays(WindowDays))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" id="@($"join-waitlist-{entry.ClassId}")"
+                                           Disabled="@(BlockedUntil is not null)" OnClick="@(() => JoinWaitlistAsync(entry))">
+                                    Anotarme en espera
                                 </MudButton>
                             }
                             else if (entry.Capacity is not null && entry.SessionDate > _today.AddDays(WindowDays))
@@ -251,6 +287,52 @@ else
         catch (GsmApiException ex)
         {
             // 409: cupo lleno, gym cerrado o el plan no cubre ese día. 422: la clase no admite reservas.
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task JoinWaitlistAsync(ScheduleEntry entry)
+    {
+        try
+        {
+            var result = await Waitlist.JoinAsync(entry.ClassId, entry.SessionDate);
+            Snackbar.Add($"Estás en la lista de espera (eres el {result?.Position}). Te avisamos si se libera un cupo.", Severity.Success);
+            _offerPush = true; // el aviso de la oferta es lo que importa: buen momento para pedir el permiso
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            await LoadAsync(); // si la sesión ya tenía cupo, el botón cambia a "Reservar"
+        }
+    }
+
+    private async Task ConfirmOfferAsync(ScheduleEntry entry)
+    {
+        try
+        {
+            await Waitlist.ConfirmAsync(entry.ClassId, entry.SessionDate);
+            Snackbar.Add("Cupo confirmado: tu reserva está hecha.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            // 409: la oferta venció y el cupo pasó al siguiente, o ya no está al día.
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            await LoadAsync();
+        }
+    }
+
+    private async Task LeaveWaitlistAsync(ScheduleEntry entry)
+    {
+        try
+        {
+            await Waitlist.LeaveAsync(entry.ClassId, entry.SessionDate);
+            Snackbar.Add("Saliste de la lista de espera.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
     }

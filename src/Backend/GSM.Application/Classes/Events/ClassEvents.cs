@@ -42,3 +42,20 @@ public sealed record ClassBooked(
 /// <summary>N5: el miembro canceló su reserva. Notifications cancela el recordatorio programado.</summary>
 public sealed record ClassBookingCancelled(
     Guid GymId, Guid MemberId, Guid ClassId, DateOnly SessionDate) : IDomainEvent;
+
+/// <summary>
+/// C4: se le ofreció un cupo liberado al primero de la lista de espera; tiene hasta
+/// <paramref name="OfferExpiresAt"/> para confirmar. Notifications crea el aviso urgente (idempotente por la entrada).
+/// </summary>
+public sealed record WaitlistOfferMade(
+    Guid GymId,
+    Guid MemberId,
+    Guid ClassId,
+    Guid EntryId,
+    DateOnly SessionDate,
+    TimeOnly StartTime,
+    DateTimeOffset OfferExpiresAt) : IDomainEvent;
+
+/// <summary>C4: la oferta venció sin respuesta y el cupo pasó al siguiente. Notifications avisa al miembro.</summary>
+public sealed record WaitlistOfferExpired(
+    Guid GymId, Guid MemberId, Guid ClassId, Guid EntryId, DateOnly SessionDate) : IDomainEvent;

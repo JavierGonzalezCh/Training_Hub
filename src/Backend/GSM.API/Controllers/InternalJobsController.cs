@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using GSM.API.Filters;
+using GSM.Application.Classes;
 using GSM.Application.Common.Logs;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
@@ -34,6 +35,7 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
         [FromServices] RunCommunicationsJobHandler handler,
         [FromServices] PurgeNotificationsHandler purge,
         [FromServices] RunMonthlyMetricsHandler monthlyMetrics,
+        [FromServices] RunWaitlistJobHandler waitlistJob,
         [FromServices] LoggedJobRunner runner,
         CancellationToken cancellationToken)
     {
@@ -51,6 +53,12 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
                     outcome.Reminders, await purge.HandleAsync(cancellationToken), outcome.Birthdays);
             },
             r => (r.RemindersPublished + r.NotificationsPurged + r.BirthdaysPublished, 0));
+
+        // C4: vence las ofertas de la lista de espera y pasa el cupo al siguiente (idempotente).
+        await runner.RunAsync(
+            "waitlist",
+            () => waitlistJob.HandleAsync(cancellationToken),
+            r => (r.OffersMade + r.OffersExpired, 0));
 
         // Foto mensual del SaaS: solo hace algo en la primera ejecucion de cada mes (idempotente por mes).
         await runner.RunAsync(

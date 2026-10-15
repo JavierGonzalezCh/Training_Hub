@@ -22,6 +22,21 @@ public sealed class ClassBookingRepository(GsmDbContext dbContext) : IClassBooki
         => Bookings.CountAsync(
             b => b.SessionId == sessionId && b.Status == ClassBookingStatus.Booked, cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, int>> CountActiveBySessionsAsync(
+        IReadOnlyCollection<Guid> sessionIds, CancellationToken cancellationToken = default)
+    {
+        if (sessionIds.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await Bookings
+            .Where(b => sessionIds.Contains(b.SessionId) && b.Status == ClassBookingStatus.Booked)
+            .GroupBy(b => b.SessionId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<(ClassBooking Booking, ClassSession Session, GymClass Class)>> ListForMemberAsync(
         Guid memberId, DateOnly? from, DateOnly? to, CancellationToken cancellationToken = default)
     {

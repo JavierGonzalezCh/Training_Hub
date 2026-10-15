@@ -27,5 +27,12 @@ public sealed class ClassSessionRepository(GsmDbContext dbContext) : IClassSessi
             .Where(s => s.ClassId == classId && s.SessionDate >= from)
             .ToListAsync(cancellationToken);
 
+    public Task<ClassSession?> GetByIdAsync(Guid sessionId, CancellationToken cancellationToken = default)
+        => Sessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+
+    public async Task LockAsync(Guid sessionId, CancellationToken cancellationToken = default)
+        => await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({sessionId.ToString()}, 0))", cancellationToken);
+
     public void Add(ClassSession session) => Sessions.Add(session);
 }

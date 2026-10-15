@@ -25,7 +25,15 @@ public sealed record ScheduleEntry(
     /// </summary>
     bool OutsideOpeningHours = false,
     /// <summary>C2: el entrenador de la lista que da la clase; nulo = "Otro" o sin instructor.</summary>
-    Guid? InstructorUserId = null);
+    Guid? InstructorUserId = null,
+    /// <summary>C4 (solo horario del miembro): la sesión con cupo está llena (reservas + cupos ofrecidos); la UI ofrece la lista de espera.</summary>
+    bool? IsFull = null,
+    /// <summary>C4 (solo horario del miembro): <c>Waiting</c> u <c>Offered</c> si el miembro está en la lista de espera de la sesión.</summary>
+    string? MyWaitlistStatus = null,
+    /// <summary>C4: su lugar en la lista (1 = el primero).</summary>
+    int? MyWaitlistPosition = null,
+    /// <summary>C4: hora límite para confirmar la oferta de cupo.</summary>
+    DateTimeOffset? MyOfferExpiresAt = null);
 
 public sealed record ScheduleResponse(
     DateOnly From,

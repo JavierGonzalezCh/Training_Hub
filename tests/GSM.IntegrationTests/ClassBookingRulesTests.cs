@@ -34,7 +34,7 @@ public sealed class ClassBookingRulesTests(ApiFactory factory) : IClassFixture<A
         using (var scope = Owner(w))
         {
             var s = await scope.ServiceProvider.GetRequiredService<GetClassSettingsHandler>().HandleAsync(default);
-            Assert.Equal(new ClassSettingsResponse(2, 3, 30, 7, 7, 5), s);
+            Assert.Equal(new ClassSettingsResponse(2, 3, 30, 7, 7, 5, 60), s);
 
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
             Assert.Equal(0, await db.Set<ClassSettings>().CountAsync());
@@ -45,7 +45,7 @@ public sealed class ClassBookingRulesTests(ApiFactory factory) : IClassFixture<A
         using (var scope = Owner(w))
         {
             var s = await scope.ServiceProvider.GetRequiredService<GetClassSettingsHandler>().HandleAsync(default);
-            Assert.Equal(new ClassSettingsResponse(4, 2, 15, 10, 14, 3), s);
+            Assert.Equal(new ClassSettingsResponse(4, 2, 15, 10, 14, 3, 60), s);
 
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
             Assert.Equal(1, await db.Set<ClassSettings>().CountAsync());
