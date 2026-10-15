@@ -102,13 +102,13 @@ public sealed class RoutineGamificationTests(ApiFactory factory) : IClassFixture
             .Select(e => e.Id).FirstAsync();
 
         await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>()
-            .HandleAsync(lineId, new LogRoutineExerciseRequest(null, null, null, null), default);
+            .HandleAsync(lineId, new LogRoutineExerciseRequest(null), default);
     }
 
     private static SaveRoutineRequest Routine(World w)
         => new("Rutina", null,
         [
-            new RoutineDayInput("D1", false, [new RoutineExerciseInput(w.ExerciseId, 3, "10", null, 60, null)]),
+            new RoutineDayInput("D1", false, [new RoutineExerciseInput(w.ExerciseId, TestSets.Normal(3, 10), 60, null)]),
             new RoutineDayInput(null, true, []),
         ]);
 

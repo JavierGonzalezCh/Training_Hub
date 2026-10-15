@@ -224,7 +224,7 @@ public sealed class RoutineWeeklyTests(ApiFactory factory) : IClassFixture<ApiFa
         var request = new SaveRoutineRequest("Renombrada", null,
             weekly.Days.Select(d => new RoutineDayInput(
                 d.Name, false,
-                d.Exercises.Select(e => new RoutineExerciseInput(e.ExerciseId, 3, "10", null, 60, null, e.Id)).ToList(),
+                d.Exercises.Select(e => new RoutineExerciseInput(e.ExerciseId, TestSets.Normal(3, 10), 60, null, Id: e.Id)).ToList(),
                 d.Id, d.DayOfWeek)).ToList());
         var edited = await UpdateAsync(w, weekly.Id, request);
         Assert.Equal(weekly.Id, edited.Id);
@@ -301,7 +301,7 @@ public sealed class RoutineWeeklyTests(ApiFactory factory) : IClassFixture<ApiFa
         => new(w.CatalogIds[catalogIndex], 3, "10", null, 60, null);
 
     private static List<RoutineExerciseInput> KeepLines(RoutineDayResponse day)
-        => day.Exercises.Select(e => new RoutineExerciseInput(e.ExerciseId, 3, "10", null, 60, null, e.Id)).ToList();
+        => day.Exercises.Select(e => new RoutineExerciseInput(e.ExerciseId, TestSets.Normal(3, 10), 60, null, Id: e.Id)).ToList();
 
     private static SaveRoutineRequest WeeklyRequest(World w, params (int Weekday, string Name)[] days)
         => new("Semanal", null,
@@ -333,7 +333,7 @@ public sealed class RoutineWeeklyTests(ApiFactory factory) : IClassFixture<ApiFa
     {
         using var scope = AsMember(w, Monday);
         await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>()
-            .HandleAsync(lineId, new LogRoutineExerciseRequest(3, "10", 20m, null), default);
+            .HandleAsync(lineId, new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", 10, 20m, null, null, null)]), default);
     }
 
     private async Task<int> StreakAsync(World w, DateOnly today)

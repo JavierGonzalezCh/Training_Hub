@@ -1,25 +1,37 @@
 namespace GSM.Application.Routines.Contracts;
 
-/// <summary>Marcar y/o anotar carga: campos opcionales, un cuerpo vacío es "hecho".</summary>
+/// <summary>
+/// Marcar el ejercicio y/o anotar sus series: un cuerpo vacío es "hecho". Repetir el mismo día reemplaza el detalle.
+/// </summary>
 public sealed record LogRoutineExerciseRequest(
-    int? SetsDone,
-    string? RepsDone,
-    decimal? WeightKg,
     string? Notes,
     IReadOnlyList<LogSetRequest>? Sets = null);
 
-/// <summary>Una serie realizada: repeticiones y peso que usó el miembro. El número lo pone el servidor por orden.</summary>
-public sealed record LogSetRequest(int? Reps, decimal? WeightKg);
+/// <summary>
+/// Una serie realizada. <c>SetType</c>: <c>"normal"</c> (por defecto si falta), <c>"warmup"</c>, <c>"drop"</c> o
+/// <c>"failure"</c>. El número lo pone el servidor por orden. En ejercicios unilaterales las repeticiones son por lado.
+/// </summary>
+public sealed record LogSetRequest(
+    string? SetType,
+    int? Reps,
+    decimal? WeightKg,
+    int? DurationSeconds,
+    int? DistanceM,
+    int? Rir);
 
-public sealed record SetResponse(int Number, int? Reps, decimal? WeightKg);
+public sealed record SetResponse(
+    int Number,
+    string SetType,
+    int? Reps,
+    decimal? WeightKg,
+    int? DurationSeconds,
+    int? DistanceM,
+    int? Rir);
 
 public sealed record RoutineLogResponse(
     Guid Id,
     Guid RoutineExerciseId,
     DateOnly PerformedOn,
-    int? SetsDone,
-    string? RepsDone,
-    decimal? WeightKg,
     string? Notes,
     DateTimeOffset CompletedAt,
     IReadOnlyList<SetResponse>? Sets = null);
@@ -29,9 +41,6 @@ public sealed record RoutineHistoryItem(
     Guid RoutineExerciseId,
     Guid ExerciseId,
     string ExerciseName,
-    int? SetsDone,
-    string? RepsDone,
-    decimal? WeightKg,
     string? Notes,
     DateTimeOffset CompletedAt,
     IReadOnlyList<SetResponse>? Sets = null);

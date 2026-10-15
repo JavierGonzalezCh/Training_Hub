@@ -11,9 +11,6 @@ public sealed record RoutineHistoryRow(
     Guid RoutineExerciseId,
     Guid ExerciseId,
     string ExerciseName,
-    int? SetsDone,
-    string? RepsDone,
-    decimal? WeightKg,
     string? Notes,
     DateTimeOffset CompletedAt,
     IReadOnlyList<RoutineSetEntry>? Sets = null);

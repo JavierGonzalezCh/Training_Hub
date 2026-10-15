@@ -55,15 +55,20 @@ public static class RoutineMapper
             exercise.ExerciseId,
             info?.Name ?? "?",
             exercise.Order,
-            exercise.TargetSets,
-            exercise.TargetReps,
-            exercise.TargetWeightKg,
+            exercise.SetTargets.OrderBy(t => t.Number).Select(ToSetTargetResponse).ToList(),
+            exercise.Group,
             exercise.RestSeconds,
             exercise.Notes,
             (info?.TrackingType ?? TrackingType.RepsWeight).ToString(),
             info?.IsUnilateral ?? false,
             (info is null ? MuscleGroup.FullBody : MuscleGroups.Of(info.PrimaryMuscle)).ToString());
     }
+
+    public static SetTargetResponse ToSetTargetResponse(SetTarget t)
+        => new(t.Number, SetTypes.ToText(t.SetType), t.RepsMin, t.RepsMax, t.WeightKg, t.DurationSeconds, t.DistanceM, t.Rir);
+
+    public static SetResponse ToSetResponse(RoutineSetEntry s)
+        => new(s.Number, SetTypes.ToText(s.SetType), s.Reps, s.WeightKg, s.DurationSeconds, s.DistanceM, s.Rir);
 
     private static readonly string[] WeekDayNames =
         ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];

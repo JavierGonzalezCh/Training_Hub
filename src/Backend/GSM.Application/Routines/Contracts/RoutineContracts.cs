@@ -1,12 +1,32 @@
 namespace GSM.Application.Routines.Contracts;
 
+/// <summary>
+/// Objetivo de una serie. <c>SetType</c>: <c>"normal"</c> (por defecto si falta), <c>"warmup"</c>, <c>"drop"</c> o
+/// <c>"failure"</c> (al fallo: sin repeticiones). Repeticiones como rango <c>RepsMin</c>–<c>RepsMax</c> (un solo extremo
+/// se toma como ambos). Solo cuentan los campos que corresponden al <c>tracking_type</c> del ejercicio; el resto se
+/// descarta. <c>Rir</c> = repeticiones en reserva (0 a 10). El número de la serie lo pone el servidor por orden.
+/// En ejercicios unilaterales las repeticiones son por lado.
+/// </summary>
+public sealed record SetTargetInput(
+    string? SetType,
+    int? RepsMin,
+    int? RepsMax,
+    decimal? WeightKg,
+    int? DurationSeconds,
+    int? DistanceM,
+    int? Rir);
+
+/// <summary>
+/// <c>SetTargets</c>: una entrada por serie planeada (al menos una, máximo 30). <c>Group</c>: las líneas de un mismo
+/// día con el mismo número forman una superserie o circuito y deben ir seguidas; <c>null</c> = ejercicio suelto.
+/// En un grupo, <c>RestSeconds</c> es el descanso tras completar la vuelta.
+/// </summary>
 public sealed record RoutineExerciseInput(
     Guid ExerciseId,
-    int TargetSets,
-    string TargetReps,
-    decimal? TargetWeightKg,
+    IReadOnlyList<SetTargetInput> SetTargets,
     int? RestSeconds,
     string? Notes,
+    int? Group = null,
     Guid? Id = null);
 
 public sealed record RoutineDayInput(
@@ -32,19 +52,28 @@ public sealed record SaveRoutineRequest(
     IReadOnlyList<RoutineDayInput> Days,
     string? ScheduleMode = null);
 
+public sealed record SetTargetResponse(
+    int Number,
+    string SetType,
+    int? RepsMin,
+    int? RepsMax,
+    decimal? WeightKg,
+    int? DurationSeconds,
+    int? DistanceM,
+    int? Rir);
+
 /// <summary>
 /// <c>TrackingType</c> (qué se mide: <c>RepsWeight</c>, <c>Reps</c>, <c>Time</c>, <c>Distance</c>, <c>TimeDistance</c>),
 /// <c>IsUnilateral</c> y <c>MuscleGroup</c> (<c>UpperBody</c>, <c>LowerBody</c>, <c>Core</c>, <c>FullBody</c>) los hereda
-/// la línea de su ejercicio. En R3 solo se exponen; el uso real en series es R4.
+/// la línea de su ejercicio. <c>SetTargets</c> trae solo los campos que corresponden al <c>TrackingType</c>.
 /// </summary>
 public sealed record RoutineExerciseResponse(
     Guid Id,
     Guid ExerciseId,
     string ExerciseName,
     int Order,
-    int TargetSets,
-    string TargetReps,
-    decimal? TargetWeightKg,
+    IReadOnlyList<SetTargetResponse> SetTargets,
+    int? Group,
     int? RestSeconds,
     string? Notes,
     string TrackingType = "RepsWeight",

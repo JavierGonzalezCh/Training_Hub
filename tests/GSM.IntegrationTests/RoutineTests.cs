@@ -132,12 +132,116 @@ public sealed class RoutineTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal(world.MemberA, mine.Routine!.MemberId);
     }
 
+    [Fact]
+    public async Task Series_are_planned_one_by_one_and_a_superset_round_trips()
+    {
+        var world = await SeedAsync();
+        var a = world.SystemExerciseIds[0];
+        var b = world.SystemExerciseIds[1];
+        var c = world.SystemExerciseIds[2];
+        var request = new SaveRoutineRequest("Series", null,
+        [
+            new RoutineDayInput("D1", false,
+            [
+                new RoutineExerciseInput(a, TestSets.Normal(2, 8, 12), 90, null, Group: 7),
+                new RoutineExerciseInput(b,
+                [
+                    new SetTargetInput("warmup", 15, null, 20m, null, null, null),
+                    new SetTargetInput(null, 8, 10, 40m, null, null, 2),
+                    new SetTargetInput("failure", null, null, 40m, null, null, 0),
+                ], 90, null, Group: 7),
+                new RoutineExerciseInput(c, TestSets.Normal(3, 10), 60, null),
+            ]),
+        ]);
+
+        using var scope = Staff(world.GymA, world.StaffA);
+        var created = await scope.ServiceProvider.GetRequiredService<AssignRoutineHandler>()
+            .HandleAsync(world.MemberA, request, default);
+        var read = await scope.ServiceProvider.GetRequiredService<GetRoutineHandler>().HandleAsync(created.Id, default);
+
+        var lines = read.Days.Single().Exercises.OrderBy(e => e.Order).ToList();
+        Assert.Equal([7, 7, null], lines.Select(l => l.Group));
+        Assert.Equal(2, lines[0].SetTargets.Count);
+
+        var sets = lines[1].SetTargets.OrderBy(s => s.Number).ToList();
+        Assert.Equal([1, 2, 3], sets.Select(s => s.Number));
+        Assert.Equal(["warmup", "normal", "failure"], sets.Select(s => s.SetType));
+        Assert.Equal((15, 15), (sets[0].RepsMin, sets[0].RepsMax));   // un solo extremo = ambos
+        Assert.Equal((8, 10, 2), (sets[1].RepsMin, sets[1].RepsMax, sets[1].Rir));
+        Assert.Null(sets[2].RepsMin);                                  // al fallo no lleva rango
+    }
+
+    [Fact]
+    public async Task The_lines_of_a_superset_must_be_contiguous()
+    {
+        var world = await SeedAsync();
+        var request = new SaveRoutineRequest("Partida", null,
+        [
+            new RoutineDayInput("D1", false,
+            [
+                new RoutineExerciseInput(world.SystemExerciseIds[0], TestSets.Normal(3, 10), 60, null, Group: 1),
+                new RoutineExerciseInput(world.SystemExerciseIds[1], TestSets.Normal(3, 10), 60, null),
+                new RoutineExerciseInput(world.SystemExerciseIds[2], TestSets.Normal(3, 10), 60, null, Group: 1),
+            ]),
+        ]);
+
+        using var scope = Staff(world.GymA, world.StaffA);
+        await Assert.ThrowsAsync<ValidationDomainException>(() =>
+            scope.ServiceProvider.GetRequiredService<AssignRoutineHandler>().HandleAsync(world.MemberA, request, default));
+    }
+
+    [Theory]
+    [InlineData("nope")]
+    public async Task An_unknown_set_type_or_a_line_without_series_is_rejected(string setType)
+    {
+        var world = await SeedAsync();
+        var badType = new SaveRoutineRequest("Mala", null,
+        [
+            new RoutineDayInput("D1", false,
+            [
+                new RoutineExerciseInput(world.SystemExerciseIds[0],
+                    [new SetTargetInput(setType, 10, 10, null, null, null, null)], 60, null),
+            ]),
+        ]);
+        var noSets = new SaveRoutineRequest("Sin series", null,
+        [
+            new RoutineDayInput("D1", false,
+                [new RoutineExerciseInput(world.SystemExerciseIds[0], [], 60, null)]),
+        ]);
+
+        using var scope = Staff(world.GymA, world.StaffA);
+        var assign = scope.ServiceProvider.GetRequiredService<AssignRoutineHandler>();
+        await Assert.ThrowsAsync<ValidationDomainException>(() => assign.HandleAsync(world.MemberA, badType, default));
+        await Assert.ThrowsAsync<ValidationDomainException>(() => assign.HandleAsync(world.MemberA, noSets, default));
+    }
+
+    [Fact]
+    public void Series_keep_only_the_fields_of_what_the_exercise_measures_and_validate_ranges()
+    {
+        var full = new SetTarget(1, SetType.Normal, 8, 12, 40m, 30, 400, 2);
+
+        var reps = Assert.Single(SetTargetRules.Normalize(TrackingType.Reps, [full]));
+        Assert.Equal((8, 12, null, null, null), (reps.RepsMin, reps.RepsMax, reps.WeightKg, reps.DurationSeconds, reps.DistanceM));
+
+        var time = Assert.Single(SetTargetRules.Normalize(TrackingType.Time, [full]));
+        Assert.Equal((null, 30, null), (time.RepsMin, time.DurationSeconds, time.DistanceM));
+
+        var both = Assert.Single(SetTargetRules.Normalize(TrackingType.TimeDistance, [full]));
+        Assert.Equal((30, 400), (both.DurationSeconds, both.DistanceM));
+
+        Assert.Throws<ValidationDomainException>(() =>
+            SetTargetRules.Normalize(TrackingType.RepsWeight, [full with { RepsMin = 12, RepsMax = 8 }]));
+        Assert.Throws<ValidationDomainException>(() =>
+            SetTargetRules.Normalize(TrackingType.RepsWeight, [full with { Rir = 11 }]));
+        Assert.Throws<ValidationDomainException>(() => SetTargetRules.Normalize(TrackingType.RepsWeight, []));
+    }
+
     private static SaveRoutineRequest OneDay(Guid exerciseId)
         => new("Full body", null,
         [
             new RoutineDayInput("Día A", false,
             [
-                new RoutineExerciseInput(exerciseId, 3, "8-12", null, 90, null),
+                new RoutineExerciseInput(exerciseId, TestSets.Normal(3, 8, 12), 90, null),
             ]),
             new RoutineDayInput(null, true, []),
         ]);
@@ -182,7 +286,7 @@ public sealed class RoutineTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var (gymB, staffB, _, _, _) = CreateGym(db, $"rt-b-{suffix}", "RT B", withMemberUser: false);
         await db.SaveChangesAsync();
 
-        var systemIds = await db.Set<Exercise>().Where(e => e.GymId == null)
+        var systemIds = await db.Set<Exercise>().Where(e => e.GymId == null && e.TrackingType == TrackingType.RepsWeight)
             .OrderBy(e => e.Name).Select(e => e.Id).Take(3).ToListAsync();
 
         scope.Dispose();

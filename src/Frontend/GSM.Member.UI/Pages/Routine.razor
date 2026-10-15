@@ -2,6 +2,7 @@
 @layout MemberLayout
 @attribute [Authorize(Roles = GsmRoles.Member)]
 @using GSM.UI.Shared.Formatting
+@using GSM.UI.Shared.Routines
 @inject GymContext GymCtx
 @inject IMeClient Me
 @inject IRoutineExercisesClient RoutineExercises
@@ -66,20 +67,29 @@ else
 
         @if (!today.IsRest)
         {
+            var groupLabels = SetPlan.GroupLabels(today.Exercises);
             @foreach (var exercise in today.Exercises)
             {
                 var state = StateOf(exercise);
-                <section class="gsm-m-ex @(state.Done ? "is-done" : null)">
+                var fields = TrackingFields.Of(exercise.TrackingType);
+                var targets = exercise.SetTargets.OrderBy(t => t.Number).ToList();
+                var outcomes = OutcomesOf(exercise, state);
+                var inGroup = groupLabels.TryGetValue(exercise.Id, out var groupLabel);
+                <section class="gsm-m-ex @(state.Done ? "is-done" : null) @(inGroup ? "gsm-m-ex--grouped" : null)" data-testid="@($"ex-{exercise.Id}")">
                     <button type="button" class="gsm-m-ex__head" aria-expanded="@(state.Open ? "true" : "false")"
                             @onclick="() => state.Open = !state.Open">
                         <span class="gsm-m-ex__check" aria-hidden="true">
                             <MudIcon Icon="@(state.Done ? Icons.Material.Filled.CheckCircle : Icons.Material.Outlined.RadioButtonUnchecked)" />
                         </span>
                         <span class="gsm-m-ex__title">
-                            <span class="gsm-m-ex__name">@exercise.ExerciseName</span>
+                            <span class="gsm-m-ex__name">@exercise.ExerciseName@(inGroup ? $" · superserie {groupLabel}" : "")</span>
                             <span class="gsm-m-ex__target">
-                                Meta: @exercise.TargetSets × @exercise.TargetReps@(exercise.IsUnilateral == true ? " por lado" : "")@(exercise.TargetWeightKg is { } w ? $" · {w:0.#} kg" : "")
+                                Meta: @SetPlan.Summary(targets, exercise.IsUnilateral == true)@(exercise.RestSeconds is { } rest ? (inGroup ? $" · descanso por vuelta {rest} s" : $" · descanso {rest} s") : "")
                             </span>
+                            @if (state.Done)
+                            {
+                                <span class="gsm-m-ex__target" data-testid="@($"progress-{exercise.Id}")">@SetPlan.ProgressText(outcomes)</span>
+                            }
                         </span>
                         <MudIcon Icon="@(state.Open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" />
                     </button>
@@ -87,24 +97,54 @@ else
                     @if (state.Open)
                     {
                         <div class="gsm-m-ex__body">
-                            <div class="gsm-m-set gsm-m-set--head" aria-hidden="true">
-                                <span>Serie</span><span>Peso (kg)</span><span>Reps</span><span></span>
-                            </div>
                             @for (var n = 0; n < state.Rows.Count; n++)
                             {
                                 var row = state.Rows[n];
                                 var index = n;
-                                <div class="gsm-m-set">
-                                    <span class="gsm-m-set__num">@(index + 1)</span>
-                                    <MudNumericField T="double?" @bind-Value="row.Weight" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                     Min="0" Max="1000" Step="2.5" HideSpinButtons="true" Immediate="true"
-                                                     aria-label="@($"Peso de la serie {index + 1}, en kilos")" />
-                                    <MudNumericField T="int?" @bind-Value="row.Reps" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                     Min="0" Max="1000" HideSpinButtons="true" Immediate="true"
-                                                     aria-label="@($"Repeticiones de la serie {index + 1}")" />
-                                    <MudIconButton Icon="@Icons.Material.Outlined.Close" Size="Size.Small"
-                                                   Disabled="state.Rows.Count <= 1" aria-label="@($"Quitar la serie {index + 1}")"
-                                                   OnClick="() => state.Rows.RemoveAt(index)" />
+                                var target = index < targets.Count ? targets[index] : null;
+                                <div class="gsm-m-setrow" data-testid="@($"setrow-{exercise.Id}-{index}")">
+                                    <div class="gsm-m-setrow__head">
+                                        <span class="gsm-m-set__num">@(index + 1)</span>
+                                        <span class="gsm-m-setrow__plan">
+                                            @(target is null ? "Serie extra" : $"{(target.SetType == "normal" ? "" : SetPlan.SetTypeLabel(target.SetType) + ": ")}{SetPlan.Describe(target, exercise.IsUnilateral == true)}")
+                                        </span>
+                                        @if (state.Done)
+                                        {
+                                            <span class="gsm-m-setrow__status is-@(outcomes[index].ToString().ToLowerInvariant())" data-testid="@($"outcome-{exercise.Id}-{index}")">@SetPlan.OutcomeLabel(outcomes[index])</span>
+                                        }
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Close" Size="Size.Small"
+                                                       Disabled="state.Rows.Count <= 1" aria-label="@($"Quitar la serie {index + 1}")"
+                                                       OnClick="() => state.Rows.RemoveAt(index)" />
+                                    </div>
+                                    <div class="gsm-m-setrow__fields">
+                                        @if (fields.Weight)
+                                        {
+                                            <MudNumericField T="double?" @bind-Value="row.Weight" Label="Peso (kg)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                             Min="0" Max="1000" Step="2.5" HideSpinButtons="true" Immediate="true"
+                                                             aria-label="@($"Peso de la serie {index + 1}, en kilos")" />
+                                        }
+                                        @if (fields.Reps)
+                                        {
+                                            <MudNumericField T="int?" @bind-Value="row.Reps" Label="@(exercise.IsUnilateral == true ? "Reps por lado" : "Reps")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                             Min="0" Max="1000" HideSpinButtons="true" Immediate="true"
+                                                             aria-label="@($"Repeticiones de la serie {index + 1}")" />
+                                        }
+                                        @if (fields.Time)
+                                        {
+                                            <MudNumericField T="int?" @bind-Value="row.DurationSeconds" Label="Tiempo (s)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                             Min="0" Max="86400" HideSpinButtons="true" Immediate="true"
+                                                             aria-label="@($"Tiempo de la serie {index + 1}, en segundos")" />
+                                        }
+                                        @if (fields.Distance)
+                                        {
+                                            <MudNumericField T="int?" @bind-Value="row.DistanceM" Label="Distancia (m)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                             Min="0" Max="1000000" HideSpinButtons="true" Immediate="true"
+                                                             aria-label="@($"Distancia de la serie {index + 1}, en metros")" />
+                                        }
+                                        <MudNumericField T="int?" @bind-Value="row.Rir" Label="RIR" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                         Min="0" Max="10" HideSpinButtons="true" Immediate="true"
+                                                         aria-label="@($"Repeticiones en reserva de la serie {index + 1}")" />
+                                    </div>
                                 </div>
                             }
                             <div class="gsm-m-ex__actions">
@@ -143,8 +183,12 @@ else
 
     private sealed class SetRow
     {
+        public string Type { get; set; } = "normal";
         public double? Weight { get; set; }
         public int? Reps { get; set; }
+        public int? DurationSeconds { get; set; }
+        public int? DistanceM { get; set; }
+        public int? Rir { get; set; }
     }
 
     private sealed class ExerciseState
@@ -188,35 +232,44 @@ else
         }
     }
 
-    // Estado de cada ejercicio de hoy: filas de series con la meta como punto de partida.
+    // Estado de cada ejercicio de hoy: una fila por serie planeada, con su objetivo como punto de partida.
     private ExerciseState StateOf(RoutineExerciseResponse exercise)
     {
         if (!_states.TryGetValue(exercise.Id, out var state))
         {
-            var reps = FirstNumber(exercise.TargetReps);
-            state = new ExerciseState
+            var rows = exercise.SetTargets.OrderBy(t => t.Number).Select(t => new SetRow
             {
-                Rows = Enumerable.Range(0, Math.Max(1, exercise.TargetSets))
-                    .Select(_ => new SetRow { Weight = exercise.TargetWeightKg, Reps = reps })
-                    .ToList(),
-            };
+                Type = (t.SetType ?? "normal").ToLowerInvariant(),
+                Weight = t.WeightKg,
+                Reps = t.RepsMin,
+                DurationSeconds = t.DurationSeconds,
+                DistanceM = t.DistanceM,
+            }).ToList();
+            state = new ExerciseState { Rows = rows.Count > 0 ? rows : [new SetRow()] };
             _states[exercise.Id] = state;
         }
 
         return state;
     }
 
-    // "8-10" -> 8, "12" -> 12, "45 s" -> 45: el primer número de la meta, como valor inicial.
-    private static int? FirstNumber(string? text)
-    {
-        var digits = new string((text ?? string.Empty).SkipWhile(c => !char.IsDigit(c)).TakeWhile(char.IsDigit).ToArray());
-        return int.TryParse(digits, out var n) ? n : null;
-    }
+    // Planeado vs hecho, serie contra serie (las filas sobrantes son extras).
+    private static IReadOnlyList<SetOutcome> OutcomesOf(RoutineExerciseResponse exercise, ExerciseState state)
+        => SetPlan.CompareAll(
+            exercise.SetTargets,
+            state.Rows.Select(r => new DoneSet(r.Reps, r.Weight, r.DurationSeconds, r.DistanceM, r.Rir)).ToList());
 
     private static void AddSet(ExerciseState state)
     {
         var last = state.Rows.LastOrDefault();
-        state.Rows.Add(new SetRow { Weight = last?.Weight, Reps = last?.Reps });
+        state.Rows.Add(new SetRow
+        {
+            Type = last?.Type ?? "normal",
+            Weight = last?.Weight,
+            Reps = last?.Reps,
+            DurationSeconds = last?.DurationSeconds,
+            DistanceM = last?.DistanceM,
+            Rir = last?.Rir,
+        });
     }
 
     // Lo ya registrado hoy se carga al abrir la pantalla, para poder corregirlo y no perderlo al recargar.
@@ -237,7 +290,15 @@ else
                 state.Done = true;
                 if (item.Sets is { Count: > 0 } sets)
                 {
-                    state.Rows = sets.OrderBy(x => x.Number).Select(x => new SetRow { Weight = x.WeightKg, Reps = x.Reps }).ToList();
+                    state.Rows = sets.OrderBy(x => x.Number).Select(x => new SetRow
+                    {
+                        Type = (x.SetType ?? "normal").ToLowerInvariant(),
+                        Weight = x.WeightKg,
+                        Reps = x.Reps,
+                        DurationSeconds = x.DurationSeconds,
+                        DistanceM = x.DistanceM,
+                        Rir = x.Rir,
+                    }).ToList();
                 }
             }
         }
@@ -254,7 +315,15 @@ else
         {
             await RoutineExercises.LogPOSTAsync(exercise.Id, new LogRoutineExerciseRequest
             {
-                Sets = state.Rows.Select(r => new LogSetRequest { Reps = r.Reps, WeightKg = r.Weight }).ToList(),
+                Sets = state.Rows.Select(r => new LogSetRequest
+                {
+                    SetType = r.Type,
+                    Reps = r.Reps,
+                    WeightKg = r.Weight,
+                    DurationSeconds = r.DurationSeconds,
+                    DistanceM = r.DistanceM,
+                    Rir = r.Rir,
+                }).ToList(),
             });
             state.Done = true;
             state.Open = false;

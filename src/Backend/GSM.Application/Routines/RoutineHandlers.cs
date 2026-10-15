@@ -15,10 +15,11 @@ namespace GSM.Application.Routines;
 internal static class RoutineDrafting
 {
     public static RoutineDraft ToDraft(
-        SaveRoutineRequest request, Guid assignedBy, bool selfAssigned, bool keepIds = false,
-        ScheduleMode? mode = null)
+        SaveRoutineRequest request, IReadOnlyDictionary<Guid, ExerciseSummary> catalog, Guid assignedBy,
+        bool selfAssigned, bool keepIds = false, ScheduleMode? mode = null)
     {
-        var draft = BuildDraft(request, assignedBy, selfAssigned, mode ?? RoutineSchedule.ParseMode(request.ScheduleMode));
+        var draft = BuildDraft(
+            request, catalog, assignedBy, selfAssigned, mode ?? RoutineSchedule.ParseMode(request.ScheduleMode));
         return keepIds ? draft : StripIds(draft);
     }
 
@@ -34,7 +35,8 @@ internal static class RoutineDrafting
         };
 
     private static RoutineDraft BuildDraft(
-        SaveRoutineRequest request, Guid assignedBy, bool selfAssigned, ScheduleMode mode)
+        SaveRoutineRequest request, IReadOnlyDictionary<Guid, ExerciseSummary> catalog, Guid assignedBy,
+        bool selfAssigned, ScheduleMode mode)
         => new(
             request.Name,
             request.Notes,
@@ -44,12 +46,25 @@ internal static class RoutineDrafting
                 d.Name,
                 d.IsRest,
                 (d.Exercises ?? []).Select(e => new RoutineExerciseDraft(
-                    e.ExerciseId, e.TargetSets, e.TargetReps, e.TargetWeightKg, e.RestSeconds, e.Notes, e.Id)).ToList(),
+                    e.ExerciseId, ToSetTargets(e, catalog), e.RestSeconds, e.Notes, e.Group, e.Id)).ToList(),
                 d.Id,
                 d.DayOfWeek)).ToList(),
             mode);
 
-    public static async Task ValidateExercisesVisibleAsync(
+    // Las series se normalizan contra el tracking_type del ejercicio: solo quedan los campos que corresponden.
+    private static List<SetTarget> ToSetTargets(
+        RoutineExerciseInput line, IReadOnlyDictionary<Guid, ExerciseSummary> catalog)
+    {
+        var tracking = catalog.TryGetValue(line.ExerciseId, out var info) ? info.TrackingType : TrackingType.RepsWeight;
+        var targets = (line.SetTargets ?? []).Select(t => new SetTarget(
+            0,
+            SetTypes.Parse(t.SetType) ?? throw new ValidationDomainException("Tipo de serie inválido."),
+            t.RepsMin, t.RepsMax, t.WeightKg, t.DurationSeconds, t.DistanceM, t.Rir)).ToList();
+        return SetTargetRules.Normalize(tracking, targets);
+    }
+
+    /// <summary>Valida que cada ejercicio exista y sea visible para el gym; devuelve su resumen (con el tracking).</summary>
+    public static async Task<IReadOnlyDictionary<Guid, ExerciseSummary>> ValidateExercisesVisibleAsync(
         IExerciseRepository exercises, SaveRoutineRequest request, CancellationToken cancellationToken)
     {
         var ids = (request.Days ?? [])
@@ -60,16 +75,18 @@ internal static class RoutineDrafting
 
         if (ids.Count == 0)
         {
-            return;
+            return new Dictionary<Guid, ExerciseSummary>();
         }
 
-        var visible = await exercises.FilterVisibleIdsAsync(ids, cancellationToken);
-        var missing = ids.Where(id => !visible.Contains(id)).ToList();
+        var visible = await exercises.GetVisibleSummariesAsync(ids, cancellationToken);
+        var missing = ids.Where(id => !visible.ContainsKey(id)).ToList();
         if (missing.Count > 0)
         {
             throw new ValidationDomainException(
                 "La rutina referencia ejercicios que no existen o son de otro gym.");
         }
+
+        return visible;
     }
 
     public static async Task<RoutineResponse> BuildResponseAsync(
@@ -100,9 +117,9 @@ public sealed class AssignRoutineHandler(
             throw new NotFoundException("Miembro no encontrado.");
         }
 
-        await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
+        var catalog = await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
 
-        var draft = RoutineDrafting.ToDraft(request, currentUser.UserId ?? Guid.Empty, selfAssigned: false);
+        var draft = RoutineDrafting.ToDraft(request, catalog, currentUser.UserId ?? Guid.Empty, selfAssigned: false);
         var routine = Routine.Assign(gymId, memberId, clock.Today, draft);
 
         await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
@@ -148,9 +165,9 @@ public sealed class SelfAssignRoutineHandler(
         var self = await members.ResolveByUserIdAsync(currentUser.UserId ?? Guid.Empty, cancellationToken)
             ?? throw new ForbiddenDomainException("Tu cuenta no está vinculada a un miembro.");
 
-        await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
+        var catalog = await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
 
-        var draft = RoutineDrafting.ToDraft(request, currentUser.UserId ?? Guid.Empty, selfAssigned: true);
+        var draft = RoutineDrafting.ToDraft(request, catalog, currentUser.UserId ?? Guid.Empty, selfAssigned: true);
         var routine = Routine.Assign(gymId, self.Id, clock.Today, draft);
 
         await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
@@ -199,15 +216,15 @@ public sealed class UpdateRoutineHandler(
             ? routine.ScheduleMode
             : RoutineSchedule.ParseMode(request.ScheduleMode);
 
-        await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
+        var catalog = await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
 
         if (requestedMode != routine.ScheduleMode)
         {
-            return await ChangeModeAsync(gymId, routine, request, requestedMode, cancellationToken);
+            return await ChangeModeAsync(gymId, routine, request, catalog, requestedMode, cancellationToken);
         }
 
         var draft = RoutineDrafting.ToDraft(
-            request, routine.AssignedBy, routine.SelfAssigned, keepIds: true, mode: routine.ScheduleMode);
+            request, catalog, routine.AssignedBy, routine.SelfAssigned, keepIds: true, mode: routine.ScheduleMode);
 
         routine.Replace(draft, clock.Today);
         routines.TrackNewChildren(routine);
@@ -218,7 +235,8 @@ public sealed class UpdateRoutineHandler(
     }
 
     private async Task<RoutineResponse> ChangeModeAsync(
-        Guid gymId, Routine previous, SaveRoutineRequest request, ScheduleMode mode, CancellationToken cancellationToken)
+        Guid gymId, Routine previous, SaveRoutineRequest request, IReadOnlyDictionary<Guid, ExerciseSummary> catalog,
+        ScheduleMode mode, CancellationToken cancellationToken)
     {
         if (!previous.IsActive)
         {
@@ -227,7 +245,7 @@ public sealed class UpdateRoutineHandler(
         }
 
         // Los ids del body son de la rutina anterior y no significan nada en la nueva: se descartan.
-        var draft = RoutineDrafting.ToDraft(request, previous.AssignedBy, previous.SelfAssigned, mode: mode);
+        var draft = RoutineDrafting.ToDraft(request, catalog, previous.AssignedBy, previous.SelfAssigned, mode: mode);
         var replacement = Routine.Assign(gymId, previous.MemberId, clock.Today, draft);
 
         await unitOfWork.ExecuteInTransactionAsync(async innerToken =>

@@ -26,13 +26,13 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
             var log = scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>();
 
             // Cinco registros el mismo día (repitiendo el primero dos veces).
-            await log.HandleAsync(w.ExerciseLineIds[0], new LogRoutineExerciseRequest(3, "10", 20m, null), default);
-            await log.HandleAsync(w.ExerciseLineIds[1], new LogRoutineExerciseRequest(null, null, null, null), default);
-            await log.HandleAsync(w.ExerciseLineIds[2], new LogRoutineExerciseRequest(4, "8", 40m, null), default);
+            await log.HandleAsync(w.ExerciseLineIds[0], new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", 10, 20m, null, null, null)]), default);
+            await log.HandleAsync(w.ExerciseLineIds[1], new LogRoutineExerciseRequest(null), default);
+            await log.HandleAsync(w.ExerciseLineIds[2], new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", 8, 40m, null, null, null)]), default);
             var updated = await log.HandleAsync(
-                w.ExerciseLineIds[0], new LogRoutineExerciseRequest(5, "12", 25m, "más peso"), default);
+                w.ExerciseLineIds[0], new LogRoutineExerciseRequest("más peso", [new LogSetRequest("normal", 12, 25m, null, null, null), new LogSetRequest("normal", 10, 25m, null, null, null)]), default);
 
-            Assert.Equal(5, updated.SetsDone);
+            Assert.Equal(2, updated.Sets!.Count);
             Assert.Equal("más peso", updated.Notes);
         }
 
@@ -61,7 +61,7 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(instant, businessDay);
 
         var log = await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>()
-            .HandleAsync(w.ExerciseLineIds[0], new LogRoutineExerciseRequest(null, null, null, null), default);
+            .HandleAsync(w.ExerciseLineIds[0], new LogRoutineExerciseRequest(null), default);
 
         Assert.Equal(businessDay, log.PerformedOn);
         Assert.Equal(instant, log.CompletedAt);
@@ -79,39 +79,38 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
 
         await Assert.ThrowsAsync<ForbiddenDomainException>(() =>
             scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>()
-                .HandleAsync(w.ExerciseLineIds[0], new LogRoutineExerciseRequest(null, null, null, null), default));
+                .HandleAsync(w.ExerciseLineIds[0], new LogRoutineExerciseRequest(null), default));
     }
 
     [Fact]
-    public async Task Per_set_weights_are_stored_derive_the_totals_and_come_back_in_the_history()
+    public async Task Per_set_detail_is_stored_numbered_typed_and_comes_back_in_the_history()
     {
         var w = await SeedAsync(exercisesPerDay: 1);
         var day = new DateOnly(2026, 6, 12);
 
         using (var scope = AsMember(w, day))
         {
-            var log = await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
+            var handler = scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>();
+            var log = await handler.HandleAsync(
                 w.ExerciseLineIds[0],
-                new LogRoutineExerciseRequest(null, null, null, null,
+                new LogRoutineExerciseRequest(null,
                 [
-                    new LogSetRequest(10, 40m),
-                    new LogSetRequest(8, 45m),
-                    new LogSetRequest(6, 50m),
+                    new LogSetRequest("warmup", 12, 20m, null, null, null),
+                    new LogSetRequest(null, 10, 40m, null, null, 2),
+                    new LogSetRequest("failure", 6, 50m, null, null, 0),
                 ]),
                 default);
 
-            Assert.Equal(3, log.SetsDone);
-            Assert.Equal(50m, log.WeightKg);          // el mayor peso, para el progreso
-            Assert.Equal("10/8/6", log.RepsDone);
             Assert.Equal([1, 2, 3], log.Sets!.Select(s => s.Number));
+            Assert.Equal(["warmup", "normal", "failure"], log.Sets!.Select(s => s.SetType));
+            Assert.Equal(2, log.Sets![1].Rir);
 
             // Repetir el mismo día reemplaza el detalle.
-            var again = await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
+            var again = await handler.HandleAsync(
                 w.ExerciseLineIds[0],
-                new LogRoutineExerciseRequest(null, null, null, null, [new LogSetRequest(12, 30m)]),
+                new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", 12, 30m, null, null, null)]),
                 default);
             Assert.Single(again.Sets!);
-            Assert.Equal(30m, again.WeightKg);
         }
 
         using (var scope = AsMember(w, day))
@@ -122,14 +121,41 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
             var set = Assert.Single(item.Sets!);
             Assert.Equal((12, 30m), (set.Reps, set.WeightKg));
         }
+    }
 
-        using (var scope = AsMember(w, day))
+    [Fact]
+    public async Task Time_and_distance_per_set_round_trip()
+    {
+        var w = await SeedAsync(exercisesPerDay: 1);
+        var day = new DateOnly(2026, 6, 13);
+
+        using var scope = AsMember(w, day);
+        var log = await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
+            w.ExerciseLineIds[0],
+            new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", null, null, 45, 400, null)]),
+            default);
+
+        var set = Assert.Single(log.Sets!);
+        Assert.Equal((45, 400), (set.DurationSeconds, set.DistanceM));
+    }
+
+    [Fact]
+    public async Task Invalid_set_values_are_rejected()
+    {
+        var w = await SeedAsync(exercisesPerDay: 1);
+        var day = new DateOnly(2026, 6, 12);
+
+        foreach (var bad in new[]
+                 {
+                     new LogSetRequest("normal", 10, -5m, null, null, null),
+                     new LogSetRequest("normal", 10, 40m, null, null, 11),
+                     new LogSetRequest("nope", 10, 40m, null, null, null),
+                 })
         {
+            using var scope = AsMember(w, day);
             await Assert.ThrowsAsync<ValidationDomainException>(() =>
                 scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
-                    w.ExerciseLineIds[0],
-                    new LogRoutineExerciseRequest(null, null, null, null, [new LogSetRequest(10, -5m)]),
-                    default));
+                    w.ExerciseLineIds[0], new LogRoutineExerciseRequest(null, [bad]), default));
         }
     }
 
@@ -172,7 +198,7 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
         var request = new SaveRoutineRequest("Rutina", null,
         [
             new RoutineDayInput("D1", false,
-                exerciseIds.Select(id => new RoutineExerciseInput(id, 3, "10", null, 60, null)).ToList()),
+                exerciseIds.Select(id => new RoutineExerciseInput(id, TestSets.Normal(3, 10), 60, null)).ToList()),
             new RoutineDayInput(null, true, []),
         ]);
         var routine = await scope.ServiceProvider.GetRequiredService<AssignRoutineHandler>()
