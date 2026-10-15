@@ -1,0 +1,164 @@
+@* Owners del gym (Gyms §6, I4): varios Owners con los mismos poderes, contacto de facturación y traspaso.
+   Va arriba de la lista de staff, en Configuración → Staff. Siempre queda al menos un Owner. *@
+@inject IOwnersClient OwnersApi
+@inject IGymClient GymApi
+@inject GSM.UI.Shared.Auth.GymContext Context
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h6" Class="mb-1">Owners</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3" Style="max-width:640px">
+    Los Owners tienen los mismos poderes. Siempre debe quedar al menos uno. El contacto de facturación es quien
+    recibe los avisos de la suscripción de GSM.
+</MudText>
+
+<MudGrid Class="mb-3" Style="max-width:900px">
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string" @bind-Value="_fullName" Label="Nombre completo" Dense="true" data-testid="owner-name" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Dense="true" data-testid="owner-email" />
+    </MudItem>
+    <MudItem xs="12" sm="2" Class="d-flex align-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="InviteAsync" Disabled="_inviting"
+                   FullWidth="true" data-testid="add-owner">Agregar Owner</MudButton>
+    </MudItem>
+    <MudItem xs="12" sm="2" Class="d-flex align-end">
+        <MudButton Variant="Variant.Outlined" OnClick="TransferAsync" FullWidth="true" data-testid="transfer-gym">Traspasar el gym</MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="_owners" Hover="true" Dense="true" Elevation="0" Class="mb-6">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Cuenta</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">
+                @context.FullName
+                @if (context.UserId == _contactId)
+                {
+                    <MudChip T="string" Color="Color.Info" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono" data-testid="billing-contact">CONTACTO DE FACTURACIÓN</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Cuenta">
+                <MudChip T="string" Color="@(!context.IsActive ? Color.Default : context.IsActivated ? Color.Info : Color.Warning)"
+                         Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @(!context.IsActive ? "INACTIVO" : context.IsActivated ? "ACTIVADA" : "PENDIENTE")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.IsActive)
+                {
+                    @if (context.UserId != _contactId)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => SetContactAsync(context))" data-testid="set-contact">Marcar como contacto</MudButton>
+                    }
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="@(() => RemoveAsync(context))" data-testid="remove-owner">Quitar</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<GymOwnerResponse> _owners = [];
+    private Guid? _contactId;
+    private string _fullName = string.Empty;
+    private string _email = string.Empty;
+    private bool _loading = true;
+    private bool _inviting;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _owners = (await OwnersApi.OwnersAllAsync()).ToList();
+            _contactId = (await GymApi.BillingContactGETAsync()).UserId;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task InviteAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_fullName) || string.IsNullOrWhiteSpace(_email))
+        {
+            Snackbar.Add("Nombre y email son obligatorios.", Severity.Warning);
+            return;
+        }
+
+        _inviting = true;
+        try
+        {
+            var owner = await OwnersApi.OwnersPOSTAsync(new InviteOwnerRequest { FullName = _fullName, Email = _email });
+            Snackbar.Add($"{owner.FullName} ahora es Owner. Le enviamos el enlace a {owner.Email}.", Severity.Success);
+            _fullName = string.Empty;
+            _email = string.Empty;
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _inviting = false;
+        }
+    }
+
+    private async Task SetContactAsync(GymOwnerResponse owner)
+    {
+        try
+        {
+            await GymApi.BillingContactPUTAsync(new SetBillingContactRequest { UserId = owner.UserId });
+            Snackbar.Add($"{owner.FullName} es ahora el contacto de facturación.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task RemoveAsync(GymOwnerResponse owner)
+    {
+        var isSelf = owner.UserId == Context.Me?.UserId;
+        var dialog = await Dialogs.ShowAsync<RemoveOwnerDialog>(
+            $"Quitar a {owner.FullName}",
+            new DialogParameters<RemoveOwnerDialog> { { x => x.Owner, owner }, { x => x.IsSelf, isSelf } });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task TransferAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<TransferGymDialog>("Traspasar el gym");
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+}

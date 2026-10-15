@@ -101,6 +101,7 @@ public sealed class CreateGymHandler(
             }
 
             gym.AssignOwner(ownerId);
+            gym.SetBillingContact(ownerId);
 
             await unitOfWork.SaveChangesAsync(innerToken);
         }, cancellationToken);

@@ -76,7 +76,18 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
 
     public GymStatus Status { get; private set; } = GymStatus.Trial;
 
+    /// <summary>
+    /// El Owner fundador (histórico). Los Owners de hoy son los accesos <c>owner</c> de Identity (Gyms §6); este
+    /// campo ya no manda sobre nada.
+    /// </summary>
     public Guid OwnerId { get; private set; }
+
+    /// <summary>
+    /// Cuenta del Owner marcada como contacto de facturación (cobros del SaaS, avisos de suscripción). Sin FK:
+    /// vive en otro schema; el caso de uso valida que sea un Owner activo. <c>null</c> si nunca se eligió: se
+    /// lee entonces como el primer Owner activo.
+    /// </summary>
+    public Guid? BillingContactUserId { get; private set; }
 
     Guid ITenantEntity.GymId => Id;
 
@@ -125,6 +136,17 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
         }
 
         OwnerId = ownerId;
+    }
+
+    /// <summary>Marca al contacto de facturación (un Owner; lo valida el caso de uso) o lo deja sin elegir.</summary>
+    public void SetBillingContact(Guid? userId)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new ValidationDomainException("El contacto de facturación no es válido.");
+        }
+
+        BillingContactUserId = userId;
     }
 
     public void UpdateProfile(string name, string? nit, string? phone, string? email, string? legalName = null)

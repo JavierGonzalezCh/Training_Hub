@@ -61,6 +61,7 @@ public static class IdentityInfrastructureRegistration
         services.AddScoped<IUserProvisioning, UserProvisioning>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
         services.AddScoped<IStaffAccountService, StaffAccountService>();
+        services.AddScoped<IOwnerAccountService, OwnerAccountService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
         return services;

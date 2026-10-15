@@ -1,9 +1,13 @@
 @* Pestaña "Staff" de la configuración: alta, desactivación y reactivación de recepcionistas. Solo Owner. *@
 @inject IStaffClient StaffApi
+@inject IOwnersClient OwnersApi
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject GSM.UI.Shared.IClipboard Clipboard
 
+<OwnersSection />
+
+<MudText Typo="Typo.h6" Class="mb-1">Staff</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" Style="max-width:640px">
     Al dar de alta a alguien, le llega un email con un enlace (vence en 72 horas) que abre el formulario para
     elegir su contraseña. Si no le llega, usa "Copiar enlace" y mándaselo por WhatsApp. Desactivar no borra la
@@ -65,6 +69,7 @@ else
                 @if (context.IsActive)
                 {
                     <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => CopyLinkAsync(context))">Copiar enlace</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => PromoteAsync(context))" data-testid="promote-staff">Ascender a Owner</MudButton>
                     <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="@(() => DeactivateAsync(context))">Desactivar</MudButton>
                 }
                 else
@@ -185,6 +190,29 @@ else
                 // Sin portapapeles el enlace no se pierde: se muestra para copiarlo a mano.
                 await Dialogs.ShowMessageBox($"Enlace de {staff.FullName}", link.Url, yesText: "Cerrar");
             }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task PromoteAsync(StaffResponse staff)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Ascender a Owner",
+            $"¿Ascender a {staff.FullName} a Owner? Tendrá todos los permisos y podrá gestionar a los demás Owners.",
+            yesText: "Ascender", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await OwnersApi.PromoteAsync(staff.Id);
+            Snackbar.Add($"{staff.FullName} ahora es Owner.", Severity.Success);
+            await LoadAsync();
         }
         catch (GsmApiException ex)
         {

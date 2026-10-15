@@ -68,6 +68,30 @@ public sealed class GymAccess : BaseEntity
         Profile = profile;
     }
 
+    /// <summary>Asciende a un staff a Owner (I4): pierde el perfil, el Owner tiene todos los permisos.</summary>
+    public void PromoteToOwner()
+    {
+        if (Role != UserRole.Staff)
+        {
+            throw new ValidationDomainException("Solo un staff puede ascender a Owner.");
+        }
+
+        Role = UserRole.Owner;
+        Profile = null;
+    }
+
+    /// <summary>Baja a un Owner a staff con ese perfil (I4). Ambos son de equipo: el índice único no cambia.</summary>
+    public void DemoteToStaff(StaffProfile profile)
+    {
+        if (Role != UserRole.Owner)
+        {
+            throw new ValidationDomainException("Solo un Owner puede pasar a staff.");
+        }
+
+        Role = UserRole.Staff;
+        Profile = profile;
+    }
+
     public static bool IsTeamRole(UserRole role) => role is UserRole.Owner or UserRole.Staff;
 
     public void Deactivate(DateTimeOffset now)

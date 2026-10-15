@@ -6,6 +6,23 @@
 @inject ISnackbar Snackbar
 
 <MudText Typo="Typo.h6" Class="mb-2">Owners</MudText>
+@if (!string.IsNullOrEmpty(_contactName))
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2" data-testid="admin-billing-contact">
+        Contacto de facturación: @_contactName (@_contactEmail)
+    </MudText>
+}
+<MudGrid Class="mb-2" Style="max-width:900px">
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string" @bind-Value="_newName" Label="Nombre completo" Dense="true" data-testid="admin-owner-name" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string" @bind-Value="_newEmail" Label="Email" InputType="InputType.Email" Dense="true" data-testid="admin-owner-email" />
+    </MudItem>
+    <MudItem xs="12" sm="3" Class="d-flex align-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync" FullWidth="true" data-testid="admin-add-owner">Agregar Owner</MudButton>
+    </MudItem>
+</MudGrid>
 @if (_loading)
 {
     <MudProgressCircular Indeterminate="true" />
@@ -37,6 +54,7 @@ else
                 {
                     <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ResendAsync(context))" data-testid="resend-access">Reenviar acceso</MudButton>
                     <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => CopyLinkAsync(context))">Copiar enlace</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="@(() => RemoveAsync(context))" data-testid="admin-remove-owner">Quitar</MudButton>
                 }
             </MudTd>
         </RowTemplate>
@@ -49,13 +67,22 @@ else
 
     private List<GymOwnerResponse> _owners = [];
     private bool _loading = true;
+    private string _newName = string.Empty;
+    private string _newEmail = string.Empty;
+    private string? _contactName;
+    private string? _contactEmail;
 
-    protected override async Task OnParametersSetAsync()
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
     {
         _loading = true;
         try
         {
-            _owners = (await Owners.OwnersAsync(GymId)).ToList();
+            _owners = (await Owners.OwnersAllAsync(GymId)).ToList();
+            var contact = await Owners.BillingContactAsync(GymId);
+            _contactName = contact.FullName;
+            _contactEmail = contact.Email;
         }
         catch (GsmApiException ex)
         {
@@ -64,6 +91,51 @@ else
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newName) || string.IsNullOrWhiteSpace(_newEmail))
+        {
+            Snackbar.Add("Nombre y email son obligatorios.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var owner = await Owners.OwnersPOSTAsync(GymId, new InviteOwnerRequest { FullName = _newName, Email = _newEmail });
+            Snackbar.Add($"{owner.FullName} ahora es Owner. Le enviamos el enlace a {owner.Email}.", Severity.Success);
+            _newName = string.Empty;
+            _newEmail = string.Empty;
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task RemoveAsync(GymOwnerResponse owner)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Quitar Owner",
+            $"¿Quitar a {owner.FullName}? Dejará de ser Owner y sus sesiones en este gym se cerrarán.",
+            yesText: "Quitar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await Owners.OwnersDELETEAsync(GymId, owner.UserId);
+            Snackbar.Add($"{owner.FullName} ya no es Owner.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
     }
 

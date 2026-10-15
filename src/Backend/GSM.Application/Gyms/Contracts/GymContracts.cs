@@ -120,6 +120,11 @@ public sealed record MemberGymResponse(
     string? TikTokUrl,
     string? WebsiteUrl);
 
+/// <summary>El Owner marcado como contacto de facturación del gym (cobros del SaaS, avisos de suscripción).</summary>
+public sealed record BillingContactResponse(Guid? UserId, string? FullName, string? Email);
+
+public sealed record SetBillingContactRequest(Guid UserId);
+
 public sealed record GymFeatureFlagsResponse(
     bool ShowRoutines,
     bool ShowClasses,

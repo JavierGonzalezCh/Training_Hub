@@ -1,0 +1,69 @@
+@* Traspasar el gym (Gyms §6): agregar al nuevo dueño y quitarse uno mismo. Primero se agrega al nuevo
+   (así el gym nunca se queda sin Owner) y después se quita al actual. Tu sesión se cierra al terminar. *@
+@inject IOwnersClient OwnersApi
+@inject SessionService Session
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject GymContext Context
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-3">
+            El nuevo dueño recibe un enlace para activar su cuenta (o entra con su contraseña de siempre si ya
+            tiene cuenta). Después de traspasar dejas de ser Owner y tu sesión se cierra.
+        </MudText>
+        <MudTextField T="string" @bind-Value="_fullName" Label="Nombre completo" Dense="true" data-testid="transfer-name" />
+        <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Dense="true" data-testid="transfer-email" />
+        <MudCheckBox T="bool" @bind-Value="_keepAsStaff" Label="Quedarme como staff (perfil Recepción)" Color="Color.Primary"
+                     Class="mt-2" data-testid="transfer-keep" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="TransferAsync" Disabled="_saving"
+                   data-testid="confirm-transfer">Traspasar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _fullName = string.Empty;
+    private string _email = string.Empty;
+    private bool _keepAsStaff;
+    private bool _saving;
+
+    private async Task TransferAsync()
+    {
+        var me = Context.Me?.UserId;
+        if (me is null || string.IsNullOrWhiteSpace(_fullName) || string.IsNullOrWhiteSpace(_email))
+        {
+            Snackbar.Add("Nombre y email del nuevo dueño son obligatorios.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            // 1) Agregar al nuevo dueño. Si falla (ya es Owner, email inválido...), nada cambió.
+            await OwnersApi.OwnersPOSTAsync(new InviteOwnerRequest { FullName = _fullName, Email = _email });
+
+            // 2) Quitarse uno mismo. Ya hay otro Owner, así que la regla del último no estorba.
+            await OwnersApi.OwnersDELETEAsync(me.Value, _keepAsStaff, _keepAsStaff ? "reception" : null);
+
+            Snackbar.Add($"{_fullName} es ahora el dueño del gimnasio.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+
+            await Session.LogoutAsync();
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}
