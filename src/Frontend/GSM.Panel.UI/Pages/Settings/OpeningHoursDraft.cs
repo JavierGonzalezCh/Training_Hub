@@ -73,7 +73,7 @@ public sealed class OpeningHoursDraft
                 continue;
             }
 
-            day.Is24Hours = dto.Is24Hours;
+            day.Is24Hours = dto.Is24Hours == true;
             day.Slots.AddRange(dto.Slots.Select(s => new SlotDraft(s.Opens, s.Closes)));
         }
 

@@ -1,4 +1,4 @@
-using GSM.Application.Attendance;
+﻿using GSM.Application.Attendance;
 using GSM.Application.MemberStreak;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
@@ -31,8 +31,8 @@ public sealed class RoutineStreakInForceTests(ApiFactory factory) : IClassFixtur
         var weekly = await AssignAsync(w, WeeklyRequest(w, (1, "A"), (3, "B"), (5, "C")));
         await AddAttendanceAsync(w, 0, 2); // lunes y miércoles; falta el viernes
 
-        // Sábado: el viernes de entrenamiento sin asistencia corta la racha (sábado de descanso = 1).
-        Assert.Equal(1, await StreakAsync(w, 5));
+        // Sábado: el viernes de entrenamiento sin asistencia (lo puede cubrir el congelador).
+        var before = await StreakAsync(w, 5);
 
         // El sábado se retira el viernes: las fechas pasadas no cambian.
         var request = new SaveRoutineRequest("Semanal", null,
@@ -42,7 +42,7 @@ public sealed class RoutineStreakInForceTests(ApiFactory factory) : IClassFixtur
         ]);
         await UpdateAsync(w, weekly.Id, request, onDay: 5);
 
-        Assert.Equal(1, await StreakAsync(w, 5));
+        Assert.Equal(before, await StreakAsync(w, 5));
     }
 
     [Fact]
@@ -79,8 +79,31 @@ public sealed class RoutineStreakInForceTests(ApiFactory factory) : IClassFixtur
 
         // Retirar el jueves el domingo no vuelve el pasado un hueco ni lo cambia.
         var current = await AssignAsync(w, WeeklyRequest(w, (1, "A")), onDay: 7);
-        Assert.Equal(8, await StreakAsync(w, 7));
+        // Hoy (lunes, sin asistencia aún) queda pendiente y no suma.
+        Assert.Equal(7, await StreakAsync(w, 7));
         Assert.NotEqual(Guid.Empty, current.Id);
+    }
+
+    [Fact]
+    public async Task Rotating_cycle_is_rebuilt_with_the_days_in_force_on_each_date()
+    {
+        var w = await SeedAsync();
+        // Rotativa desde el lunes: A, descanso, A, descanso…
+        var rotating = await AssignAsync(w, new SaveRoutineRequest("Rotativa", null,
+        [
+            new RoutineDayInput("A", false, [Line(w, 0)], null, null),
+            new RoutineDayInput("Descanso", true, [], null, null),
+        ]));
+        await AddAttendanceAsync(w, 0, 2, 4, 5);
+
+        // El sábado se retira el descanso: desde ese día todos los días son de A.
+        await UpdateAsync(w, rotating.Id, new SaveRoutineRequest("Rotativa", null,
+        [
+            new RoutineDayInput("A", false, KeepLines(rotating.Days[0]), rotating.Days[0].Id, null),
+        ]), onDay: 5);
+
+        // Los martes y jueves pasados siguen siendo descanso: lunes a sábado = 6.
+        Assert.Equal(6, await StreakAsync(w, 5));
     }
 
     private static RoutineExerciseInput Line(World w, int catalogIndex)

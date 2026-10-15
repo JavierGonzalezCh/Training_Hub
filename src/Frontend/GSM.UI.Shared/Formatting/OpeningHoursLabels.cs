@@ -30,7 +30,7 @@ public static class OpeningHoursLabels
 
     /// <summary>"24 horas" para un día abierto 24 h; si no, los tramos.</summary>
     public static string Describe(OpeningDayDto day)
-        => day.Is24Hours ? "24 horas" : Describe(day.Slots);
+        => day.Is24Hours == true ? "24 horas" : Describe(day.Slots);
 
     /// <summary>"5:00–12:00 · 15:00–22:00", "24 horas" (tramo 00:00–23:59 de un festivo) o "Cerrado" si no hay tramos.</summary>
     public static string Describe(IEnumerable<TimeSlotDto>? slots)

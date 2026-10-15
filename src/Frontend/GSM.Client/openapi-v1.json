@@ -185,6 +185,95 @@
         }
       }
     },
+    "/api/achievements/retroactive-preview": {
+      "post": {
+        "tags": [
+          "Achievements"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetroactivePreviewRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetroactivePreviewRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetroactivePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetroactivePreviewResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetroactivePreviewResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetroactivePreviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/achievements/{id}/grant-retroactive": {
+      "post": {
+        "tags": [
+          "Achievements"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetroactiveGrantResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetroactiveGrantResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetroactiveGrantResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/achievements/member/{memberId}": {
       "get": {
         "tags": [
@@ -15592,7 +15681,8 @@
           "graceEndsOn",
           "graceDaysLeft",
           "notice",
-          "blockMessage"
+          "blockMessage",
+          "startsOn"
         ],
         "type": "object",
         "properties": {
@@ -15654,6 +15744,13 @@
               "null",
               "string"
             ]
+          },
+          "startsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -17306,7 +17403,8 @@
           "grace",
           "expired",
           "frozen",
-          "noPlan"
+          "noPlan",
+          "scheduled"
         ],
         "type": "object",
         "properties": {
@@ -17351,6 +17449,14 @@
             "format": "int32"
           },
           "noPlan": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "scheduled": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",
@@ -20415,6 +20521,13 @@
               "string"
             ]
           },
+          "accessStartsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
           "recentPayments": {
             "type": "array",
             "items": {
@@ -21510,6 +21623,9 @@
             "items": {
               "$ref": "#/components/schemas/TimeSlotDto"
             }
+          },
+          "is24Hours": {
+            "type": "boolean"
           }
         }
       },
@@ -23274,6 +23390,66 @@
           },
           "newPassword": {
             "type": "string"
+          }
+        }
+      },
+      "RetroactiveGrantResponse": {
+        "required": [
+          "grantedCount"
+        ],
+        "type": "object",
+        "properties": {
+          "grantedCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "RetroactivePreviewRequest": {
+        "required": [
+          "conditionType",
+          "conditionValue",
+          "achievementId"
+        ],
+        "type": "object",
+        "properties": {
+          "conditionType": {
+            "$ref": "#/components/schemas/AchievementConditionType"
+          },
+          "conditionValue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "achievementId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "RetroactivePreviewResponse": {
+        "required": [
+          "eligibleCount"
+        ],
+        "type": "object",
+        "properties": {
+          "eligibleCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
