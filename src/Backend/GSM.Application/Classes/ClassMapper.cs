@@ -20,7 +20,8 @@ public static class ClassMapper
             c.ScheduledDate,
             c.StartsOn,
             c.IsActive,
-            c.DeactivatedOn);
+            c.DeactivatedOn,
+            c.EndsOn);
 
     public static ClassListItem ToListItem(GymClass c)
         => new(
@@ -33,7 +34,8 @@ public static class ClassMapper
             c.IsRecurring,
             c.DaysOfWeek.ToList(),
             c.ScheduledDate,
-            c.IsActive);
+            c.IsActive,
+            c.EndsOn);
 
     public static GymClassDraft ToDraft(SaveClassRequest r)
         => new(
@@ -45,5 +47,6 @@ public static class ClassMapper
             r.DurationMinutes,
             r.IsRecurring,
             r.DaysOfWeek ?? [],
-            r.ScheduledDate);
+            r.ScheduledDate,
+            r.EndsOn);
 }

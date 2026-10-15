@@ -142,6 +142,12 @@ public sealed class ListClassesOutsideHoursHandler(
         {
             if (c.IsRecurring)
             {
+                // C5: una serie que ya terminó no se agenda más; no hay nada que mover.
+                if (c.EndsOn is { } endsOn && endsOn < today)
+                {
+                    continue;
+                }
+
                 var outside = ClassOpeningHours.WeekdaysOutside(schedule, c.DaysOfWeek, c.StartTime, c.DurationMinutes);
                 if (outside.Count > 0)
                 {

@@ -16,7 +16,8 @@ public sealed record SaveClassRequest(
     int DurationMinutes,
     bool IsRecurring,
     IReadOnlyList<ClassDayOfWeek>? DaysOfWeek,
-    DateOnly? ScheduledDate);
+    DateOnly? ScheduledDate,
+    DateOnly? EndsOn = null);
 
 public sealed record ClassResponse(
     Guid Id,
@@ -31,7 +32,8 @@ public sealed record ClassResponse(
     DateOnly? ScheduledDate,
     DateOnly StartsOn,
     bool IsActive,
-    DateOnly? DeactivatedOn);
+    DateOnly? DeactivatedOn,
+    DateOnly? EndsOn);
 
 public sealed record ClassListItem(
     Guid Id,
@@ -43,4 +45,5 @@ public sealed record ClassListItem(
     bool IsRecurring,
     IReadOnlyList<ClassDayOfWeek> DaysOfWeek,
     DateOnly? ScheduledDate,
-    bool IsActive);
+    bool IsActive,
+    DateOnly? EndsOn);

@@ -46,6 +46,13 @@ public sealed class GymClass : BaseEntity, ITenantEntity
     /// <summary>Desde cuándo aplica la recurrencia (día de negocio del alta).</summary>
     public DateOnly StartsOn { get; private set; }
 
+    /// <summary>
+    /// Solo si <see cref="IsRecurring"/> (C5): último día en que la serie ocurre, inclusive. <c>null</c> =
+    /// sin fin, hasta que se da de baja. Es "hasta cuándo ocurre", distinto de <see cref="DeactivatedOn"/>,
+    /// que es "desde cuándo ya no" (la baja lógica). Rige el que llegue primero.
+    /// </summary>
+    public DateOnly? EndsOn { get; private set; }
+
     public bool IsActive { get; private set; } = true;
 
     /// <summary>Cierra la recurrencia; las sesiones pasadas se conservan.</summary>
@@ -120,6 +127,21 @@ public sealed class GymClass : BaseEntity, ITenantEntity
             throw new ValidationDomainException("El cupo debe ser al menos 1, o nulo para entrada libre.");
         }
 
+        if (draft.EndsOn is { } endsOn)
+        {
+            if (!draft.IsRecurring)
+            {
+                throw new ValidationDomainException(
+                    "Una clase no recurrente no lleva fecha de fin: ya tiene su fecha única.");
+            }
+
+            if (endsOn < StartsOn)
+            {
+                throw new ValidationDomainException(
+                    "La fecha de fin de la serie no puede ser anterior a su inicio.");
+            }
+        }
+
         if (draft.DurationMinutes is < 5 or > 480)
         {
             throw new ValidationDomainException("La duración debe estar entre 5 y 480 minutos.");
@@ -134,6 +156,7 @@ public sealed class GymClass : BaseEntity, ITenantEntity
         IsRecurring = draft.IsRecurring;
         ScheduledDate = draft.ScheduledDate;
         DaysOfWeek = days;
+        EndsOn = draft.EndsOn;
     }
 
     private static string NormalizeName(string name)
