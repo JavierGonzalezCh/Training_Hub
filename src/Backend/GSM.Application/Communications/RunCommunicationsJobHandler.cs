@@ -1,6 +1,7 @@
 using GSM.Application.Common.Events;
 using GSM.Application.Communications.Abstractions;
 using GSM.Application.Communications.Events;
+using GSM.Application.Communications.Contracts;
 using GSM.Application.Members.Public;
 using GSM.Application.Memberships.Public;
 using GSM.Domain.Communications;

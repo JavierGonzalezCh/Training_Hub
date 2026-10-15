@@ -1997,6 +1997,102 @@
         }
       }
     },
+    "/api/communications/birthday-settings": {
+      "get": {
+        "tags": [
+          "Announcements"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthdaySettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthdaySettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthdaySettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Announcements"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBirthdaySettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBirthdaySettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBirthdaySettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthdaySettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthdaySettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthdaySettingsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/announcements/{id}": {
       "get": {
         "tags": [
@@ -16106,6 +16202,52 @@
           }
         }
       },
+      "BirthdaySettingsResponse": {
+        "required": [
+          "enabled",
+          "message",
+          "defaultMessage",
+          "isDefaultMessage",
+          "variables"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "defaultMessage": {
+            "type": "string"
+          },
+          "isDefaultMessage": {
+            "type": "boolean"
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "BirthdayTodayRow": {
+        "required": [
+          "memberId",
+          "memberName"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          }
+        }
+      },
       "BookingBlockResponse": {
         "required": [
           "id",
@@ -17978,7 +18120,8 @@
           "expiringSoon",
           "expiringMemberships",
           "commercialStatus",
-          "expiringDays"
+          "expiringDays",
+          "birthdaysToday"
         ],
         "type": "object",
         "properties": {
@@ -18048,6 +18191,12 @@
               "string"
             ],
             "format": "int32"
+          },
+          "birthdaysToday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BirthdayTodayRow"
+            }
           }
         }
       },
@@ -22672,7 +22821,8 @@
           "entriesToday",
           "maxDailyEntries",
           "multipleEntries",
-          "nextEntryAt"
+          "nextEntryAt",
+          "birthdayToday"
         ],
         "type": "object",
         "properties": {
@@ -22794,6 +22944,9 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "birthdayToday": {
+            "type": "boolean"
           }
         }
       },
@@ -25062,6 +25215,24 @@
               {
                 "$ref": "#/components/schemas/AnnouncementAudienceDto"
               }
+            ]
+          }
+        }
+      },
+      "UpdateBirthdaySettingsRequest": {
+        "required": [
+          "enabled",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
