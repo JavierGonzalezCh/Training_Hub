@@ -20,7 +20,8 @@ public sealed class GetReceptionCardHandler(
     IMemberReader members,
     IMembershipReader memberships,
     IGymReader gyms,
-    IAttendanceRepository attendance)
+    IAttendanceRepository attendance,
+    IMemberEntryRuleRepository entryRules)
 {
     public async Task<ReceptionCardResponse> HandleAsync(Guid memberId, CancellationToken cancellationToken)
     {
@@ -29,7 +30,9 @@ public sealed class GetReceptionCardHandler(
             ?? throw new NotFoundException("Miembro no encontrado.");
 
         var access = await memberships.GetAccessStatusAsync(memberId, cancellationToken);
-        var existing = await attendance.GetForMemberOnDateAsync(memberId, clock.Today, cancellationToken);
+        var entriesToday = await attendance.GetEntriesOnDateAsync(memberId, clock.Today, cancellationToken);
+        var rule = await entryRules.GetForMemberAsync(memberId, cancellationToken);
+        var allowance = EntryAllowance.Evaluate(entriesToday, rule, clock.Today, clock.UtcNow);
         var open = await gyms.GetOpenStatusAsync(gymId, clock.UtcNow, cancellationToken);
         var missingWaiver = !await members.HasLiabilityWaiverAsync(memberId, cancellationToken);
 
@@ -48,7 +51,7 @@ public sealed class GetReceptionCardHandler(
         {
             rejection = "member_inactive";
         }
-        else if (existing is not null)
+        else if (!allowance.Allowed)
         {
             rejection = "already_checked_in";
         }
@@ -76,13 +79,17 @@ public sealed class GetReceptionCardHandler(
             access.GraceDaysLeft,
             access.Notice,
             access.BlockMessage,
-            existing is not null,
-            existing?.CheckedInAt,
+            allowance.EntriesToday > 0,
+            allowance.LastEntryAt,
             missingWaiver,
             !open.IsOpen,
             closedMessage,
             CanRegister: rejection is null,
             CanLetThrough: blockedByMembership,
-            RejectionReason: rejection);
+            RejectionReason: rejection,
+            EntriesToday: allowance.EntriesToday,
+            MaxDailyEntries: allowance.AllowedToday,
+            MultipleEntries: allowance.MultipleEntries,
+            NextEntryAt: allowance.NextEntryAt);
     }
 }

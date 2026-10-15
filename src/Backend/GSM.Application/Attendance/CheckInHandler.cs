@@ -33,6 +33,7 @@ public sealed class CheckInHandler(
     IAttendanceRepository attendance,
     ICheckinSettingsRepository settingsRepository,
     ICheckinAttemptRepository attempts,
+    IMemberEntryRuleRepository entryRules,
     ICheckinCodeSigner signer,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
@@ -81,20 +82,40 @@ public sealed class CheckInHandler(
             throw new ConflictException(inactive);
         }
 
-        // Una entrada por día, por cualquier vía (A1b traerá las entradas múltiples).
-        var existing = await attendance.GetForMemberOnDateAsync(member.Id, today, cancellationToken);
-        if (existing is not null)
+        // Una entrada por día, por cualquier vía; el staff puede habilitar entradas múltiples (§3.2):
+        // hasta el máximo del día y con 2 horas mínimo entre una y otra.
+        var entriesToday = await attendance.GetEntriesOnDateAsync(member.Id, today, cancellationToken);
+        var rule = await entryRules.GetForMemberAsync(member.Id, cancellationToken);
+        var allowance = EntryAllowance.Evaluate(entriesToday, rule, today, clock.UtcNow);
+        if (!allowance.Allowed)
         {
-            var at = clock.ToBusinessLocal(existing.CheckedInAt).ToString("H:mm");
+            var at = clock.ToBusinessLocal(allowance.LastEntryAt!.Value).ToString("H:mm");
+            string memberMessage;
+            string staffMessage;
+            if (allowance.NextEntryAt is { } next)
+            {
+                var nextAt = clock.ToBusinessLocal(next).ToString("H:mm");
+                memberMessage = $"Ya registraste tu entrada hoy a las {at}. Podrás volver a entrar a partir de las {nextAt}.";
+                staffMessage = $"{member.FirstName} {member.LastName} ya entró hoy a las {at}. Puede volver a entrar a partir de las {nextAt}.";
+            }
+            else
+            {
+                memberMessage = allowance.MultipleEntries
+                    ? $"Ya registraste tus {allowance.AllowedToday} entradas de hoy (la última a las {at})."
+                    : $"Ya registraste tu entrada hoy a las {at}.";
+                staffMessage = allowance.MultipleEntries
+                    ? $"{member.FirstName} {member.LastName} ya llegó a su máximo de {allowance.AllowedToday} entradas hoy (la última a las {at})."
+                    : $"{member.FirstName} {member.LastName} ya entró hoy a las {at}.";
+            }
+
             if (isMember)
             {
                 // Sin evento: este motivo no suena en la campana ni genera push.
                 await RejectAsync(
-                    gymId, member, CheckinRejectionReason.AlreadyCheckedIn, null, today,
-                    $"Ya registraste tu entrada hoy a las {at}.", false, cancellationToken);
+                    gymId, member, CheckinRejectionReason.AlreadyCheckedIn, null, today, memberMessage, false, cancellationToken);
             }
 
-            throw new ConflictException($"{member.FirstName} {member.LastName} ya entró hoy a las {at}.");
+            throw new ConflictException(staffMessage);
         }
 
         // Memberships decide quién entra (estado, gracia y letrero): Attendance ya no calcula la gracia.

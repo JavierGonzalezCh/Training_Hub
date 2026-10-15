@@ -11,8 +11,9 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
 {
     private IQueryable<AttendanceEntity> Attendances => dbContext.Set<AttendanceEntity>();
 
+    // Visitas = días con entrada, no entradas: los logros cuentan días (A1b, §3.2).
     public Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default)
-        => Attendances.CountAsync(a => a.MemberId == memberId, cancellationToken);
+        => Attendances.Where(a => a.MemberId == memberId).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
 
     public async Task<int> GetStreakAsync(Guid memberId, CancellationToken cancellationToken = default)
     {

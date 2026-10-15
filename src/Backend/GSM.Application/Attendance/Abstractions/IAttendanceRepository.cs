@@ -12,6 +12,10 @@ public interface IAttendanceRepository
     Task<AttendanceEntity?> GetForMemberOnDateAsync(
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default);
 
+    /// <summary>Todas las entradas del miembro ese día de negocio, de la más antigua a la más reciente (A1b).</summary>
+    Task<IReadOnlyList<AttendanceEntity>> GetEntriesOnDateAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default);
+
     Task<(IReadOnlyList<AttendanceEntity> Items, int Total)> GetPageAsync(
         AttendancePageQuery query, CancellationToken cancellationToken = default);
 

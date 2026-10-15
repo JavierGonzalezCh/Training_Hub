@@ -12,8 +12,9 @@ namespace GSM.API.Controllers;
 public sealed class AttendanceController : ControllerBase
 {
     /// <summary>
-    /// Registrar entrada. Staff pasa memberId; un miembro se registra a sí mismo. Una sola entrada por día:
-    /// repetir el mismo día es 409 (`already_checked_in`).
+    /// Registrar entrada. Staff pasa memberId; un miembro se registra a sí mismo. Una sola entrada por día
+    /// (salvo que el staff le haya habilitado entradas múltiples: hasta su máximo, con 2 horas entre una y
+    /// otra): repetir es 409 (`already_checked_in`).
     /// </summary>
     [HttpPost("checkin")]
     [Authorize]
@@ -34,6 +35,41 @@ public sealed class AttendanceController : ControllerBase
     public async Task<ActionResult<ReceptionCardResponse>> ReceptionCard(
         Guid memberId, [FromServices] GetReceptionCardHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(memberId, cancellationToken));
+
+    /// <summary>Entradas por día de un miembro (ficha). Sin regla vigente rige una por día.</summary>
+    [HttpGet("entry-rules/{memberId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [EndpointName("GetEntryRule")]
+    [ProducesResponseType<EntryRuleResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<EntryRuleResponse>> GetEntryRule(
+        Guid memberId, [FromServices] GetEntryRuleHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, cancellationToken));
+
+    /// <summary>Habilita o cambia las entradas múltiples (2 a 5 por día, motivo obligatorio). Owner o cualquier staff.</summary>
+    [HttpPut("entry-rules/{memberId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [EndpointName("SetEntryRule")]
+    [ProducesResponseType<EntryRuleResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<EntryRuleResponse>> SetEntryRule(
+        Guid memberId, SetEntryRuleRequest request, [FromServices] SetEntryRuleHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, request, cancellationToken));
+
+    /// <summary>Quita las entradas múltiples: vuelve a una por día. Idempotente.</summary>
+    [HttpDelete("entry-rules/{memberId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [EndpointName("RemoveEntryRule")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveEntryRule(
+        Guid memberId, [FromServices] RemoveEntryRuleHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(memberId, cancellationToken);
+        return NoContent();
+    }
 
     [HttpGet]
     [Authorize(Policy = AuthPolicies.RequireStaff)]
