@@ -223,6 +223,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: lanzada la cuarta tanda: C2, E3 y CO7 (3 agentes, tras el corte por límite de uso). Quedan de la Ola 3: CO2, CO5 y N5.
 - 2026-10-15: C3, R4 y S2 se cortaron por el límite de uso; reanudadas sin pérdida. A2, S2, C3 y R4 unidas sin conflictos. Migración `V2_A2_S2_C3_R4` **reordenada a mano**: EF ponía los `DropColumn` de R4 antes de copiar los datos; ahora va crear → `SqlScript("S2")` → `SqlScript("R4")` → `DropColumn`. Claves JSON de R4 verificadas (PascalCase, sin renombre de la convención). Al integrar: 1 error de backend, 10 de UI (`??` sobre valores no anulables, `PlansAllAsync`), 4 tests bUnit, 1 test de rutinas y **un defecto real de A2**: la lista por miembro ignoraba "ver anuladas". **Suite: 615 integración + 308 bUnit, todo verde.**
 - 2026-10-14: lanzada la tercera tanda: C3, A2, R4 y S2.
 - 2026-10-14: C5, A1b, M4 e I6 unidas sin conflictos. Migración `V2_C5_A1b_M4_I6`, cliente regenerado. Al integrar: cuarto defecto de NSwag (defaults `int` en `ReceptionCardResponse` salían como texto; se quitaron los defaults), 1 error de UI y un test de C5 que no sembraba membresía (exigida desde C1). **Suite: 574 integración + 279 bUnit, todo verde.**
