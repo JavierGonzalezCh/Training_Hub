@@ -437,6 +437,11 @@ public sealed class NotificationsTests(ApiFactory factory) : IClassFixture<ApiFa
 
         public Task<bool> CanBeTrainerAsync(Guid userId, Guid gymId, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task<IReadOnlySet<Guid>> ListUserIdsWithAnyPermissionAsync(
+            Guid gymId, IReadOnlyCollection<GSM.Domain.Identity.StaffPermission> permissions,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlySet<Guid>>(new HashSet<Guid>());
     }
 
     private async Task PublishAsync<TEvent>(Guid gymId, TEvent evt) where TEvent : IDomainEvent

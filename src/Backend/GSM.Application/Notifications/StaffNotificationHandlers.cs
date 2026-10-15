@@ -29,7 +29,7 @@ public sealed class ListStaffNotificationsHandler(
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
         var (items, total) = await notifications.ListForStaffAsync(
-            userId, clock.UtcNow, openOnly, page, pageSize, cancellationToken);
+            userId, StaffNoticeAudience.Held(currentUser), clock.UtcNow, openOnly, page, pageSize, cancellationToken);
 
         var names = await StaffNotificationMapper.ResolveNamesAsync(identity, items, cancellationToken);
         return new PagedResult<StaffNotificationItem>(
@@ -45,7 +45,8 @@ public sealed class GetStaffNotificationCountHandler(
     {
         _ = currentUser.RequireGymId();
         var userId = currentUser.UserId ?? throw new UnauthorizedDomainException("Sin usuario en el contexto.");
-        return new StaffNotificationCount(await notifications.CountOpenForStaffAsync(userId, clock.UtcNow, cancellationToken));
+        return new StaffNotificationCount(await notifications.CountOpenForStaffAsync(
+            userId, StaffNoticeAudience.Held(currentUser), clock.UtcNow, cancellationToken));
     }
 }
 
@@ -68,6 +69,18 @@ public sealed class ResolveStaffNotificationHandler(
         if (!notification.RequiresAction)
         {
             throw new ConflictException("Este aviso no es de acción: márcalo como leído.");
+        }
+
+        // N1b: un aviso que no le corresponde se trata como inexistente; el de anulación lo cierra quien la resuelve.
+        var held = StaffNoticeAudience.Held(currentUser);
+        if (!StaffNoticeAudience.CanSee(notification, held))
+        {
+            throw new NotFoundException("Aviso no encontrado.");
+        }
+
+        if (!StaffNoticeAudience.CanResolve(notification, held))
+        {
+            throw new ForbiddenDomainException("Este aviso se cierra al aprobar o rechazar la solicitud.");
         }
 
         var now = clock.UtcNow;
@@ -103,10 +116,12 @@ public sealed class ResolveAllStaffNotificationsHandler(
 
         var now = clock.UtcNow;
         var resolved = 0;
-        foreach (var id in await notifications.GetOpenActionIdsAsync(now, cancellationToken))
+        var held = StaffNoticeAudience.Held(currentUser);
+        foreach (var id in await notifications.GetOpenActionIdsAsync(held, now, cancellationToken))
         {
             var notification = await notifications.GetUntrackedAsync(id, cancellationToken);
-            if (notification is null || !await notifications.TryResolveAsync(id, userId, now, cancellationToken))
+            if (notification is null || !StaffNoticeAudience.CanResolve(notification, held)
+                || !await notifications.TryResolveAsync(id, userId, now, cancellationToken))
             {
                 continue;
             }

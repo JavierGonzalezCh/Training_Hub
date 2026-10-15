@@ -46,16 +46,21 @@ public interface INotificationRepository
 
     // ---- bandeja del staff ----
 
+    // N1b: `permissions` son los nombres de los permisos que tiene quien consulta; un aviso de acción con
+    // `RequiredPermissions` solo lo ve quien tenga alguno (sin requisitos, lo ve todo el staff).
+
     Task<(IReadOnlyList<Notification> Items, int Total)> ListForStaffAsync(
-        Guid userId, DateTimeOffset now, bool openOnly, int page, int pageSize,
+        Guid userId, IReadOnlyCollection<string> permissions, DateTimeOffset now, bool openOnly, int page, int pageSize,
         CancellationToken cancellationToken = default);
 
-    Task<int> CountOpenForStaffAsync(Guid userId, DateTimeOffset now, CancellationToken cancellationToken = default);
+    Task<int> CountOpenForStaffAsync(
+        Guid userId, IReadOnlyCollection<string> permissions, DateTimeOffset now, CancellationToken cancellationToken = default);
 
     /// <summary>Atiende el aviso de acción solo si seguía sin atender (el primero gana). <c>true</c> si lo atendió.</summary>
     Task<bool> TryResolveAsync(Guid id, Guid userId, DateTimeOffset now, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Guid>> GetOpenActionIdsAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Guid>> GetOpenActionIdsAsync(
+        IReadOnlyCollection<string> permissions, DateTimeOffset now, CancellationToken cancellationToken = default);
 
     // ---- dispatcher ----
 

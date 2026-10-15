@@ -76,6 +76,34 @@ public sealed class IdentityReader(GsmDbContext dbContext) : IIdentityReader
         return HasTrainer(access.Profile, adjustment);
     }
 
+    public async Task<IReadOnlySet<Guid>> ListUserIdsWithAnyPermissionAsync(
+        Guid gymId, IReadOnlyCollection<StaffPermission> permissions, CancellationToken cancellationToken = default)
+    {
+        var rows = await (
+                from access in dbContext.GymAccesses
+                join user in dbContext.Users on access.UserId equals user.Id
+                where access.GymId == gymId && access.IsTeam && access.IsActive && user.IsActive
+                select new { AccessId = access.Id, access.UserId, access.Role, access.Profile })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var staffAccessIds = rows.Where(r => r.Role == UserRole.Staff).Select(r => r.AccessId).ToList();
+        var adjustments = (await dbContext.GymAccessPermissions
+                .AsNoTracking()
+                .Where(p => staffAccessIds.Contains(p.GymAccessId))
+                .Select(p => new { p.GymAccessId, p.Permission, p.Granted })
+                .ToListAsync(cancellationToken))
+            .ToLookup(p => p.GymAccessId);
+
+        return rows
+            .Where(r => r.Role == UserRole.Owner
+                || StaffPermissions
+                    .Effective(r.Profile ?? StaffProfile.Reception, adjustments[r.AccessId].Select(a => (a.Permission, a.Granted)))
+                    .Overlaps(permissions))
+            .Select(r => r.UserId)
+            .ToHashSet();
+    }
+
     /// <summary>Permiso efectivo = el del perfil, salvo que un ajuste lo agregue (<c>true</c>) o lo quite (<c>false</c>).</summary>
     private static bool HasTrainer(StaffProfile? profile, bool? adjustment)
         => adjustment

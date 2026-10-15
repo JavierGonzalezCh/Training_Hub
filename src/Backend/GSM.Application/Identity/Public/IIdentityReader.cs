@@ -16,6 +16,14 @@ public interface IIdentityReader
 
     /// <summary>¿Puede esta cuenta ser entrenador asignado en ese gym? (acceso activo y Owner o permiso <c>Trainer</c>).</summary>
     Task<bool> CanBeTrainerAsync(Guid userId, Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// N1b: las cuentas con acceso de equipo activo en el gym que tienen <b>alguno</b> de esos permisos
+    /// (efectivos: perfil + ajustes). El Owner cuenta siempre.
+    /// </summary>
+    Task<IReadOnlySet<Guid>> ListUserIdsWithAnyPermissionAsync(
+        Guid gymId, IReadOnlyCollection<GSM.Domain.Identity.StaffPermission> permissions,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>La persona. El gym y el rol ya no son de la cuenta sino de cada acceso (<c>GymAccess</c>).</summary>
