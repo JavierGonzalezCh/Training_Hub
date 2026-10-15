@@ -63,7 +63,7 @@ public class AdaptivePanelTests : TestContext
         Assert.Equal(["Operación", "Negocio", "Entrenamiento", "Gestión"], cut.FindAll(".gsm-nav__label").Select(l => l.TextContent.Trim()));
         Assert.Equal(
             [
-                "Dashboard|/", "Recepción|/attendance/checkin", "Kiosco|/kiosk", "Asistencia|/attendance",
+                "Dashboard|/", "Recepción|/attendance/checkin", "Asistencia|/attendance",
                 "Miembros|/members", "Planes|/plans", "Pagos y caja|/payments", "Comunicaciones|/communications",
                 "Clases|/classes", "Mis clases|/classes/mine", "Ejercicios|/exercises", "Equipos|/equipment",
                 "Configuración|/settings",
@@ -135,7 +135,7 @@ public class AdaptivePanelTests : TestContext
         cut.Find("button.gsm-tabbar__more").Click();
 
         var more = cut.FindAll("[data-testid='more-sheet'] a.gsm-nav-link").Select(a => a.TextContent.Trim()).ToArray();
-        Assert.Equal(["Kiosco", "Asistencia", "Planes", "Pagos y caja", "Comunicaciones", "Mis clases", "Ejercicios", "Equipos", "Configuración"], more);
+        Assert.Equal(["Asistencia", "Planes", "Pagos y caja", "Comunicaciones", "Mis clases", "Ejercicios", "Equipos", "Configuración"], more);
     }
 
     [Fact]

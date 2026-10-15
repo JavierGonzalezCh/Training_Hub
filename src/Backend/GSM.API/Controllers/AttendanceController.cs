@@ -128,9 +128,9 @@ public sealed class AttendanceController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
 
-    /// <summary>Código vigente del gym para el kiosco o el cartel. 403 si el check-in por QR está apagado.</summary>
+    /// <summary>Código vigente del gym para el kiosco. Solo la cuenta de dispositivo (403 al staff). 403 también si el check-in por QR está apagado.</summary>
     [HttpGet("kiosk-code")]
-    [Authorize(Policy = AuthPolicies.RequireStaffOrKiosk)]
+    [Authorize(Policy = AuthPolicies.RequireKiosk)]
     [ProducesResponseType<KioskCodeResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<KioskCodeResponse>> GetKioskCode(
         [FromServices] GetKioskCodeHandler handler, CancellationToken cancellationToken)

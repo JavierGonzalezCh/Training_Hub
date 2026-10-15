@@ -66,7 +66,11 @@ public sealed class AuthenticatedHttpHandler(ITokenStore tokenStore, ITokenRefre
                 return null;
             }
 
-            var refreshed = await refresher.RefreshAsync(current.RefreshToken, cancellationToken);
+            // La sesión de un kiosco (A3) se renueva por su propia ruta: el token del dispositivo no rota.
+            var isKiosk = JwtPayload.TryRead(current.AccessToken)?.Role == GsmRoles.Kiosk;
+            var refreshed = isKiosk
+                ? await refresher.RefreshKioskAsync(current.RefreshToken, cancellationToken)
+                : await refresher.RefreshAsync(current.RefreshToken, cancellationToken);
             if (refreshed is null)
             {
                 await tokenStore.ClearAsync(cancellationToken);
@@ -114,20 +118,39 @@ public sealed class AuthenticatedHttpHandler(ITokenStore tokenStore, ITokenRefre
 public interface ITokenRefresher
 {
     Task<AuthTokens?> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Renueva la sesión de un kiosco con <c>/api/auth/kiosk/refresh</c> (el token del dispositivo no rota ni vence;
+    /// 401 si el Owner lo revocó). Por defecto cae en <see cref="RefreshAsync"/>.
+    /// </summary>
+    Task<AuthTokens?> RefreshKioskAsync(string refreshToken, CancellationToken cancellationToken = default)
+        => RefreshAsync(refreshToken, cancellationToken);
 }
 
 /// <summary>Implementación por defecto: un <see cref="HttpClient"/> desnudo contra la API.</summary>
 public sealed class HttpTokenRefresher(HttpClient httpClient) : ITokenRefresher
 {
-    public async Task<AuthTokens?> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default)
+    public Task<AuthTokens?> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default)
+        => PostRefreshAsync("api/auth/refresh", new RefreshBody(refreshToken), kiosk: false, cancellationToken);
+
+    public Task<AuthTokens?> RefreshKioskAsync(string refreshToken, CancellationToken cancellationToken = default)
+        => PostRefreshAsync("api/auth/kiosk/refresh", new RefreshBody(refreshToken), kiosk: true, cancellationToken);
+
+    private async Task<AuthTokens?> PostRefreshAsync(string path, RefreshBody body, bool kiosk, CancellationToken cancellationToken)
     {
         try
         {
-            using var response = await httpClient.PostAsJsonAsync(
-                "api/auth/refresh", new RefreshBody(refreshToken), cancellationToken);
+            using var response = await httpClient.PostAsJsonAsync(path, body, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
+                // Un kiosco sin supervisión solo pierde la sesión si el Owner la revocó (401/403); un 5xx o un corte
+                // de red no deben desemparejarlo: el error sube y la pantalla reintenta.
+                if (kiosk && (int)response.StatusCode is not (401 or 403))
+                {
+                    response.EnsureSuccessStatusCode();
+                }
+
                 return null;
             }
 
@@ -136,7 +159,7 @@ public sealed class HttpTokenRefresher(HttpClient httpClient) : ITokenRefresher
                 ? null
                 : new AuthTokens(payload.AccessToken, payload.RefreshToken, payload.ExpiresAtUtc);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException) when (!kiosk)
         {
             return null;
         }

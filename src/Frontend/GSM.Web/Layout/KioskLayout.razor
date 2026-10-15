@@ -1,12 +1,9 @@
 @inherits LayoutComponentBase
-@inject GymContext GymContext
-@inject SessionService Session
-@inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthState
 
-@* Layout del kiosco: pantalla completa, sin menú ni barra superior. Lo que se ve a metros de
-   distancia manda; la navegación vuelve al panel con un enlace discreto. *@
-<GsmThemeProvider Gym="@GymContext.Gym" />
+@* Layout del kiosco: pantalla completa, sin menú, sin barra superior y sin enlaces al panel. El equipo de la
+   entrada solo tiene una sesión de dispositivo (rol kiosk): no hay /api/auth/me ni gym que cargar, así que el
+   tema es el de la marca. Lo que se ve a metros de distancia manda. *@
+<GsmThemeProvider Gym="null" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -14,23 +11,3 @@
 <div class="gsm-kiosk-shell">
     @Body
 </div>
-
-@code {
-    protected override async Task OnInitializedAsync()
-    {
-        var state = await AuthState.GetAuthenticationStateAsync();
-        if (state.User.Identity?.IsAuthenticated != true || GymContext.IsLoaded)
-        {
-            return;
-        }
-
-        try
-        {
-            await Session.BootstrapAsync();
-        }
-        catch (ApiErrorException ex) when (ex.Error.IsUnauthorized)
-        {
-            Navigation.NavigateTo("/login", replace: true);
-        }
-    }
-}

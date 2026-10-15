@@ -13,7 +13,9 @@
     Busca al miembro por nombre o documento, revisa su tarjeta y registra la entrada. Los miembros entran solos escaneando el QR del kiosco.
 </MudText>
 
-<MudButton Variant="Variant.Outlined" Href="/kiosk" StartIcon="@Icons.Material.Outlined.QrCode2" Class="mb-6">Abrir kiosco</MudButton>
+<RequireRole Roles="@GsmRoles.Owner">
+    <MudButton Variant="Variant.Outlined" Href="/settings" StartIcon="@Icons.Material.Outlined.QrCode2" Class="mb-6">Configurar kiosco</MudButton>
+</RequireRole>
 
 <MudGrid>
     <MudItem xs="12" md="7">

@@ -41,15 +41,15 @@ public static class AuthSetup
 
         var authorization = services.AddAuthorizationBuilder()
             // `[Authorize]` a secas = cualquier sesión de persona. El token de un kiosco (Identity §8) solo
-            // abre los endpoints que lo nombran (`RequireStaffOrKiosk`): sin esto pasaría por todos los
+            // abre los endpoints que lo nombran (`RequireKiosk`): sin esto pasaría por todos los
             // controllers que no declaran política.
             .SetDefaultPolicy(new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
                 .RequireAssertion(ctx => !ctx.User.IsInRole(RoleName.Kiosk))
                 .Build())
-            .AddPolicy(AuthPolicies.RequireStaffOrKiosk, p => p.RequireAssertion(ctx =>
-                ctx.User.IsInRole(RoleName.Owner) || ctx.User.IsInRole(RoleName.Staff)
-                || ctx.User.IsInRole(RoleName.Kiosk) || IsImpersonating(ctx.User)))
+            // A3: el kiosco es solo del dispositivo emparejado. Ni el staff ni el Owner (ni soporte
+            // impersonando) lo abren con su sesión: el equipo de la entrada no lleva el panel.
+            .AddPolicy(AuthPolicies.RequireKiosk, p => p.RequireRole(RoleName.Kiosk))
             .AddPolicy(AuthPolicies.RequireSuperAdmin, p => p.RequireRole(RoleName.SuperAdmin))
             .AddPolicy(AuthPolicies.RequireOwner, p => p.RequireAssertion(ctx =>
                 ctx.User.IsInRole(RoleName.Owner) || IsImpersonating(ctx.User)))
@@ -87,8 +87,8 @@ public static class AuthPolicies
     public const string RequireSuperAdmin = "RequireSuperAdmin";
     public const string RequireOwner = "RequireOwner";
     public const string RequireStaff = "RequireStaff";
-    /// <summary>Equipo del gym o el kiosco emparejado (solo para lo que el kiosco necesita, hoy el código del QR).</summary>
-    public const string RequireStaffOrKiosk = "RequireStaffOrKiosk";
+    /// <summary>Solo la cuenta de dispositivo del kiosco (Identity §8, Attendance §6): lo que el kiosco necesita, hoy el código del QR.</summary>
+    public const string RequireKiosk = "RequireKiosk";
     public const string RequireStaffOrSuperAdmin ="RequireStaffOrSuperAdmin";
     public const string RequireMember = "RequireMember";
 

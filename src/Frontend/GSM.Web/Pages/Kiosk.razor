@@ -1,24 +1,43 @@
 @page "/kiosk"
 @layout KioskLayout
-@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@using GSM.Client.Http
+@* A3: solo lo abre la cuenta de dispositivo (rol kiosk). La página no usa [Authorize]: el access token del
+   kiosco vence cada 15 minutos y el provider lo vería como anónimo; la sesión se lee del almacén y el
+   AuthenticatedHttpHandler la renueva. Sin sesión de dispositivo lleva al emparejamiento; con una sesión de
+   personal muestra un mensaje en vez de abrir el kiosco. *@
+@attribute [AllowAnonymous]
 @implements IAsyncDisposable
-@inject GymContext GymContext
+@inject ITokenStore Tokens
 @inject IAttendanceClient Attendance
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
 <PageTitle>Kiosco — GSM</PageTitle>
 
-@if (_disabled)
+@if (_staffSession)
+{
+    <section class="gsm-kiosk gsm-kiosk--centered" data-testid="kiosk-staff-message">
+        <MudIcon Icon="@Icons.Material.Outlined.QrCode2" Class="gsm-empty-icon" />
+        <h1 class="gsm-kiosk__title">Este kiosco no se abre con una sesión de personal</h1>
+        <p class="gsm-kiosk__hint">
+            El equipo de la entrada usa una cuenta de dispositivo. El dueño la crea en Configuración → Kioscos
+            y se empareja una vez con un código de 8 caracteres.
+        </p>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/settings">Configurar kiosco</MudButton>
+    </section>
+}
+else if (!_ready)
 {
     <section class="gsm-kiosk gsm-kiosk--centered">
+        <MudProgressCircular Indeterminate="true" />
+    </section>
+}
+else if (_disabled)
+{
+    <section class="gsm-kiosk gsm-kiosk--centered" data-testid="kiosk-disabled">
         <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="gsm-empty-icon" />
         <h1 class="gsm-kiosk__title">El check-in con QR está desactivado</h1>
-        <p class="gsm-kiosk__hint">Actívalo en Configuración → Feature flags para que los miembros puedan registrar su entrada.</p>
-        <RequireRole Roles="@GsmRoles.Owner">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/settings">Ir a Configuración</MudButton>
-        </RequireRole>
-        <a class="gsm-kiosk__back" href="/">Volver al panel</a>
+        <p class="gsm-kiosk__hint">Pídele al dueño que lo active en Configuración para que los miembros puedan registrar su entrada.</p>
     </section>
 }
 else
@@ -26,7 +45,6 @@ else
     <section class="gsm-kiosk">
         <header class="gsm-kiosk__top">
             <div>
-                <div class="gsm-eyebrow">@(GymContext.Gym?.Name ?? "GSM")</div>
                 <h1 class="gsm-kiosk__title">Escanea para entrar</h1>
             </div>
             <div class="gsm-kiosk__clock" aria-hidden="true">@GsmFormat.Time(_now)</div>
@@ -63,7 +81,6 @@ else
         </div>
 
         <footer class="gsm-kiosk__bar">
-            <a class="gsm-kiosk__back" href="/">Volver al panel</a>
             <span class="gsm-kiosk__spacer"></span>
             @if (_code?.Mode == "Static")
             {
@@ -77,7 +94,6 @@ else
     {
         @* Cartel: solo se ve al imprimir (ver @media print en gsm.css). *@
         <div class="gsm-poster" aria-hidden="true">
-            <div class="gsm-poster__gym">@(GymContext.Gym?.Name)</div>
             <QrCodeSvg Value="@LinkFor(_code.Code)" SizePx="520" />
             <div class="gsm-poster__text">Escanea con la cámara para registrar tu entrada</div>
         </div>
@@ -92,12 +108,29 @@ else
     private DateTimeOffset _now = DateTimeOffset.UtcNow;
     private DateTimeOffset _nextCodeFetch = DateTimeOffset.MinValue;
     private bool _disabled;
+    private bool _staffSession;
+    private bool _ready;
+    private bool _revoked;
     private Task? _loop;
 
     protected override async Task OnInitializedAsync()
     {
+        var payload = JwtPayload.TryRead((await Tokens.GetAsync())?.AccessToken);
+        if (payload is null)
+        {
+            Navigation.NavigateTo("/kiosk/emparejar", replace: true);
+            return;
+        }
+
+        if (payload.Role != GsmRoles.Kiosk)
+        {
+            _staffSession = true;
+            return;
+        }
+
         await RefreshCodeAsync();
-        if (_disabled)
+        _ready = true;
+        if (_disabled || _revoked)
         {
             return;
         }
@@ -107,7 +140,7 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_disabled)
+        if (firstRender && _ready && !_disabled)
         {
             try
             {
@@ -152,6 +185,13 @@ else
         {
             _code = await Attendance.KioskCodeAsync(_cts.Token);
         }
+        catch (GsmApiException ex) when (ex.StatusCode == 401)
+        {
+            // El handler ya intentó renovar y el servidor no reconoce al dispositivo (el Owner lo revocó): el
+            // almacén queda limpio y el equipo vuelve a pedir un código.
+            _revoked = true;
+            Navigation.NavigateTo("/kiosk/emparejar?revocado=1", replace: true);
+        }
         catch (GsmApiException ex) when (ex.StatusCode == 403)
         {
             _disabled = true;
@@ -159,6 +199,10 @@ else
         catch (GsmApiException)
         {
             // Un fallo puntual: se reintenta en el siguiente tick.
+        }
+        catch (HttpRequestException)
+        {
+            // Sin red un momento: el kiosco conserva su sesión y reintenta.
         }
     }
 
