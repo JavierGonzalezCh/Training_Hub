@@ -1,0 +1,102 @@
+@* Pestaña "Reservas de clases" de la configuración (Classes v2, C3): plazo de cancelación, penalización por
+   inasistencia, ventana de reserva y máximo de reservas activas. Solo Owner. *@
+@inject IClassSettingsClient ClassSettings
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <div class="gsm-class-rules">
+        <MudNumericField T="int" @bind-Value="_cancelDeadlineHours" Label="Plazo de cancelación (horas)" Min="0" Max="72"
+                         HelperText="Hasta cuántas horas antes del inicio el miembro puede cancelar sin penalización. Pasado el plazo puede cancelar para liberar el cupo, pero cuenta como inasistencia."
+                         Class="mb-4" Style="max-width:420px" id="rule-cancel-deadline" />
+        <MudNumericField T="int" @bind-Value="_bookingWindowDays" Label="Ventana de reserva (días)" Min="1" Max="60"
+                         HelperText="Las reservas de una clase abren esta cantidad de días antes."
+                         Class="mb-4" Style="max-width:420px" id="rule-booking-window" />
+        <MudNumericField T="int" @bind-Value="_maxActiveBookings" Label="Máximo de reservas activas" Min="1" Max="50"
+                         HelperText="Reservas futuras que un miembro puede tener a la vez."
+                         Class="mb-4" Style="max-width:420px" id="rule-max-active" />
+
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Penalización por inasistencia</MudText>
+        <MudNumericField T="int" @bind-Value="_noShowLimit" Label="Inasistencias para penalizar" Min="1" Max="20"
+                         HelperText="Reservas marcadas como 'no vino' o canceladas fuera de plazo. Una reserva que nadie marcó no cuenta."
+                         Class="mb-4" Style="max-width:420px" id="rule-no-show-limit" />
+        <MudNumericField T="int" @bind-Value="_noShowWindowDays" Label="Dentro de (días)" Min="1" Max="180"
+                         Class="mb-4" Style="max-width:420px" id="rule-no-show-window" />
+        <MudNumericField T="int" @bind-Value="_noShowBlockDays" Label="Días sin poder reservar" Min="1" Max="90"
+                         HelperText="Sus reservas ya hechas se mantienen. El staff puede levantar la penalización."
+                         Class="mb-4" Style="max-width:420px" id="rule-no-show-block" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving" id="rules-save">
+            @(_saving ? "Guardando..." : "Guardar cambios")
+        </MudButton>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private int _cancelDeadlineHours = 2;
+    private int _noShowLimit = 3;
+    private int _noShowWindowDays = 30;
+    private int _noShowBlockDays = 7;
+    private int _bookingWindowDays = 7;
+    private int _maxActiveBookings = 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Apply(await ClassSettings.ClassSettingsGETAsync());
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // El cliente generado puede tipar los números de la respuesta como int o int?; el cast a int? sirve para ambos.
+    private void Apply(ClassSettingsResponse r)
+    {
+        _cancelDeadlineHours = (int?)r.CancelDeadlineHours ?? _cancelDeadlineHours;
+        _noShowLimit = (int?)r.NoShowLimit ?? _noShowLimit;
+        _noShowWindowDays = (int?)r.NoShowWindowDays ?? _noShowWindowDays;
+        _noShowBlockDays = (int?)r.NoShowBlockDays ?? _noShowBlockDays;
+        _bookingWindowDays = (int?)r.BookingWindowDays ?? _bookingWindowDays;
+        _maxActiveBookings = (int?)r.MaxActiveBookings ?? _maxActiveBookings;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var saved = await ClassSettings.ClassSettingsPUTAsync(new UpdateClassSettingsRequest
+            {
+                CancelDeadlineHours = _cancelDeadlineHours,
+                NoShowLimit = _noShowLimit,
+                NoShowWindowDays = _noShowWindowDays,
+                NoShowBlockDays = _noShowBlockDays,
+                BookingWindowDays = _bookingWindowDays,
+                MaxActiveBookings = _maxActiveBookings,
+            });
+            Apply(saved);
+            Snackbar.Add("Reglas de reserva guardadas.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

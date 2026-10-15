@@ -15,6 +15,8 @@ public static class ClassesInfrastructureRegistration
         services.AddScoped<IClassRepository, ClassRepository>();
         services.AddScoped<IClassSessionRepository, ClassSessionRepository>();
         services.AddScoped<IClassBookingRepository, ClassBookingRepository>();
+        services.AddScoped<IClassSettingsRepository, ClassSettingsRepository>();
+        services.AddScoped<IBookingBlockRepository, BookingBlockRepository>();
         services.AddScoped<IClassReader, ClassReader>();
 
         return services;

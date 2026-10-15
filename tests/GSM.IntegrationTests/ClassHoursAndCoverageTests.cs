@@ -146,6 +146,13 @@ public sealed class ClassHoursAndCoverageTests(ApiFactory factory) : IClassFixtu
             Assert.True(schedule.Entries.Single().OutsideOpeningHours);
         }
 
+        // C3: la ventana de reserva por defecto (7 días) no llega a la semana siguiente; se amplía.
+        using (var scope = Owner(w.GymId))
+        {
+            await scope.ServiceProvider.GetRequiredService<UpdateClassSettingsHandler>()
+                .HandleAsync(new UpdateClassSettingsRequest(2, 3, 30, 7, 30, 5), default);
+        }
+
         // Otra semana sigue reservable y sin marca.
         using (var scope = AsMember(w, 0))
         {

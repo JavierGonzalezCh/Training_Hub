@@ -29,6 +29,13 @@ public sealed class ClassBooking : BaseEntity, ITenantEntity
 
     public DateTimeOffset? AttendedAt { get; private set; }
 
+    /// <summary>
+    /// C3: instante en que esta reserva pasó a contar como inasistencia (marcada "no vino" por el staff o
+    /// cancelada después del plazo). Nulo si no cuenta. Se limpia si luego se marca la asistencia; una
+    /// reserva que nadie marcó nunca lo recibe.
+    /// </summary>
+    public DateTimeOffset? StrikeAt { get; private set; }
+
     public bool IsActive => Status == ClassBookingStatus.Booked;
 
     public static ClassBooking Book(Guid gymId, Guid sessionId, Guid memberId, DateTimeOffset now)
@@ -70,8 +77,8 @@ public sealed class ClassBooking : BaseEntity, ITenantEntity
         CancelledAt = null;
     }
 
-    /// <summary>El miembro cancela su reserva. Solo si está reservada.</summary>
-    public void CancelByMember(DateTimeOffset now)
+    /// <summary>El miembro cancela su reserva. Solo si está reservada. <paramref name="late"/>: después del plazo, cuenta como inasistencia.</summary>
+    public void CancelByMember(DateTimeOffset now, bool late = false)
     {
         if (Status != ClassBookingStatus.Booked)
         {
@@ -80,6 +87,10 @@ public sealed class ClassBooking : BaseEntity, ITenantEntity
 
         Status = ClassBookingStatus.Cancelled;
         CancelledAt = now;
+        if (late)
+        {
+            StrikeAt = now;
+        }
     }
 
     /// <summary>Cancelación arrastrada por la cancelación de la sesión.</summary>
@@ -98,9 +109,10 @@ public sealed class ClassBooking : BaseEntity, ITenantEntity
     {
         Status = ClassBookingStatus.Attended;
         AttendedAt = now;
+        StrikeAt = null;
     }
 
-    public void MarkNoShow()
+    public void MarkNoShow(DateTimeOffset now)
     {
         if (Status != ClassBookingStatus.Booked)
         {
@@ -108,5 +120,6 @@ public sealed class ClassBooking : BaseEntity, ITenantEntity
         }
 
         Status = ClassBookingStatus.NoShow;
+        StrikeAt = now;
     }
 }

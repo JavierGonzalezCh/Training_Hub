@@ -12,6 +12,7 @@ public static class ClassesModuleRegistration
         // Añade aquí solo lo que el scanning no cubra.
 
         services.AddScoped<ClosedSessionCanceller>();
+        services.AddScoped<BookingPenaltyService>();
 
         return services;
     }
