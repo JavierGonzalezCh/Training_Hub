@@ -10,6 +10,14 @@ public interface ITraceContext
     string? TraceId { get; }
 }
 
+/// <summary>IP y agente de usuario de la petición en curso (para <c>security_events</c>). Sin petición, <c>null</c>.</summary>
+public interface IClientInfo
+{
+    string? Ip { get; }
+
+    string? UserAgent { get; }
+}
+
 public static class TraceCode
 {
     /// <summary>El código corto que ve el usuario ("7F3A2C"): los 6 primeros caracteres en mayúsculas.</summary>

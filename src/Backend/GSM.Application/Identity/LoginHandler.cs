@@ -1,5 +1,6 @@
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Email;
+using GSM.Application.Common.Logs;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Contracts;
@@ -20,6 +21,7 @@ public sealed class LoginHandler(
     IUserCredentialsService credentials,
     IEmailSender emailSender,
     SessionIssuer sessions,
+    ILogStore logStore,
     ILogger<LoginHandler> logger)
 {
     public async Task<LoginResponse> HandleAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -34,6 +36,19 @@ public sealed class LoginHandler(
         {
             logger.LogWarning("Cuenta {UserId} bloqueada por intentos fallidos", locked.Id);
             await NotifyLockoutAsync(locked, cancellationToken);
+        }
+
+        if (check.Account is null)
+        {
+            // Seguridad (docs/GSM-logs.md §4.7): el email intentado, nunca la contraseña.
+            logStore.RecordSecurityEvent(new SecurityEventLogEntry(
+                SecurityEventTypes.LoginFailed, $"email={request.Email}"));
+            if (check.LockedOutNow)
+            {
+                logStore.RecordSecurityEvent(new SecurityEventLogEntry(
+                    SecurityEventTypes.AccountLocked,
+                    $"email={request.Email}; intentos={LockoutPolicy.MaxFailedAttempts}; minutos={(int)LockoutPolicy.Duration.TotalMinutes}"));
+            }
         }
 
         var account = check.Account

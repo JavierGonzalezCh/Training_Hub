@@ -12,6 +12,7 @@ public static class RateLimitPolicies
         => services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = SecurityEventLogging.OnRateLimited;
 
             options.AddPolicy(Login, context =>
             {

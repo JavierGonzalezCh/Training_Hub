@@ -1,3 +1,4 @@
+using GSM.Application.Common.Logs;
 using GSM.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ namespace GSM.API.Middleware;
 /// </summary>
 public sealed class DomainExceptionHandler(
     IProblemDetailsService problemDetailsService,
+    ILogStore logStore,
     ILogger<DomainExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
@@ -28,6 +30,8 @@ public sealed class DomainExceptionHandler(
         logger.LogWarning(domainException,
             "Excepción de dominio {ExceptionType} → {StatusCode}", domainException.GetType().Name, status);
 
+        RecordRejection(httpContext, domainException, status, title);
+
         httpContext.Response.StatusCode = status;
 
         return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
@@ -42,6 +46,31 @@ public sealed class DomainExceptionHandler(
                 Type = $"https://httpstatuses.io/{status}",
             },
         });
+    }
+
+    /// <summary>Un 400/403/404/409/422 de dominio es una regla funcionando: queda en <c>business_rejections</c>.</summary>
+    private void RecordRejection(HttpContext httpContext, DomainException exception, int status, string title)
+    {
+        if (!RejectionLogging.IsRejectionStatus(status))
+        {
+            return;
+        }
+
+        try
+        {
+            logStore.RecordBusinessRejection(new BusinessRejectionLogEntry(
+                httpContext.Request.Method,
+                RequestDescriber.Describe(httpContext).Endpoint,
+                status,
+                exception.GetType().Name,
+                title,
+                exception.Message));
+            RejectionLogging.MarkLogged(httpContext);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "No se pudo registrar el rechazo de negocio");
+        }
     }
 
     private static (int Status, string Title) Map(DomainException exception) => exception switch

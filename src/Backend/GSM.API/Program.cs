@@ -28,6 +28,7 @@ builder.Services.AddCors(options => options.AddPolicy(CorsPolicy, policy => poli
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ICurrentUserService, CurrentUser>();
 builder.Services.AddSingleton<ITraceContext, HttpTraceContext>();
+builder.Services.AddSingleton<IClientInfo, HttpClientInfo>();
 
 builder.Services.AddGsmAuth(builder.Configuration);
 builder.Services.AddGsmRateLimiting();
@@ -53,6 +54,7 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 app.UseMiddleware<TraceIdMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseStatusCodePages();

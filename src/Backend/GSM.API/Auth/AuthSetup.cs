@@ -21,6 +21,7 @@ public static class AuthSetup
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
+                options.Events = SecurityEventLogging.JwtEvents();
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -35,6 +36,8 @@ public static class AuthSetup
                     NameClaimType = GsmClaims.Name,
                 };
             });
+
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, LoggingAuthorizationResultHandler>();
 
         var authorization = services.AddAuthorizationBuilder()
             // `[Authorize]` a secas = cualquier sesión de persona. El token de un kiosco (Identity §8) solo
