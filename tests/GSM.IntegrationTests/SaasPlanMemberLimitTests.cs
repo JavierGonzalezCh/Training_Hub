@@ -296,7 +296,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
         var membership = Membership.Create(w.GymId, memberId, w.PlanId, start, 30);
         if (freeze)
         {
-            membership.Pause(Today);
+            db.Add(MembershipFreeze.Create(membership.GymId, membership.Id, Today, null, "Prueba", true, 0, null));
         }
 
         if (cancel)

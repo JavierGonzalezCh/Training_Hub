@@ -20,6 +20,10 @@ public sealed class MembershipPlanConfiguration : IEntityTypeConfiguration<Membe
         builder.Property(p => p.DurationUnit).HasColumnName("duration_unit").HasDefaultValue(DurationUnit.Days);
         builder.Property(p => p.IsActive).HasDefaultValue(true);
 
+        // MS4: reglas de congelamiento por plan (0 días = no se congela; mínimo por vez).
+        builder.Property(p => p.MaxFreezeDays).HasColumnName("max_freeze_days").HasDefaultValue(0);
+        builder.Property(p => p.MinFreezeDays).HasColumnName("min_freeze_days").HasDefaultValue(1);
+
         builder.HasIndex(p => new { p.GymId, p.Name }).IsUnique();
     }
 }

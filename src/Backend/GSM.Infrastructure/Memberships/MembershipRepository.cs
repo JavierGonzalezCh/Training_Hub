@@ -71,11 +71,14 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
         Guid gymId, DateOnly today, int withinDays, CancellationToken cancellationToken = default)
     {
         var limit = today.AddDays(withinDays);
+        var freezes = Freezes;
 
+        // Una membresía congelada hoy no está "por vencer": su fin se corre al reanudar.
         return await Memberships
             .Where(m => m.Status == MembershipStatus.Active
                 && m.EndDate >= today
-                && m.EndDate <= limit)
+                && m.EndDate <= limit
+                && !freezes.Any(f => f.MembershipId == m.Id && f.StartsOn <= today && (f.EndsOn == null || f.EndsOn >= today)))
             .OrderBy(m => m.EndDate)
             .Join(Plans, m => m.PlanId, p => p.Id,
                 (m, p) => new ExpiringMembershipRow(m.Id, m.MemberId, p.Id, p.Name, m.EndDate))
@@ -83,6 +86,29 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
     }
 
     public void Add(Membership membership) => Memberships.Add(membership);
+
+    private DbSet<MembershipFreeze> Freezes => dbContext.Set<MembershipFreeze>();
+
+    public async Task<IReadOnlyList<MembershipFreeze>> GetFreezesAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default)
+    {
+        if (membershipIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await Freezes
+            .Where(f => membershipIds.Contains(f.MembershipId))
+            .OrderBy(f => f.StartsOn)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<MembershipFreeze?> GetFreezeByIdAsync(Guid freezeId, CancellationToken cancellationToken = default)
+        => Freezes.FirstOrDefaultAsync(f => f.Id == freezeId, cancellationToken);
+
+    public void Add(MembershipFreeze freeze) => Freezes.Add(freeze);
+
+    public void Remove(MembershipFreeze freeze) => Freezes.Remove(freeze);
 
     public Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<MembershipSettings>().FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);

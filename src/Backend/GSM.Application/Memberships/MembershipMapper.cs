@@ -18,19 +18,47 @@ public static partial class MembershipMapper
             EnumText.Snake(plan.DurationUnit)!,
             plan.DurationValue,
             plan.IsActive,
-            plan.CreatedAt);
+            plan.CreatedAt,
+            plan.MaxFreezeDays,
+            plan.MinFreezeDays);
 
-    public static MembershipResponse ToResponse(Membership membership, string planName, DateOnly today)
+    public static MembershipFreezeResponse ToResponse(MembershipFreeze freeze, DateOnly today)
+        => new(
+            freeze.Id,
+            freeze.MembershipId,
+            freeze.StartsOn,
+            freeze.EndsOn,
+            freeze.Reason,
+            freeze.OverrideLimit,
+            freeze.DaysCredited,
+            EnumText.Snake(freeze.StateOn(today))!,
+            freeze.CreatedAt,
+            freeze.CreatedBy);
+
+    public static MembershipResponse ToResponse(
+        Membership membership, string planName, DateOnly today, IEnumerable<MembershipFreeze>? freezes = null)
+    {
+        var own = (freezes ?? []).Where(f => f.MembershipId == membership.Id).ToList();
+        var active = membership.Status == MembershipStatus.Active
+            ? own.FirstOrDefault(f => f.CoversDate(today))
+            : null;
+        var next = membership.Status == MembershipStatus.Active
+            ? own.Where(f => f.StartsOn > today).OrderBy(f => f.StartsOn).FirstOrDefault()
+            : null;
+        return Build(membership, planName, today, active, next);
+    }
+
+    private static MembershipResponse Build(
+        Membership membership, string planName, DateOnly today, MembershipFreeze? active, MembershipFreeze? next)
         => new(
             membership.Id,
             membership.MemberId,
             membership.PlanId,
             planName,
-            membership.EffectiveStatusOn(today).ToString(),
+            membership.EffectiveStatusOn(today, active is not null).ToString(),
             membership.StartDate,
             membership.EndDate,
             membership.CreatedAt,
-            membership.PausedOn,
             membership.CancellationReason,
             EnumText.Snake(membership.RenewalKind)!,
             membership.StartOverrideReason,
@@ -39,7 +67,9 @@ public static partial class MembershipMapper
             membership.EnrollmentFee,
             membership.EnrollmentWaivedReason,
             membership.TotalToCharge,
-            membership.CycleDay);
+            membership.CycleDay,
+            active is null ? null : ToResponse(active, today),
+            next is null ? null : ToResponse(next, today));
 
     public static AccessStatusResponse ToResponse(AccessStatus access)
         => new(

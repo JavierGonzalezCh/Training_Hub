@@ -65,12 +65,12 @@ public sealed class MembershipLifecycleTests(ApiFactory factory) : IClassFixture
             renewal = await assign.HandleAsync(memberId, new AssignMembershipRequest(planId, null), default);
 
             // No se congela una membresía que aún no empieza.
-            await Assert.ThrowsAsync<ValidationDomainException>(() => sp.GetRequiredService<PauseMembershipHandler>()
-                .HandleAsync(memberId, renewal.Id, default));
+            await Assert.ThrowsAsync<ValidationDomainException>(() => sp.GetRequiredService<CreateFreezeHandler>()
+                .HandleAsync(memberId, renewal.Id, new CreateFreezeRequest(null, null, "Viaje"), default));
 
-            var paused = await sp.GetRequiredService<PauseMembershipHandler>().HandleAsync(memberId, current.Id, default);
+            var paused = await sp.GetRequiredService<CreateFreezeHandler>().HandleAsync(memberId, current.Id, new CreateFreezeRequest(null, null, "Viaje"), default);
             Assert.Equal("Paused", paused.Status);
-            Assert.Equal(Day, paused.PausedOn);
+            Assert.Equal(Day, paused.ActiveFreeze!.StartsOn);
             Assert.False(await sp.GetRequiredService<IMembershipReader>().IsActiveAsync(memberId));
         }
 
@@ -80,7 +80,7 @@ public sealed class MembershipLifecycleTests(ApiFactory factory) : IClassFixture
             var resumed = await sp.GetRequiredService<ResumeMembershipHandler>().HandleAsync(memberId, current.Id, default);
 
             Assert.Equal("Active", resumed.Status);
-            Assert.Null(resumed.PausedOn);
+            Assert.Null(resumed.ActiveFreeze);
             Assert.Equal(current.EndDate.AddDays(7), resumed.EndDate);
 
             var history = await sp.GetRequiredService<ListMemberMembershipsHandler>().HandleAsync(memberId, default);
@@ -96,7 +96,7 @@ public sealed class MembershipLifecycleTests(ApiFactory factory) : IClassFixture
 
     private static async Task<Guid> CreatePlanAsync(IServiceProvider sp)
         => (await sp.GetRequiredService<CreatePlanHandler>()
-            .HandleAsync(new CreatePlanRequest($"Mensual {Guid.NewGuid():N}"[..20], null, 80000m, 30), default)).Id;
+            .HandleAsync(new CreatePlanRequest($"Mensual {Guid.NewGuid():N}"[..20], null, 80000m, 30, null, 30, 1), default)).Id;
 
     private IServiceScope Staff(Guid gymId, Guid staffId, DateOnly day)
     {

@@ -27,9 +27,11 @@ public sealed class ListMemberMembershipsHandler(
         var planNames = await memberships.GetPlanNamesAsync(
             history.Select(m => m.PlanId).Distinct().ToList(), cancellationToken);
 
+        var freezes = await memberships.GetFreezesAsync(history.Select(m => m.Id).ToList(), cancellationToken);
+
         return history
             .Select(m => MembershipMapper.ToResponse(
-                m, planNames.GetValueOrDefault(m.PlanId, "(plan eliminado)"), today))
+                m, planNames.GetValueOrDefault(m.PlanId, "(plan eliminado)"), today, freezes))
             .ToList();
     }
 }

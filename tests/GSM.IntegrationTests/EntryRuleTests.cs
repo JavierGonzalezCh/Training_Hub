@@ -261,7 +261,8 @@ public sealed class EntryRuleTests(ApiFactory factory) : IClassFixture<ApiFactor
         using (var s = Scope(w, UserRole.Staff, NoonOf(Today)))
         {
             var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
-            (await db.Set<Membership>().FirstAsync(m => m.MemberId == w.MemberId)).Pause(Today);
+            var frozen = await db.Set<Membership>().FirstAsync(m => m.MemberId == w.MemberId);
+            db.Add(MembershipFreeze.Create(frozen.GymId, frozen.Id, Today, null, "Prueba", true, 0, null));
             await db.SaveChangesAsync();
         }
 

@@ -11,7 +11,12 @@ public sealed record MembershipRenewed(
 
 public sealed record MembershipCancelled(Guid MembershipId, Guid MemberId, Guid GymId) : IDomainEvent;
 
-public sealed record MembershipPaused(Guid MembershipId, Guid MemberId, Guid GymId, DateOnly PausedOn) : IDomainEvent;
+/// <summary>Se creó un congelamiento (abierto desde hoy o programado). <paramref name="EndsOn"/> nulo = abierto.</summary>
+public sealed record MembershipFrozen(
+    Guid MembershipId, Guid MemberId, Guid GymId, DateOnly StartsOn, DateOnly? EndsOn, int DaysAdded) : IDomainEvent;
+
+/// <summary>Se deshizo un congelamiento programado que aún no empezaba.</summary>
+public sealed record MembershipFreezeRemoved(Guid MembershipId, Guid MemberId, Guid GymId, int DaysReturned) : IDomainEvent;
 
 /// <summary>La membresía se reanudó y su fin (y el de las encadenadas) se corrió <paramref name="DaysAdded"/> días.</summary>
 public sealed record MembershipResumed(Guid MembershipId, Guid MemberId, Guid GymId, int DaysAdded) : IDomainEvent;

@@ -486,7 +486,7 @@ public sealed class ClassHoursAndCoverageTests(ApiFactory factory) : IClassFixtu
         using var scope = Staff(w);
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
         var membership = await db.Set<Membership>().SingleAsync(m => m.MemberId == w.MemberIds[memberIndex]);
-        membership.Pause(Monday);
+        db.Add(MembershipFreeze.Create(membership.GymId, membership.Id, Monday, null, "Prueba", true, 0, null));
         await db.SaveChangesAsync();
     }
 

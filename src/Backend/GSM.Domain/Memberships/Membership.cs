@@ -24,11 +24,12 @@ public sealed class Membership : BaseEntity, ITenantEntity
 
     public DateOnly EndDate { get; private set; }
 
-    /// <summary>En almacenamiento nunca <see cref="MembershipStatus.Expired"/>: ese se deriva de la fecha.</summary>
+    /// <summary>
+    /// En almacenamiento solo <see cref="MembershipStatus.Active"/> o <see cref="MembershipStatus.Cancelled"/>:
+    /// <c>expired</c> se deriva de la fecha y, desde MS4, <c>paused</c> se calcula con los congelamientos
+    /// (<see cref="MembershipFreeze"/>).
+    /// </summary>
     public MembershipStatus Status { get; private set; } = MembershipStatus.Active;
-
-    /// <summary>Día de negocio en que se congeló. Solo con <see cref="MembershipStatus.Paused"/>.</summary>
-    public DateOnly? PausedOn { get; private set; }
 
     public DateTimeOffset? CancelledAt { get; private set; }
 
@@ -94,13 +95,18 @@ public sealed class Membership : BaseEntity, ITenantEntity
         };
     }
 
-    /// <summary>Estado efectivo en una fecha: materializa <see cref="MembershipStatus.Expired"/>.</summary>
-    public MembershipStatus EffectiveStatusOn(DateOnly today)
+    /// <summary>
+    /// Estado efectivo en una fecha: materializa <see cref="MembershipStatus.Expired"/> y, desde MS4,
+    /// <see cref="MembershipStatus.Paused"/> (el día cae dentro de un congelamiento: se calcula, no se guarda).
+    /// </summary>
+    public MembershipStatus EffectiveStatusOn(DateOnly today, bool frozenToday = false)
         => Status is MembershipStatus.Paused or MembershipStatus.Cancelled
             ? Status
-            : EndDate < today
-                ? MembershipStatus.Expired
-                : MembershipStatus.Active;
+            : frozenToday
+                ? MembershipStatus.Paused
+                : EndDate < today
+                    ? MembershipStatus.Expired
+                    : MembershipStatus.Active;
 
     /// <summary>
     /// Anula una membresía asignada por error. No borra la fila (queda en el historial) y deja de
@@ -120,54 +126,159 @@ public sealed class Membership : BaseEntity, ITenantEntity
         }
 
         Status = MembershipStatus.Cancelled;
-        PausedOn = null;
         CancelledAt = now;
         CancellationReason = trimmed;
     }
 
-    /// <summary>Congela la membresía que cubre hoy. Mientras está congelada no da acceso.</summary>
-    public void Pause(DateOnly today)
+    /// <summary>
+    /// Crea un congelamiento (§5.2). Sin <paramref name="startsOn"/> ni <paramref name="endsOn"/> es uno
+    /// abierto desde hoy: el fin se corre al reanudar. Con <paramref name="endsOn"/> es programado: el fin
+    /// de esta membresía se corre ya los días que dura y el llamador corre las encadenadas con
+    /// <c>DaysAdded</c>. Se valida contra el plan salvo que <paramref name="overrideLimit"/> (solo el Owner).
+    /// </summary>
+    public (MembershipFreeze Freeze, int DaysAdded) Freeze(
+        MembershipPlan plan, IReadOnlyCollection<MembershipFreeze> existing, DateOnly today,
+        DateOnly? startsOn, DateOnly? endsOn, string? reason, bool overrideLimit, Guid? createdBy)
     {
         if (Status != MembershipStatus.Active)
         {
             throw new ConflictException("Solo se puede congelar una membresía activa.");
         }
 
-        if (!CoversDate(today))
+        var cleanReason = MembershipFreeze.NormalizeReason(reason);
+        var start = startsOn ?? today;
+        if (start < today)
         {
-            throw new ValidationDomainException("Solo se puede congelar la membresía que está vigente hoy.");
+            throw new ValidationDomainException("Un congelamiento no puede empezar en el pasado.");
         }
 
-        Status = MembershipStatus.Paused;
-        PausedOn = today;
+        if (endsOn is null && start != today)
+        {
+            throw new ValidationDomainException("Un congelamiento sin fecha de fin solo puede empezar hoy.");
+        }
+
+        if (endsOn is { } end && end < start)
+        {
+            throw new ValidationDomainException("La fecha de fin no puede ser anterior a la de inicio.");
+        }
+
+        if (existing.Any(f => (f.EndsOn is null || f.EndsOn >= start) && (endsOn is null || f.StartsOn <= endsOn)))
+        {
+            throw new ConflictException("La membresía ya tiene un congelamiento en esas fechas.");
+        }
+
+        if (endsOn is null)
+        {
+            if (!CoversDate(today))
+            {
+                throw new ValidationDomainException("Solo se puede congelar la membresía que está vigente hoy.");
+            }
+        }
+        else if (start < StartDate || start > EndDate)
+        {
+            throw new ValidationDomainException(
+                $"El congelamiento debe empezar mientras la membresía está vigente ({StartDate:yyyy-MM-dd} a {EndDate:yyyy-MM-dd}).");
+        }
+
+        var days = endsOn is { } last ? last.DayNumber - start.DayNumber + 1 : (int?)null;
+        var violation = FindLimitViolation(plan, MembershipFreeze.DaysUsed(existing), days);
+        if (violation is not null && !overrideLimit)
+        {
+            throw new ValidationDomainException(violation);
+        }
+
+        var credited = days ?? 0;
+        var freeze = MembershipFreeze.Create(
+            GymId, Id, start, endsOn, cleanReason, violation is not null, credited, createdBy);
+        EndDate = EndDate.AddDays(credited);
+        return (freeze, credited);
+    }
+
+    private static string? FindLimitViolation(MembershipPlan plan, int used, int? days)
+    {
+        if (plan.MaxFreezeDays == 0)
+        {
+            return "Este plan no permite congelar.";
+        }
+
+        var usedText = $"Este plan permite congelar hasta {plan.MaxFreezeDays} días en total y ya se usaron {used}.";
+        if (days is { } d)
+        {
+            if (d < plan.MinFreezeDays)
+            {
+                return $"El congelamiento mínimo de este plan es de {plan.MinFreezeDays} días.";
+            }
+
+            return used + d > plan.MaxFreezeDays ? usedText : null;
+        }
+
+        // Abierto: al menos tiene que caber un congelamiento mínimo.
+        return plan.MaxFreezeDays - used < plan.MinFreezeDays ? usedText : null;
     }
 
     /// <summary>
-    /// Reanuda una membresía congelada y corre su fin tantos días como estuvo congelada. Devuelve
-    /// esos días para que el caso de uso corra también las membresías encadenadas detrás.
+    /// Termina el congelamiento que cubre hoy (reanudar, también antes de tiempo). Uno abierto corre el
+    /// fin los días que estuvo congelada; uno programado en curso devuelve los días que ya no se usan. Si
+    /// aún no pasó ningún día congelado, el congelamiento se elimina. <see cref="FreezeEnd.Delta"/> es lo
+    /// que hay que correr las membresías encadenadas detrás (negativo si se acorta).
     /// </summary>
-    public int Resume(DateOnly today)
+    public FreezeEnd EndFreeze(MembershipPlan plan, IReadOnlyCollection<MembershipFreeze> freezes, DateOnly today)
     {
-        if (Status != MembershipStatus.Paused || PausedOn is not { } pausedOn)
+        var current = freezes.FirstOrDefault(f => f.CoversDate(today))
+            ?? throw new ConflictException("La membresía no está congelada.");
+        var lastFrozen = today.AddDays(-1);
+
+        if (current.StartsOn > lastFrozen)
         {
-            throw new ConflictException("La membresía no está congelada.");
+            // Empezaba hoy: no llegó a congelarse ningún día.
+            var undo = -current.DaysCredited;
+            EndDate = EndDate.AddDays(undo);
+            return new FreezeEnd(current, undo, Removed: true);
         }
 
-        var days = Math.Max(0, today.DayNumber - pausedOn.DayNumber);
-        EndDate = EndDate.AddDays(days);
-        Status = MembershipStatus.Active;
-        PausedOn = null;
-        return days;
+        if (current.EndsOn is null)
+        {
+            var actual = today.DayNumber - current.StartsOn.DayNumber;
+            var usedByOthers = freezes.Where(f => f.Id != current.Id).Sum(f => f.DaysCredited);
+            var credited = current.OverrideLimit
+                ? actual
+                : Math.Min(actual, Math.Max(0, plan.MaxFreezeDays - usedByOthers));
+            current.Close(lastFrozen, credited);
+            EndDate = EndDate.AddDays(credited);
+            return new FreezeEnd(current, credited, Removed: false);
+        }
+
+        var returned = current.EndsOn.Value.DayNumber - lastFrozen.DayNumber;
+        current.Close(lastFrozen, current.DaysCredited - returned);
+        EndDate = EndDate.AddDays(-returned);
+        return new FreezeEnd(current, -returned, Removed: false);
     }
 
-    /// <summary>Corre una membresía futura (encadenada) cuando la anterior se extiende al reanudarse.</summary>
-    public void ShiftBy(int days)
+    /// <summary>Deshace un congelamiento programado que aún no empieza: devuelve su fin. Devuelve el desplazamiento (negativo).</summary>
+    public int RemoveScheduledFreeze(MembershipFreeze freeze, DateOnly today)
     {
-        if (days < 0)
+        if (freeze.MembershipId != Id)
         {
-            throw new ValidationDomainException("Solo se puede correr una membresía hacia adelante.");
+            throw new NotFoundException("Congelamiento no encontrado.");
         }
 
+        if (freeze.StartsOn <= today)
+        {
+            throw new ConflictException("El congelamiento ya empezó: reanuda la membresía para terminarlo.");
+        }
+
+        var undo = -freeze.DaysCredited;
+        EndDate = EndDate.AddDays(undo);
+        return undo;
+    }
+
+    /// <summary>
+    /// Corre una membresía futura (encadenada) cuando la anterior se extiende o se acorta por un
+    /// congelamiento (días positivos o negativos). No toca <see cref="CycleDay"/>: la renovación que
+    /// sigue arranca ciclo nuevo si no coincide (<see cref="MembershipCalendar.ResolveCycleDay"/>).
+    /// </summary>
+    public void ShiftBy(int days)
+    {
         StartDate = StartDate.AddDays(days);
         EndDate = EndDate.AddDays(days);
     }
@@ -175,3 +286,6 @@ public sealed class Membership : BaseEntity, ITenantEntity
     public bool CoversDate(DateOnly date)
         => Status == MembershipStatus.Active && StartDate <= date && date <= EndDate;
 }
+
+/// <summary>Resultado de terminar un congelamiento: cuánto correr las encadenadas y si la fila se elimina.</summary>
+public sealed record FreezeEnd(MembershipFreeze Freeze, int Delta, bool Removed);

@@ -12,6 +12,25 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
 {
     private IQueryable<Membership> Memberships => dbContext.Set<Membership>();
 
+    /// <summary>Membresías que no caen dentro de un congelamiento ese día (un día congelado no está cubierto).</summary>
+    private IQueryable<Membership> NotFrozenOn(DateOnly day)
+    {
+        var freezes = dbContext.Set<MembershipFreeze>();
+        return Memberships.Where(m => !freezes.Any(
+            f => f.MembershipId == m.Id && f.StartsOn <= day && (f.EndsOn == null || f.EndsOn >= day)));
+    }
+
+    private async Task<IReadOnlyList<MembershipFreeze>> LoadFreezesAsync(
+        IEnumerable<Guid> membershipIds, CancellationToken cancellationToken)
+    {
+        var ids = membershipIds.Distinct().ToList();
+        return ids.Count == 0
+            ? []
+            : await dbContext.Set<MembershipFreeze>()
+                .Where(f => ids.Contains(f.MembershipId))
+                .ToListAsync(cancellationToken);
+    }
+
     private IQueryable<MembershipPlan> Plans => dbContext.Set<MembershipPlan>();
 
     public Task<ActiveMembershipView?> GetActiveAsync(
@@ -19,7 +38,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     {
         var today = clock.Today;
 
-        return Memberships
+        return NotFrozenOn(today)
             .Where(m => m.MemberId == memberId
                 && m.Status == MembershipStatus.Active
                 && m.StartDate <= today && today <= m.EndDate)
@@ -48,7 +67,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     {
         var rows = await Memberships
             .Where(m => m.MemberId == memberId && m.Status != MembershipStatus.Cancelled)
-            .Select(m => new SpanRow(m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
+            .Select(m => new SpanRow(m.Id, m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
             .ToListAsync(cancellationToken);
 
         if (rows.Count == 0)
@@ -56,9 +75,10 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             return CommercialStatusCalculator.Compute([], date, 0, 0);
         }
 
+        var freezes = await LoadFreezesAsync(rows.Select(r => r.Id), cancellationToken);
         var settings = await GetSettingsAsync(rows[0].GymId, cancellationToken);
         return CommercialStatusCalculator.Compute(
-            rows.Select(r => new MembershipSpan(r.Status, r.Start, r.End)),
+            rows.Select(r => new MembershipSpan(r.Status, r.Start, r.End, FreezesOf(freezes, r.Id))),
             date, settings.GraceDays, settings.ExpiringDays);
     }
 
@@ -71,7 +91,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
         }
 
         var today = clock.Today;
-        return await Memberships
+        return await NotFrozenOn(today)
             .Where(m => planIds.Contains(m.PlanId)
                 && m.Status == MembershipStatus.Active
                 && m.StartDate <= today && today <= m.EndDate)
@@ -90,7 +110,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
 
         var rows = await Memberships
             .Where(m => memberIds.Contains(m.MemberId) && m.Status != MembershipStatus.Cancelled)
-            .Select(m => new SpanRow(m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
+            .Select(m => new SpanRow(m.Id, m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
             .ToListAsync(cancellationToken);
 
         var computed = await ComputeAsync(rows, cancellationToken);
@@ -103,7 +123,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     {
         var rows = await Memberships
             .Where(m => m.Status != MembershipStatus.Cancelled)
-            .Select(m => new SpanRow(m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
+            .Select(m => new SpanRow(m.Id, m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
             .ToListAsync(cancellationToken);
 
         var computed = await ComputeAsync(rows, cancellationToken);
@@ -115,7 +135,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     {
         var rows = await Memberships
             .Where(m => m.GymId == gymId && m.Status != MembershipStatus.Cancelled)
-            .Select(m => new SpanRow(m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
+            .Select(m => new SpanRow(m.Id, m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
             .ToListAsync(cancellationToken);
 
         var computed = await ComputeAsync(rows, cancellationToken);
@@ -132,19 +152,23 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     {
         var rows = await Memberships
             .Where(m => m.GymId == gymId && m.Status != MembershipStatus.Cancelled)
-            .Select(m => new SpanRow(m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
+            .Select(m => new SpanRow(m.Id, m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
             .ToListAsync(cancellationToken);
 
         var computed = await ComputeAsync(rows, cancellationToken);
         return computed.Count(kv => kv.Value.CountsTowardMemberLimit());
     }
 
-    private sealed record SpanRow(Guid GymId, Guid MemberId, MembershipStatus Status, DateOnly Start, DateOnly End);
+    private static IReadOnlyList<FreezeSpan> FreezesOf(IReadOnlyList<MembershipFreeze> freezes, Guid membershipId)
+        => freezes.Where(f => f.MembershipId == membershipId).Select(f => new FreezeSpan(f.StartsOn, f.EndsOn)).ToList();
+
+    private sealed record SpanRow(Guid Id, Guid GymId, Guid MemberId, MembershipStatus Status, DateOnly Start, DateOnly End);
 
     private async Task<Dictionary<Guid, CommercialStatus>> ComputeAsync(
         List<SpanRow> rows, CancellationToken cancellationToken)
     {
         var today = clock.Today;
+        var freezes = await LoadFreezesAsync(rows.Select(r => r.Id), cancellationToken);
         var settingsByGym = new Dictionary<Guid, MembershipSettingsView>();
         var result = new Dictionary<Guid, CommercialStatus>();
 
@@ -158,7 +182,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             }
 
             result[member.Key] = CommercialStatusCalculator.Compute(
-                member.Select(r => new MembershipSpan(r.Status, r.Start, r.End)),
+                member.Select(r => new MembershipSpan(r.Status, r.Start, r.End, FreezesOf(freezes, r.Id))),
                 today, settings.GraceDays, settings.ExpiringDays).Commercial;
         }
 
@@ -170,14 +194,14 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
         => Memberships.AnyAsync(m => m.Id == membershipId && m.MemberId == memberId, cancellationToken);
 
     public async Task<DateOnly?> GetLatestEndDateAsync(Guid memberId, CancellationToken cancellationToken = default)
-        => await Memberships.Where(m => m.MemberId == memberId && m.Status == MembershipStatus.Active)
+        => await NotFrozenOn(clock.Today).Where(m => m.MemberId == memberId && m.Status == MembershipStatus.Active)
             .Select(m => (DateOnly?)m.EndDate)
             .MaxAsync(cancellationToken);
 
     public Task<bool> IsActiveAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
         var today = clock.Today;
-        return Memberships.AnyAsync(
+        return NotFrozenOn(today).AnyAsync(
             m => m.MemberId == memberId
                 && m.Status == MembershipStatus.Active
                 && m.StartDate <= today && today <= m.EndDate,
@@ -190,7 +214,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
         var today = clock.Today;
         var limit = today.AddDays(withinDays);
 
-        return await Memberships
+        return await NotFrozenOn(today)
             .Where(m => m.GymId == gymId
                 && m.Status == MembershipStatus.Active
                 && m.EndDate >= today && m.EndDate <= limit)
@@ -210,7 +234,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
         var from = today.AddDays(-graceDays);
         var to = today.AddDays(daysBefore);
 
-        return await Memberships
+        return await NotFrozenOn(today)
             .Where(m => m.GymId == gymId
                 && m.Status == MembershipStatus.Active
                 && m.EndDate >= from && m.EndDate <= to)
@@ -225,7 +249,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     public Task<int> GetExpiredCountAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
         var today = clock.Today;
-        return Memberships.CountAsync(
+        return NotFrozenOn(today).CountAsync(
             m => m.GymId == gymId && m.Status == MembershipStatus.Active && m.EndDate < today,
             cancellationToken);
     }
@@ -235,7 +259,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     {
         var today = clock.Today;
         var limit = today.AddDays(withinDays);
-        return Memberships.CountAsync(
+        return NotFrozenOn(today).CountAsync(
             m => m.GymId == gymId
                 && m.Status == MembershipStatus.Active
                 && m.EndDate >= today && m.EndDate <= limit,
@@ -243,7 +267,7 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     }
 
     public Task<int> GetCoveredMemberCountAsync(DateOnly day, CancellationToken cancellationToken = default)
-        => Memberships
+        => NotFrozenOn(day)
             .Where(m => m.Status == MembershipStatus.Active && m.StartDate <= day && day <= m.EndDate)
             .Select(m => m.MemberId)
             .Distinct()

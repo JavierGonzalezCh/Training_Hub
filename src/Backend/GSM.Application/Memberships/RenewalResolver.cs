@@ -24,8 +24,9 @@ public sealed class RenewalResolver(IMembershipRepository memberships, IClock cl
             ?? MembershipSettings.Default(gymId);
 
         var history = await memberships.GetHistoryAsync(memberId, cancellationToken);
+        var freezes = await memberships.GetFreezesAsync(history.Select(m => m.Id).ToList(), cancellationToken);
         var plan = RenewalPlanner.Plan(
-            history.Select(m => new MembershipSpan(m.Status, m.StartDate, m.EndDate)), today, settings.GraceDays);
+            history.Select(m => FreezeSpans.SpanOf(m, freezes)), today, settings.GraceDays);
 
         var previous = history
             .Where(m => m.Status is MembershipStatus.Active or MembershipStatus.Paused)

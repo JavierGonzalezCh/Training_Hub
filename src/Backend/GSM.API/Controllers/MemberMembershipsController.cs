@@ -70,18 +70,47 @@ public sealed class MemberMembershipsController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(memberId, membershipId, request, cancellationToken));
 
-    /// <summary>Congela la membresía vigente hoy.</summary>
-    [HttpPost("{membershipId:guid}/pause")]
+    /// <summary>
+    /// Congela la membresía: abierto desde hoy (sin fechas; termina al reanudar) o programado con
+    /// `endsOn` (y `startsOn`, por defecto hoy). Reglas del plan; solo el Owner puede superar el límite.
+    /// </summary>
+    [HttpPost("{membershipId:guid}/freeze")]
     [ProducesResponseType<MembershipResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<MembershipResponse>> Pause(
+    public async Task<ActionResult<MembershipResponse>> Freeze(
         Guid memberId,
         Guid membershipId,
-        [FromServices] PauseMembershipHandler handler,
+        CreateFreezeRequest request,
+        [FromServices] CreateFreezeHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, membershipId, request, cancellationToken));
+
+    /// <summary>Historial de congelamientos de la membresía y lo que queda del límite del plan.</summary>
+    [HttpGet("{membershipId:guid}/freezes")]
+    [ProducesResponseType<MembershipFreezesResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MembershipFreezesResponse>> Freezes(
+        Guid memberId,
+        Guid membershipId,
+        [FromServices] ListFreezesHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(memberId, membershipId, cancellationToken));
+
+    /// <summary>Deshace un congelamiento programado que todavía no empieza.</summary>
+    [HttpDelete("{membershipId:guid}/unfreeze/{freezeId:guid}")]
+    [ProducesResponseType<MembershipResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<MembershipResponse>> Unfreeze(
+        Guid memberId,
+        Guid membershipId,
+        Guid freezeId,
+        [FromServices] DeleteFreezeHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, membershipId, freezeId, cancellationToken));
 
     /// <summary>Reanuda una membresía congelada y corre su fin los días congelados.</summary>
     [HttpPost("{membershipId:guid}/resume")]

@@ -2,12 +2,16 @@ namespace GSM.Application.Memberships.Contracts;
 
 /// <param name="DurationValue">Cuántos días o meses dura el plan.</param>
 /// <param name="DurationUnit"><c>days</c> (por defecto si falta) o <c>months</c> (meses del calendario).</param>
+/// <param name="MaxFreezeDays">Total de días que se puede congelar una membresía del plan; 0 o nulo = no se congela (en una edición, nulo = no cambia).</param>
+/// <param name="MinFreezeDays">Mínimo de días por congelamiento (1 por defecto).</param>
 public sealed record CreatePlanRequest(
-    string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null);
+    string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null,
+    int? MaxFreezeDays = null, int? MinFreezeDays = null);
 
 /// <inheritdoc cref="CreatePlanRequest"/>
 public sealed record UpdatePlanRequest(
-    string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null);
+    string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null,
+    int? MaxFreezeDays = null, int? MinFreezeDays = null);
 
 /// <param name="DurationUnit"><c>days</c> o <c>months</c>.</param>
 public sealed record PlanResponse(
@@ -18,7 +22,9 @@ public sealed record PlanResponse(
     string DurationUnit,
     int DurationValue,
     bool IsActive,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    int MaxFreezeDays,
+    int MinFreezeDays);
 
 /// <summary>
 /// <c>StartDate</c> es opcional: el sistema calcula el inicio según la situación del miembro (§4.1).
@@ -61,7 +67,6 @@ public sealed record MembershipResponse(
     DateOnly StartDate,
     DateOnly EndDate,
     DateTimeOffset CreatedAt,
-    DateOnly? PausedOn,
     string? CancellationReason,
     string RenewalKind,
     string? StartOverrideReason,
@@ -70,7 +75,38 @@ public sealed record MembershipResponse(
     decimal EnrollmentFee,
     string? EnrollmentWaivedReason,
     decimal TotalToCharge,
-    int? CycleDay);
+    int? CycleDay,
+    MembershipFreezeResponse? ActiveFreeze,
+    MembershipFreezeResponse? NextFreeze);
+
+/// <summary>
+/// Congela una membresía (§5.2). Sin fechas = abierto desde hoy (termina al reanudar). Con
+/// <c>EndsOn</c> es programado (<c>StartsOn</c> por defecto hoy). <c>OverrideLimit</c> solo lo permite el Owner.
+/// </summary>
+public sealed record CreateFreezeRequest(
+    DateOnly? StartsOn, DateOnly? EndsOn, string Reason, bool OverrideLimit = false);
+
+/// <param name="State"><c>scheduled</c>, <c>active</c> o <c>ended</c>.</param>
+/// <param name="EndsOn">Nulo = abierto (termina al reanudar).</param>
+public sealed record MembershipFreezeResponse(
+    Guid Id,
+    Guid MembershipId,
+    DateOnly StartsOn,
+    DateOnly? EndsOn,
+    string Reason,
+    bool OverrideLimit,
+    int DaysCredited,
+    string State,
+    DateTimeOffset CreatedAt,
+    Guid? CreatedBy);
+
+/// <summary>Historial de congelamientos de una membresía y lo que le queda según su plan.</summary>
+public sealed record MembershipFreezesResponse(
+    int MaxFreezeDays,
+    int MinFreezeDays,
+    int DaysUsed,
+    int DaysRemaining,
+    IReadOnlyList<MembershipFreezeResponse> Items);
 
 public sealed record MembershipSettingsResponse(int GraceDays, int ExpiringDays, decimal EnrollmentFee);
 

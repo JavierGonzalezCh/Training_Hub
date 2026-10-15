@@ -3,8 +3,30 @@ using GSM.Domain.Memberships;
 
 namespace GSM.Application.Memberships;
 
-/// <summary>Un tramo de cobertura de un miembro, tal como está guardado (sin derivar <c>expired</c>).</summary>
-public sealed record MembershipSpan(MembershipStatus Status, DateOnly StartDate, DateOnly EndDate);
+/// <summary>Un congelamiento tal como lo ve el calculador: <paramref name="EndsOn"/> nulo = abierto.</summary>
+public sealed record FreezeSpan(DateOnly StartsOn, DateOnly? EndsOn)
+{
+    public bool CoversDate(DateOnly date) => StartsOn <= date && (EndsOn is null || date <= EndsOn);
+}
+
+/// <summary>
+/// Un tramo de cobertura de un miembro, tal como está guardado (sin derivar <c>expired</c>), con sus
+/// congelamientos (MS4): un día dentro de uno no está cubierto, y eso se calcula.
+/// </summary>
+public sealed record MembershipSpan(
+    MembershipStatus Status, DateOnly StartDate, DateOnly EndDate, IReadOnlyList<FreezeSpan>? Freezes = null)
+{
+    /// <summary>
+    /// ¿Está congelada ese día? <see cref="MembershipStatus.Paused"/> es el formato anterior a MS4
+    /// (ya no se guarda; la migración lo convierte en un congelamiento abierto).
+    /// </summary>
+    public bool IsFrozenOn(DateOnly date)
+        => Status == MembershipStatus.Paused || (Freezes?.Any(f => f.CoversDate(date)) ?? false);
+
+    /// <summary>Último día del congelamiento que cubre el día, si es programado (nulo si es abierto o no hay).</summary>
+    public DateOnly? FrozenUntil(DateOnly date)
+        => Freezes?.FirstOrDefault(f => f.CoversDate(date))?.EndsOn;
+}
 
 /// <summary>
 /// Calcula el estado comercial y el veredicto de acceso (Memberships v2, §10 y §5.3) a partir de las
@@ -32,9 +54,12 @@ public static class CommercialStatusCalculator
         }
 
         // Una membresía congelada no cubre ni da gracia mientras está congelada.
-        if (live.FirstOrDefault(s => s.Status == MembershipStatus.Paused) is { } paused)
+        if (live.FirstOrDefault(s => s.IsFrozenOn(today)) is { } frozen)
         {
-            return Blocked(CommercialStatus.Frozen, AccessBlockReason.Frozen, paused.EndDate, "Su membresía está congelada.");
+            var message = frozen.FrozenUntil(today) is { } until
+                ? $"Su membresía está congelada hasta el {ShortDate(until)}."
+                : "Su membresía está congelada.";
+            return Blocked(CommercialStatus.Frozen, AccessBlockReason.Frozen, frozen.EndDate, message);
         }
 
         var started = live.Where(s => s.StartDate <= today).ToList();
