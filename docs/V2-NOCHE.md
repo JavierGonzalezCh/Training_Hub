@@ -196,6 +196,10 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **CO7-4:** revisar el texto del último día de gracia ("Hoy es tu último día para renovar sin perder tu fecha").
 - **CO7 (para MS5):** cuando existan tiqueteras, excluir las que no tienen gracia del aviso de último día.
 
+- **C2-1:** al cambiar el instructor de una clase también se reasignan las sesiones futuras ya materializadas (las pasadas no). Confirmar.
+- **C2-2:** "Mis clases" exige el permiso `Trainer` (403 sin él). ¿O cualquier staff con lista vacía?
+- **C2-3:** cualquier staff (no solo el instructor) puede marcar asistencia o cancelar cualquier sesión. Confirmar.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
