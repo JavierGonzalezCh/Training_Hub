@@ -12,3 +12,11 @@ public sealed class UpdateCommunicationsSettingsRequestValidator : AbstractValid
         RuleFor(x => x.ReminderDaysBefore).InclusiveBetween(0, CommunicationsSettings.MaxReminderDaysBefore);
     }
 }
+
+public sealed class UpdateBirthdaySettingsRequestValidator : AbstractValidator<UpdateBirthdaySettingsRequest>
+{
+    public UpdateBirthdaySettingsRequestValidator()
+    {
+        RuleFor(x => x.Message).MaximumLength(CommunicationsSettings.BirthdayMessageMaxLength);
+    }
+}

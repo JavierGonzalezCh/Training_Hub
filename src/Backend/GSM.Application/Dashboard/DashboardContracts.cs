@@ -13,7 +13,11 @@ public sealed record DashboardResponse(
     int ExpiringSoon,
     IReadOnlyList<ExpiringMemberRow> ExpiringMemberships,
     CommercialStatusCounts CommercialStatus,
-    int ExpiringDays);
+    int ExpiringDays,
+    IReadOnlyList<BirthdayTodayRow> BirthdaysToday);
+
+/// <summary>Miembro activo que cumple años hoy (el staff lo saluda en persona, Comunicaciones §F).</summary>
+public sealed record BirthdayTodayRow(Guid MemberId, string MemberName);
 
 /// <summary>
 /// Miembros activos por estado comercial hoy ("32 al día · 5 por vencer · 2 en gracia · 7 vencidos").

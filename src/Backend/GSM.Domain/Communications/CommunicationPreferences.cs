@@ -21,7 +21,35 @@ public sealed class CommunicationsSettings : BaseEntity, ITenantEntity
     /// <summary>Días antes del vencimiento en que se avisa. 0 = recordatorios desactivados.</summary>
     public int ReminderDaysBefore { get; private set; } = DefaultReminderDaysBefore;
 
+    public const int BirthdayMessageMaxLength = 600;
+
+    /// <summary>Texto de cumpleaños por defecto. Variables: <c>{nombre}</c> y <c>{gym}</c>.</summary>
+    public const string DefaultBirthdayMessage =
+        "¡Feliz cumpleaños, {nombre}! Hoy tu entrenamiento va por cuenta de la casa 🎉";
+
+    /// <summary>¿Felicita el gym a sus miembros activos el día de su cumpleaños? Apagado por defecto (§F).</summary>
+    public bool BirthdayEnabled { get; private set; }
+
+    /// <summary>Texto propio del gym. Nulo = el texto por defecto.</summary>
+    public string? BirthdayMessage { get; private set; }
+
+    /// <summary>El texto vigente: el del gym o el de por defecto.</summary>
+    public string EffectiveBirthdayMessage => BirthdayMessage ?? DefaultBirthdayMessage;
+
     public static CommunicationsSettings Default(Guid gymId) => new() { GymId = gymId };
+
+    public void UpdateBirthday(bool enabled, string? message)
+    {
+        var trimmed = string.IsNullOrWhiteSpace(message) ? null : message.Trim();
+        if (trimmed is not null && trimmed.Length > BirthdayMessageMaxLength)
+        {
+            throw new ValidationDomainException(
+                $"El texto de cumpleaños admite hasta {BirthdayMessageMaxLength} caracteres.");
+        }
+
+        BirthdayEnabled = enabled;
+        BirthdayMessage = trimmed;
+    }
 
     public void Update(int reminderDaysBefore)
     {

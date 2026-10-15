@@ -23,14 +23,17 @@ public sealed class RunCommunicationsJobHandler(
     IMembershipReader memberships,
     ICommunicationsSettingsRepository settings,
     IDomainEventPublisher events,
+    PublishBirthdayGreetingsHandler birthdays,
     ILogger<RunCommunicationsJobHandler> logger)
 {
-    /// <returns>Cuántos recordatorios de vencimiento se publicaron.</returns>
-    public async Task<int> HandleAsync(CancellationToken cancellationToken)
+    /// <returns>Cuántos recordatorios de vencimiento y felicitaciones de cumpleaños se publicaron.</returns>
+    public async Task<CommunicationsRunOutcome> HandleAsync(CancellationToken cancellationToken)
     {
         var reminders = await PublishRemindersAsync(cancellationToken);
-        logger.LogInformation("Tarea de comunicaciones: {Reminders} recordatorios publicados", reminders);
-        return reminders;
+        var greetings = await birthdays.HandleAsync(cancellationToken);
+        logger.LogInformation(
+            "Tarea de comunicaciones: {Reminders} recordatorios y {Birthdays} cumpleaños publicados", reminders, greetings);
+        return new CommunicationsRunOutcome(reminders, greetings);
     }
 
     /// <summary>

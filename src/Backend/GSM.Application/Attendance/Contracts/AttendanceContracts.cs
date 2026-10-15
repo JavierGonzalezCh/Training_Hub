@@ -134,7 +134,8 @@ public sealed record ReceptionCardResponse(
     int EntriesToday,
     int MaxDailyEntries,
     bool MultipleEntries,
-    DateTimeOffset? NextEntryAt);
+    DateTimeOffset? NextEntryAt,
+    bool BirthdayToday);
 
 /// <summary>Habilita (o cambia) las entradas múltiples de un miembro. Máximo de 2 a 5; motivo obligatorio; vencimiento opcional.</summary>
 public sealed record SetEntryRuleRequest(int MaxDailyEntries, string Reason, DateOnly? ValidUntil);

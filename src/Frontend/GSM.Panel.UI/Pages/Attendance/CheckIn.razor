@@ -54,6 +54,16 @@
                         @(daysLeft == 0 ? "Vence hoy" : daysLeft == 1 ? "Le queda 1 día" : $"Le quedan {daysLeft} días")
                     </MudText>
                 }
+                @if (card.BirthdayToday)
+                {
+                    <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Outlined.Cake" Dense="true" Class="mt-3" role="status"
+                              id="birthday-today">
+                        Hoy cumple años. ¡Salúdalo!
+                        <div class="mt-2">
+                            <WhatsAppButton MemberId="card.MemberId" Kind="Birthday" />
+                        </div>
+                    </MudAlert>
+                }
                 @if (!string.IsNullOrEmpty(card.Notice))
                 {
                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" role="status" id="access-notice">@card.Notice</MudAlert>

@@ -80,6 +80,24 @@ public sealed class AnnouncementsController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
 
+    /// <summary>Felicitación de cumpleaños del gym: si está encendida y su texto (§F).</summary>
+    [HttpGet("/api/communications/birthday-settings")]
+    [ProducesResponseType<BirthdaySettingsResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<BirthdaySettingsResponse>> BirthdaySettings(
+        [FromServices] GetBirthdaySettingsHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Enciende o apaga la felicitación de cumpleaños y fija su texto. Solo Owner.</summary>
+    [HttpPut("/api/communications/birthday-settings")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<BirthdaySettingsResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<BirthdaySettingsResponse>> UpdateBirthdaySettings(
+        UpdateBirthdaySettingsRequest request,
+        [FromServices] UpdateBirthdaySettingsHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType<AnnouncementResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
