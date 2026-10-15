@@ -1,0 +1,184 @@
+@* Audiencia de un anuncio (CO2): todos los miembros, o un segmento por estado comercial, plan, clase y
+   etiqueta. Los valores de un filtro suman y los filtros se combinan con "y". Muestra "Llegará a N miembros"
+   (recalculado en el servidor) y, si se pide, la lista para revisarla. *@
+@inject IAnnouncementsClient Announcements
+@inject IMembershipPlansClient Plans
+@inject IClassesClient Classes
+
+<div class="gsm-audience" data-testid="audience-picker">
+    <MudSwitch T="bool" Value="_segmented" ValueChanged="SegmentedChangedAsync" Label="Solo a un segmento de miembros"
+               Color="Color.Primary" data-testid="audience-switch" />
+
+    @if (_segmented)
+    {
+        <MudSelect T="string" MultiSelection="true" Label="Estado de la membresía" Class="mt-2" Clearable="true"
+                   SelectedValues="_statuses" SelectedValuesChanged="StatusesChangedAsync"
+                   MultiSelectionTextFunc="@(v => string.Join(", ", v.Select(StatusLabel)))">
+            @foreach (var status in Statuses)
+            {
+                <MudSelectItem T="string" Value="@status.Value">@status.Label</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="Guid" MultiSelection="true" Label="Plan (vigente hoy)" Class="mt-2" Clearable="true"
+                   SelectedValues="_planIds" SelectedValuesChanged="PlansChangedAsync"
+                   MultiSelectionTextFunc="@(v => string.Join(", ", v.Select(PlanName)))">
+            @foreach (var plan in _plans)
+            {
+                <MudSelectItem T="Guid" Value="@plan.Id">@plan.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="Guid" MultiSelection="true" Label="Clase (reserva o asistencia en los últimos 30 días)" Class="mt-2"
+                   Clearable="true" SelectedValues="_classIds" SelectedValuesChanged="ClassesChangedAsync"
+                   MultiSelectionTextFunc="@(v => string.Join(", ", v.Select(ClassName)))">
+            @foreach (var gymClass in _classes)
+            {
+                <MudSelectItem T="Guid" Value="@gymClass.Id">@gymClass.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="string" MultiSelection="true" Label="Etiqueta de la ficha" Class="mt-2" Clearable="true"
+                   SelectedValues="_tags" SelectedValuesChanged="TagsChangedAsync">
+            @foreach (var tag in _availableTags)
+            {
+                <MudSelectItem T="string" Value="@tag">@tag</MudSelectItem>
+            }
+        </MudSelect>
+        <p class="gsm-editor__hint">Dentro de un filtro basta con cumplir uno; entre filtros, hay que cumplirlos todos.</p>
+    }
+
+    @if (_preview is { } p)
+    {
+        <p class="gsm-editor__hint" data-testid="audience-count">
+            Llegará a <strong>@p.Count</strong> @(p.Count == 1 ? "miembro" : "miembros")@(_segmented ? "" : " (todos los activos)").
+            @if (_segmented && p.Count > 0)
+            {
+                <MudLink Typo="Typo.body2" OnClick="() => _showList = !_showList" data-testid="audience-toggle-list">
+                    @(_showList ? "Ocultar lista" : "Ver lista")
+                </MudLink>
+            }
+        </p>
+        @if (_showList)
+        {
+            <ul class="gsm-audience__list" data-testid="audience-list">
+                @foreach (var member in p.Members)
+                {
+                    <li>@member.Name</li>
+                }
+                @if (p.Truncated)
+                {
+                    <li class="gsm-audience__more">… y @(p.Count - p.Members.Count) más</li>
+                }
+            </ul>
+        }
+    }
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">@_error</MudAlert>
+    }
+</div>
+
+@code {
+    private static readonly (string Value, string Label)[] Statuses =
+    [
+        ("Current", "Al día"),
+        ("Expiring", "Por vencer"),
+        ("Grace", "En gracia"),
+        ("Expired", "Vencidos"),
+        ("Frozen", "Congelados"),
+        ("NoPlan", "Sin plan"),
+    ];
+
+    /// <summary>Filtros elegidos. Vacío = todos. Se entrega ya armado para el request.</summary>
+    [Parameter]
+    public AnnouncementAudienceDto Audience { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<AnnouncementAudienceDto> AudienceChanged { get; set; }
+
+    private bool _segmented;
+    private bool _showList;
+    private string? _error;
+    private AudiencePreviewResponse? _preview;
+    private HashSet<string> _statuses = [];
+    private HashSet<Guid> _planIds = [];
+    private HashSet<Guid> _classIds = [];
+    private HashSet<string> _tags = [];
+    private List<PlanResponse> _plans = [];
+    private List<ClassListItem> _classes = [];
+    private List<string> _availableTags = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _statuses = Audience.Statuses.ToHashSet();
+        _planIds = Audience.PlanIds.ToHashSet();
+        _classIds = Audience.ClassIds.ToHashSet();
+        _tags = Audience.Tags.ToHashSet();
+        _segmented = _statuses.Count + _planIds.Count + _classIds.Count + _tags.Count > 0;
+
+        try
+        {
+            _plans = (await Plans.MembershipPlansAllAsync()).ToList();
+            _classes = (await Classes.ClassesAllAsync()).ToList();
+            _availableTags = (await Announcements.AudienceTagsAsync()).Tags.ToList();
+        }
+        catch (GsmApiException)
+        {
+            _error = "No se pudieron cargar los planes, clases o etiquetas para filtrar.";
+        }
+
+        await RefreshAsync();
+    }
+
+    private string StatusLabel(string value) => Statuses.FirstOrDefault(s => s.Value == value).Label ?? value;
+
+    private string PlanName(Guid id) => _plans.FirstOrDefault(p => p.Id == id)?.Name ?? "Plan";
+
+    private string ClassName(Guid id) => _classes.FirstOrDefault(c => c.Id == id)?.Name ?? "Clase";
+
+    private async Task SegmentedChangedAsync(bool segmented)
+    {
+        _segmented = segmented;
+        if (!segmented)
+        {
+            _statuses = [];
+            _planIds = [];
+            _classIds = [];
+            _tags = [];
+            _showList = false;
+        }
+
+        await RefreshAsync();
+    }
+
+    private Task StatusesChangedAsync(IEnumerable<string> values) { _statuses = values.ToHashSet(); return RefreshAsync(); }
+
+    private Task PlansChangedAsync(IEnumerable<Guid> values) { _planIds = values.ToHashSet(); return RefreshAsync(); }
+
+    private Task ClassesChangedAsync(IEnumerable<Guid> values) { _classIds = values.ToHashSet(); return RefreshAsync(); }
+
+    private Task TagsChangedAsync(IEnumerable<string> values) { _tags = values.ToHashSet(); return RefreshAsync(); }
+
+    private async Task RefreshAsync()
+    {
+        var audience = new AnnouncementAudienceDto
+        {
+            Statuses = _statuses.ToList(),
+            PlanIds = _planIds.ToList(),
+            ClassIds = _classIds.ToList(),
+            Tags = _tags.ToList(),
+        };
+
+        Audience = audience;
+        await AudienceChanged.InvokeAsync(audience);
+
+        try
+        {
+            _preview = await Announcements.AudiencePreviewAsync(audience);
+            _error = null;
+        }
+        catch (GsmApiException ex)
+        {
+            _preview = null;
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+}

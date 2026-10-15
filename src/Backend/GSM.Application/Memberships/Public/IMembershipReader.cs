@@ -67,6 +67,13 @@ public interface IMembershipReader
     /// </summary>
     Task<int> GetCountedMemberCountAsync(Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Ids de los miembros del gym en contexto con una membresía Active que cubre hoy (<c>start_date &lt;= hoy
+    /// &lt;= end_date</c>) en alguno de esos planes. Filtro "plan" de la audiencia de un anuncio (CO2).
+    /// </summary>
+    Task<IReadOnlyCollection<Guid>> GetMemberIdsByPlansAsync(
+        IReadOnlyCollection<Guid> planIds, CancellationToken cancellationToken = default);
+
     /// <summary>¿La membresía existe y pertenece a ese miembro? (validación al registrar un pago).</summary>
     Task<bool> BelongsToMemberAsync(
         Guid membershipId, Guid memberId, CancellationToken cancellationToken = default);

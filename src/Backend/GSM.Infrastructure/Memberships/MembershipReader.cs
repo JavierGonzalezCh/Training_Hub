@@ -62,6 +62,24 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             date, settings.GraceDays, settings.ExpiringDays);
     }
 
+    public async Task<IReadOnlyCollection<Guid>> GetMemberIdsByPlansAsync(
+        IReadOnlyCollection<Guid> planIds, CancellationToken cancellationToken = default)
+    {
+        if (planIds.Count == 0)
+        {
+            return [];
+        }
+
+        var today = clock.Today;
+        return await Memberships
+            .Where(m => planIds.Contains(m.PlanId)
+                && m.Status == MembershipStatus.Active
+                && m.StartDate <= today && today <= m.EndDate)
+            .Select(m => m.MemberId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyDictionary<Guid, CommercialStatus>> GetCommercialStatusesAsync(
         IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
     {

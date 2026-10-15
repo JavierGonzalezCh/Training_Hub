@@ -53,6 +53,49 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
             .Select(m => m.Id)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyCollection<Guid>> GetActiveMemberIdsByTagsAsync(
+        IReadOnlyCollection<string> tags, CancellationToken cancellationToken = default)
+    {
+        var wanted = tags.Select(t => t.Trim().ToLower()).Where(t => t.Length > 0).Distinct().ToArray();
+        if (wanted.Length == 0)
+        {
+            return [];
+        }
+
+        return await Members
+            .Where(m => m.Status == MemberStatus.Active && m.Tags.Any(t => wanted.Contains(t.ToLower())))
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> GetActiveTagsAsync(CancellationToken cancellationToken = default)
+    {
+        var rows = await Members
+            .Where(m => m.Status == MemberStatus.Active)
+            .Select(m => m.Tags)
+            .ToListAsync(cancellationToken);
+        return rows.SelectMany(t => t)
+            .GroupBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, string>> GetFullNamesAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var rows = await Members
+            .Where(m => memberIds.Contains(m.Id))
+            .Select(m => new { m.Id, m.FirstName, m.LastName })
+            .ToListAsync(cancellationToken);
+        return rows.ToDictionary(r => r.Id, r => $"{r.FirstName} {r.LastName}".Trim());
+    }
+
     public async Task<IReadOnlyDictionary<Guid, string>> GetWhatsAppPhonesAsync(
         IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
     {

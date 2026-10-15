@@ -37,6 +37,33 @@ public sealed class AnnouncementsController : ControllerBase
         [FromQuery] AnnouncementCategory category = AnnouncementCategory.GymNews)
         => Ok(await handler.HandleAsync(category, cancellationToken));
 
+    /// <summary>"Llegará a N miembros": calcula una audiencia (filtros vacíos = todos) sin guardar nada.</summary>
+    [HttpPost("audience-preview")]
+    [ProducesResponseType<AudiencePreviewResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<AudiencePreviewResponse>> AudiencePreview(
+        AnnouncementAudienceDto request,
+        [FromServices] PreviewAnnouncementAudienceHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>Etiquetas en uso entre los miembros activos, para el filtro por etiqueta.</summary>
+    [HttpGet("audience-tags")]
+    [ProducesResponseType<AudienceTagsResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<AudienceTagsResponse>> AudienceTags(
+        [FromServices] GetAudienceTagsHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>
+    /// A quién llegó el anuncio (segmentado y publicado: los destinatarios fijados) o a quién llegaría hoy.
+    /// </summary>
+    [HttpGet("{id:guid}/recipients")]
+    [ProducesResponseType<AudiencePreviewResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AudiencePreviewResponse>> Recipients(
+        Guid id, [FromServices] GetAnnouncementRecipientsHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
     [HttpGet("/api/communications/reminder-settings")]
     [ProducesResponseType<CommunicationsSettingsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CommunicationsSettingsResponse>> Settings(

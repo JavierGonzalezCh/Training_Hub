@@ -98,6 +98,21 @@ else
                             </span>
                         }
                     </div>
+                    @if (a.RecipientCount is { } reached)
+                    {
+                        <span class="gsm-announcement__audience" data-testid="audience-badge">
+                            <MudIcon Icon="@Icons.Material.Outlined.Groups" Size="Size.Small" />
+                            <span>Segmento · @reached @(reached == 1 ? "miembro" : "miembros")</span>
+                        </span>
+                    }
+                    else if (a.Status == "Draft" && a.Audience is { } aud
+                        && aud.Statuses.Count + aud.PlanIds.Count + aud.ClassIds.Count + aud.Tags.Count > 0)
+                    {
+                        <span class="gsm-announcement__audience" data-testid="audience-badge">
+                            <MudIcon Icon="@Icons.Material.Outlined.Groups" Size="Size.Small" />
+                            <span>Segmento</span>
+                        </span>
+                    }
                     @if (a.SendEmail)
                     {
                         <span class="gsm-announcement__email">

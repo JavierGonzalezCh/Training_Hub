@@ -10,6 +10,8 @@ public sealed class AnnouncementRepository(GsmDbContext dbContext) : IAnnounceme
 {
     private DbSet<Announcement> Announcements => dbContext.Set<Announcement>();
 
+    private DbSet<AnnouncementRecipient> Recipients => dbContext.Set<AnnouncementRecipient>();
+
     public Task<Announcement?> GetAsync(Guid id, CancellationToken cancellationToken = default)
         => Announcements.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
@@ -40,9 +42,9 @@ public sealed class AnnouncementRepository(GsmDbContext dbContext) : IAnnounceme
     }
 
     public async Task<(IReadOnlyList<Announcement> Items, int Total)> ListFeedAsync(
-        DateOnly today, int page, int pageSize, CancellationToken cancellationToken = default)
+        Guid memberId, DateOnly today, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var query = Announcements.AsNoTracking()
+        var query = VisibleTo(memberId)
             .Where(a => a.Status == AnnouncementStatus.Published && (a.ExpiresOn == null || a.ExpiresOn >= today));
 
         var total = await query.CountAsync(cancellationToken);
@@ -57,10 +59,30 @@ public sealed class AnnouncementRepository(GsmDbContext dbContext) : IAnnounceme
     }
 
     public Task<int> CountVisibleSinceAsync(
-        DateOnly today, DateTimeOffset? since, CancellationToken cancellationToken = default)
-        => Announcements.CountAsync(
+        Guid memberId, DateOnly today, DateTimeOffset? since, CancellationToken cancellationToken = default)
+        => VisibleTo(memberId).CountAsync(
             a => a.Status == AnnouncementStatus.Published
                 && (a.ExpiresOn == null || a.ExpiresOn >= today)
                 && (since == null || a.PublishedAt > since),
             cancellationToken);
+
+    public async Task<bool> IsVisibleToMemberAsync(
+        Announcement announcement, Guid memberId, CancellationToken cancellationToken = default)
+        => !announcement.IsSegmented
+            || await Recipients.AnyAsync(
+                r => r.AnnouncementId == announcement.Id && r.MemberId == memberId, cancellationToken);
+
+    public void AddRecipients(IEnumerable<AnnouncementRecipient> recipients) => Recipients.AddRange(recipients);
+
+    public async Task<IReadOnlyList<Guid>> GetRecipientIdsAsync(
+        Guid announcementId, CancellationToken cancellationToken = default)
+        => await Recipients.AsNoTracking()
+            .Where(r => r.AnnouncementId == announcementId)
+            .Select(r => r.MemberId)
+            .ToListAsync(cancellationToken);
+
+    /// <summary>Anuncios de "todos" más los segmentados donde el miembro es destinatario.</summary>
+    private IQueryable<Announcement> VisibleTo(Guid memberId)
+        => Announcements.AsNoTracking().Where(a => !a.IsSegmented
+            || Recipients.Any(r => r.AnnouncementId == a.Id && r.MemberId == memberId));
 }

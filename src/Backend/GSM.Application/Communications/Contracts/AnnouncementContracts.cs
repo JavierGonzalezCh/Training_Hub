@@ -9,7 +9,8 @@ public sealed record CreateAnnouncementRequest(
     DateOnly? ExpiresOn,
     bool SendEmail,
     AnnouncementCategory Category = AnnouncementCategory.GymNews,
-    bool Important = false);
+    bool Important = false,
+    AnnouncementAudienceDto? Audience = null);
 
 /// <summary>Fijar y desfijar tienen sus propios endpoints; aquí solo el contenido.</summary>
 public sealed record UpdateAnnouncementRequest(
@@ -18,7 +19,28 @@ public sealed record UpdateAnnouncementRequest(
     DateOnly? ExpiresOn,
     bool SendEmail,
     AnnouncementCategory? Category = null,
-    bool? Important = null);
+    bool? Important = null,
+    AnnouncementAudienceDto? Audience = null);
+
+/// <summary>
+/// Filtros de la audiencia (CO2). Todo vacío = todos los miembros. Los valores de un filtro suman
+/// ("vencidos o en gracia") y los filtros se combinan con "y". <c>Statuses</c>: Current, Expiring, Grace,
+/// Expired, Frozen, NoPlan. <c>Tags</c> sin distinguir mayúsculas. Clase: reserva o asistencia en los
+/// últimos 30 días. Plan: membresía vigente hoy en ese plan.
+/// </summary>
+public sealed record AnnouncementAudienceDto(
+    IReadOnlyList<string> Statuses,
+    IReadOnlyList<Guid> PlanIds,
+    IReadOnlyList<Guid> ClassIds,
+    IReadOnlyList<string> Tags);
+
+/// <summary>"Llegará a N miembros", con la lista (hasta 200) para revisarla.</summary>
+public sealed record AudiencePreviewResponse(int Count, bool Truncated, IReadOnlyList<AudienceMemberItem> Members);
+
+public sealed record AudienceMemberItem(Guid Id, string Name);
+
+/// <summary>Etiquetas en uso entre los miembros activos (para elegir el filtro).</summary>
+public sealed record AudienceTagsResponse(IReadOnlyList<string> Tags);
 
 public sealed record ListAnnouncementsQuery
 {
@@ -42,7 +64,9 @@ public sealed record AnnouncementResponse(
     EmailDelivery? Delivery,
     string Category,
     bool Important,
-    Guid? ImportantMarkedBy);
+    Guid? ImportantMarkedBy,
+    AnnouncementAudienceDto Audience,
+    int? RecipientCount);
 
 /// <summary>Vista del feed del miembro: solo lo publicado y vigente.</summary>
 public sealed record FeedItem(
