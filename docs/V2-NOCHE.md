@@ -223,6 +223,12 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **CO2-4 (hueco):** `GET api/announcements/email-audience` ignora el segmento: la confirmación por email puede decir "a N miembros" con N mayor. ¿Se corrige ya?
 - **CO2-5 (para CO4):** la publicación programada corre sin usuario; los readers de la audiencia necesitarán el gym explícito.
 
+- **CO5-1:** si la tarea no corre en todo el día, ese cumpleaños no se felicita (no se recupera). Confirmar.
+- **CO5-2:** "la noche anterior" se implementó como la primera ejecución del día con envío a las 8:00. Confirmar.
+- **CO5-3:** el "regalo" va dentro del texto libre, sin campo aparte. ¿Hace falta?
+- **CO5-4:** el texto de la felicitación automática y la plantilla de WhatsApp de cumpleaños (CO3) son independientes. ¿Se unifican?
+- **CO5:** la felicitación viene **apagada por defecto** por gym. Confirmar.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
