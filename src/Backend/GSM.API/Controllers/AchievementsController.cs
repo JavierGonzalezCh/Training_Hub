@@ -53,6 +53,24 @@ public sealed class AchievementsController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("retroactive-preview")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<RetroactivePreviewResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RetroactivePreviewResponse>> RetroactivePreview(
+        RetroactivePreviewRequest request,
+        [FromServices] PreviewRetroactiveAchievementHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    [HttpPost("{id:guid}/grant-retroactive")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<RetroactiveGrantResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RetroactiveGrantResponse>> GrantRetroactive(
+        Guid id,
+        [FromServices] GrantRetroactiveAchievementHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
     [HttpGet("member/{memberId:guid}")]
     [ProducesResponseType<IReadOnlyList<MemberAchievementItem>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<MemberAchievementItem>>> ForMember(

@@ -16,6 +16,21 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
     public Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Attendances.Where(a => a.MemberId == memberId).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, int>> GetVisitCountsAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await Attendances
+            .Where(a => memberIds.Contains(a.MemberId))
+            .GroupBy(a => a.MemberId)
+            .Select(g => new { MemberId = g.Key, Days = g.Select(a => a.AttendanceDate).Distinct().Count() })
+            .ToDictionaryAsync(x => x.MemberId, x => x.Days, cancellationToken);
+    }
+
     public async Task<int> GetStreakAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
         var dates = await Attendances

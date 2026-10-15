@@ -24,21 +24,29 @@ internal static class AchievementMetrics
         var sessions = await routines.GetCompletedSessionCountAsync(memberId, onlyAssigned: true, cancellationToken);
         var classAttendance = await classes.GetAttendedCountAsync(memberId, cancellationToken);
 
-        int streak;
+        var streak = await ComputeStreakAsync(memberId, today, attendance, routines, cancellationToken);
+
+        return (visits, streak, sessions, classAttendance);
+    }
+
+    /// <summary>Solo la racha que puntúa logros (estricta, contra el calendario de la rutina asignada).</summary>
+    public static async Task<int> ComputeStreakAsync(
+        Guid memberId,
+        DateOnly today,
+        IAttendanceReader attendance,
+        IRoutineReader routines,
+        CancellationToken cancellationToken)
+    {
         var start = await routines.GetActiveRoutineStartAsync(memberId, onlyAssigned: true, cancellationToken);
         if (start is { } s && s <= today)
         {
             var calendar = await routines.GetTrainingCalendarAsync(
                 memberId, s, today, onlyAssigned: true, cancellationToken);
             var attended = (await attendance.GetAttendanceDatesAsync(memberId, s, cancellationToken)).ToHashSet();
-            streak = StreakCalculator.ComputeAgainstCalendar(
+            return StreakCalculator.ComputeAgainstCalendar(
                 attended, calendar.TrainingDays, calendar.RestDays, today);
         }
-        else
-        {
-            streak = await attendance.GetStreakAsync(memberId, cancellationToken);
-        }
 
-        return (visits, streak, sessions, classAttendance);
+        return await attendance.GetStreakAsync(memberId, cancellationToken);
     }
 }

@@ -21,6 +21,10 @@ public interface IAchievementRepository
     Task<IReadOnlyDictionary<Guid, DateTimeOffset>> GetUnlockedForMemberAsync(
         Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>Miembros que ya tienen desbloqueado ese logro (para no repetirlo en el otorgamiento retroactivo).</summary>
+    Task<IReadOnlySet<Guid>> GetMemberIdsWithUnlockAsync(
+        Guid achievementId, CancellationToken cancellationToken = default);
+
     void AddUnlock(MemberAchievement unlock);
 
     Task<IReadOnlyList<StreakFreeze>> ListStreakFreezesAsync(

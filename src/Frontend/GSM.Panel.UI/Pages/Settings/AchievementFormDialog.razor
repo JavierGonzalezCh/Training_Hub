@@ -1,4 +1,6 @@
 @inject IAchievementsClient Achievements
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <DialogContent>
@@ -66,6 +68,8 @@
     private readonly FormModel _model = new();
     private MudForm _form = null!;
     private string? _iconUrl;
+    private int _originalType;
+    private int _originalValue;
     private bool _loading;
     private bool _submitting;
     private bool _uploadingIcon;
@@ -89,6 +93,8 @@
                 _model.Description = achievement.Description;
                 _model.ConditionType = AchievementConditionLabels.ToValue(achievement.ConditionType);
                 _model.ConditionValue = achievement.ConditionValue;
+                _originalType = _model.ConditionType;
+                _originalValue = achievement.ConditionValue;
                 _iconUrl = achievement.IconUrl;
             }
         }
@@ -137,6 +143,36 @@
         _submitting = true;
         try
         {
+            // Retroactivo (spec §6): al crear, o al bajar el valor / cambiar la condición, se avisa antes
+            // cuántos miembros ya lo cumplen. Subir el valor no quita el logro a nadie, no se pregunta.
+            var askRetroactive = AchievementId is null
+                || _model.ConditionType != _originalType
+                || _model.ConditionValue < _originalValue;
+            var grant = false;
+            if (askRetroactive)
+            {
+                var preview = await Achievements.RetroactivePreviewAsync(new RetroactivePreviewRequest
+                {
+                    ConditionType = _model.ConditionType,
+                    ConditionValue = _model.ConditionValue,
+                    AchievementId = AchievementId,
+                });
+                if (preview.EligibleCount > 0)
+                {
+                    var answer = await Dialogs.ShowMessageBox(
+                        "Otorgar ahora",
+                        $"{preview.EligibleCount} miembro(s) ya cumplen este logro y lo recibirán ahora, con la fecha de hoy.",
+                        yesText: "Guardar y otorgar", noText: "Guardar sin otorgar", cancelText: "Volver");
+                    if (answer is null)
+                    {
+                        return;
+                    }
+
+                    grant = answer == true;
+                }
+            }
+
+            Guid savedId;
             if (AchievementId is { } id)
             {
                 await Achievements.AchievementsPUTAsync(id, new UpdateAchievementRequest
@@ -146,16 +182,24 @@
                     ConditionType = _model.ConditionType,
                     ConditionValue = _model.ConditionValue,
                 });
+                savedId = id;
             }
             else
             {
-                await Achievements.AchievementsPOSTAsync(new CreateAchievementRequest
+                var created = await Achievements.AchievementsPOSTAsync(new CreateAchievementRequest
                 {
                     Name = _model.Name,
                     Description = _model.Description,
                     ConditionType = _model.ConditionType,
                     ConditionValue = _model.ConditionValue,
                 });
+                savedId = created.Id;
+            }
+
+            if (grant)
+            {
+                var result = await Achievements.GrantRetroactiveAsync(savedId);
+                Snackbar.Add($"Logro otorgado a {result.GrantedCount} miembro(s).", Severity.Success);
             }
 
             MudDialog.Close(DialogResult.Ok(true));
