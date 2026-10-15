@@ -13,6 +13,7 @@ public sealed class MembershipSettings : BaseEntity, ITenantEntity
     public const int DefaultExpiringDays = 7;
     public const int MaxGraceDays = 30;
     public const int MaxExpiringDays = 60;
+    public const decimal MaxEnrollmentFee = 10_000_000m;
 
     private MembershipSettings()
     {
@@ -26,6 +27,9 @@ public sealed class MembershipSettings : BaseEntity, ITenantEntity
     /// <summary>Con cuántos días o menos para vencer el miembro está "por vencer" y ve el letrero.</summary>
     public int ExpiringDays { get; private set; }
 
+    /// <summary>Matrícula que se suma a la primera membresía de un miembro (0 = el gym no cobra matrícula). COP.</summary>
+    public decimal EnrollmentFee { get; private set; }
+
     public static MembershipSettings Default(Guid gymId)
     {
         if (gymId == Guid.Empty)
@@ -36,8 +40,13 @@ public sealed class MembershipSettings : BaseEntity, ITenantEntity
         return new MembershipSettings { GymId = gymId, GraceDays = DefaultGraceDays, ExpiringDays = DefaultExpiringDays };
     }
 
-    public void Update(int graceDays, int expiringDays)
+    public void Update(int graceDays, int expiringDays, decimal enrollmentFee)
     {
+        if (enrollmentFee < 0 || enrollmentFee > MaxEnrollmentFee)
+        {
+            throw new ValidationDomainException($"La matrícula debe estar entre 0 y {MaxEnrollmentFee:N0}.");
+        }
+
         if (graceDays is < 0 or > MaxGraceDays)
         {
             throw new ValidationDomainException($"Los días de gracia deben estar entre 0 y {MaxGraceDays}.");
@@ -50,5 +59,6 @@ public sealed class MembershipSettings : BaseEntity, ITenantEntity
 
         GraceDays = graceDays;
         ExpiringDays = expiringDays;
+        EnrollmentFee = decimal.Round(enrollmentFee, 2);
     }
 }

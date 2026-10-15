@@ -21,13 +21,15 @@
             else
             {
                 <MudForm @ref="_form">
-                    <MudSelect T="Guid" Value="_planId" ValueChanged="OnPlanChanged" ToStringFunc="PlanLabel" Label="Plan" Required="true" Class="mb-3">
+                    <MudSelect T="Guid" Value="_planId" ValueChanged="OnPlanChanged" ToStringFunc="PlanLabel" Label="Plan" Required="true" Class="mb-3"
+                               Disabled="@(_pendingCharge is not null)">
                         @foreach (var plan in _plans)
                         {
                             <MudSelectItem Value="plan.Id">@PlanLabel(plan.Id)</MudSelectItem>
                         }
                     </MudSelect>
-                    <MudDatePicker Label="Cambiar la fecha de inicio (opcional)" Date="_startDate" DateChanged="OnStartChanged" Class="mb-2" />
+                    <MudDatePicker Label="Cambiar la fecha de inicio (opcional)" Date="_startDate" DateChanged="OnStartChanged" Class="mb-2"
+                                   Disabled="@(_pendingCharge is not null)" />
 
                     @if (_preview is { } preview)
                     {
@@ -43,33 +45,72 @@
                         }
                     }
 
-                    <MudSwitch T="bool" @bind-Value="_charge" Color="Color.Primary" Label="Cobrar ahora" Class="mb-2" />
-                    @if (_charge)
+                    <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat"
+                                     @bind-Value="_agreedPrice" Label="Precio acordado (COP)" Min="0" Max="@PlanPrice" id="agreed-price" Class="mb-2"
+                                     Disabled="@(_pendingCharge is not null)"
+                                     HelperText="@($"Precio del plan: {GsmFormat.Money(PlanPrice)}. Si es menor, hay descuento.")" />
+                    @if (HasDiscount)
                     {
-                        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3"
-                                         HelperText="El precio del plan; cámbialo si hay descuento." />
-                        <MudSelect T="int" @bind-Value="_method" Label="Método" Required="true">
+                        <MudTextField T="string" @bind-Value="_discountReason" Label="Motivo del descuento" Required="true"
+                                      MaxLength="500" id="discount-reason" Class="mb-3" Disabled="@(_pendingCharge is not null)" />
+                    }
+
+                    @if (EnrollmentFee > 0)
+                    {
+                        <MudSwitch T="bool" @bind-Value="_waiveEnrollment" Color="Color.Primary" id="waive-enrollment"
+                                   Disabled="@(_pendingCharge is not null)"
+                                   Label="@($"Exonerar la matrícula ({GsmFormat.Money(EnrollmentFee)})")" Class="mb-1" />
+                        @if (_waiveEnrollment)
+                        {
+                            <MudTextField T="string" @bind-Value="_waiveReason" Label="Motivo para exonerar la matrícula" Required="true"
+                                          MaxLength="500" id="waive-reason" Class="mb-3" Disabled="@(_pendingCharge is not null)" />
+                        }
+                    }
+
+                    <MudAlert Severity="Severity.Normal" Dense="true" Class="mb-3" role="status" id="total-to-charge">
+                        <div>Plan: @GsmFormat.Money(_agreedPrice)</div>
+                        @if (EnrollmentFee > 0)
+                        {
+                            <div>Matrícula: @(_waiveEnrollment ? "exonerada" : GsmFormat.Money(EnrollmentFee))</div>
+                        }
+                        <strong>Total a cobrar: @GsmFormat.Money(Total)</strong>
+                    </MudAlert>
+
+                    @if (_pendingCharge is not null)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" id="charge-failed">
+                            La membresía quedó creada, pero el cobro no se registró: @_chargeError
+                        </MudAlert>
+                    }
+
+                    @if (Total > 0)
+                    {
+                        <MudSelect T="int" @bind-Value="_method" Label="Método de pago" Required="true">
                             @foreach (var (value, label) in PaymentMethodLabels.All)
                             {
                                 <MudSelectItem Value="value">@label</MudSelectItem>
                             }
                         </MudSelect>
                     }
-                    else
-                    {
-                        <MudAlert Severity="Severity.Warning" Dense="true">
-                            La membresía quedará activa sin pago registrado. Podrás cobrarla después desde "Registrar pago".
-                        </MudAlert>
-                    }
                 </MudForm>
             }
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting || _plans.Count == 0">
-            @(_submitting ? "Guardando..." : _charge ? "Asignar y cobrar" : "Asignar")
-        </MudButton>
+        @if (_pendingCharge is null)
+        {
+            <MudButton OnClick="Cancel">Cancelar</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting || _plans.Count == 0">
+                @(_submitting ? "Guardando..." : Total > 0 ? "Asignar y cobrar" : "Asignar")
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Error" OnClick="CancelMembershipAsync" Disabled="_submitting">Cancelar la membresía</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RetryChargeAsync" Disabled="_submitting">
+                @(_submitting ? "Cobrando..." : "Reintentar el cobro")
+            </MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -85,9 +126,13 @@
     private DateTime? _startDate;
     private string? _startReason;
     private RenewalPreviewResponse? _preview;
-    private bool _charge = true;
-    private decimal _amount;
+    private decimal _agreedPrice;
+    private string? _discountReason;
+    private bool _waiveEnrollment;
+    private string? _waiveReason;
     private int _method;
+    private MembershipResponse? _pendingCharge;
+    private string? _chargeError;
     private MudForm _form = null!;
     private bool _loading = true;
     private bool _submitting;
@@ -132,7 +177,8 @@
         _planId = planId;
         if (_plans.FirstOrDefault(p => p.Id == planId) is { } plan)
         {
-            _amount = (decimal)plan.Price;
+            _agreedPrice = (decimal)plan.Price;
+            _discountReason = null;
         }
 
         await LoadPreviewAsync();
@@ -167,15 +213,37 @@
         _ => "Primera membresía.",
     };
 
-    // Dos llamadas, no una operación atómica: asignar es de Memberships y cobrar de Payments, y la
-    // regla del proyecto es no escribir en otro módulo. Si el cobro falla, la membresía ya existe
-    // y se avisa para cobrarla desde "Registrar pago" (que ya permite elegir la membresía).
+    private decimal PlanPrice => _plans.FirstOrDefault(p => p.Id == _planId) is { } plan ? (decimal)plan.Price : 0m;
+
+    private bool HasDiscount => _agreedPrice < PlanPrice;
+
+    // Matrícula que aplica según el servidor (0 si el miembro ya tuvo membresía o el gym no la cobra).
+    private decimal EnrollmentFee => _preview is { } p ? (decimal)p.EnrollmentFee : 0m;
+
+    private decimal Total => _agreedPrice + (_waiveEnrollment ? 0m : EnrollmentFee);
+
+    // Asignar y cobrar son dos llamadas, no una operación atómica: asignar es de Memberships y cobrar
+    // de Payments, y la regla del proyecto es no escribir en otro módulo. El cobro completo es parte
+    // de asignar (Memberships v2 §6): si falla, el diálogo no se cierra y ofrece reintentar el cobro
+    // o cancelar la membresía recién creada. Un total de 0 (cortesía) no genera cobro.
     private async Task SubmitAsync()
     {
         _error = null;
-        if (_charge && _amount <= 0)
+        if (_agreedPrice > PlanPrice)
         {
-            _error = "El monto del cobro debe ser mayor que cero.";
+            _error = "El precio acordado no puede superar el precio del plan.";
+            return;
+        }
+
+        if (HasDiscount && (_discountReason?.Trim().Length ?? 0) < 3)
+        {
+            _error = "El motivo del descuento es obligatorio.";
+            return;
+        }
+
+        if (_waiveEnrollment && EnrollmentFee > 0 && (_waiveReason?.Trim().Length ?? 0) < 3)
+        {
+            _error = "El motivo para exonerar la matrícula es obligatorio.";
             return;
         }
 
@@ -183,34 +251,50 @@
         MembershipResponse membership;
         try
         {
+            var waive = _waiveEnrollment && EnrollmentFee > 0;
             membership = await MemberMemberships.MembershipsAsync(MemberId, new AssignMembershipRequest
             {
                 PlanId = _planId,
                 StartDate = _startDate is { } d ? DateOnly.FromDateTime(d) : null,
                 StartDateReason = string.IsNullOrWhiteSpace(_startReason) ? null : _startReason.Trim(),
+                AgreedPrice = (double)_agreedPrice,
+                DiscountReason = HasDiscount ? _discountReason!.Trim() : null,
+                WaiveEnrollment = waive,
+                EnrollmentWaivedReason = waive ? _waiveReason!.Trim() : null,
             });
         }
         catch (GsmApiException ex)
         {
-            // 409: ya tiene una membresía vigente que se solapa.
+            // 409: ya tiene una membresía vigente que se solapa. 422: precio o motivos inválidos.
             _error = ApiError.FromException(ex).DisplayMessage;
             _submitting = false;
             return;
         }
 
-        if (!_charge)
+        if ((decimal)membership.TotalToCharge <= 0)
         {
             MudDialog.Close(DialogResult.Ok(new AssignMembershipResult(Charged: false, ChargeError: null)));
             return;
         }
 
+        await ChargeAsync(membership);
+    }
+
+    private async Task ChargeAsync(MembershipResponse membership)
+    {
         try
         {
+            var concept = $"Membresía {membership.PlanName} ({GsmFormat.DayRange(membership.StartDate, membership.EndDate)})";
+            if ((decimal)membership.EnrollmentFee > 0)
+            {
+                concept += " + matrícula";
+            }
+
             await Payments.PaymentsPOST2Async(new RecordPaymentRequest
             {
-                Amount = (double)_amount,
+                Amount = membership.TotalToCharge,
                 Method = _method,
-                Concept = $"Membresía {membership.PlanName} ({GsmFormat.DayRange(membership.StartDate, membership.EndDate)})",
+                Concept = concept,
                 MemberId = MemberId,
                 MembershipId = membership.Id,
             });
@@ -218,8 +302,42 @@
         }
         catch (GsmApiException ex)
         {
-            MudDialog.Close(DialogResult.Ok(
-                new AssignMembershipResult(Charged: false, ChargeError: ApiError.FromException(ex).DisplayMessage)));
+            _pendingCharge = membership;
+            _chargeError = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+        }
+    }
+
+    private async Task RetryChargeAsync()
+    {
+        if (_pendingCharge is null)
+        {
+            return;
+        }
+
+        _submitting = true;
+        await ChargeAsync(_pendingCharge);
+    }
+
+    // Sin el cobro la membresía no debe quedar: se cancela con motivo (no se borra, queda en el historial).
+    private async Task CancelMembershipAsync()
+    {
+        if (_pendingCharge is null)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await MemberMemberships.Cancel2Async(
+                MemberId, _pendingCharge.Id, new CancelMembershipRequest { Reason = "Cobro no registrado al asignar" });
+            MudDialog.Close(DialogResult.Ok(new AssignMembershipResult(Charged: false, ChargeError: null, Cancelled: true)));
+        }
+        catch (GsmApiException ex)
+        {
+            _chargeError = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
         }
     }
 
@@ -227,5 +345,5 @@
 }
 
 @code {
-    public sealed record AssignMembershipResult(bool Charged, string? ChargeError);
+    public sealed record AssignMembershipResult(bool Charged, string? ChargeError, bool Cancelled = false);
 }

@@ -6,7 +6,8 @@ namespace GSM.Application.Memberships;
 
 /// <summary>Resultado de resolver el inicio de una membresía nueva: lo calculado y lo que se usará.</summary>
 public sealed record ResolvedRenewal(
-    RenewalPlan Plan, DateOnly StartDate, string? StartOverrideReason, Guid? PreviousMembershipId);
+    RenewalPlan Plan, DateOnly StartDate, string? StartOverrideReason, Guid? PreviousMembershipId,
+    bool IsFirstMembership, decimal GymEnrollmentFee);
 
 /// <summary>
 /// Calcula el inicio de una membresía nueva con la gracia del gym (§4.1). La comparten "asignar" y la
@@ -33,6 +34,9 @@ public sealed class RenewalResolver(IMembershipRepository memberships, IClock cl
             .FirstOrDefault();
 
         var (start, overrideReason) = RenewalPlanner.ApplyOverride(plan, requestedStart, reason, requireReason);
-        return new ResolvedRenewal(plan, start, overrideReason, plan.Kind == RenewalKind.New ? null : previousId);
+        // La matrícula aplica a quien nunca tuvo una membresía en el gym (§4.1); las canceladas cuentan como historial.
+        return new ResolvedRenewal(
+            plan, start, overrideReason, plan.Kind == RenewalKind.New ? null : previousId,
+            history.Count == 0, settings.EnrollmentFee);
     }
 }

@@ -230,10 +230,10 @@ public sealed class MembershipCommercialStatusTests(ApiFactory factory) : IClass
         using (var s = Scope(w, UserRole.Owner))
         {
             await s.ServiceProvider.GetRequiredService<UpdateMembershipSettingsHandler>()
-                .HandleAsync(new UpdateMembershipSettingsRequest(5, 10), default);
+                .HandleAsync(new UpdateMembershipSettingsRequest(5, 10, 0m), default);
             await Assert.ThrowsAsync<ValidationDomainException>(() => s.ServiceProvider
                 .GetRequiredService<UpdateMembershipSettingsHandler>()
-                .HandleAsync(new UpdateMembershipSettingsRequest(31, 10), default));
+                .HandleAsync(new UpdateMembershipSettingsRequest(31, 10, 0m), default));
         }
 
         using (var s = Scope(w, UserRole.Staff))

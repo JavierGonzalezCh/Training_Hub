@@ -38,6 +38,10 @@ else
         <MudNumericField T="int" @bind-Value="_expiringDays" Label="Días para 'por vencer'" Min="1" Max="60"
                          HelperText="Con estos días o menos para vencer, el miembro figura 'por vencer' y ve un letrero al entrar."
                          Class="mb-4" Style="max-width:420px" />
+        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_enrollmentFee"
+                         Label="Matrícula (COP)" Min="0" id="enrollment-fee"
+                         HelperText="Se suma a la primera membresía de un miembro nuevo. 0 = el gym no cobra matrícula. Recepción puede exonerarla con motivo."
+                         Class="mb-4" Style="max-width:420px" />
 
         <div class="d-flex flex-wrap" style="gap:0.75rem">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
@@ -66,6 +70,7 @@ else
     private string _savedMode = Rotating;
     private int _graceDays = 3;
     private int _expiringDays = 7;
+    private decimal _enrollmentFee;
 
     protected override async Task OnInitializedAsync()
     {
@@ -76,6 +81,7 @@ else
             var membership = await MembershipSettings.MembershipSettingsGETAsync();
             _graceDays = membership.GraceDays;
             _expiringDays = membership.ExpiringDays;
+            _enrollmentFee = (decimal)membership.EnrollmentFee;
         }
         catch (GsmApiException ex)
         {
@@ -95,10 +101,11 @@ else
             // La gracia ya no es de Attendance: vive en los ajustes de membresías (dos llamadas, cada una a su módulo).
             var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode });
             var membership = await MembershipSettings.MembershipSettingsPUTAsync(
-                new UpdateMembershipSettingsRequest { GraceDays = _graceDays, ExpiringDays = _expiringDays });
+                new UpdateMembershipSettingsRequest { GraceDays = _graceDays, ExpiringDays = _expiringDays, EnrollmentFee = (double)_enrollmentFee });
             _mode = _savedMode = saved.Mode;
             _graceDays = membership.GraceDays;
             _expiringDays = membership.ExpiringDays;
+            _enrollmentFee = (decimal)membership.EnrollmentFee;
             Snackbar.Add("Ajustes de check-in guardados.", Severity.Success);
         }
         catch (GsmApiException ex)
