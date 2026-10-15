@@ -2,6 +2,7 @@ using GSM.API.Auth;
 using GSM.Application.Attendance;
 using GSM.Application.Attendance.Contracts;
 using GSM.Application.Common;
+using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -68,6 +69,27 @@ public sealed class AttendanceController : ControllerBase
         Guid memberId, [FromServices] RemoveEntryRuleHandler handler, CancellationToken cancellationToken)
     {
         await handler.HandleAsync(memberId, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Anula una entrada (borrado lógico con motivo) de los últimos 7 días. Owner o staff con el permiso
+    /// `ManageAttendance`. Deja libre el día, la racha se recalcula y se publica `CheckInVoided`.
+    /// </summary>
+    [HttpPost("{id:guid}/void")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [RequirePermission(StaffPermission.ManageAttendance)]
+    [EndpointName("VoidCheckIn")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> VoidCheckIn(
+        Guid id, VoidCheckInRequest request, [FromServices] VoidCheckInHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, request, cancellationToken);
         return NoContent();
     }
 

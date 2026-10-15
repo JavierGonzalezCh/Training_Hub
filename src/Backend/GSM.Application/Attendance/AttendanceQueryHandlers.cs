@@ -26,7 +26,7 @@ public sealed class ListAttendanceHandler(
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
         var (items, total) = await attendance.GetPageAsync(
-            new AttendancePageQuery(query.MemberId, query.From, query.To, page, pageSize, query.AuthorizedOnly),
+            new AttendancePageQuery(query.MemberId, query.From, query.To, page, pageSize, query.AuthorizedOnly, query.IncludeVoided),
             cancellationToken);
 
         var names = await ResolveNamesAsync(members, items.Select(a => a.MemberId), cancellationToken);
@@ -44,13 +44,18 @@ public sealed class ListAttendanceHandler(
             Authorized: a.AuthorizedBy is not null,
             AuthorizedBy: a.AuthorizedBy,
             AuthorizedByName: a.AuthorizedBy is { } by ? authorizers.GetValueOrDefault(by) : null,
-            AuthorizationReason: a.AuthorizationReason);
+            AuthorizationReason: a.AuthorizationReason,
+            Voided: a.IsVoided,
+            VoidedAt: a.VoidedAt,
+            VoidedBy: a.VoidedBy,
+            VoidedByName: a.VoidedBy is { } vb ? authorizers.GetValueOrDefault(vb) : null,
+            VoidReason: a.VoidReason);
 
     internal static async Task<IReadOnlyDictionary<Guid, string>> ResolveAuthorizersAsync(
         IIdentityReader identity, IEnumerable<AttendanceEntity> items, CancellationToken cancellationToken)
     {
         var names = new Dictionary<Guid, string>();
-        foreach (var id in items.Where(a => a.AuthorizedBy.HasValue).Select(a => a.AuthorizedBy!.Value).Distinct())
+        foreach (var id in items.SelectMany(a => new[] { a.AuthorizedBy, a.VoidedBy }).Where(x => x.HasValue).Select(x => x!.Value).Distinct())
         {
             if (await identity.GetUserAsync(id, cancellationToken) is { } user)
             {

@@ -33,6 +33,34 @@ public sealed class Attendance : BaseEntity, ITenantEntity
     /// <summary>Motivo de la entrada autorizada. Solo con <see cref="AuthorizedBy"/>.</summary>
     public string? AuthorizationReason { get; private set; }
 
+    /// <summary>Cuándo se anuló la entrada (corrección de recepción). Nulo si sigue vigente.</summary>
+    public DateTimeOffset? VoidedAt { get; private set; }
+
+    public Guid? VoidedBy { get; private set; }
+
+    public string? VoidReason { get; private set; }
+
+    public bool IsVoided => VoidedAt is not null;
+
+    /// <summary>Borrado lógico con motivo obligatorio: la fila queda como traza y deja de contar.</summary>
+    public void Void(Guid voidedBy, string reason, DateTimeOffset now)
+    {
+        if (IsVoided)
+        {
+            throw new ConflictException("La entrada ya está anulada.");
+        }
+
+        var trimmed = (reason ?? string.Empty).Trim();
+        if (trimmed.Length is < 3 or > 500)
+        {
+            throw new ValidationDomainException("Indica el motivo de la anulación (3 a 500 caracteres).");
+        }
+
+        VoidedAt = now;
+        VoidedBy = voidedBy;
+        VoidReason = trimmed;
+    }
+
     public static Attendance Create(
         Guid gymId, Guid memberId, AttendanceMethod method, DateTimeOffset checkedInAt, DateOnly attendanceDate,
         Guid? authorizedBy = null, string? authorizationReason = null)

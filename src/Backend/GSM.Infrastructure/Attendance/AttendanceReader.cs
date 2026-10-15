@@ -9,7 +9,8 @@ namespace GSM.Infrastructure.Attendance;
 
 public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAttendanceReader
 {
-    private IQueryable<AttendanceEntity> Attendances => dbContext.Set<AttendanceEntity>();
+    // Las entradas anuladas no cuentan para nada (visitas, racha, mes, último día).
+    private IQueryable<AttendanceEntity> Attendances => dbContext.Set<AttendanceEntity>().Where(a => a.VoidedAt == null);
 
     // Visitas = días con entrada, no entradas: los logros cuentan días (A1b, §3.2).
     public Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default)

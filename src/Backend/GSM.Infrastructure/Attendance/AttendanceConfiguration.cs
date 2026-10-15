@@ -15,6 +15,9 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
 
         // A1b: con entradas múltiples puede haber varias filas el mismo día; "una por día" y el máximo
         // diario se validan en el caso de uso (antes era un índice único).
+        builder.Property(a => a.VoidReason).HasMaxLength(500);
+        builder.Ignore(a => a.IsVoided);
+
         builder.HasIndex(a => new { a.MemberId, a.AttendanceDate });
         // Requerido por el plan.
         builder.HasIndex(a => new { a.GymId, a.CheckedInAt });

@@ -3,12 +3,16 @@ using AttendanceEntity = GSM.Domain.Attendance.Attendance;
 namespace GSM.Application.Attendance.Abstractions;
 
 public sealed record AttendancePageQuery(
-    Guid? MemberId, DateOnly? From, DateOnly? To, int Page, int PageSize, bool AuthorizedOnly = false);
+    Guid? MemberId, DateOnly? From, DateOnly? To, int Page, int PageSize, bool AuthorizedOnly = false, bool IncludeVoided = false);
 
 public interface IAttendanceRepository
 {
     void Add(AttendanceEntity attendance);
 
+    /// <summary>Entrada por id, anulada o no (para anular).</summary>
+    Task<AttendanceEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Entrada vigente (no anulada) del miembro ese día; solo responde "¿entró ya hoy?".</summary>
     Task<AttendanceEntity?> GetForMemberOnDateAsync(
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default);
 
