@@ -72,6 +72,9 @@
 | S2 | **Unida** | Planes del SaaS (`saas_plans`, Basic 150 / Pro 500 / Enterprise), límite propio por gym, bloqueo de membresías nuevas, uso en panel y `/admin`. Ver preguntas S2 |
 | C3 | **Unida** | Plazo de cancelación, ventana, máximo de reservas, penalización por inasistencias con levantamiento. Ver preguntas C3 |
 | R4 | **Unida** | Series una por una (JSON), superseries, registro por serie, planeado vs hecho. Migración irreversible en datos. Ver preguntas R4 |
+| CO7 | **Unida** | Recordatorios N días antes, el día que vence y el último día de gracia; sin migración. Ver preguntas CO7 |
+| C2 | **Unida** | Instructor de la lista de entrenadores u "Otro", "Mis clases" (`Trainer`), marca "sin entrenador activo". Ver preguntas C2 |
+| E3 | **Unida** | Ligas ejercicio↔modelo (sistema) y ejercicio↔máquina (gym), nivel 1 "solo lo que se puede hacer", avisos en el editor y en la app. Ver preguntas E3 |
 | G1+S1 | **Unida** | Owner invitado sin contraseña, reenviar acceso, prueba opcional o primer pago. Falta S1b (fin de la prueba) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -237,6 +240,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: CO7, C2 y E3 unidas sin conflictos. Migración `V2_C2_E3` con `SqlScript("E3")` al final. Al integrar: 1 `using`, 2 nombres de cliente (NSwag ignoró los `EndpointName` de E3: `EquipmentAsync`/`EquipmentItemsAsync`), 2 tests que no compilaban, 4 bUnit (menú con "Mis clases", popover) y 2 de C2 (clase a las 7:00 con el reloj fijo a mediodía). **Suite: 638 integración + 323 bUnit, todo verde.** De la Ola 3 quedan CO2, CO5 y N5.
 - 2026-10-15: lanzada la cuarta tanda: C2, E3 y CO7 (3 agentes, tras el corte por límite de uso). Quedan de la Ola 3: CO2, CO5 y N5.
 - 2026-10-15: C3, R4 y S2 se cortaron por el límite de uso; reanudadas sin pérdida. A2, S2, C3 y R4 unidas sin conflictos. Migración `V2_A2_S2_C3_R4` **reordenada a mano**: EF ponía los `DropColumn` de R4 antes de copiar los datos; ahora va crear → `SqlScript("S2")` → `SqlScript("R4")` → `DropColumn`. Claves JSON de R4 verificadas (PascalCase, sin renombre de la convención). Al integrar: 1 error de backend, 10 de UI (`??` sobre valores no anulables, `PlansAllAsync`), 4 tests bUnit, 1 test de rutinas y **un defecto real de A2**: la lista por miembro ignoraba "ver anuladas". **Suite: 615 integración + 308 bUnit, todo verde.**
 - 2026-10-14: lanzada la tercera tanda: C3, A2, R4 y S2.

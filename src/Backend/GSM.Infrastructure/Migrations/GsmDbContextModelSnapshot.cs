@@ -619,6 +619,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("instructor_name");
 
+                    b.Property<Guid?>("InstructorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_user_id");
+
                     b.Property<DateOnly>("SessionDate")
                         .HasColumnType("date")
                         .HasColumnName("session_date");
@@ -641,6 +645,9 @@ namespace GSM.Infrastructure.Migrations
                     b.HasIndex("ClassId", "SessionDate")
                         .IsUnique()
                         .HasDatabaseName("ix_class_sessions_class_id_session_date");
+
+                    b.HasIndex("GymId", "InstructorUserId", "SessionDate")
+                        .HasDatabaseName("ix_class_sessions_gym_id_instructor_user_id_session_date");
 
                     b.ToTable("class_sessions", "classes");
                 });
@@ -744,6 +751,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("instructor_name");
 
+                    b.Property<Guid?>("InstructorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_user_id");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -778,6 +789,9 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_gym_classes");
+
+                    b.HasIndex("GymId", "InstructorUserId")
+                        .HasDatabaseName("ix_gym_classes_gym_id_instructor_user_id");
 
                     b.HasIndex("GymId", "IsActive")
                         .HasDatabaseName("ix_gym_classes_gym_id_is_active");
@@ -3171,6 +3185,85 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("exercises", "routines");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Routines.ExerciseEquipmentItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EquipmentItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("equipment_item_id");
+
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("exercise_id");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_exercise_equipment_items");
+
+                    b.HasIndex("ExerciseId")
+                        .HasDatabaseName("ix_exercise_equipment_items_exercise_id");
+
+                    b.HasIndex("GymId", "EquipmentItemId")
+                        .HasDatabaseName("ix_exercise_equipment_items_gym_id_equipment_item_id");
+
+                    b.HasIndex("GymId", "ExerciseId", "EquipmentItemId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_exercise_equipment_items_gym_id_exercise_id_equipment_item_");
+
+                    b.ToTable("exercise_equipment_items", "routines");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.ExerciseEquipmentModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("exercise_id");
+
+                    b.Property<Guid>("ModelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("model_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_exercise_equipment_models");
+
+                    b.HasIndex("ModelId")
+                        .HasDatabaseName("ix_exercise_equipment_models_model_id");
+
+                    b.HasIndex("ExerciseId", "ModelId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_exercise_equipment_models_exercise_id_model_id");
+
+                    b.ToTable("exercise_equipment_models", "routines");
+                });
+
             modelBuilder.Entity("GSM.Domain.Routines.GymHiddenExercise", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4564,6 +4657,26 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_cash_movements_cash_shifts");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.ExerciseEquipmentItem", b =>
+                {
+                    b.HasOne("GSM.Domain.Routines.Exercise", null)
+                        .WithMany()
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_exercise_equipment_items_exercises");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.ExerciseEquipmentModel", b =>
+                {
+                    b.HasOne("GSM.Domain.Routines.Exercise", null)
+                        .WithMany()
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_exercise_equipment_models_exercises");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.GymHiddenExercise", b =>

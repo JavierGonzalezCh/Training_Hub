@@ -4867,6 +4867,131 @@
         }
       }
     },
+    "/api/classes/trainers": {
+      "get": {
+        "tags": [
+          "Classes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClassInstructorOption"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClassInstructorOption"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClassInstructorOption"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/classes/mine": {
+      "get": {
+        "tags": [
+          "Classes"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/classes/{id}": {
       "get": {
         "tags": [
@@ -7184,6 +7309,14 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "onlyAvailableHere",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -7647,6 +7780,212 @@
         "responses": {
           "204": {
             "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/equipment": {
+      "get": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseEquipmentLinksResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseEquipmentLinksResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseEquipmentLinksResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/equipment-models": {
+      "put": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetExerciseEquipmentModelsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetExerciseEquipmentModelsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetExerciseEquipmentModelsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}/equipment-items": {
+      "put": {
+        "tags": [
+          "Exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetExerciseEquipmentItemsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetExerciseEquipmentItemsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetExerciseEquipmentItemsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -16199,6 +16538,26 @@
           }
         }
       },
+      "ClassInstructorOption": {
+        "required": [
+          "userId",
+          "fullName",
+          "isOwner"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "isOwner": {
+            "type": "boolean"
+          }
+        }
+      },
       "ClassListItem": {
         "required": [
           "id",
@@ -16211,7 +16570,9 @@
           "daysOfWeek",
           "scheduledDate",
           "isActive",
-          "endsOn"
+          "endsOn",
+          "instructorUserId",
+          "noActiveInstructor"
         ],
         "type": "object",
         "properties": {
@@ -16274,6 +16635,16 @@
               "string"
             ],
             "format": "date"
+          },
+          "instructorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "noActiveInstructor": {
+            "type": "boolean"
           }
         }
       },
@@ -16341,7 +16712,9 @@
           "startsOn",
           "isActive",
           "deactivatedOn",
-          "endsOn"
+          "endsOn",
+          "instructorUserId",
+          "noActiveInstructor"
         ],
         "type": "object",
         "properties": {
@@ -16421,6 +16794,16 @@
               "string"
             ],
             "format": "date"
+          },
+          "instructorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "noActiveInstructor": {
+            "type": "boolean"
           }
         }
       },
@@ -17679,6 +18062,59 @@
           }
         }
       },
+      "EquipmentMachineInfo": {
+        "required": [
+          "id",
+          "name",
+          "type",
+          "photoUrl",
+          "zone",
+          "instructions",
+          "status",
+          "expectedBackOn"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "zone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instructions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "expectedBackOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
       "EquipmentModelResponse": {
         "required": [
           "id",
@@ -17785,6 +18221,77 @@
       "EquipmentType": {
         "type": "integer"
       },
+      "ExerciseEquipmentInfo": {
+        "required": [
+          "isAvailable",
+          "machines"
+        ],
+        "type": "object",
+        "properties": {
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "machines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMachineInfo"
+            }
+          }
+        }
+      },
+      "ExerciseEquipmentLinksResponse": {
+        "required": [
+          "models",
+          "itemIds",
+          "machines",
+          "isAvailableHere"
+        ],
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExerciseLinkedModel"
+            }
+          },
+          "itemIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "machines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMachineInfo"
+            }
+          },
+          "isAvailableHere": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ExerciseLinkedModel": {
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
       "ExerciseResponse": {
         "required": [
           "id",
@@ -17882,6 +18389,19 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "isAvailableHere": {
+            "type": "boolean",
+            "default": true
+          },
+          "machines": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMachineInfo"
+            }
           }
         }
       },
@@ -22645,6 +23165,16 @@
           "muscleGroup": {
             "type": "string",
             "default": "FullBody"
+          },
+          "equipment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExerciseEquipmentInfo"
+              }
+            ]
           }
         }
       },
@@ -22972,6 +23502,13 @@
               "string"
             ],
             "format": "date"
+          },
+          "instructorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -23162,6 +23699,13 @@
           "outsideOpeningHours": {
             "type": "boolean",
             "default": false
+          },
+          "instructorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -23230,6 +23774,36 @@
               "string"
             ],
             "format": "date"
+          }
+        }
+      },
+      "SetExerciseEquipmentItemsRequest": {
+        "required": [
+          "itemIds"
+        ],
+        "type": "object",
+        "properties": {
+          "itemIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "SetExerciseEquipmentModelsRequest": {
+        "required": [
+          "modelIds"
+        ],
+        "type": "object",
+        "properties": {
+          "modelIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },

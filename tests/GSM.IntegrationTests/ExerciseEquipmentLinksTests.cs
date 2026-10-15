@@ -283,7 +283,7 @@ public sealed class ExerciseEquipmentLinksTests(ApiFactory factory) : IClassFixt
 
             // Con inventario (solo máquinas): la barra no se puede; la máquina, lo sin equipo y el peso corporal sí.
             var filtered = await ListAsync(world.GymA, world.StaffA, world.Suffix, onlyHere: true);
-            Assert.Equal([machine, free, body].Order(), filtered.Select(e => e.Id).Order());
+            Assert.Equal(new[] { machine, free, body }.Order(), filtered.Select(e => e.Id).Order());
 
             var all = await ListAsync(world.GymA, world.StaffA, world.Suffix, onlyHere: false);
             Assert.Equal(4, all.Count);

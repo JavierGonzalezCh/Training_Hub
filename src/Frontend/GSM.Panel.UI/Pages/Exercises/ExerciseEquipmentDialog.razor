@@ -105,7 +105,7 @@
     {
         try
         {
-            var links = await Exercises.GetExerciseEquipmentAsync(ExerciseId);
+            var links = await Exercises.EquipmentAsync(ExerciseId);
             _models = (links.Models ?? []).ToList();
             _isAvailableHere = links.IsAvailableHere;
             foreach (var id in links.ItemIds ?? [])
@@ -143,7 +143,7 @@
         _submitting = true;
         try
         {
-            await Exercises.SetExerciseEquipmentItemsAsync(
+            await Exercises.EquipmentItemsAsync(
                 ExerciseId, new SetExerciseEquipmentItemsRequest { ItemIds = _selected.ToList() });
             MudDialog.Close(DialogResult.Ok(true));
         }

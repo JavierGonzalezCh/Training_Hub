@@ -231,6 +231,7 @@ public class EquipmentLinksUiTests : TestContext
             ],
         });
 
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, draft));
 
         var warning = cut.Find("[data-testid='equipment-warning-0-0']");
@@ -250,6 +251,7 @@ public class EquipmentLinksUiTests : TestContext
             Equipment = new ExerciseEquipmentInfo { IsAvailable = true, Machines = [] },
         });
 
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, draft));
 
         Assert.Empty(cut.FindAll("[data-testid='equipment-warning-0-0']"));

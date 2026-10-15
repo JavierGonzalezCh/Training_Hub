@@ -27,7 +27,7 @@ public sealed class ClassInstructorTests(ApiFactory factory) : IClassFixture<Api
     private static readonly DateOnly Monday = new(2026, 3, 2);
 
     private static SaveClassRequest Weekly(string name, string? instructorName, Guid? instructorUserId)
-        => new(name, null, instructorName, 15, new TimeOnly(7, 0), 45,
+        => new(name, null, instructorName, 15, new TimeOnly(18, 0), 45,
             IsRecurring: true, DaysOfWeek: [ClassDayOfWeek.Monday, ClassDayOfWeek.Wednesday],
             ScheduledDate: null, EndsOn: null, InstructorUserId: instructorUserId);
 

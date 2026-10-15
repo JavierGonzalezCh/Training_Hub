@@ -160,7 +160,7 @@ public sealed class NotificationsTests(ApiFactory factory) : IClassFixture<ApiFa
     {
         var world = await SeedAsync(1);
         var evt = new MembershipReminderDue(
-            world.GymId, world.Members[0].Id, Guid.CreateVersion7(), "Mensual", Today.AddDays(2), 2);
+            world.GymId, world.Members[0].Id, Guid.CreateVersion7(), "Mensual", Today.AddDays(2), 2, MembershipReminderKind.DaysBefore);
 
         await PublishAsync(world.GymId, evt);
         await PublishAsync(world.GymId, evt);
