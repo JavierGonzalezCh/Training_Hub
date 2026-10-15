@@ -53,6 +53,27 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
             .Select(m => m.Id)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<MemberBirthdayView>> GetBirthdaysOnAsync(
+        Guid gymId, DateOnly day, CancellationToken cancellationToken = default)
+    {
+        var feb29 = BirthdayRule.CelebratesFeb29OnFeb28(day);
+        var rows = await Members
+            .Where(m => m.GymId == gymId && m.Status == MemberStatus.Active && m.BirthDate != null
+                && ((m.BirthDate.Value.Month == day.Month && m.BirthDate.Value.Day == day.Day)
+                    || (feb29 && m.BirthDate.Value.Month == 2 && m.BirthDate.Value.Day == 29)))
+            .OrderBy(m => m.FirstName).ThenBy(m => m.LastName)
+            .Select(m => new { m.Id, m.FirstName, m.LastName })
+            .ToListAsync(cancellationToken);
+        return rows.Select(r => new MemberBirthdayView(r.Id, r.FirstName, $"{r.FirstName} {r.LastName}".Trim())).ToList();
+    }
+
+    public async Task<bool> IsBirthdayAsync(Guid memberId, DateOnly day, CancellationToken cancellationToken = default)
+    {
+        var birth = await Members.Where(m => m.Id == memberId).Select(m => m.BirthDate)
+            .FirstOrDefaultAsync(cancellationToken);
+        return birth is { } b && BirthdayRule.IsBirthday(b, day);
+    }
+
     public async Task<IReadOnlyCollection<Guid>> GetActiveMemberIdsByTagsAsync(
         IReadOnlyCollection<string> tags, CancellationToken cancellationToken = default)
     {

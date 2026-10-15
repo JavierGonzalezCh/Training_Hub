@@ -99,6 +99,10 @@ public class PushUiTests : TestContext
 
         public Task<CommunicationsSettingsResponse> ReminderSettingsPUTAsync(UpdateCommunicationsSettingsRequest body, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
+        public Task<BirthdaySettingsResponse> BirthdaySettingsGETAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+        public Task<BirthdaySettingsResponse> BirthdaySettingsPUTAsync(UpdateBirthdaySettingsRequest body, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
         public Task<AnnouncementResponse> AnnouncementsGET2Async(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
         public Task<AnnouncementResponse> PublishAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();

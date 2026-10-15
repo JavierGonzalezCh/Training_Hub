@@ -44,10 +44,13 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
 
         var result = await runner.RunAsync(
             "communications",
-            async () => new CommunicationsJobResult(
-                await handler.HandleAsync(cancellationToken),
-                await purge.HandleAsync(cancellationToken)),
-            r => (r.RemindersPublished + r.NotificationsPurged, 0));
+            async () =>
+            {
+                var outcome = await handler.HandleAsync(cancellationToken);
+                return new CommunicationsJobResult(
+                    outcome.Reminders, await purge.HandleAsync(cancellationToken), outcome.Birthdays);
+            },
+            r => (r.RemindersPublished + r.NotificationsPurged + r.BirthdaysPublished, 0));
 
         // Foto mensual del SaaS: solo hace algo en la primera ejecucion de cada mes (idempotente por mes).
         await runner.RunAsync(

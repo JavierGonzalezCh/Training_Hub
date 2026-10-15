@@ -62,6 +62,9 @@ public sealed class GetDashboardHandler(
                 counts[CommercialStatus.Expired],
                 counts[CommercialStatus.Frozen],
                 counts[CommercialStatus.NoPlan]),
-            ExpiringDays: settings.ExpiringDays);
+            ExpiringDays: settings.ExpiringDays,
+            BirthdaysToday: (await members.GetBirthdaysOnAsync(gymId, today, cancellationToken))
+                .Select(b => new BirthdayTodayRow(b.Id, b.FullName))
+                .ToList());
     }
 }

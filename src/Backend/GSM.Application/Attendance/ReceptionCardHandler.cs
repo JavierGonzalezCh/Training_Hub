@@ -90,6 +90,7 @@ public sealed class GetReceptionCardHandler(
             EntriesToday: allowance.EntriesToday,
             MaxDailyEntries: allowance.AllowedToday,
             MultipleEntries: allowance.MultipleEntries,
-            NextEntryAt: allowance.NextEntryAt);
+            NextEntryAt: allowance.NextEntryAt,
+            BirthdayToday: await members.IsBirthdayAsync(memberId, clock.Today, cancellationToken));
     }
 }

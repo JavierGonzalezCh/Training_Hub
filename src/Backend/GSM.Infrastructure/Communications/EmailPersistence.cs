@@ -12,6 +12,8 @@ public sealed class CommunicationsSettingsConfiguration : IEntityTypeConfigurati
     {
         builder.ToTable("settings", "communications");
         builder.HasIndex(s => s.GymId).IsUnique();
+        builder.Property(s => s.BirthdayEnabled).HasDefaultValue(false);
+        builder.Property(s => s.BirthdayMessage).HasMaxLength(CommunicationsSettings.BirthdayMessageMaxLength);
     }
 }
 
@@ -23,4 +25,8 @@ public sealed class CommunicationsSettingsRepository(GsmDbContext dbContext) : I
         => Settings.FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);
 
     public void Add(CommunicationsSettings settings) => Settings.Add(settings);
+
+    public async Task<IReadOnlyList<CommunicationsSettings>> ListBirthdayEnabledAsync(
+        CancellationToken cancellationToken = default)
+        => await Settings.AsNoTracking().Where(s => s.BirthdayEnabled).ToListAsync(cancellationToken);
 }

@@ -151,6 +151,33 @@ else if (_dashboard is { } dashboard)
         }
     </section>
 
+    <section class="gsm-panel" aria-labelledby="birthdays-title" id="birthdays-today">
+        <header class="gsm-panel__header">
+            <h2 id="birthdays-title" class="gsm-panel__title">Cumpleaños de hoy</h2>
+        </header>
+        @if (dashboard.BirthdaysToday.Count == 0)
+        {
+            <div class="gsm-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.Cake" Class="gsm-empty-icon" />
+                <span>Hoy nadie cumple años.</span>
+            </div>
+        }
+        else
+        {
+            <ul class="gsm-list" id="birthdays-list">
+                @foreach (var birthday in dashboard.BirthdaysToday)
+                {
+                    <li class="gsm-identity">
+                        <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(birthday.MemberName)</span>
+                        <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{birthday.MemberId}"))" Underline="Underline.None">
+                            @birthday.MemberName
+                        </MudLink>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
     <section class="gsm-panel" aria-labelledby="expiring-title">
         <header class="gsm-panel__header">
             <h2 id="expiring-title" class="gsm-panel__title">Membresías por vencer</h2>

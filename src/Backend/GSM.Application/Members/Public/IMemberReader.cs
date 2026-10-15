@@ -44,6 +44,17 @@ public interface IMemberReader
     Task<IReadOnlyDictionary<Guid, string>> GetFullNamesAsync(
         IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Miembros activos del gym que cumplen años el día de negocio <paramref name="day"/> (con la regla del 29 de
+    /// febrero, <see cref="BirthdayRule"/>). Lleva <paramref name="gymId"/> explícito porque la tarea de
+    /// felicitaciones corre sin usuario (CO5).
+    /// </summary>
+    Task<IReadOnlyList<MemberBirthdayView>> GetBirthdaysOnAsync(
+        Guid gymId, DateOnly day, CancellationToken cancellationToken = default);
+
+    /// <summary>¿Cumple años ese día el miembro (activo o no)? Para la tarjeta de recepción (CO5).</summary>
+    Task<bool> IsBirthdayAsync(Guid memberId, DateOnly day, CancellationToken cancellationToken = default);
+
     /// <summary>La invitación más reciente sin canjear del miembro (puede estar vencida: lo decide quien llama). <c>null</c> si no hay.</summary>
     Task<MemberInvitationView?> GetPendingInvitationAsync(Guid memberId, CancellationToken cancellationToken = default);
 
@@ -67,6 +78,8 @@ public interface IMemberReader
     /// </summary>
     Task<IReadOnlyDictionary<Guid, int>> GetActiveCountsByGymAsync(CancellationToken cancellationToken = default);
 }
+
+public sealed record MemberBirthdayView(Guid Id, string FirstName, string FullName);
 
 public sealed record MemberInvitationView(string Code, DateTimeOffset ExpiresAt);
 
