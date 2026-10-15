@@ -26,6 +26,16 @@ public sealed record AchievementResponse(
     bool IsActive,
     DateTimeOffset CreatedAt);
 
+/// <summary>Condición a evaluar para el aviso previo ("N miembros ya cumplen este logro"). <c>AchievementId</c> excluye a quienes ya lo tienen.</summary>
+public sealed record RetroactivePreviewRequest(
+    AchievementConditionType ConditionType,
+    int ConditionValue,
+    Guid? AchievementId);
+
+public sealed record RetroactivePreviewResponse(int EligibleCount);
+
+public sealed record RetroactiveGrantResponse(int GrantedCount);
+
 public sealed record MemberAchievementItem(
     Guid AchievementId,
     string Name,

@@ -15,6 +15,7 @@ public static class AchievementsInfrastructureRegistration
         services.AddScoped<IAchievementRepository, AchievementRepository>();
         services.AddScoped<IAchievementReader, AchievementReader>();
         services.AddScoped<IAchievementService, AchievementService>();
+        services.AddScoped<IRetroactiveAchievementGrant, RetroactiveAchievementGrant>();
 
         return services;
     }

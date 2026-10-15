@@ -45,6 +45,11 @@ public sealed class AchievementRepository(GsmDbContext dbContext) : IAchievement
             .Where(u => u.MemberId == memberId)
             .ToDictionaryAsync(u => u.AchievementId, u => u.UnlockedAt, cancellationToken);
 
+    public async Task<IReadOnlySet<Guid>> GetMemberIdsWithUnlockAsync(
+        Guid achievementId, CancellationToken cancellationToken = default)
+        => (await Unlocks.Where(u => u.AchievementId == achievementId).Select(u => u.MemberId)
+            .ToListAsync(cancellationToken)).ToHashSet();
+
     public void AddUnlock(MemberAchievement unlock) => Unlocks.Add(unlock);
 
     private DbSet<StreakFreeze> StreakFreezes => dbContext.Set<StreakFreeze>();

@@ -5,6 +5,13 @@ public interface IAttendanceReader
 {
     Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Días con entrada de cada miembro pedido, en una sola consulta (logros retroactivos, L1). Cuenta días, no
+    /// entradas, y no cuenta las anuladas. Quien no tiene entradas no aparece.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, int>> GetVisitCountsAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
+
     Task<int> GetStreakAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     /// <summary>Días de negocio con asistencia del miembro, opcionalmente desde <paramref name="from"/> (inclusive).</summary>
