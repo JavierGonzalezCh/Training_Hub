@@ -52,23 +52,29 @@ public sealed class Membership : BaseEntity, ITenantEntity
     /// <summary>Por qué se exoneró la matrícula. Solo si aplicaba y no se cobró.</summary>
     public string? EnrollmentWaivedReason { get; private set; }
 
+    /// <summary>Día del mes en que arranca el ciclo (1–31). Solo en planes en meses del calendario; nulo en planes por días.</summary>
+    public int? CycleDay { get; private set; }
+
     /// <summary>Total que se cobra al asignarla: precio acordado + matrícula (el crédito de un cambio de plan llega en MS6).</summary>
     public decimal TotalToCharge => AgreedPrice + EnrollmentFee;
 
     public static Membership Create(
-        Guid gymId, Guid memberId, Guid planId, DateOnly startDate, int durationDays,
+        Guid gymId, Guid memberId, Guid planId, DateOnly startDate, int durationValue,
         RenewalKind renewalKind = RenewalKind.New, string? startOverrideReason = null,
-        MembershipPricing? pricing = null)
+        MembershipPricing? pricing = null, DurationUnit durationUnit = DurationUnit.Days,
+        int? inheritedCycleDay = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty || planId == Guid.Empty)
         {
             throw new ValidationDomainException("Datos de membresía incompletos.");
         }
 
-        if (durationDays < 1)
+        if (durationValue < 1)
         {
-            throw new ValidationDomainException("La duración debe ser de al menos 1 día.");
+            throw new ValidationDomainException("La duración debe ser de al menos 1.");
         }
+
+        var (endDate, cycleDay) = MembershipCalendar.Resolve(startDate, durationUnit, durationValue, inheritedCycleDay);
 
         return new Membership
         {
@@ -76,7 +82,8 @@ public sealed class Membership : BaseEntity, ITenantEntity
             MemberId = memberId,
             PlanId = planId,
             StartDate = startDate,
-            EndDate = startDate.AddDays(durationDays - 1),
+            EndDate = endDate,
+            CycleDay = cycleDay,
             Status = MembershipStatus.Active,
             RenewalKind = renewalKind,
             StartOverrideReason = string.IsNullOrWhiteSpace(startOverrideReason) ? null : startOverrideReason.Trim(),

@@ -24,7 +24,8 @@ public sealed class UpdatePlanHandler(
             throw new ConflictException($"Ya existe otro plan con el nombre '{name}'.");
         }
 
-        plan.Update(name, request.Description, request.Price, request.DurationDays);
+        plan.Update(name, request.Description, request.Price, request.DurationValue,
+            PlanDuration.ParseUnit(request.DurationUnit));
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return MembershipMapper.ToResponse(plan);

@@ -21,7 +21,7 @@ public class MoneyFormatUiTests : TestContext
             {
                 ICollection<PlanResponse> plans =
                 [
-                    new PlanResponse { Id = Guid.NewGuid(), Name = "Mensual", Price = 1100000, DurationDays = 30, IsActive = true },
+                    new PlanResponse { Id = Guid.NewGuid(), Name = "Mensual", Price = 1100000, DurationUnit = "days", DurationValue = 30, IsActive = true },
                 ];
                 return Task.FromResult(plans);
             }

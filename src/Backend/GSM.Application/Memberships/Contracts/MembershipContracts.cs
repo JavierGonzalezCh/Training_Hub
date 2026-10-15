@@ -1,15 +1,22 @@
 namespace GSM.Application.Memberships.Contracts;
 
-public sealed record CreatePlanRequest(string Name, string? Description, decimal Price, int DurationDays);
+/// <param name="DurationValue">Cuántos días o meses dura el plan.</param>
+/// <param name="DurationUnit"><c>days</c> (por defecto si falta) o <c>months</c> (meses del calendario).</param>
+public sealed record CreatePlanRequest(
+    string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null);
 
-public sealed record UpdatePlanRequest(string Name, string? Description, decimal Price, int DurationDays);
+/// <inheritdoc cref="CreatePlanRequest"/>
+public sealed record UpdatePlanRequest(
+    string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null);
 
+/// <param name="DurationUnit"><c>days</c> o <c>months</c>.</param>
 public sealed record PlanResponse(
     Guid Id,
     string Name,
     string? Description,
     decimal Price,
-    int DurationDays,
+    string DurationUnit,
+    int DurationValue,
     bool IsActive,
     DateTimeOffset CreatedAt);
 
@@ -62,7 +69,8 @@ public sealed record MembershipResponse(
     string? DiscountReason,
     decimal EnrollmentFee,
     string? EnrollmentWaivedReason,
-    decimal TotalToCharge);
+    decimal TotalToCharge,
+    int? CycleDay);
 
 public sealed record MembershipSettingsResponse(int GraceDays, int ExpiringDays, decimal EnrollmentFee);
 

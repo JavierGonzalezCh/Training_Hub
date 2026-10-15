@@ -15,7 +15,7 @@ public class MembershipPricingUiTests : TestContext
     private static readonly DateOnly Start = new(2026, 10, 8);
     private static readonly DateOnly End = new(2026, 11, 6);
 
-    private readonly PlanResponse _plan = new() { Id = Guid.NewGuid(), Name = "Mensual", Price = 80000, DurationDays = 30, IsActive = true };
+    private readonly PlanResponse _plan = new() { Id = Guid.NewGuid(), Name = "Mensual", Price = 80000, DurationUnit = "days", DurationValue = 30, IsActive = true };
     private readonly Guid _memberId = Guid.NewGuid();
     private CommercialStatusUiTests.FakeClient _membershipsFake = null!;
     private CommercialStatusUiTests.FakeClient _paymentsFake = null!;

@@ -18,12 +18,21 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
 
     public decimal Price { get; private set; }
 
-    public int DurationDays { get; private set; }
+    /// <summary>Unidad de la duración: días corridos o meses del calendario.</summary>
+    public DurationUnit DurationUnit { get; private set; } = DurationUnit.Days;
+
+    /// <summary>Cuántos días o meses dura (según <see cref="DurationUnit"/>).</summary>
+    public int DurationValue { get; private set; }
 
     public bool IsActive { get; private set; } = true;
 
+    public const int MaxDays = 3650;
+
+    public const int MaxMonths = 120;
+
     public static MembershipPlan Create(
-        Guid gymId, string name, string? description, decimal price, int durationDays)
+        Guid gymId, string name, string? description, decimal price, int durationValue,
+        DurationUnit durationUnit = DurationUnit.Days)
     {
         if (gymId == Guid.Empty)
         {
@@ -36,16 +45,20 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
             Name = NormalizeName(name),
             Description = Clean(description),
             Price = RequireNonNegative(price),
-            DurationDays = RequirePositiveDuration(durationDays),
+            DurationUnit = durationUnit,
+            DurationValue = RequireDuration(durationValue, durationUnit),
         };
     }
 
-    public void Update(string name, string? description, decimal price, int durationDays)
+    public void Update(
+        string name, string? description, decimal price, int durationValue,
+        DurationUnit durationUnit = DurationUnit.Days)
     {
         Name = NormalizeName(name);
         Description = Clean(description);
         Price = RequireNonNegative(price);
-        DurationDays = RequirePositiveDuration(durationDays);
+        DurationUnit = durationUnit;
+        DurationValue = RequireDuration(durationValue, durationUnit);
     }
 
     public void Deactivate() => IsActive = false;
@@ -66,8 +79,21 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
     private static decimal RequireNonNegative(decimal price)
         => price >= 0 ? price : throw new ValidationDomainException("El precio no puede ser negativo.");
 
-    private static int RequirePositiveDuration(int durationDays)
-        => durationDays >= 1 ? durationDays : throw new ValidationDomainException("La duración debe ser de al menos 1 día.");
+    private static int RequireDuration(int value, DurationUnit unit)
+    {
+        var days = unit == DurationUnit.Days;
+        if (value < 1)
+        {
+            throw new ValidationDomainException(
+                days ? "La duración debe ser de al menos 1 día." : "La duración debe ser de al menos 1 mes.");
+        }
+
+        var max = days ? MaxDays : MaxMonths;
+        return value <= max
+            ? value
+            : throw new ValidationDomainException(
+                days ? $"La duración no puede superar {MaxDays} días." : $"La duración no puede superar {MaxMonths} meses.");
+    }
 
     private static string? Clean(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

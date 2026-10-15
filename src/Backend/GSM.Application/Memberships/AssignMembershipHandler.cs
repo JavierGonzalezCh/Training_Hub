@@ -65,8 +65,9 @@ public sealed class AssignMembershipHandler(
             request.WaiveEnrollment, request.EnrollmentWaivedReason);
 
         var membership = Membership.Create(
-            gymId, memberId, plan.Id, resolved.StartDate, plan.DurationDays,
-            resolved.Plan.Kind, resolved.StartOverrideReason, pricing);
+            gymId, memberId, plan.Id, resolved.StartDate, plan.DurationValue,
+            resolved.Plan.Kind, resolved.StartOverrideReason, pricing,
+            plan.DurationUnit, resolved.InheritedCycleDay);
         memberships.Add(membership);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -140,7 +141,8 @@ public sealed class PreviewMembershipHandler(
             GSM.Domain.Members.EnumText.Snake(resolved.Plan.Kind)!,
             resolved.Plan.StartDate,
             resolved.StartDate,
-            resolved.StartDate.AddDays(plan.DurationDays - 1),
+            MembershipCalendar.Resolve(
+                resolved.StartDate, plan.DurationUnit, plan.DurationValue, resolved.InheritedCycleDay).EndDate,
             resolved.Plan.PreviousEndDate,
             resolved.StartDate != resolved.Plan.StartDate,
             resolved.IsFirstMembership ? resolved.GymEnrollmentFee : 0m,
