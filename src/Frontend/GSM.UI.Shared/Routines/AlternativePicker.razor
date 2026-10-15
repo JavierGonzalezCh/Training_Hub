@@ -57,7 +57,7 @@
     {
         try
         {
-            _items = (await ExercisesApi.GetAlternativesAsync(ExerciseId)).ToList();
+            _items = (await ExercisesApi.AlternativesAllAsync(ExerciseId)).ToList();
         }
         catch (GsmApiException ex)
         {

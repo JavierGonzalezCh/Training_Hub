@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Components;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Web.Pages.Admin.Logs;
@@ -171,7 +172,8 @@ public class LogsPanelUiTests : TestContext
             Method = "GET", Path = "/api/members/1", Message = "falla de prueba", StackTrace = "at X.Y()",
         });
 
-        var cut = RenderComponent<GroupDetail>(p => p.Add(x => x.Kind, "error").Add(x => x.Fingerprint, "fp1"));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/admin/logs/group?kind=error&fingerprint=fp1");
+        var cut = RenderComponent<GroupDetail>();
 
         Assert.Equal(1, cut.FindAll("[data-testid='occurrence-row']").Count);
         Assert.Contains("AABBCC", cut.Markup);
@@ -191,8 +193,8 @@ public class LogsPanelUiTests : TestContext
         var client = Setup();
         client.Groups.Add(Group("event_failure", "GSM.Evt.A|GSM.Hnd.B"));
 
-        var cut = RenderComponent<GroupDetail>(p => p
-            .Add(x => x.Kind, "event_failure").Add(x => x.Fingerprint, "GSM.Evt.A|GSM.Hnd.B"));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/admin/logs/group?kind=event_failure&fingerprint=" + Uri.EscapeDataString("GSM.Evt.A|GSM.Hnd.B"));
+        var cut = RenderComponent<GroupDetail>();
         cut.Find("[data-testid='retry-group']").Click();
 
         cut.WaitForAssertion(() => Assert.NotNull(client.GroupRetried));
@@ -222,7 +224,7 @@ public class LogsPanelUiTests : TestContext
         });
         var cut = RenderComponent<TraceSearchPanel>();
 
-        cut.Find("[data-testid='trace-code']").Change("7f3a2c");
+        cut.Find("[data-testid='trace-code']").Input("7f3a2c");
         cut.Find("[data-testid='trace-search']").Click();
 
         cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll("[data-testid='trace-request']").Count));

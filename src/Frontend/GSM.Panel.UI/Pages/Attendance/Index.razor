@@ -208,6 +208,7 @@
                 _from is { } f ? DateOnly.FromDateTime(f) : null,
                 _to is { } t ? DateOnly.FromDateTime(t) : null,
                 _authorizedOnly ? true : null,
+                null,
                 _includeVoided ? true : null,
                 page, pageSize, cancellationToken);
             return new ServerTablePage<AttendanceListItem>(result.Items.ToList(), result.Total);

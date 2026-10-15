@@ -209,7 +209,7 @@ public sealed class KioskDocumentEntryTests(ApiFactory factory) : IClassFixture<
 
         var document = NewDocument();
         var member = Member.Create(gymId, firstName, "Vencido", document, today.AddDays(-9000));
-        var plan = MembershipPlan.Create(gymId, "Mensual", null, 50000m, 30);
+        var plan = MembershipPlan.Create(gymId, $"Mensual {Guid.NewGuid():N}"[..20], null, 50000m, 30);
         var end = today.AddDays(-membershipEndedDaysAgo);
         db.AddRange(member, plan, Membership.Create(gymId, member.Id, plan.Id, end.AddDays(-29), 30));
         await db.SaveChangesAsync();

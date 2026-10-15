@@ -1,3 +1,4 @@
+﻿using MudBlazor;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -131,6 +132,7 @@ public class ExerciseAlternativesUiTests : TestContext
     [Fact]
     public void Change_for_lists_recommended_first_and_flags_what_the_gym_cannot_do_today()
     {
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, DraftWithExistingLine()));
 
         cut.Find("[data-testid='change-0-0']").Click();
@@ -151,6 +153,7 @@ public class ExerciseAlternativesUiTests : TestContext
         var line = draft.Days[0].Exercises[0];
         line.RestSeconds = 90;
         line.Notes = "Cuidar la espalda";
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, draft));
 
         cut.Find("[data-testid='change-0-0']").Click();
