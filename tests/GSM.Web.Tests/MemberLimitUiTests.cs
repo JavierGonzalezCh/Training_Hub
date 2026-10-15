@@ -34,7 +34,7 @@ public class MemberLimitUiTests : TestContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
         var gyms = DispatchProxy.Create<IGymClient, ClientStub>();
-        ((ClientStub)(object)gyms).Usage = new MemberUsageResponse { Counted = counted, Limit = limit, PlanName = "Basic" };
+        ((ClientStub)(object)gyms).Usage = new MemberUsageResponse { Counted = counted ?? 0, Limit = limit, PlanName = "Basic" };
         Services.AddSingleton(gyms);
         return RenderComponent<MemberLimitCard>();
     }

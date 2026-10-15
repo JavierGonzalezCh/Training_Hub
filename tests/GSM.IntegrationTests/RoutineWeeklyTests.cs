@@ -298,7 +298,7 @@ public sealed class RoutineWeeklyTests(ApiFactory factory) : IClassFixture<ApiFa
     // --- helpers ------------------------------------------------------------------------------
 
     private static RoutineExerciseInput Line(World w, int catalogIndex)
-        => new(w.CatalogIds[catalogIndex], 3, "10", null, 60, null);
+        => new(w.CatalogIds[catalogIndex], TestSets.Normal(3, 10), 60, null);
 
     private static List<RoutineExerciseInput> KeepLines(RoutineDayResponse day)
         => day.Exercises.Select(e => new RoutineExerciseInput(e.ExerciseId, TestSets.Normal(3, 10), 60, null, Id: e.Id)).ToList();

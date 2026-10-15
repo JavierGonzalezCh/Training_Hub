@@ -25,7 +25,15 @@ public class ClassBookingRulesUiTests : TestContext
             CancelDeadlineHours = 4, NoShowLimit = 2, NoShowWindowDays = 15,
             NoShowBlockDays = 10, BookingWindowDays = 14, MaxActiveBookings = 3,
         };
-        fake.Handlers["ClassSettingsPUTAsync"] = args => args[0];
+        fake.Handlers["ClassSettingsPUTAsync"] = args =>
+        {
+            var r = (UpdateClassSettingsRequest)args[0]!;
+            return new ClassSettingsResponse
+            {
+                CancelDeadlineHours = r.CancelDeadlineHours, NoShowLimit = r.NoShowLimit, NoShowWindowDays = r.NoShowWindowDays,
+                NoShowBlockDays = r.NoShowBlockDays, BookingWindowDays = r.BookingWindowDays, MaxActiveBookings = r.MaxActiveBookings,
+            };
+        };
         Services.AddSingleton(proxy);
         RenderComponent<MudPopoverProvider>();
 
@@ -33,12 +41,12 @@ public class ClassBookingRulesUiTests : TestContext
 
         tab.WaitForAssertion(() =>
         {
-            Assert.Equal("4", tab.Find("#rule-cancel-deadline input").GetAttribute("value"));
-            Assert.Equal("14", tab.Find("#rule-booking-window input").GetAttribute("value"));
-            Assert.Equal("3", tab.Find("#rule-max-active input").GetAttribute("value"));
+            Assert.Equal("4", tab.Find("input#rule-cancel-deadline").GetAttribute("value"));
+            Assert.Equal("14", tab.Find("input#rule-booking-window").GetAttribute("value"));
+            Assert.Equal("3", tab.Find("input#rule-max-active").GetAttribute("value"));
         });
 
-        tab.Find("#rule-max-active input").Change("6");
+        tab.Find("input#rule-max-active").Change("6");
         tab.Find("#rules-save").Click();
 
         tab.WaitForAssertion(() =>

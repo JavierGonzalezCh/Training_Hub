@@ -21,7 +21,7 @@ public sealed class RoutineExercisesController : ControllerBase
         LogRoutineExerciseRequest request,
         [FromServices] LogRoutineExerciseHandler handler,
         CancellationToken cancellationToken)
-        => Ok(await handler.HandleAsync(id, request ?? new LogRoutineExerciseRequest(null, null, null, null), cancellationToken));
+        => Ok(await handler.HandleAsync(id, request ?? new LogRoutineExerciseRequest(null, null), cancellationToken));
 
     [HttpDelete("{id:guid}/log")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

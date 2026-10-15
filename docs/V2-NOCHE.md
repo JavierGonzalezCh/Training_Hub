@@ -68,6 +68,10 @@
 | A1b | **Unida** | Regla de entradas múltiples por miembro (2–5, 2 h entre entradas); el índice por miembro y día deja de ser único. Ver preguntas A1b |
 | M4 | **Unida** | Mediciones de peso/altura con IMC, protegidas con `ViewMemberHealth`. Ver preguntas M4 |
 | I6 | **Unida** | Cambio de email con código; Members sincroniza las fichas por `UserEmailChanged`. Ver preguntas I6 |
+| A2 | **Unida** | Anular entradas (`ManageAttendance`, motivo, 7 días, `CheckInVoided`); lo anulado deja de contar. Ver preguntas A2 |
+| S2 | **Unida** | Planes del SaaS (`saas_plans`, Basic 150 / Pro 500 / Enterprise), límite propio por gym, bloqueo de membresías nuevas, uso en panel y `/admin`. Ver preguntas S2 |
+| C3 | **Unida** | Plazo de cancelación, ventana, máximo de reservas, penalización por inasistencias con levantamiento. Ver preguntas C3 |
+| R4 | **Unida** | Series una por una (JSON), superseries, registro por serie, planeado vs hecho. Migración irreversible en datos. Ver preguntas R4 |
 | G1+S1 | **Unida** | Owner invitado sin contraseña, reenviar acceso, prueba opcional o primer pago. Falta S1b (fin de la prueba) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -219,6 +223,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: C3, R4 y S2 se cortaron por el límite de uso; reanudadas sin pérdida. A2, S2, C3 y R4 unidas sin conflictos. Migración `V2_A2_S2_C3_R4` **reordenada a mano**: EF ponía los `DropColumn` de R4 antes de copiar los datos; ahora va crear → `SqlScript("S2")` → `SqlScript("R4")` → `DropColumn`. Claves JSON de R4 verificadas (PascalCase, sin renombre de la convención). Al integrar: 1 error de backend, 10 de UI (`??` sobre valores no anulables, `PlansAllAsync`), 4 tests bUnit, 1 test de rutinas y **un defecto real de A2**: la lista por miembro ignoraba "ver anuladas". **Suite: 615 integración + 308 bUnit, todo verde.**
 - 2026-10-14: lanzada la tercera tanda: C3, A2, R4 y S2.
 - 2026-10-14: C5, A1b, M4 e I6 unidas sin conflictos. Migración `V2_C5_A1b_M4_I6`, cliente regenerado. Al integrar: cuarto defecto de NSwag (defaults `int` en `ReceptionCardResponse` salían como texto; se quitaron los defaults), 1 error de UI y un test de C5 que no sembraba membresía (exigida desde C1). **Suite: 574 integración + 279 bUnit, todo verde.**
 - 2026-10-14: lanzada la segunda tanda de la noche: C5, A1b, M4 e I6 (solo escriben código).

@@ -275,6 +275,19 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("void_reason");
+
+                    b.Property<DateTimeOffset?>("VoidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("voided_at");
+
+                    b.Property<Guid?>("VoidedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("voided_by");
+
                     b.HasKey("Id")
                         .HasName("pk_attendances");
 
@@ -448,6 +461,63 @@ namespace GSM.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GSM.Domain.Classes.BookingBlock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AppliedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("applied_at");
+
+                    b.Property<DateOnly>("BlockedUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("blocked_until");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("LiftReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("lift_reason");
+
+                    b.Property<DateTimeOffset?>("LiftedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lifted_at");
+
+                    b.Property<Guid?>("LiftedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lifted_by_user_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<int>("StrikeCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("strike_count");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_booking_blocks");
+
+                    b.HasIndex("MemberId", "AppliedAt")
+                        .HasDatabaseName("ix_booking_blocks_member_id_applied_at");
+
+                    b.ToTable("booking_blocks", "classes");
+                });
+
             modelBuilder.Entity("GSM.Domain.Classes.ClassBooking", b =>
                 {
                     b.Property<Guid>("Id")
@@ -487,6 +557,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("classes.class_booking_status")
                         .HasColumnName("status");
 
+                    b.Property<DateTimeOffset?>("StrikeAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("strike_at");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -496,6 +570,10 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasIndex("MemberId")
                         .HasDatabaseName("ix_class_bookings_member_id");
+
+                    b.HasIndex("MemberId", "StrikeAt")
+                        .HasDatabaseName("ix_class_bookings_member_strike")
+                        .HasFilter("strike_at IS NOT NULL");
 
                     b.HasIndex("SessionId", "MemberId")
                         .IsUnique()
@@ -565,6 +643,59 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_class_sessions_class_id_session_date");
 
                     b.ToTable("class_sessions", "classes");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Classes.ClassSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("BookingWindowDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("booking_window_days");
+
+                    b.Property<int>("CancelDeadlineHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("cancel_deadline_hours");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<int>("MaxActiveBookings")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_active_bookings");
+
+                    b.Property<int>("NoShowBlockDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("no_show_block_days");
+
+                    b.Property<int>("NoShowLimit")
+                        .HasColumnType("integer")
+                        .HasColumnName("no_show_limit");
+
+                    b.Property<int>("NoShowWindowDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("no_show_window_days");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_class_settings");
+
+                    b.HasIndex("GymId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_class_settings_gym_id");
+
+                    b.ToTable("class_settings", "classes");
                 });
 
             modelBuilder.Entity("GSM.Domain.Classes.GymClass", b =>
@@ -3216,6 +3347,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("exercise_id");
 
+                    b.Property<int?>("Group")
+                        .HasColumnType("integer")
+                        .HasColumnName("group_number");
+
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
                         .HasColumnName("gym_id");
@@ -3240,21 +3375,6 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<Guid>("RoutineDayId")
                         .HasColumnType("uuid")
                         .HasColumnName("routine_day_id");
-
-                    b.Property<string>("TargetReps")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasColumnName("target_reps");
-
-                    b.Property<int>("TargetSets")
-                        .HasColumnType("integer")
-                        .HasColumnName("target_sets");
-
-                    b.Property<decimal?>("TargetWeightKg")
-                        .HasPrecision(6, 2)
-                        .HasColumnType("numeric(6,2)")
-                        .HasColumnName("target_weight_kg");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -3305,27 +3425,13 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("date")
                         .HasColumnName("performed_on");
 
-                    b.Property<string>("RepsDone")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasColumnName("reps_done");
-
                     b.Property<Guid>("RoutineExerciseId")
                         .HasColumnType("uuid")
                         .HasColumnName("routine_exercise_id");
 
-                    b.Property<int?>("SetsDone")
-                        .HasColumnType("integer")
-                        .HasColumnName("sets_done");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
-
-                    b.Property<decimal?>("WeightKg")
-                        .HasPrecision(6, 2)
-                        .HasColumnType("numeric(6,2)")
-                        .HasColumnName("weight_kg");
 
                     b.HasKey("Id")
                         .HasName("pk_routine_exercise_logs");
@@ -3358,6 +3464,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("gym_id");
 
+                    b.Property<int?>("MemberLimitOverride")
+                        .HasColumnType("integer")
+                        .HasColumnName("member_limit_override");
+
                     b.Property<decimal>("MonthlyPrice")
                         .HasColumnType("decimal(12,2)")
                         .HasColumnName("monthly_price");
@@ -3374,6 +3484,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<GymPlan>("Plan")
                         .HasColumnType("gyms.gym_plan")
                         .HasColumnName("plan");
+
+                    b.Property<Guid?>("SaasPlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("saas_plan_id");
 
                     b.Property<DateOnly>("StartedOn")
                         .HasColumnType("date")
@@ -3396,6 +3510,9 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasIndex("PaidThrough")
                         .HasDatabaseName("ix_gym_subscriptions_paid_through");
+
+                    b.HasIndex("SaasPlanId")
+                        .HasDatabaseName("ix_gym_subscriptions_saas_plan_id");
 
                     b.ToTable("gym_subscriptions", "superadmin");
                 });
@@ -3589,6 +3706,49 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_monthly_metrics_month");
 
                     b.ToTable("monthly_metrics", "superadmin");
+                });
+
+            modelBuilder.Entity("GSM.Domain.SuperAdmin.SaasPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<int?>("MemberLimit")
+                        .HasColumnType("integer")
+                        .HasColumnName("member_limit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("name");
+
+                    b.Property<decimal>("SuggestedPrice")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("suggested_price");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_saas_plans");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_saas_plans_name");
+
+                    b.ToTable("saas_plans", "superadmin");
                 });
 
             modelBuilder.Entity("GSM.Domain.SuperAdmin.SubscriptionPayment", b =>
@@ -4434,6 +4594,47 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_routine_exercises_routine_days_routine_day_id");
+
+                    b.OwnsMany("GSM.Domain.Routines.SetTarget", "SetTargets", b1 =>
+                        {
+                            b1.Property<Guid>("RoutineExerciseId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<int?>("DistanceM");
+
+                            b1.Property<int?>("DurationSeconds");
+
+                            b1.Property<int>("Number");
+
+                            b1.Property<int?>("RepsMax");
+
+                            b1.Property<int?>("RepsMin");
+
+                            b1.Property<int?>("Rir");
+
+                            b1.Property<string>("SetType")
+                                .IsRequired();
+
+                            b1.Property<decimal?>("WeightKg")
+                                .HasPrecision(6, 2);
+
+                            b1.HasKey("RoutineExerciseId", "__synthesizedOrdinal")
+                                .HasName("pk_routine_exercises");
+
+                            b1.ToTable("routine_exercises", "routines");
+
+                            b1
+                                .ToJson("set_targets")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("RoutineExerciseId")
+                                .HasConstraintName("fk_routine_exercises_routine_exercises_routine_exercise_id");
+                        });
+
+                    b.Navigation("SetTargets");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.RoutineExerciseLog", b =>
@@ -4452,9 +4653,18 @@ namespace GSM.Infrastructure.Migrations
                             b1.Property<int>("__synthesizedOrdinal")
                                 .ValueGeneratedOnAdd();
 
+                            b1.Property<int?>("DistanceM");
+
+                            b1.Property<int?>("DurationSeconds");
+
                             b1.Property<int>("Number");
 
                             b1.Property<int?>("Reps");
+
+                            b1.Property<int?>("Rir");
+
+                            b1.Property<string>("SetType")
+                                .IsRequired();
 
                             b1.Property<decimal?>("WeightKg")
                                 .HasPrecision(6, 2);
@@ -4474,6 +4684,15 @@ namespace GSM.Infrastructure.Migrations
                         });
 
                     b.Navigation("Sets");
+                });
+
+            modelBuilder.Entity("GSM.Domain.SuperAdmin.GymSubscription", b =>
+                {
+                    b.HasOne("GSM.Domain.SuperAdmin.SaasPlan", null)
+                        .WithMany()
+                        .HasForeignKey("SaasPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_gym_subscriptions_saas_plans");
                 });
 
             modelBuilder.Entity("GSM.Domain.SuperAdmin.ImpersonationAction", b =>

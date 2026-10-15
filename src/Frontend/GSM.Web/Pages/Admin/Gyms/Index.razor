@@ -48,7 +48,7 @@ else if (_portfolio is { } portfolio)
             </MudTd>
             <MudTd DataLabel="Plan">@context.Plan</MudTd>
             <MudTd DataLabel="Miembros" Class="gsm-mono" data-testid="member-usage">
-                @SuperAdminLabels.MemberUsage(context.CountedMembers ?? 0, context.MemberLimit)
+                @SuperAdminLabels.MemberUsage(context.CountedMembers, context.MemberLimit)
             </MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Color="@SuperAdminLabels.StatusColor(context.EffectiveStatus)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">

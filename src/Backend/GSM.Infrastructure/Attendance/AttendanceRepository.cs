@@ -39,7 +39,7 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
 
         if (query.MemberId is { } memberId)
         {
-            q = q.Where(a => a.MemberId == memberId && a.VoidedAt == null);
+            q = q.Where(a => a.MemberId == memberId);
         }
 
         if (query.From is { } from)

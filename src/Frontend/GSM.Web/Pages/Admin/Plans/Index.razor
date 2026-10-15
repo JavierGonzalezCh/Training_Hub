@@ -37,8 +37,8 @@ else if (_plans is { } plans)
         <RowTemplate>
             <MudTd DataLabel="Plan">@context.Name</MudTd>
             <MudTd DataLabel="Límite" Class="gsm-mono">@LimitLabel(context.MemberLimit)</MudTd>
-            <MudTd DataLabel="Precio sugerido" Class="gsm-mono">@GsmFormat.Money((decimal)(context.SuggestedPrice ?? 0))</MudTd>
-            <MudTd DataLabel="Estado">@((context.IsActive ?? false) ? "Activo" : "Inactivo")</MudTd>
+            <MudTd DataLabel="Precio sugerido" Class="gsm-mono">@GsmFormat.Money((decimal)context.SuggestedPrice)</MudTd>
+            <MudTd DataLabel="Estado">@(context.IsActive ? "Activo" : "Inactivo")</MudTd>
             <MudTd>
                 <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => OpenAsync(context))">Editar</MudButton>
             </MudTd>
@@ -59,7 +59,7 @@ else if (_plans is { } plans)
         _loading = true;
         try
         {
-            _plans = (await AdminPlans.PlansGETAsync()).ToList();
+            _plans = (await AdminPlans.PlansAllAsync()).ToList();
         }
         catch (GsmApiException ex)
         {

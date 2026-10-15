@@ -51,7 +51,7 @@
         try
         {
             // Solo los activos, más el que el cliente ya tiene aunque se haya desactivado.
-            _plans = (await AdminPlans.PlansGETAsync())
+            _plans = (await AdminPlans.PlansAllAsync())
                 .Where(p => p.IsActive == true || p.Id == Current.SaasPlanId)
                 .ToList();
             _planId ??= _plans.FirstOrDefault(p => p.Name == Current.Plan)?.Id;

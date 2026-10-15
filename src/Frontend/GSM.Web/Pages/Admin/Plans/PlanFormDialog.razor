@@ -48,8 +48,8 @@
 
         _name = Current.Name ?? string.Empty;
         _limit = Current.MemberLimit;
-        _price = (decimal)(Current.SuggestedPrice ?? 0);
-        _isActive = Current.IsActive ?? true;
+        _price = (decimal)Current.SuggestedPrice;
+        _isActive = Current.IsActive;
     }
 
     private async Task SubmitAsync()

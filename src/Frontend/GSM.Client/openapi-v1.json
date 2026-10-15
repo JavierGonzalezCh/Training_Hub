@@ -1450,6 +1450,151 @@
         }
       }
     },
+    "/api/admin/plans": {
+      "get": {
+        "tags": [
+          "AdminPlans"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SaasPlanItem"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SaasPlanItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SaasPlanItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AdminPlans"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSaasPlanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSaasPlanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSaasPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaasPlanItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaasPlanItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaasPlanItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/plans/{planId}": {
+      "put": {
+        "tags": [
+          "AdminPlans"
+        ],
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSaasPlanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSaasPlanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSaasPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaasPlanItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaasPlanItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaasPlanItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/announcements": {
       "get": {
         "tags": [
@@ -2364,6 +2509,130 @@
         }
       }
     },
+    "/api/attendance/{id}/void": {
+      "post": {
+        "tags": [
+          "Attendance"
+        ],
+        "operationId": "VoidCheckIn",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidCheckInRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidCheckInRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidCheckInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/attendance": {
       "get": {
         "tags": [
@@ -2396,6 +2665,13 @@
           },
           {
             "name": "AuthorizedOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "IncludeVoided",
             "in": "query",
             "schema": {
               "type": "boolean"
@@ -5164,6 +5440,272 @@
         }
       }
     },
+    "/api/class-settings": {
+      "get": {
+        "tags": [
+          "ClassSettings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassSettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassSettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ClassSettings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClassSettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClassSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClassSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassSettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassSettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassSettingsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/class-booking-blocks": {
+      "get": {
+        "tags": [
+          "ClassBookingBlocks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookingBlockResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookingBlockResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookingBlockResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/class-booking-blocks/{id}/lift": {
+      "post": {
+        "tags": [
+          "ClassBookingBlocks"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiftBookingBlockRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiftBookingBlockRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiftBookingBlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/class-booking-status": {
+      "get": {
+        "tags": [
+          "MeClassBookingStatus"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBookingStatusResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBookingStatusResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBookingStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gym/consent-documents": {
       "get": {
         "tags": [
@@ -7185,6 +7727,35 @@
         }
       }
     },
+    "/api/gym/member-usage": {
+      "get": {
+        "tags": [
+          "Gym"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberUsageResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberUsageResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberUsageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gym/feature-flags": {
       "get": {
         "tags": [
@@ -8947,8 +9518,25 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelBookingResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelBookingResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelBookingResponse"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -14856,6 +15444,36 @@
               "null",
               "string"
             ]
+          },
+          "voided": {
+            "type": "boolean",
+            "default": false
+          },
+          "voidedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "voidedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "voidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "voidReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -14880,6 +15498,46 @@
           "tokenType": {
             "type": "string",
             "default": "Bearer"
+          }
+        }
+      },
+      "BookingBlockResponse": {
+        "required": [
+          "id",
+          "memberId",
+          "memberName",
+          "blockedUntil",
+          "strikeCount",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "blockedUntil": {
+            "type": "string",
+            "format": "date"
+          },
+          "strikeCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -14921,6 +15579,25 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CancelBookingResponse": {
+        "required": [
+          "countedAsNoShow",
+          "blockedUntil"
+        ],
+        "type": "object",
+        "properties": {
+          "countedAsNoShow": {
+            "type": "boolean"
+          },
+          "blockedUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -15747,6 +16424,67 @@
           }
         }
       },
+      "ClassSettingsResponse": {
+        "required": [
+          "cancelDeadlineHours",
+          "noShowLimit",
+          "noShowWindowDays",
+          "noShowBlockDays",
+          "bookingWindowDays",
+          "maxActiveBookings"
+        ],
+        "type": "object",
+        "properties": {
+          "cancelDeadlineHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noShowLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noShowWindowDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noShowBlockDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "bookingWindowDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "maxActiveBookings": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "CloseCashShiftRequest": {
         "required": [
           "countedCash",
@@ -16444,6 +17182,36 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "CreateSaasPlanRequest": {
+        "required": [
+          "name",
+          "memberLimit",
+          "suggestedPrice"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "memberLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "suggestedPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -17980,6 +18748,17 @@
           }
         }
       },
+      "LiftBookingBlockRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "email",
@@ -18044,37 +18823,10 @@
       },
       "LogRoutineExerciseRequest": {
         "required": [
-          "setsDone",
-          "repsDone",
-          "weightKg",
           "notes"
         ],
         "type": "object",
         "properties": {
-          "setsDone": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "repsDone": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "weightKg": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
           "notes": {
             "type": [
               "null",
@@ -18094,11 +18846,21 @@
       },
       "LogSetRequest": {
         "required": [
+          "setType",
           "reps",
-          "weightKg"
+          "weightKg",
+          "durationSeconds",
+          "distanceM",
+          "rir"
         ],
         "type": "object",
         "properties": {
+          "setType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "reps": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
@@ -18116,6 +18878,33 @@
               "string"
             ],
             "format": "double"
+          },
+          "durationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "distanceM": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rir": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -19296,6 +20085,36 @@
           }
         }
       },
+      "MemberUsageResponse": {
+        "required": [
+          "counted",
+          "limit",
+          "planName"
+        ],
+        "type": "object",
+        "properties": {
+          "counted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "planName": {
+            "type": "string"
+          }
+        }
+      },
       "MeResponse": {
         "required": [
           "userId",
@@ -19498,6 +20317,57 @@
       },
       "MuscleGroup": {
         "type": "integer"
+      },
+      "MyBookingStatusResponse": {
+        "required": [
+          "blockedUntil",
+          "activeBookings",
+          "maxActiveBookings",
+          "cancelDeadlineHours",
+          "bookingWindowDays"
+        ],
+        "type": "object",
+        "properties": {
+          "blockedUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "activeBookings": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "maxActiveBookings": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "cancelDeadlineHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "bookingWindowDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
       },
       "MyRoutineResponse": {
         "required": [
@@ -20654,7 +21524,9 @@
           "plan",
           "monthlyPrice",
           "paidThrough",
-          "daysUntilDisabled"
+          "daysUntilDisabled",
+          "memberLimit",
+          "countedMembers"
         ],
         "type": "object",
         "properties": {
@@ -20693,6 +21565,23 @@
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "memberLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "countedMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
               "integer",
               "string"
             ],
@@ -21634,9 +22523,7 @@
       "RoutineExerciseInput": {
         "required": [
           "exerciseId",
-          "targetSets",
-          "targetReps",
-          "targetWeightKg",
+          "setTargets",
           "restSeconds",
           "notes"
         ],
@@ -21646,25 +22533,11 @@
             "type": "string",
             "format": "uuid"
           },
-          "targetSets": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "targetReps": {
-            "type": "string"
-          },
-          "targetWeightKg": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
+          "setTargets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetTargetInput"
+            }
           },
           "restSeconds": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -21681,6 +22554,15 @@
               "string"
             ]
           },
+          "group": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
           "id": {
             "type": [
               "null",
@@ -21696,9 +22578,8 @@
           "exerciseId",
           "exerciseName",
           "order",
-          "targetSets",
-          "targetReps",
-          "targetWeightKg",
+          "setTargets",
+          "group",
           "restSeconds",
           "notes"
         ],
@@ -21723,25 +22604,20 @@
             ],
             "format": "int32"
           },
-          "targetSets": {
+          "setTargets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetTargetResponse"
+            }
+          },
+          "group": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "null",
               "integer",
               "string"
             ],
             "format": "int32"
-          },
-          "targetReps": {
-            "type": "string"
-          },
-          "targetWeightKg": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
           },
           "restSeconds": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -21778,9 +22654,6 @@
           "routineExerciseId",
           "exerciseId",
           "exerciseName",
-          "setsDone",
-          "repsDone",
-          "weightKg",
           "notes",
           "completedAt"
         ],
@@ -21800,30 +22673,6 @@
           },
           "exerciseName": {
             "type": "string"
-          },
-          "setsDone": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "repsDone": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "weightKg": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
           },
           "notes": {
             "type": [
@@ -21897,9 +22746,6 @@
           "id",
           "routineExerciseId",
           "performedOn",
-          "setsDone",
-          "repsDone",
-          "weightKg",
           "notes",
           "completedAt"
         ],
@@ -21916,30 +22762,6 @@
           "performedOn": {
             "type": "string",
             "format": "date"
-          },
-          "setsDone": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "repsDone": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "weightKg": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
           },
           "notes": {
             "type": [
@@ -22033,6 +22855,45 @@
           },
           "scheduleMode": {
             "type": "string"
+          }
+        }
+      },
+      "SaasPlanItem": {
+        "required": [
+          "id",
+          "name",
+          "memberLimit",
+          "suggestedPrice",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "memberLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "suggestedPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "isActive": {
+            "type": "boolean"
           }
         }
       },
@@ -22375,8 +23236,12 @@
       "SetResponse": {
         "required": [
           "number",
+          "setType",
           "reps",
-          "weightKg"
+          "weightKg",
+          "durationSeconds",
+          "distanceM",
+          "rir"
         ],
         "type": "object",
         "properties": {
@@ -22387,6 +23252,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "setType": {
+            "type": "string"
           },
           "reps": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -22405,6 +23273,187 @@
               "string"
             ],
             "format": "double"
+          },
+          "durationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "distanceM": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rir": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SetTargetInput": {
+        "required": [
+          "setType",
+          "repsMin",
+          "repsMax",
+          "weightKg",
+          "durationSeconds",
+          "distanceM",
+          "rir"
+        ],
+        "type": "object",
+        "properties": {
+          "setType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "repsMin": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "repsMax": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "weightKg": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "durationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "distanceM": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rir": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SetTargetResponse": {
+        "required": [
+          "number",
+          "setType",
+          "repsMin",
+          "repsMax",
+          "weightKg",
+          "durationSeconds",
+          "distanceM",
+          "rir"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "setType": {
+            "type": "string"
+          },
+          "repsMin": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "repsMax": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "weightKg": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "durationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "distanceM": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rir": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -22704,6 +23753,10 @@
       "SubscriptionDetail": {
         "required": [
           "plan",
+          "saasPlanId",
+          "memberLimit",
+          "memberLimitOverride",
+          "countedMembers",
           "monthlyPrice",
           "startedOn",
           "trialEndsOn",
@@ -22717,6 +23770,39 @@
         "properties": {
           "plan": {
             "type": "string"
+          },
+          "saasPlanId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "memberLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "memberLimitOverride": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "countedMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           },
           "monthlyPrice": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
@@ -23128,6 +24214,67 @@
         "properties": {
           "mode": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateClassSettingsRequest": {
+        "required": [
+          "cancelDeadlineHours",
+          "noShowLimit",
+          "noShowWindowDays",
+          "noShowBlockDays",
+          "bookingWindowDays",
+          "maxActiveBookings"
+        ],
+        "type": "object",
+        "properties": {
+          "cancelDeadlineHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noShowLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noShowWindowDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noShowBlockDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "bookingWindowDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "maxActiveBookings": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -23727,6 +24874,40 @@
           }
         }
       },
+      "UpdateSaasPlanRequest": {
+        "required": [
+          "name",
+          "memberLimit",
+          "suggestedPrice",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "memberLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "suggestedPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
       "UpdateStaffPermissionsRequest": {
         "required": [
           "profile",
@@ -23776,6 +24957,22 @@
               "string"
             ],
             "format": "double"
+          },
+          "saasPlanId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "memberLimitOverride": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -23833,6 +25030,17 @@
             "type": "string"
           },
           "code": {
+            "type": "string"
+          }
+        }
+      },
+      "VoidCheckInRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
             "type": "string"
           }
         }
@@ -24103,6 +25311,9 @@
       "name": "AdminPayments"
     },
     {
+      "name": "AdminPlans"
+    },
+    {
       "name": "Announcements"
     },
     {
@@ -24119,6 +25330,15 @@
     },
     {
       "name": "Classes"
+    },
+    {
+      "name": "ClassSettings"
+    },
+    {
+      "name": "ClassBookingBlocks"
+    },
+    {
+      "name": "MeClassBookingStatus"
     },
     {
       "name": "ConsentDocuments"

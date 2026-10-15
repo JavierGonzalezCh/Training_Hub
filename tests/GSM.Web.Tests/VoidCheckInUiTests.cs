@@ -16,6 +16,7 @@ namespace GSM.Web.Tests;
 public class VoidCheckInUiTests : TestContext
 {
     private readonly FakeClient _fake;
+    private readonly IRenderedComponent<MudDialogProvider> _dialogs;
     private readonly TestAuthorizationContext _auth;
 
     public VoidCheckInUiTests()
@@ -29,7 +30,7 @@ public class VoidCheckInUiTests : TestContext
         _auth.SetAuthorized("luis");
         _auth.SetRoles("staff");
         RenderComponent<MudPopoverProvider>();
-        RenderComponent<MudDialogProvider>();
+        _dialogs = RenderComponent<MudDialogProvider>();
     }
 
     private static AttendanceListItem Entry(bool voided = false) => new()
@@ -76,16 +77,16 @@ public class VoidCheckInUiTests : TestContext
         var cut = RenderComponent<CheckInVoidAction>(p => p.Add(x => x.Entry, entry));
 
         cut.Find("[data-testid='void-checkin']").Click();
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='confirm-void-checkin']")));
+        _dialogs.WaitForAssertion(() => Assert.NotEmpty(_dialogs.FindAll("[data-testid='confirm-void-checkin']")));
 
         // Sin motivo no llama al servidor.
-        cut.Find("[data-testid='confirm-void-checkin']").Click();
+        _dialogs.Find("[data-testid='confirm-void-checkin']").Click();
         Assert.DoesNotContain(_fake.Calls, c => c.Method == "VoidCheckInAsync");
 
-        cut.Find("textarea").Change("Registré al miembro equivocado");
-        cut.Find("[data-testid='confirm-void-checkin']").Click();
+        _dialogs.Find("textarea").Change("Registré al miembro equivocado");
+        _dialogs.Find("[data-testid='confirm-void-checkin']").Click();
 
-        cut.WaitForAssertion(() =>
+        _dialogs.WaitForAssertion(() =>
         {
             var call = _fake.Calls.Last(c => c.Method == "VoidCheckInAsync");
             Assert.Equal(entry.Id, (Guid)call.Args[0]!);

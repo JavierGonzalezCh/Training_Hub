@@ -40,7 +40,7 @@ else if (_gym is { } gym)
                 <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">@GsmFormat.Money((decimal)gym.Subscription.MonthlyPrice) / mes</MudText>
                 <MudText Typo="Typo.body2" Class="gsm-mono mt-1" data-testid="member-usage"
                          Color="@(AtLimit(gym.Subscription) ? Color.Error : Color.Secondary)">
-                    Miembros: @SuperAdminLabels.MemberUsage(gym.Subscription.CountedMembers ?? 0, gym.Subscription.MemberLimit)@(gym.Subscription.MemberLimitOverride is not null ? " (límite propio)" : "")
+                    Miembros: @SuperAdminLabels.MemberUsage(gym.Subscription.CountedMembers, gym.Subscription.MemberLimit)@(gym.Subscription.MemberLimitOverride is not null ? " (límite propio)" : "")
                 </MudText>
             </MudPaper>
         </MudItem>
@@ -118,7 +118,7 @@ else if (_gym is { } gym)
     private bool _loading = true;
 
     private static bool AtLimit(SubscriptionDetail sub)
-        => sub.MemberLimit is { } max && (sub.CountedMembers ?? 0) >= max;
+        => sub.MemberLimit is { } max && sub.CountedMembers >= max;
 
     protected override Task OnParametersSetAsync() => LoadAsync();
 

@@ -4,7 +4,7 @@
 
 @if (_usage is { Limit: { } limit } usage)
 {
-    var counted = usage.Counted ?? 0;
+    var counted = usage.Counted;
     <div data-testid="member-limit">
         <StatCard Label="Miembros del plan" Value="@($"{counted} / {limit}")"
                   Accent="@(State(counted, limit) switch { LimitState.Full => Color.Error, LimitState.Near => Color.Error, _ => Color.Default })"
