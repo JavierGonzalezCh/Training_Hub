@@ -13,6 +13,9 @@ public interface IGymReader
     /// </summary>
     Task<GymBranding?> GetBrandingBySlugAsync(string slug, CancellationToken cancellationToken = default);
 
+    /// <summary>Aforo del gym (personas a la vez); <c>null</c> si no lo configuró o el gym no existe (A5).</summary>
+    Task<int?> GetCapacityAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     Task<GymFeatureFlagsView?> GetFeatureFlagsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     /// <summary>Ficha del gym para SuperAdmin, incluido su estado comercial manual. <c>null</c> si no existe.</summary>

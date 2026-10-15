@@ -1,0 +1,39 @@
+@* "Ahora en el gym": personas estimadas y % del aforo (A5). Es una estimación: se asume que cada persona se queda
+   la permanencia configurada y no se registra la salida. Sin aforo configurado solo se muestra el número. *@
+@inject IAttendanceClient Attendance
+
+@if (_occupancy is { } occupancy)
+{
+    <div data-testid="occupancy-card">
+        <StatCard Label="Ahora en el gym"
+                  Value="@(occupancy.PeopleInside == 1 ? "1 persona" : $"{occupancy.PeopleInside} personas")"
+                  Accent="@(occupancy.Level == "full" ? Color.Error : Color.Default)"
+                  Meter="@(occupancy.Percent is { } percent ? Math.Clamp(percent / 100.0, 0, 1) : null)"
+                  Hint="@Hint(occupancy)" />
+    </div>
+}
+
+@code {
+    private OccupancyResponse? _occupancy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _occupancy = await Attendance.GetOccupancyAsync();
+        }
+        catch (GsmApiException)
+        {
+            // Es un extra del resumen: sin el dato no se muestra la tarjeta.
+            _occupancy = null;
+        }
+    }
+
+    private static string Hint(OccupancyResponse o)
+    {
+        var stay = o.AssumedStayMinutes % 60 == 0 ? $"{o.AssumedStayMinutes / 60} h" : $"{o.AssumedStayMinutes} min";
+        return o.Percent is { } percent
+            ? $"{percent} % del aforo · estimación ({stay} de permanencia)"
+            : $"Sin aforo configurado · estimación ({stay} de permanencia)";
+    }
+}

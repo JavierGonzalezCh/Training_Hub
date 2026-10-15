@@ -2,7 +2,7 @@ using System.Reflection;
 using Bunit;
 using Bunit.TestDoubles;
 using GSM.Client.Generated;
-using GSM.Member.UI.Components;
+using GSM.Member.UI;
 using GSM.Panel.UI.Pages.Attendance;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;

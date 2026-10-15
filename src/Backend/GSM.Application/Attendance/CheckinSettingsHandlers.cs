@@ -15,7 +15,7 @@ public sealed class GetCheckinSettingsHandler(
     {
         var gymId = currentUser.RequireGymId();
         var current = await settings.GetAsync(gymId, cancellationToken) ?? CheckinSettings.Default(gymId);
-        return new CheckinSettingsResponse(current.Mode.ToString(), current.ByDocument);
+        return new CheckinSettingsResponse(current.Mode.ToString(), current.ByDocument, current.AssumedStayMinutes);
     }
 }
 
@@ -42,12 +42,12 @@ public sealed class UpdateCheckinSettingsHandler(
             settings.Add(current);
         }
 
-        current.Update(ParseMode(request.Mode), request.ByDocument);
+        current.Update(ParseMode(request.Mode), request.ByDocument, request.AssumedStayMinutes);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
             "Ajustes de check-in del gym {GymId}: modo {Mode}, documento {ByDocument}", gymId, current.Mode, current.ByDocument);
-        return new CheckinSettingsResponse(current.Mode.ToString(), current.ByDocument);
+        return new CheckinSettingsResponse(current.Mode.ToString(), current.ByDocument, current.AssumedStayMinutes);
     }
 }
 

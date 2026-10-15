@@ -94,4 +94,12 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
             .Where(a => a.CheckedInAt >= fromUtc && a.CheckedInAt < toUtc && a.VoidedAt == null)
             .Select(a => a.CheckedInAt)
             .ToListAsync(cancellationToken);
+
+    public Task<int> CountDistinctMembersInWindowAsync(
+        Guid gymId, DateTimeOffset sinceUtc, DateTimeOffset untilUtc, CancellationToken cancellationToken = default)
+        => Attendances
+            .Where(a => a.GymId == gymId && a.VoidedAt == null && a.CheckedInAt > sinceUtc && a.CheckedInAt <= untilUtc)
+            .Select(a => a.MemberId)
+            .Distinct()
+            .CountAsync(cancellationToken);
 }

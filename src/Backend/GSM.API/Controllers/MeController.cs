@@ -1,6 +1,8 @@
 using GSM.API.Auth;
 using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
+using GSM.Application.Attendance;
+using GSM.Application.Attendance.Contracts;
 using GSM.Application.Classes;
 using GSM.Application.Classes.Contracts;
 using GSM.Application.Common;
@@ -36,6 +38,14 @@ public sealed class MeController : ControllerBase
     [ProducesResponseType<MemberGymHoursResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<MemberGymHoursResponse>> MyGymHours(
         [FromServices] GetMyGymHoursHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>"¿Qué tan lleno está?": tranquilo, moderado o lleno, sin número exacto. Nulo si el gym no tiene aforo.</summary>
+    [HttpGet("occupancy")]
+    [EndpointName("GetMyOccupancy")]
+    [ProducesResponseType<MemberOccupancyResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MemberOccupancyResponse>> MyOccupancy(
+        [FromServices] GetMyOccupancyHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
     [HttpGet("achievements")]
