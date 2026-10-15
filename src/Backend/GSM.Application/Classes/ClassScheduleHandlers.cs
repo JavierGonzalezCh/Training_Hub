@@ -5,6 +5,7 @@ using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Members.Public;
+using GSM.Domain.Classes;
 using GSM.Domain.Common.Exceptions;
 using Microsoft.Extensions.Logging;
 
@@ -29,22 +30,38 @@ internal static class ScheduleWindow
     }
 }
 
-/// <summary>Horario proyectado del gym (staff): ocurrencias calculadas + sesiones materializadas.</summary>
+/// <summary>
+/// Horario proyectado del gym (staff): ocurrencias calculadas + sesiones materializadas. Las que caen
+/// fuera del horario del gym salen marcadas (<c>OutsideOpeningHours</c>, "Gym cerrado"). Una sesión
+/// futura fuera de horario que ya tenía reservas se trata como cancelada: ver <see cref="ClosedSessionCanceller"/>.
+/// </summary>
 public sealed class GetScheduleHandler(
     ICurrentUserService currentUser,
+    IClock clock,
+    IGymReader gyms,
     IClassRepository classes,
-    IClassSessionRepository sessions)
+    IClassSessionRepository sessions,
+    ClosedSessionCanceller closedSessions)
 {
     public async Task<ScheduleResponse> HandleAsync(
         DateOnly from, DateOnly to, CancellationToken cancellationToken)
     {
-        _ = currentUser.RequireGymId();
+        var gymId = currentUser.RequireGymId();
         ScheduleWindow.Validate(from, to);
 
         var defs = await classes.ListAsync(new ClassFilter(IncludeInactive: true), cancellationToken);
         var mat = await sessions.ListInRangeAsync(from, to, cancellationToken);
+        var schedule = await gyms.GetOpeningScheduleAsync(gymId, from, to, cancellationToken);
 
-        return new ScheduleResponse(from, to, ClassSchedule.Project(defs, mat, from, to));
+        var entries = ClassSchedule.Project(defs, mat, from, to);
+
+        if (await closedSessions.CancelAsync(gymId, mat, schedule, clock.Today, cancellationToken))
+        {
+            mat = await sessions.ListInRangeAsync(from, to, cancellationToken);
+            entries = ClassSchedule.Project(defs, mat, from, to);
+        }
+
+        return new ScheduleResponse(from, to, ClassOpeningHours.Annotate(entries, schedule));
     }
 }
 
@@ -69,7 +86,8 @@ public sealed class GetMyClassesHandler(
 
         var defs = await classes.ListAsync(new ClassFilter(IncludeInactive: true), cancellationToken);
         var mat = await sessions.ListInRangeAsync(from, to, cancellationToken);
-        var entries = ClassSchedule.Project(defs, mat, from, to);
+        var schedule = await gyms.GetOpeningScheduleAsync(gymId, from, to, cancellationToken);
+        var entries = ClassOpeningHours.Annotate(ClassSchedule.Project(defs, mat, from, to), schedule);
 
         var myBookings = await bookings.ListForMemberAsync(self.Id, from, to, cancellationToken);
         var byOccurrence = myBookings.ToDictionary(
@@ -147,5 +165,81 @@ public sealed class CancelSessionHandler(
             gymClass.Id, gymClass.Name, gymClass.Description, session.InstructorName, session.Capacity,
             session.SessionDate, session.StartTime, session.DurationMinutes,
             session.Status.ToString(), session.CancellationReason, IsMaterialized: true, session.Id);
+    }
+}
+
+/// <summary>
+/// Sin scheduler no hay quién cancele las reservas de una sesión cuando el gym cambia su horario o
+/// añade un cierre: se hace de forma perezosa cuando el staff mira el horario. La sesión futura que
+/// ya no cabe en el horario y tenía reservas activas pasa a <c>cancelled</c> ("Gym cerrado"), sus
+/// reservas a <c>cancelled</c> y se publica <c>ClassSessionCancelled</c>, el mismo aviso de siempre.
+/// Idempotente: una sesión ya cancelada no se vuelve a tocar.
+/// </summary>
+public sealed class ClosedSessionCanceller(
+    IClock clock,
+    IClassBookingRepository bookings,
+    IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
+    ILogger<ClosedSessionCanceller> logger)
+{
+    public const string Reason = "Gym cerrado";
+
+    /// <returns><c>true</c> si canceló alguna sesión.</returns>
+    public async Task<bool> CancelAsync(
+        Guid gymId,
+        IEnumerable<ClassSession> materialized,
+        GSM.Domain.Gyms.OpeningSchedule schedule,
+        DateOnly today,
+        CancellationToken cancellationToken)
+    {
+        if (!schedule.HasSchedule)
+        {
+            return false;
+        }
+
+        var cancelled = new List<(ClassSession Session, List<Guid> Affected)>();
+
+        foreach (var session in materialized)
+        {
+            if (session.IsCancelled || session.SessionDate < today
+                || ClassOpeningHours.OccurrenceFits(schedule, session.SessionDate, session.StartTime, session.DurationMinutes))
+            {
+                continue;
+            }
+
+            var active = (await bookings.ListForSessionAsync(session.Id, cancellationToken))
+                .Where(b => b.IsActive).ToList();
+            if (active.Count == 0)
+            {
+                continue;
+            }
+
+            session.Cancel(Reason);
+            foreach (var booking in active)
+            {
+                booking.CancelBySessionCancellation(clock.UtcNow);
+            }
+
+            cancelled.Add((session, active.Select(b => b.MemberId).ToList()));
+        }
+
+        if (cancelled.Count == 0)
+        {
+            return false;
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        foreach (var (session, affected) in cancelled)
+        {
+            logger.LogInformation(
+                "Sesión {SessionId} del {Date} cancelada por quedar fuera del horario del gym ({Affected} reservas)",
+                session.Id, session.SessionDate, affected.Count);
+
+            await events.PublishAsync(
+                new ClassSessionCancelled(session.ClassId, gymId, session.SessionDate, affected), cancellationToken);
+        }
+
+        return true;
     }
 }

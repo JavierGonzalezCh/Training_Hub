@@ -23,6 +23,16 @@ public sealed class ClassesController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(includeInactive, cancellationToken));
 
+    /// <summary>
+    /// Clases activas que ya no caben en el horario del gym (el gym lo cambió). El staff las mueve;
+    /// mientras tanto sus ocurrencias fuera de horario no se pueden reservar.
+    /// </summary>
+    [HttpGet("outside-hours")]
+    [ProducesResponseType<IReadOnlyList<ClassOutsideHoursItem>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ClassOutsideHoursItem>>> OutsideHours(
+        [FromServices] ListClassesOutsideHoursHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType<ClassResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

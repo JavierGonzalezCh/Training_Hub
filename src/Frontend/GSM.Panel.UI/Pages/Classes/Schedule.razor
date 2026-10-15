@@ -43,6 +43,10 @@ else
                     {
                         <MudText Color="Color.Secondary" Typo="Typo.body2">@entry.InstructorName</MudText>
                     }
+                    @if (entry.OutsideOpeningHours)
+                    {
+                        <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono outside-hours-chip">GYM CERRADO</MudChip>
+                    }
                     <MudChip T="string" Color="@(entry.Status == "Cancelled" ? Color.Error : Color.Info)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                         @ClassLabels.SessionStatusLabel(entry.Status).ToUpperInvariant()
                     </MudChip>

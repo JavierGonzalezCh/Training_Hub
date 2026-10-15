@@ -19,6 +19,27 @@
     </MudButton>
 </div>
 
+@if (_outsideHours.Count > 0)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4" id="outside-hours">
+        <MudText Typo="Typo.subtitle2">Estas clases quedaron fuera del horario del gym</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Muévelas a un tramo en el que el gym esté abierto. Mientras tanto, esas fechas no se pueden reservar.
+        </MudText>
+        <ul style="margin:0; padding-left:1.25rem">
+            @foreach (var item in _outsideHours)
+            {
+                <li>
+                    <strong>@item.Name</strong> · @item.StartTime.ToString("HH:mm") · @item.DurationMinutes min ·
+                    @(item.IsRecurring
+                        ? string.Join(", ", item.DaysOutside.Select(ClassLabels.DayLabel))
+                        : GsmFormat.Day(item.ScheduledDate!.Value))
+                </li>
+            }
+        </ul>
+    </MudAlert>
+}
+
 @if (_loading)
 {
     <MudProgressCircular Indeterminate="true" />
@@ -67,6 +88,7 @@ else
 
 @code {
     private List<ClassListItem> _classes = [];
+    private List<ClassOutsideHoursItem> _outsideHours = [];
     private bool _loading = true;
 
     protected override Task OnInitializedAsync() => LoadAsync();
@@ -77,7 +99,8 @@ else
         try
         {
             var result = await Classes.ClassesAllAsync(includeInactive: true);
-            _classes = result.ToList();
+            _classes = result?.ToList() ?? [];
+            _outsideHours = (await Classes.OutsideHoursAsync())?.ToList() ?? [];
         }
         catch (GsmApiException ex)
         {

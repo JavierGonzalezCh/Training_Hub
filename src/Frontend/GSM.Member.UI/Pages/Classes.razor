@@ -100,6 +100,10 @@ else
                             {
                                 <MudChip T="string" Color="Color.Error" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">CANCELADA</MudChip>
                             }
+                            else if (entry.OutsideOpeningHours && entry.MyBookingStatus is not "Booked")
+                            {
+                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono outside-hours-chip">GYM CERRADO</MudChip>
+                            }
                             else if (entry.MyBookingStatus is "Booked")
                             {
                                 <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => CancelAsync(entry))">
@@ -184,14 +188,19 @@ else
     {
         try
         {
-            await MemberClasses.BookPOSTAsync(entry.ClassId, entry.SessionDate);
+            var booking = await MemberClasses.BookPOSTAsync(entry.ClassId, entry.SessionDate);
             Snackbar.Add("Reserva confirmada.", Severity.Success);
+            if (!string.IsNullOrWhiteSpace(booking?.AccessNotice))
+            {
+                Snackbar.Add(booking.AccessNotice, Severity.Warning); // por vencer o en gracia ese día
+            }
+
             _offerPush = true; // el momento con sentido para pedir el permiso de avisos
             await LoadAsync();
         }
         catch (GsmApiException ex)
         {
-            // 409: cupo lleno. 422: la clase no admite reservas.
+            // 409: cupo lleno, gym cerrado o el plan no cubre ese día. 422: la clase no admite reservas.
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
     }

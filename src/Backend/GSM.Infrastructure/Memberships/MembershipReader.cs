@@ -40,7 +40,11 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             MembershipSettings.DefaultGraceDays, MembershipSettings.DefaultExpiringDays);
     }
 
-    public async Task<AccessStatus> GetAccessStatusAsync(Guid memberId, CancellationToken cancellationToken = default)
+    public Task<AccessStatus> GetAccessStatusAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => GetAccessStatusOnAsync(memberId, clock.Today, cancellationToken);
+
+    public async Task<AccessStatus> GetAccessStatusOnAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
     {
         var rows = await Memberships
             .Where(m => m.MemberId == memberId && m.Status != MembershipStatus.Cancelled)
@@ -49,13 +53,13 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
 
         if (rows.Count == 0)
         {
-            return CommercialStatusCalculator.Compute([], clock.Today, 0, 0);
+            return CommercialStatusCalculator.Compute([], date, 0, 0);
         }
 
         var settings = await GetSettingsAsync(rows[0].GymId, cancellationToken);
         return CommercialStatusCalculator.Compute(
             rows.Select(r => new MembershipSpan(r.Status, r.Start, r.End)),
-            clock.Today, settings.GraceDays, settings.ExpiringDays);
+            date, settings.GraceDays, settings.ExpiringDays);
     }
 
     public async Task<IReadOnlyDictionary<Guid, CommercialStatus>> GetCommercialStatusesAsync(

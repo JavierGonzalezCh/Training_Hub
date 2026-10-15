@@ -7,6 +7,7 @@ using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
+using GSM.Domain.Memberships;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -251,6 +252,10 @@ public sealed class ClassBookingTests(ApiFactory factory) : IClassFixture<ApiFac
         db.Add(GymFeatureFlags.Default(gym.Id));
         db.Add(staff);
 
+        // C1: reservar y asistir exige estar al día; todos los miembros de estos tests tienen plan vigente.
+        var plan = MembershipPlan.Create(gym.Id, "Mensual", null, 50000m, 30);
+        db.Add(plan);
+
         var memberIds = new List<Guid>();
         var memberUserIds = new List<Guid>();
         for (var i = 0; i < members; i++)
@@ -260,6 +265,7 @@ public sealed class ClassBookingTests(ApiFactory factory) : IClassFixture<ApiFac
             m.LinkUser(u.Id);
             db.Add(u);
             db.Add(m);
+            db.Add(Membership.Create(gym.Id, m.Id, plan.Id, Monday.AddDays(-5), 90));
             memberIds.Add(m.Id);
             memberUserIds.Add(u.Id);
         }

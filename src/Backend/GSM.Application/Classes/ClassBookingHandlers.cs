@@ -6,6 +6,7 @@ using GSM.Application.Common.Events;
 using GSM.Application.Gyms;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Members.Public;
+using GSM.Application.Memberships;
 using GSM.Application.Memberships.Public;
 using GSM.Domain.Classes;
 using GSM.Domain.Common.Exceptions;
@@ -34,7 +35,33 @@ internal static class ClassBookingSupport
     }
 }
 
-/// <summary>El miembro reserva una plaza. 422 si la clase no tiene cupo; 409 si está llena o cancelada.</summary>
+/// <summary>C1: estar al día es requisito para reservar y para asistir; aquí no hay "Dejar pasar".</summary>
+internal static class ClassAccess
+{
+    /// <summary>409 si el miembro no tiene cobertura (al día, por vencer o en gracia) el día de la sesión.</summary>
+    public static async Task<AccessStatus> EnsureCoveredAsync(
+        IMembershipReader memberships, Guid memberId, DateOnly sessionDate, string action, CancellationToken cancellationToken)
+    {
+        var access = await memberships.GetAccessStatusOnAsync(memberId, sessionDate, cancellationToken);
+        if (access.CanEnter)
+        {
+            return access;
+        }
+
+        throw new ConflictException(BlockedMessage(access, sessionDate, action));
+    }
+
+    public static string BlockedMessage(AccessStatus access, DateOnly sessionDate, string action)
+        => access.BlockReason switch
+        {
+            AccessBlockReason.Frozen => $"Tu membresía está congelada; reanúdala para {action}.",
+            AccessBlockReason.Expired when access.EndsOn is { } ends =>
+                $"Tu plan vence el {CommercialStatusCalculator.ShortDate(ends)}; renueva para {action}.",
+            _ => $"No tienes una membresía vigente el {CommercialStatusCalculator.ShortDate(sessionDate)}; renueva para {action}.",
+        };
+}
+
+/// <summary>El miembro reserva una plaza. 422 si la clase no tiene cupo; 409 si está llena, cancelada, fuera del horario del gym o el miembro no está al día.</summary>
 public sealed class BookClassHandler(
     ICurrentUserService currentUser,
     IClock clock,
@@ -68,21 +95,36 @@ public sealed class BookClassHandler(
         var existing = await sessions.GetAsync(classId, date, cancellationToken);
         ClassBookingSupport.EnsureOccurrence(gymClass, date, existing);
 
-        var session = existing
-            ?? await ClassSessionMaterializer.GetOrCreateAsync(sessions, unitOfWork, gymClass, date, cancellationToken);
-
-        if (session.IsCancelled)
+        if (existing is { IsCancelled: true })
         {
             throw new ConflictException("La sesión está cancelada.");
         }
 
+        if (existing is not null)
+        {
+            ClassBookingSupport.EnsureNotStarted(clock, existing);
+            var current = await bookings.GetAsync(existing.Id, self.Id, cancellationToken);
+            if (current is { IsActive: true })
+            {
+                return await ResponseAsync(current, existing, classId, self.Id, cancellationToken);
+            }
+        }
+
+        // C1: la ocurrencia debe caer dentro del horario del gym y el miembro debe estar al día ese día.
+        // Va antes de materializar la sesión: un rechazo no deja filas.
+        await ClassOpeningHours.EnsureOccurrenceOpenAsync(
+            gyms, clock, gymId, date,
+            existing?.StartTime ?? gymClass.StartTime, existing?.DurationMinutes ?? gymClass.DurationMinutes,
+            cancellationToken);
+        await ClassAccess.EnsureCoveredAsync(
+            memberships, self.Id, date, "reservar esta clase", cancellationToken);
+
+        var session = existing
+            ?? await ClassSessionMaterializer.GetOrCreateAsync(sessions, unitOfWork, gymClass, date, cancellationToken);
+
         ClassBookingSupport.EnsureNotStarted(clock, session);
 
         var mine = await bookings.GetAsync(session.Id, self.Id, cancellationToken);
-        if (mine is { IsActive: true })
-        {
-            return await ResponseAsync(mine, session, classId, self.Id, cancellationToken);
-        }
 
         var active = await bookings.CountActiveAsync(session.Id, cancellationToken);
         if (session.Capacity is { } cap && active >= cap)
@@ -111,9 +153,10 @@ public sealed class BookClassHandler(
     private async Task<BookingResponse> ResponseAsync(
         ClassBooking booking, ClassSession session, Guid classId, Guid memberId, CancellationToken cancellationToken)
     {
-        var membershipExpired = !await memberships.IsActiveAsync(memberId, cancellationToken);
+        var access = await memberships.GetAccessStatusOnAsync(memberId, session.SessionDate, cancellationToken);
         return new BookingResponse(
-            booking.Id, session.Id, classId, session.SessionDate, booking.Status.ToString(), membershipExpired);
+            booking.Id, session.Id, classId, session.SessionDate, booking.Status.ToString(),
+            MembershipExpired: access.Kind == AccessKind.Grace, AccessNotice: access.Notice);
     }
 }
 
@@ -203,6 +246,7 @@ public sealed class MarkAttendanceHandler(
     IClock clock,
     IGymReader gyms,
     IMemberReader members,
+    IMembershipReader memberships,
     IClassRepository classes,
     IClassSessionRepository sessions,
     IClassBookingRepository bookings,
@@ -234,18 +278,37 @@ public sealed class MarkAttendanceHandler(
         var noShow = (request.NoShow ?? []).Distinct().Except(attended).ToList();
 
         // Asistir a una clase cuenta como entrada del día: con el gym cerrado (gym_closed) no se registra,
-        // sin excepción. Se mide a la hora de inicio de la sesión, no a la hora en que el staff la marca.
-        if (attended.Count > 0)
-        {
-            var status = await gyms.GetOpenStatusAtLocalAsync(gymId, session.SessionDate, session.StartTime, cancellationToken);
-            if (!status.IsOpen)
-            {
-                throw new ConflictException(OpenStatusText.ClosedMessage(status, clock.Today));
-            }
-        }
+        // sin excepción. Se mide la clase completa en la fecha de la sesión, no la hora en que el staff la marca.
+        // Estar al día también es requisito, y aquí no hay "Dejar pasar": hay que renovar primero.
         var now = clock.UtcNow;
         var current = await bookings.ListForSessionAsync(session.Id, cancellationToken);
         var byMember = current.ToDictionary(b => b.MemberId);
+
+        if (attended.Count > 0)
+        {
+            await ClassOpeningHours.EnsureOccurrenceOpenAsync(
+                gyms, clock, gymId, session.SessionDate, session.StartTime, session.DurationMinutes, cancellationToken);
+
+            foreach (var memberId in attended)
+            {
+                var memberView = await members.GetAsync(memberId, cancellationToken)
+                    ?? throw new NotFoundException($"Miembro {memberId} no encontrado.");
+
+                // Quien ya estaba marcado como asistente no se vuelve a examinar.
+                if (byMember.TryGetValue(memberId, out var already) && already.Status == ClassBookingStatus.Attended)
+                {
+                    continue;
+                }
+
+                var access = await memberships.GetAccessStatusOnAsync(memberId, session.SessionDate, cancellationToken);
+                if (!access.CanEnter)
+                {
+                    throw new ConflictException(
+                        $"{memberView.FirstName} {memberView.LastName} no está al día y no puede asistir a la clase: "
+                        + $"{access.BlockMessage ?? "sin membresía vigente"} Debe renovar primero.");
+                }
+            }
+        }
 
         var attendedForEvents = new List<Guid>();
 
