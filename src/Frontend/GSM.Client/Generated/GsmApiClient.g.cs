@@ -37682,6 +37682,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("notes")]
         public string? Notes { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("trialGraceDays")]
+        public int TrialGraceDays { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -38566,6 +38569,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("memberLimitOverride")]
         public int? MemberLimitOverride { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("trialGraceDays")]
+        public int? TrialGraceDays { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

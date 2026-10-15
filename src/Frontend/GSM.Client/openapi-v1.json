@@ -24943,7 +24943,8 @@
           "effectiveStatus",
           "manualStatus",
           "daysUntilDisabled",
-          "notes"
+          "notes",
+          "trialGraceDays"
         ],
         "type": "object",
         "properties": {
@@ -25026,6 +25027,14 @@
               "null",
               "string"
             ]
+          },
+          "trialGraceDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -26173,6 +26182,15 @@
             "format": "uuid"
           },
           "memberLimitOverride": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "trialGraceDays": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",

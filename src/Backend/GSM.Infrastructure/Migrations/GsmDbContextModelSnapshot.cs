@@ -79,7 +79,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "exercise_type", new[] { "strength", "cardio", "mobility", "stretching", "plyometrics" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "traps", "obliques", "adductors", "abductors" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "schedule_mode", new[] { "rotating", "weekly" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "tracking_type", new[] { "reps_weight", "reps", "time", "distance", "time_distance" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "tracking_type", new[] { "reps_weight", "reps", "time", "distance", "time_distance", "weight_distance" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "superadmin", "impersonation_mode", new[] { "read", "write" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
@@ -2587,6 +2587,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("release_at");
 
+                    b.PrimitiveCollection<string[]>("RequiredPermissions")
+                        .HasColumnType("text[]")
+                        .HasColumnName("required_permissions");
+
                     b.Property<bool>("RequiresAction")
                         .HasColumnType("boolean")
                         .HasColumnName("requires_action");
@@ -3661,6 +3665,11 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<DateOnly?>("TrialEndsOn")
                         .HasColumnType("date")
                         .HasColumnName("trial_ends_on");
+
+                    b.Property<int>("TrialGraceDays")
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3)
+                        .HasColumnName("trial_grace_days");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

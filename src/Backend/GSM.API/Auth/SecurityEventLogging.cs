@@ -1,4 +1,4 @@
-using GSM.Application.Common.Logs;
+﻿using GSM.Application.Common.Logs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,10 +26,10 @@ public static class SecurityEventLogging
     };
 
     /// <summary>429: el limitador rechazó la petición.</summary>
-    public static Task OnRateLimited(OnRejectedContext context, CancellationToken cancellationToken)
+    public static ValueTask OnRateLimited(OnRejectedContext context, CancellationToken cancellationToken)
     {
         Record(context.HttpContext, SecurityEventTypes.RateLimited, Describe(context.HttpContext));
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
     internal static void Record(HttpContext context, string eventType, string? detail)
