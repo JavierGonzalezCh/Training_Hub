@@ -25,6 +25,9 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
         // MS3: día del mes en que arranca el ciclo, solo en planes en meses del calendario.
         builder.Property(m => m.CycleDay).HasColumnName("cycle_day");
 
+        // L2: días congelados en pausas ya cerradas; la antigüedad no los cuenta.
+        builder.Property(m => m.PausedDays).HasColumnName("paused_days");
+
         // Índice requerido por el plan para el dashboard y la renovación.
         builder.HasIndex(m => new { m.MemberId, m.EndDate });
         builder.HasIndex(m => new { m.GymId, m.Status, m.EndDate });

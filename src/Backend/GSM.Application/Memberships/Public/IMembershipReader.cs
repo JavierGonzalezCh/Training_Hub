@@ -74,6 +74,24 @@ public interface IMembershipReader
     Task<IReadOnlyCollection<Guid>> GetMemberIdsByPlansAsync(
         IReadOnlyCollection<Guid> planIds, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Días de negocio cubiertos por las membresías del miembro hasta hoy (antigüedad, L2): sin las canceladas,
+    /// sin los días congelados y sin contar lo pagado por adelantado que aún no se vive. Lo vuelve meses
+    /// quien lo pide (días / 30).
+    /// </summary>
+    Task<int> GetCoveredDaysAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>Lo mismo en bloque (retroactivos): días cubiertos de cada miembro pedido; quien no tiene membresías vale 0.</summary>
+    Task<IReadOnlyDictionary<Guid, int>> GetCoveredDaysAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// De los miembros pedidos, los que ya tienen una membresía pagada: no cancelada y con precio acordado
+    /// mayor que cero (una cortesía de precio 0 no cuenta). Para los referidos (L2).
+    /// </summary>
+    Task<IReadOnlyCollection<Guid>> GetMemberIdsWithPaidMembershipAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
+
     /// <summary>¿La membresía existe y pertenece a ese miembro? (validación al registrar un pago).</summary>
     Task<bool> BelongsToMemberAsync(
         Guid membershipId, Guid memberId, CancellationToken cancellationToken = default);

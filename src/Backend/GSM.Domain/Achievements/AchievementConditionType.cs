@@ -16,4 +16,13 @@ public enum AchievementConditionType
     /// Nº de sesiones de clase a las que el miembro asistió (etapa 10.4). Label: <c>classes</c>.
     /// </summary>
     Classes,
+
+    /// <summary>
+    /// Meses como miembro: días cubiertos por membresías (sin canceladas ni días congelados) entre 30 (L2).
+    /// Label: <c>tenure_months</c>.
+    /// </summary>
+    TenureMonths,
+
+    /// <summary>Amigos referidos que ya tienen su primera membresía pagada (L2). Label: <c>referrals</c>.</summary>
+    Referrals,
 }

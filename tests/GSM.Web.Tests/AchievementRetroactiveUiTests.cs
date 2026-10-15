@@ -77,4 +77,20 @@ public class AchievementRetroactiveUiTests : TestContext
         Assert.DoesNotContain("ya cumplen este logro", _dialogs.Markup);
         Assert.DoesNotContain(_fake.Calls, c => c.Method == "GrantRetroactiveAsync");
     }
+
+    [Fact]
+    public async Task Editing_a_referrals_achievement_labels_the_value_as_friends_and_offers_the_new_types()
+    {
+        var id = Guid.NewGuid();
+        _fake.Handlers["AchievementsAllAsync"] = _ => new List<AchievementResponse>
+        {
+            new() { Id = id, Name = "Primer amigo", ConditionType = "Referrals", ConditionValue = 1, IsActive = true },
+        };
+
+        var service = Services.GetRequiredService<IDialogService>();
+        var parameters = new DialogParameters<AchievementFormDialog> { { x => x.AchievementId, id } };
+        await _dialogs.InvokeAsync(() => service.ShowAsync<AchievementFormDialog>("Editar logro", parameters));
+
+        _dialogs.WaitForAssertion(() => Assert.Contains("amigos que se inscribieron", _dialogs.Markup));
+    }
 }

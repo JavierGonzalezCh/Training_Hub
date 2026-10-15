@@ -29,6 +29,16 @@ public interface IMemberReader
     /// <summary>Miembros activos del gym con email (destinatarios de un anuncio por correo).</summary>
     Task<IReadOnlyList<MemberContactView>> GetEmailContactsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>Quién refirió a este miembro (<c>ReferredByMemberId</c>). <c>null</c> si nadie o el miembro no existe. Para los logros de referidos (L2).</summary>
+    Task<Guid?> GetReferrerIdAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Los miembros referidos por cada uno de <paramref name="referrerIds"/> (ficha "referido por"). Quien no
+    /// refirió a nadie no aparece. En bloque, para evaluar referidos sin ir miembro por miembro (L2).
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetReferredMemberIdsAsync(
+        IReadOnlyCollection<Guid> referrerIds, CancellationToken cancellationToken = default);
+
     /// <summary>Ids de los miembros activos del gym (audiencia de un anuncio).</summary>
     Task<IReadOnlyList<Guid>> GetActiveMemberIdsAsync(Guid gymId, CancellationToken cancellationToken = default);
 

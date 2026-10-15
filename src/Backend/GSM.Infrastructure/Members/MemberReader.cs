@@ -61,6 +61,26 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
             .Select(m => new MemberContactView(m.Id, m.GymId, m.FirstName, m.Email, m.Status))
             .ToListAsync(cancellationToken);
 
+    public async Task<Guid?> GetReferrerIdAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => await Members.Where(m => m.Id == memberId).Select(m => m.ReferredByMemberId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetReferredMemberIdsAsync(
+        IReadOnlyCollection<Guid> referrerIds, CancellationToken cancellationToken = default)
+    {
+        if (referrerIds.Count == 0)
+        {
+            return new Dictionary<Guid, IReadOnlyList<Guid>>();
+        }
+
+        var rows = await Members
+            .Where(m => m.ReferredByMemberId != null && referrerIds.Contains(m.ReferredByMemberId.Value))
+            .Select(m => new { Referrer = m.ReferredByMemberId!.Value, m.Id })
+            .ToListAsync(cancellationToken);
+        return rows.GroupBy(r => r.Referrer)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<Guid>)g.Select(r => r.Id).ToList());
+    }
+
     public async Task<IReadOnlyList<Guid>> GetActiveMemberIdsAsync(
         Guid gymId, CancellationToken cancellationToken = default)
         => await Members

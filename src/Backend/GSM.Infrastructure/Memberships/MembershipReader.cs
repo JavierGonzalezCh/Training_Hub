@@ -248,4 +248,43 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             .Select(m => m.MemberId)
             .Distinct()
             .CountAsync(cancellationToken);
+
+    public async Task<int> GetCoveredDaysAsync(Guid memberId, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        var rows = await Memberships
+            .Where(m => m.MemberId == memberId && m.Status != MembershipStatus.Cancelled)
+            .ToListAsync(cancellationToken);
+        return rows.Sum(m => m.CoveredDaysThrough(today));
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, int>> GetCoveredDaysAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        var today = clock.Today;
+        var rows = await Memberships
+            .Where(m => memberIds.Contains(m.MemberId) && m.Status != MembershipStatus.Cancelled)
+            .ToListAsync(cancellationToken);
+        return rows.GroupBy(m => m.MemberId).ToDictionary(g => g.Key, g => g.Sum(m => m.CoveredDaysThrough(today)));
+    }
+
+    public async Task<IReadOnlyCollection<Guid>> GetMemberIdsWithPaidMembershipAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await Memberships
+            .Where(m => memberIds.Contains(m.MemberId) && m.Status != MembershipStatus.Cancelled && m.AgreedPrice > 0)
+            .Select(m => m.MemberId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
 }

@@ -30,6 +30,9 @@ public sealed class Membership : BaseEntity, ITenantEntity
     /// <summary>Día de negocio en que se congeló. Solo con <see cref="MembershipStatus.Paused"/>.</summary>
     public DateOnly? PausedOn { get; private set; }
 
+    /// <summary>Días que estuvo congelada en pausas ya cerradas (L2: la antigüedad no cuenta los días congelados).</summary>
+    public int PausedDays { get; private set; }
+
     public DateTimeOffset? CancelledAt { get; private set; }
 
     public string? CancellationReason { get; private set; }
@@ -155,6 +158,7 @@ public sealed class Membership : BaseEntity, ITenantEntity
 
         var days = Math.Max(0, today.DayNumber - pausedOn.DayNumber);
         EndDate = EndDate.AddDays(days);
+        PausedDays += days;
         Status = MembershipStatus.Active;
         PausedOn = null;
         return days;
@@ -170,6 +174,29 @@ public sealed class Membership : BaseEntity, ITenantEntity
 
         StartDate = StartDate.AddDays(days);
         EndDate = EndDate.AddDays(days);
+    }
+
+    /// <summary>
+    /// Días de negocio realmente cubiertos hasta <paramref name="today"/> inclusive (antigüedad, L2): cuenta
+    /// desde el inicio sin pasar de hoy ni del fin, descuenta los días congelados y no cuenta nada si está
+    /// cancelada. Una congelada hoy deja de sumar desde el día que se congeló. Lo no vivido aún (un
+    /// periodo pagado por adelantado) no cuenta.
+    /// </summary>
+    public int CoveredDaysThrough(DateOnly today)
+    {
+        if (Status == MembershipStatus.Cancelled)
+        {
+            return 0;
+        }
+
+        var last = Status == MembershipStatus.Paused && PausedOn is { } pausedOn ? pausedOn.AddDays(-1) : EndDate;
+        if (last > today)
+        {
+            last = today;
+        }
+
+        var span = last.DayNumber - StartDate.DayNumber + 1;
+        return span <= 0 ? 0 : Math.Max(0, span - PausedDays);
     }
 
     public bool CoversDate(DateOnly date)
