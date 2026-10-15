@@ -9,7 +9,16 @@ namespace GSM.Application.Memberships;
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public static partial class MembershipMapper
 {
-    public static partial PlanResponse ToResponse(MembershipPlan plan);
+    public static PlanResponse ToResponse(MembershipPlan plan)
+        => new(
+            plan.Id,
+            plan.Name,
+            plan.Description,
+            plan.Price,
+            EnumText.Snake(plan.DurationUnit)!,
+            plan.DurationValue,
+            plan.IsActive,
+            plan.CreatedAt);
 
     public static MembershipResponse ToResponse(Membership membership, string planName, DateOnly today)
         => new(
@@ -29,7 +38,8 @@ public static partial class MembershipMapper
             membership.DiscountReason,
             membership.EnrollmentFee,
             membership.EnrollmentWaivedReason,
-            membership.TotalToCharge);
+            membership.TotalToCharge,
+            membership.CycleDay);
 
     public static AccessStatusResponse ToResponse(AccessStatus access)
         => new(

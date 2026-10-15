@@ -22,6 +22,9 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
         builder.Property(m => m.EnrollmentWaivedReason).HasMaxLength(500);
         builder.Ignore(m => m.TotalToCharge);
 
+        // MS3: día del mes en que arranca el ciclo, solo en planes en meses del calendario.
+        builder.Property(m => m.CycleDay).HasColumnName("cycle_day");
+
         // Índice requerido por el plan para el dashboard y la renovación.
         builder.HasIndex(m => new { m.MemberId, m.EndDate });
         builder.HasIndex(m => new { m.GymId, m.Status, m.EndDate });

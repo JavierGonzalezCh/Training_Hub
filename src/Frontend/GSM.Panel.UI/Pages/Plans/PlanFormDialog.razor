@@ -16,7 +16,25 @@
                 <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
                 <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Class="mb-3" />
                 <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_model.Price" Label="Precio (COP)" Required="true" Min="0" Class="mb-3" />
-                <MudNumericField T="int" @bind-Value="_model.DurationDays" Label="Duración (días)" Required="true" Min="1" />
+                <MudGrid Spacing="2">
+                    <MudItem xs="5">
+                        <MudNumericField T="int" @bind-Value="_model.DurationValue" Label="Duración" Required="true" Min="1" Max="@MaxValue" />
+                    </MudItem>
+                    <MudItem xs="7">
+                        <MudSelect T="string" @bind-Value="_model.DurationUnit" Label="Unidad" Required="true">
+                            @foreach (var (value, label) in PlanDurationLabels.Units)
+                            {
+                                <MudSelectItem Value="value">@label</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+                @if (_model.DurationUnit == PlanDurationLabels.Months)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                        Un plan de 1 mes que empieza el 8 de septiembre cubre hasta el 7 de octubre.
+                    </MudText>
+                }
             </MudForm>
         }
     </DialogContent>
@@ -56,7 +74,8 @@
             _model.Name = plan.Name;
             _model.Description = plan.Description;
             _model.Price = (decimal)plan.Price;
-            _model.DurationDays = plan.DurationDays;
+            _model.DurationValue = plan.DurationValue;
+            _model.DurationUnit = plan.DurationUnit;
         }
         catch (GsmApiException ex)
         {
@@ -87,7 +106,8 @@
                     Name = _model.Name,
                     Description = _model.Description,
                     Price = (double)_model.Price,
-                    DurationDays = _model.DurationDays,
+                    DurationValue = _model.DurationValue,
+                    DurationUnit = _model.DurationUnit,
                 });
             }
             else
@@ -97,7 +117,8 @@
                     Name = _model.Name,
                     Description = _model.Description,
                     Price = (double)_model.Price,
-                    DurationDays = _model.DurationDays,
+                    DurationValue = _model.DurationValue,
+                    DurationUnit = _model.DurationUnit,
                 });
             }
 
@@ -120,6 +141,9 @@
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public decimal Price { get; set; }
-        public int DurationDays { get; set; } = 30;
+        public int DurationValue { get; set; } = 30;
+        public string DurationUnit { get; set; } = PlanDurationLabels.Days;
     }
+
+    private int MaxValue => _model.DurationUnit == PlanDurationLabels.Months ? 120 : 3650;
 }

@@ -169,7 +169,7 @@
 
     private string PlanLabel(Guid planId)
         => _plans.FirstOrDefault(p => p.Id == planId) is { } plan
-            ? $"{plan.Name} — {GsmFormat.Money((decimal)plan.Price)} · {plan.DurationDays} días"
+            ? $"{plan.Name} — {GsmFormat.Money((decimal)plan.Price)} · {PlanDurationLabels.Format(plan.DurationUnit, plan.DurationValue)}"
             : string.Empty;
 
     private async Task OnPlanChanged(Guid planId)

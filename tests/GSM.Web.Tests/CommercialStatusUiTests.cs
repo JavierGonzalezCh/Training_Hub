@@ -53,8 +53,8 @@ public class CommercialStatusUiTests : TestContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
 
-        var monthly = new PlanResponse { Id = Guid.NewGuid(), Name = "Mensual", Price = 50000, DurationDays = 30, IsActive = true };
-        var quarterly = new PlanResponse { Id = Guid.NewGuid(), Name = "Trimestral", Price = 130000, DurationDays = 90, IsActive = true };
+        var monthly = new PlanResponse { Id = Guid.NewGuid(), Name = "Mensual", Price = 50000, DurationUnit = "days", DurationValue = 30, IsActive = true };
+        var quarterly = new PlanResponse { Id = Guid.NewGuid(), Name = "Trimestral", Price = 130000, DurationUnit = "days", DurationValue = 90, IsActive = true };
         var memberId = Guid.NewGuid();
 
         var (plans, plansFake) = Fake<IMembershipPlansClient>();
