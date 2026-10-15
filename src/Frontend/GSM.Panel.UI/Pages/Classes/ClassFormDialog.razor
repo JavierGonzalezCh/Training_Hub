@@ -37,6 +37,9 @@
                             <MudSelectItem Value="value">@label</MudSelectItem>
                         }
                     </MudSelect>
+                    <MudDatePicker Label="Termina el (opcional)" Date="_endsOn" DateChanged="d => _endsOn = d"
+                                   Clearable="true" Class="mt-3" id="class-ends-on"
+                                   HelperText="Vacío = se repite hasta que des de baja la clase." />
                 }
                 else
                 {
@@ -63,6 +66,7 @@
     private readonly FormModel _model = new();
     private IEnumerable<int> _daysOfWeek = [];
     private DateTime? _scheduledDate;
+    private DateTime? _endsOn;
     private TimeSpan? _startTime = new(6, 0, 0);
     private MudForm _form = null!;
     private bool _loading;
@@ -89,6 +93,7 @@
             _startTime = gymClass.StartTime.ToTimeSpan();
             _daysOfWeek = gymClass.DaysOfWeek.Select(ClassLabels.ToValue).ToList();
             _scheduledDate = gymClass.ScheduledDate?.ToDateTime(TimeOnly.MinValue);
+            _endsOn = gymClass.EndsOn?.ToDateTime(TimeOnly.MinValue);
         }
         catch (GsmApiException ex)
         {
@@ -132,6 +137,7 @@
             IsRecurring = _model.IsRecurring,
             DaysOfWeek = _model.IsRecurring ? _daysOfWeek.ToList() : null,
             ScheduledDate = _model.IsRecurring ? null : DateOnly.FromDateTime(_scheduledDate!.Value),
+            EndsOn = _model.IsRecurring && _endsOn is { } endsOn ? DateOnly.FromDateTime(endsOn) : null,
         };
 
         _submitting = true;

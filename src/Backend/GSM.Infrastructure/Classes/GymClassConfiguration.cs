@@ -20,6 +20,8 @@ public sealed class GymClassConfiguration : IEntityTypeConfiguration<GymClass>
             .HasColumnName("days_of_week")
             .HasColumnType("classes.day_of_week[]");
 
+        builder.Property(c => c.EndsOn).HasColumnName("ends_on").HasColumnType("date");
+
         builder.Property(c => c.IsActive).HasDefaultValue(true);
 
         builder.HasIndex(c => new { c.GymId, c.IsActive });

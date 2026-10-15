@@ -67,6 +67,10 @@ else
                 @(context.IsRecurring
                     ? string.Join(", ", context.DaysOfWeek.Select(ClassLabels.DayLabel))
                     : GsmFormat.Day(context.ScheduledDate!.Value))
+                @if (context.IsRecurring && context.EndsOn is { } endsOn)
+                {
+                    <div class="gsm-class-ends-on"><MudText Typo="Typo.caption" Color="Color.Secondary">hasta @GsmFormat.Day(endsOn)</MudText></div>
+                }
             </MudTd>
             <MudTd DataLabel="Hora">@context.StartTime.ToString("HH:mm") · @context.DurationMinutes min</MudTd>
             <MudTd DataLabel="Cupo">@(context.Capacity?.ToString() ?? "Libre")</MudTd>

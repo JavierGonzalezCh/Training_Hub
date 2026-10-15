@@ -75,8 +75,9 @@ public static class ClassSchedule
 
         var days = c.DaysOfWeek.ToHashSet();
         var start = from < c.StartsOn ? c.StartsOn : from;
+        var last = c.EndsOn is { } ends && ends < to ? ends : to;
 
-        for (var d = start; d <= to; d = d.AddDays(1))
+        for (var d = start; d <= last; d = d.AddDays(1))
         {
             if (NotStopped(c, d) && days.Contains(ToClassDay(d.DayOfWeek)))
             {
@@ -85,9 +86,13 @@ public static class ClassSchedule
         }
     }
 
-    /// <summary>La baja lógica detiene la recurrencia desde <c>deactivated_on</c> (esa fecha ya no ocurre).</summary>
+    /// <summary>
+    /// La baja lógica detiene la recurrencia desde <c>deactivated_on</c> (esa fecha ya no ocurre) y la
+    /// fecha de fin de la serie (C5) la corta después de <c>ends_on</c> (ese día aún ocurre).
+    /// </summary>
     private static bool NotStopped(GymClass c, DateOnly date)
-        => c.DeactivatedOn is not { } stop || date < stop;
+        => (c.DeactivatedOn is not { } stop || date < stop)
+        && (c.EndsOn is not { } ends || date <= ends);
 
     private static ClassDayOfWeek ToClassDay(System.DayOfWeek dow)
         => dow == System.DayOfWeek.Sunday ? ClassDayOfWeek.Sunday : (ClassDayOfWeek)((int)dow - 1);

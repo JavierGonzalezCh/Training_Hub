@@ -13,4 +13,5 @@ public sealed record GymClassDraft(
     int DurationMinutes,
     bool IsRecurring,
     IReadOnlyList<ClassDayOfWeek> DaysOfWeek,
-    DateOnly? ScheduledDate);
+    DateOnly? ScheduledDate,
+    DateOnly? EndsOn = null);
