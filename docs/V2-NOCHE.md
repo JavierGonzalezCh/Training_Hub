@@ -169,6 +169,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-14: lanzada la segunda tanda de la noche: C5, A1b, M4 e I6 (solo escriben código).
 - 2026-10-14: C1, M3, I5 y P3 unidas. Migración única `V2_P3_M3_I5` (con `SqlScript("P3")`), cliente regenerado. Al integrar: 1 `using` en Payments, 8 errores de UI (parámetro nuevo `withHealthAlerts`, `bool?` del cliente, `InputMode`), 7 tests bUnit (parámetro de query, popover, `Change` en vez de `Input`, semana actual) y 15 de C1 (helpers que liberaban el scope sin esperar la tarea). **Suite: 528 integración + 260 bUnit, todo verde.**
 - 2026-10-14 (noche): lanzadas C1 (rama `v2-C1-clases-horario-b`), P3 (corrige B2), M3 e I5; los agentes solo escriben código. Preguntas nuevas irán a §2 para responder mañana.
 - 2026-10-12: primera tanda con agentes que solo escriben código (A1, M1b, G1+S1). Se cortaron una vez por conexión y se retomaron. Al integrar: backend compiló a la primera; 2 errores de compilación y 3 de tests, todos menores. Migración única `V2_A1_M1b_MotivosYEntrenador`. **Suite: 460 + 234 en verde.**
