@@ -240,6 +240,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: lanzadas CO2 y N5. CO5 queda para después (mismo carril que CO2 y usa N5).
 - 2026-10-15: CO7, C2 y E3 unidas sin conflictos. Migración `V2_C2_E3` con `SqlScript("E3")` al final. Al integrar: 1 `using`, 2 nombres de cliente (NSwag ignoró los `EndpointName` de E3: `EquipmentAsync`/`EquipmentItemsAsync`), 2 tests que no compilaban, 4 bUnit (menú con "Mis clases", popover) y 2 de C2 (clase a las 7:00 con el reloj fijo a mediodía). **Suite: 638 integración + 323 bUnit, todo verde.** De la Ola 3 quedan CO2, CO5 y N5.
 - 2026-10-15: lanzada la cuarta tanda: C2, E3 y CO7 (3 agentes, tras el corte por límite de uso). Quedan de la Ola 3: CO2, CO5 y N5.
 - 2026-10-15: C3, R4 y S2 se cortaron por el límite de uso; reanudadas sin pérdida. A2, S2, C3 y R4 unidas sin conflictos. Migración `V2_A2_S2_C3_R4` **reordenada a mano**: EF ponía los `DropColumn` de R4 antes de copiar los datos; ahora va crear → `SqlScript("S2")` → `SqlScript("R4")` → `DropColumn`. Claves JSON de R4 verificadas (PascalCase, sin renombre de la convención). Al integrar: 1 error de backend, 10 de UI (`??` sobre valores no anulables, `PlansAllAsync`), 4 tests bUnit, 1 test de rutinas y **un defecto real de A2**: la lista por miembro ignoraba "ver anuladas". **Suite: 615 integración + 308 bUnit, todo verde.**
