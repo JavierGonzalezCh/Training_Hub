@@ -184,6 +184,26 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ReminderMembershipView>> GetReminderCandidatesAsync(
+        Guid gymId, int daysBefore, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        var graceDays = (await GetSettingsAsync(gymId, cancellationToken)).GraceDays;
+        var from = today.AddDays(-graceDays);
+        var to = today.AddDays(daysBefore);
+
+        return await Memberships
+            .Where(m => m.GymId == gymId
+                && m.Status == MembershipStatus.Active
+                && m.EndDate >= from && m.EndDate <= to)
+            .OrderBy(m => m.EndDate)
+            .Join(Plans, m => m.PlanId, p => p.Id,
+                (m, p) => new { m.Id, m.MemberId, p.Name, m.EndDate })
+            .Select(x => new ReminderMembershipView(
+                x.Id, x.MemberId, x.Name, x.EndDate, x.EndDate.DayNumber - today.DayNumber, graceDays))
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<int> GetExpiredCountAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
         var today = clock.Today;

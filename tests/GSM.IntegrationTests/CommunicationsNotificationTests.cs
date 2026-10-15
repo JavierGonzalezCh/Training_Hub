@@ -227,6 +227,108 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         Assert.Equal(0, await CountNotificationsAsync(other.GymId, NotificationType.MembershipExpiring));
     }
 
+    // ---------- CO7 · recordatorios alineados con la gracia ----------
+
+    [Fact]
+    public async Task Reminders_cover_the_expiry_day_and_the_last_grace_day_only()
+    {
+        var world = await SeedAsync(4);
+        await SeedMembershipEndingAsync(world.GymId, world.Members[0].Id, Today);            // vence hoy
+        await SeedMembershipEndingAsync(world.GymId, world.Members[1].Id, Today.AddDays(-3)); // último día de gracia (3 por defecto)
+        await SeedMembershipEndingAsync(world.GymId, world.Members[2].Id, Today.AddDays(-2)); // en gracia, ningún aviso
+        await SeedMembershipEndingAsync(world.GymId, world.Members[3].Id, Today.AddDays(-4)); // gracia agotada, ningún aviso
+
+        await RunJobAsync();
+        await RunJobAsync();
+
+        var titles = await NoticeTitlesAsync(world.GymId);
+        Assert.Equal(2, titles.Count);
+        Assert.Contains(titles, t => t.EndsWith("vence hoy"));
+        Assert.Contains("Hoy es tu último día para renovar sin perder tu fecha", titles);
+        Assert.Equal(2, await CountDeliveriesAsync(world.GymId, type: NotificationType.MembershipExpiring));
+    }
+
+    [Fact]
+    public async Task One_membership_gets_each_reminder_once_across_the_days_and_missed_runs_do_not_duplicate()
+    {
+        var world = await SeedAsync(1);
+        var end = Today;
+        await SeedMembershipEndingAsync(world.GymId, world.Members[0].Id, end);
+
+        await RunJobOnAsync(end.AddDays(-3)); // primer día de la ventana (3 días antes)
+        await RunJobOnAsync(end.AddDays(-3));
+        await RunJobOnAsync(end.AddDays(-1)); // ya había recibido el de "N días antes": no repite
+        Assert.Equal(1, await CountNotificationsAsync(world.GymId, NotificationType.MembershipExpiring));
+
+        await RunJobOnAsync(end);
+        await RunJobOnAsync(end.AddDays(1)); // en gracia, sin aviso
+        await RunJobOnAsync(end.AddDays(3)); // último día de gracia
+        await RunJobOnAsync(end.AddDays(3));
+        await RunJobOnAsync(end.AddDays(4)); // pasó la gracia
+        Assert.Equal(3, await CountNotificationsAsync(world.GymId, NotificationType.MembershipExpiring));
+    }
+
+    [Fact]
+    public async Task A_missed_run_still_sends_the_expiry_day_reminder_when_the_days_before_one_never_went()
+    {
+        var world = await SeedAsync(1);
+        await SeedMembershipEndingAsync(world.GymId, world.Members[0].Id, Today);
+
+        await RunJobAsync(); // hoy es el día del vencimiento y nunca corrió antes
+
+        var title = Assert.Single(await NoticeTitlesAsync(world.GymId));
+        Assert.EndsWith("vence hoy", title);
+    }
+
+    [Fact]
+    public async Task Without_grace_there_is_no_last_grace_day_reminder()
+    {
+        var world = await SeedAsync(2);
+        await SetMembershipSettingsAsync(world.GymId, graceDays: 0);
+        await SeedMembershipEndingAsync(world.GymId, world.Members[0].Id, Today);
+        await SeedMembershipEndingAsync(world.GymId, world.Members[1].Id, Today.AddDays(-1));
+
+        await RunJobAsync();
+
+        var title = Assert.Single(await NoticeTitlesAsync(world.GymId));
+        Assert.EndsWith("vence hoy", title);
+    }
+
+    [Fact]
+    public async Task The_last_grace_day_reminder_follows_the_gym_grace_setting_and_skips_renewals()
+    {
+        var world = await SeedAsync(3);
+        await SetMembershipSettingsAsync(world.GymId, graceDays: 5);
+        await SeedMembershipEndingAsync(world.GymId, world.Members[0].Id, Today.AddDays(-5));  // último día de gracia
+        await SeedMembershipEndingAsync(world.GymId, world.Members[1].Id, Today.AddDays(-3));  // con 5 días aún no es el último
+        await SeedMembershipEndingAsync(world.GymId, world.Members[2].Id, Today.AddDays(-5));
+        await SeedMembershipEndingAsync(world.GymId, world.Members[2].Id, Today.AddDays(25));  // ya renovó
+
+        await RunJobAsync();
+
+        var title = Assert.Single(await NoticeTitlesAsync(world.GymId));
+        Assert.Equal("Hoy es tu último día para renovar sin perder tu fecha", title);
+    }
+
+    [Fact]
+    public async Task Reminders_off_in_the_gym_settings_silences_all_three()
+    {
+        var world = await SeedAsync(3);
+        using (var scope = Owner(world.GymId))
+        {
+            await scope.ServiceProvider.GetRequiredService<UpdateCommunicationsSettingsHandler>()
+                .HandleAsync(new UpdateCommunicationsSettingsRequest(0), default);
+        }
+
+        await SeedMembershipEndingAsync(world.GymId, world.Members[0].Id, Today.AddDays(1));
+        await SeedMembershipEndingAsync(world.GymId, world.Members[1].Id, Today);
+        await SeedMembershipEndingAsync(world.GymId, world.Members[2].Id, Today.AddDays(-3));
+
+        await RunJobAsync();
+
+        Assert.Empty(await NoticeTitlesAsync(world.GymId));
+    }
+
     [Fact]
     public async Task The_unsubscribe_link_opts_the_member_out_and_a_tampered_token_is_rejected()
     {
@@ -320,6 +422,33 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         using var scope = System();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(Today);
         await scope.ServiceProvider.GetRequiredService<RunCommunicationsJobHandler>().HandleAsync(default);
+    }
+
+    /// <summary>La tarea corriendo en otro día de negocio (para simular ejecuciones en días distintos o perdidas).</summary>
+    private async Task RunJobOnAsync(DateOnly day)
+    {
+        using var scope = System();
+        scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(day);
+        await scope.ServiceProvider.GetRequiredService<RunCommunicationsJobHandler>().HandleAsync(default);
+    }
+
+    private async Task<List<string>> NoticeTitlesAsync(Guid gymId)
+    {
+        using var scope = System();
+        return await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
+            .Where(n => n.GymId == gymId && n.Type == NotificationType.MembershipExpiring)
+            .Select(n => n.Title)
+            .ToListAsync();
+    }
+
+    private async Task SetMembershipSettingsAsync(Guid gymId, int graceDays)
+    {
+        using var scope = System();
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var settings = MembershipSettings.Default(gymId);
+        settings.Update(graceDays, MembershipSettings.DefaultExpiringDays);
+        db.Add(settings);
+        await db.SaveChangesAsync();
     }
 
     /// <summary>Una vuelta del dispatcher, a mano. <paramref name="minutesLater"/> adelanta el reloj.</summary>
