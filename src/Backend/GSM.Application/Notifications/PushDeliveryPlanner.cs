@@ -1,3 +1,4 @@
+using GSM.Application.Identity.Public;
 using GSM.Application.Members.Public;
 using GSM.Application.Notifications.Abstractions;
 using GSM.Domain.Members;
@@ -21,7 +22,8 @@ public sealed class PushDeliveryPlanner(
     IMemberNotificationPreferenceRepository memberPreferences,
     IStaffNotificationPreferenceRepository staffPreferences,
     IPushDeviceRepository devices,
-    INotificationRepository notifications)
+    INotificationRepository notifications,
+    IIdentityReader identity)
 {
     private static readonly PushPlatform[] MemberPlatforms = [PushPlatform.Android, PushPlatform.WebMember];
     private static readonly PushPlatform[] StaffPlatforms = [PushPlatform.Android, PushPlatform.WebPanel];
@@ -55,7 +57,15 @@ public sealed class PushDeliveryPlanner(
         {
             var userIds = await staffPreferences.GetUserIdsWithPushAsync(
                 notification.GymId, notification.Type, cancellationToken);
-            foreach (var staffUserId in userIds)
+            // N1b: un aviso con permisos requeridos solo va a quien los tenga (el Owner siempre).
+            IReadOnlySet<Guid>? allowed = null;
+            if (notification.RequiredPermissions is { Length: > 0 } required)
+            {
+                allowed = await identity.ListUserIdsWithAnyPermissionAsync(
+                    notification.GymId, StaffNoticeAudience.Parse(required), cancellationToken);
+            }
+
+            foreach (var staffUserId in userIds.Where(id => allowed is null || allowed.Contains(id)))
             {
                 await AddDevicesAsync(notification, staffUserId, StaffPlatforms, created, cancellationToken);
             }

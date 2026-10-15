@@ -1,5 +1,6 @@
 using GSM.Domain.Common;
 using GSM.Domain.Common.Exceptions;
+using GSM.Domain.Identity;
 
 namespace GSM.Domain.Notifications;
 
@@ -62,6 +63,12 @@ public sealed class Notification : BaseEntity, ITenantEntity
 
     public DateTimeOffset? SentAt { get; private set; }
 
+    /// <summary>
+    /// N1b: solo para avisos de acción del gym. Nombres de <see cref="StaffPermission"/>: lo ve quien tenga
+    /// <b>alguno</b> (el Owner los tiene todos). <c>null</c> = lo ve todo el staff.
+    /// </summary>
+    public string[]? RequiredPermissions { get; private set; }
+
     /// <summary>Si está <see cref="NotificationStatus.Held"/>: cuándo termina el horario sin avisos y puede salir.</summary>
     public DateTimeOffset? ReleaseAt { get; private set; }
 
@@ -95,8 +102,17 @@ public sealed class Notification : BaseEntity, ITenantEntity
     public static Notification CreateGymAction(
         Guid gymId, NotificationType type, Guid referenceId,
         string title, string body, string? link, DateTimeOffset scheduledFor,
-        NotificationPriority priority = NotificationPriority.Normal)
-        => Build(gymId, null, null, type, null, referenceId, title, body, link, scheduledFor, priority, true);
+        NotificationPriority priority = NotificationPriority.Normal,
+        IReadOnlyCollection<StaffPermission>? requiredPermissions = null)
+    {
+        var notification = Build(gymId, null, null, type, null, referenceId, title, body, link, scheduledFor, priority, true);
+        if (requiredPermissions is { Count: > 0 })
+        {
+            notification.RequiredPermissions = requiredPermissions.Select(p => p.ToString()).Distinct().Order().ToArray();
+        }
+
+        return notification;
+    }
 
     private static Notification Build(
         Guid gymId, Guid? userId, Guid? memberId, NotificationType type, NotificationCategory? category,

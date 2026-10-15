@@ -46,7 +46,8 @@ public sealed class VoidRequestedCreatesActionNotice(
 
         notifications.Add(Notification.CreateGymAction(
             domainEvent.GymId, NotificationType.VoidRequested, domainEvent.VoidRequestId,
-            "Solicitud de anulación de un pago", body, "/payments", clock.UtcNow));
+            "Solicitud de anulación de un pago", body, "/payments", clock.UtcNow,
+            requiredPermissions: StaffNoticeAudience.VoidRequest));
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

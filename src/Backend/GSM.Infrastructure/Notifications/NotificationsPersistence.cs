@@ -116,6 +116,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.Property(n => n.Body).HasMaxLength(Notification.BodyMaxLength).IsRequired();
         builder.Property(n => n.Link).HasMaxLength(Notification.LinkMaxLength);
         builder.Property(n => n.ImageUrl).HasMaxLength(Notification.ImageUrlMaxLength);
+        builder.Property(n => n.RequiredPermissions).HasColumnName("required_permissions");
 
         // Idempotencia: el mismo aviso no sale dos veces aunque el evento se publique dos veces. Los
         // destinatarios nulos (aviso de acción del gym) cuentan como iguales entre sí.
@@ -305,15 +306,21 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
                 .SetProperty(n => n.UpdatedAt, now), cancellationToken);
 
     // Staff: los avisos de acción del gym (sin destinatario) y los informativos propios.
-    private IQueryable<Notification> ForStaff(Guid userId, DateTimeOffset now)
-        => Visible(now).Where(n => (n.RequiresAction && n.RecipientUserId == null && n.RecipientMemberId == null)
+    // N1b: un aviso de acción con permisos requeridos solo lo ve quien tenga alguno (array solapado `&&`).
+    private IQueryable<Notification> ForStaff(Guid userId, IReadOnlyCollection<string> permissions, DateTimeOffset now)
+    {
+        var held = permissions.ToArray();
+        return Visible(now).Where(n =>
+            (n.RequiresAction && n.RecipientUserId == null && n.RecipientMemberId == null
+                && (n.RequiredPermissions == null || n.RequiredPermissions.Any(p => held.Contains(p))))
             || n.RecipientUserId == userId);
+    }
 
     public async Task<(IReadOnlyList<Notification> Items, int Total)> ListForStaffAsync(
-        Guid userId, DateTimeOffset now, bool openOnly, int page, int pageSize,
+        Guid userId, IReadOnlyCollection<string> permissions, DateTimeOffset now, bool openOnly, int page, int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var query = ForStaff(userId, now).AsNoTracking();
+        var query = ForStaff(userId, permissions, now).AsNoTracking();
         if (openOnly)
         {
             query = query.Where(n => n.RequiresAction ? n.ResolvedAt == null : n.ReadAt == null);
@@ -329,8 +336,9 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
         return (items, total);
     }
 
-    public Task<int> CountOpenForStaffAsync(Guid userId, DateTimeOffset now, CancellationToken cancellationToken = default)
-        => ForStaff(userId, now).CountAsync(
+    public Task<int> CountOpenForStaffAsync(
+        Guid userId, IReadOnlyCollection<string> permissions, DateTimeOffset now, CancellationToken cancellationToken = default)
+        => ForStaff(userId, permissions, now).CountAsync(
             n => n.RequiresAction ? n.ResolvedAt == null : n.ReadAt == null, cancellationToken);
 
     public async Task<bool> TryResolveAsync(
@@ -342,11 +350,16 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
                 .SetProperty(n => n.ResolvedBy, userId)
                 .SetProperty(n => n.UpdatedAt, now), cancellationToken) == 1;
 
-    public async Task<IReadOnlyList<Guid>> GetOpenActionIdsAsync(DateTimeOffset now, CancellationToken cancellationToken = default)
-        => await Visible(now).AsNoTracking()
-            .Where(n => n.RequiresAction && n.ResolvedAt == null)
+    public async Task<IReadOnlyList<Guid>> GetOpenActionIdsAsync(
+        IReadOnlyCollection<string> permissions, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        var held = permissions.ToArray();
+        return await Visible(now).AsNoTracking()
+            .Where(n => n.RequiresAction && n.ResolvedAt == null
+                && (n.RequiredPermissions == null || n.RequiredPermissions.Any(p => held.Contains(p))))
             .Select(n => n.Id)
             .ToListAsync(cancellationToken);
+    }
 
     public async Task<IReadOnlyList<Notification>> GetDueAsync(
         DateTimeOffset now, int take, CancellationToken cancellationToken = default)
