@@ -74,6 +74,7 @@ public sealed class BookClassHandler(
     IClassSettingsRepository classSettings,
     IBookingBlockRepository blocks,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<BookClassHandler> logger)
 {
     public async Task<BookingResponse> HandleAsync(
@@ -153,6 +154,11 @@ public sealed class BookClassHandler(
         logger.LogInformation(
             "Miembro {MemberId} reservó la sesión {SessionId} ({ClassId} {Date})", self.Id, session.Id, classId, date);
 
+        // N5: Notifications programa el recordatorio de clase. Tras el commit, nunca dentro.
+        await events.PublishAsync(
+            new ClassBooked(gymId, self.Id, classId, session.SessionDate, session.StartTime, session.InstructorUserId),
+            cancellationToken);
+
         return await ResponseAsync(mine, session, classId, self.Id, cancellationToken);
     }
 
@@ -180,6 +186,7 @@ public sealed class CancelBookingHandler(
     IClassSettingsRepository classSettings,
     BookingPenaltyService penalties,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<CancelBookingHandler> logger)
 {
     public async Task<CancelBookingResponse> HandleAsync(Guid classId, DateOnly date, CancellationToken cancellationToken)
@@ -209,6 +216,10 @@ public sealed class CancelBookingHandler(
 
         logger.LogInformation(
             "Miembro {MemberId} canceló su reserva en la sesión {SessionId} (tardía: {Late})", self.Id, session.Id, late);
+
+        // N5: Notifications cancela el recordatorio programado de esa reserva.
+        await events.PublishAsync(
+            new ClassBookingCancelled(gymId, self.Id, classId, session.SessionDate), cancellationToken);
 
         var block = late ? await penalties.EvaluateAsync(gymId, self.Id, cancellationToken) : null;
         return new CancelBookingResponse(late, block?.BlockedUntil);

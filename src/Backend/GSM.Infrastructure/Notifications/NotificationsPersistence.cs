@@ -251,6 +251,13 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
                     && n.ReferenceId == referenceId,
                 cancellationToken);
 
+    public async Task<IReadOnlyList<Notification>> ListUnsentByReferenceAsync(
+        IReadOnlyCollection<NotificationType> types, Guid referenceId, CancellationToken cancellationToken = default)
+        => await Notifications
+            .Where(n => types.Contains(n.Type) && n.ReferenceId == referenceId
+                && (n.Status == NotificationStatus.Pending || n.Status == NotificationStatus.Held))
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlySet<Guid>> GetNotifiedMemberIdsAsync(
         NotificationType type, Guid referenceId, CancellationToken cancellationToken = default)
     {

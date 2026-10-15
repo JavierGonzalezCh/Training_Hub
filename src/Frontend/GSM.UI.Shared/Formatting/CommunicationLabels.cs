@@ -37,6 +37,8 @@ public static class CommunicationLabels
     public static string NotificationIcon(string type) => type switch
     {
         "ClassCancelled" => Icons.Material.Outlined.EventBusy,
+        "ClassReminder" => Icons.Material.Outlined.Alarm,
+        "Birthday" => Icons.Material.Outlined.Cake,
         "MembershipExpiring" => Icons.Material.Outlined.HourglassBottom,
         "AchievementUnlocked" => Icons.Material.Outlined.EmojiEvents,
         _ => Icons.Material.Outlined.Notifications,

@@ -25,3 +25,20 @@ public sealed record BookingPenaltyLifted(Guid MemberId, Guid GymId) : IDomainEv
 /// </summary>
 public sealed record ClassSessionCancelled(
     Guid ClassId, Guid GymId, DateOnly SessionDate, IReadOnlyList<Guid> AffectedMemberIds) : IDomainEvent;
+
+/// <summary>
+/// N5: el miembro reservó una plaza (o la reactivó). Notifications programa el recordatorio de 10 minutos
+/// antes del inicio. <paramref name="InstructorUserId"/> es el instructor de la sesión, para su propio
+/// recordatorio.
+/// </summary>
+public sealed record ClassBooked(
+    Guid GymId,
+    Guid MemberId,
+    Guid ClassId,
+    DateOnly SessionDate,
+    TimeOnly StartTime,
+    Guid? InstructorUserId) : IDomainEvent;
+
+/// <summary>N5: el miembro canceló su reserva. Notifications cancela el recordatorio programado.</summary>
+public sealed record ClassBookingCancelled(
+    Guid GymId, Guid MemberId, Guid ClassId, DateOnly SessionDate) : IDomainEvent;

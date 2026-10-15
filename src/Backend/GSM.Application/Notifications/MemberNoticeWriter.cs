@@ -7,7 +7,10 @@ using GSM.Domain.Notifications;
 
 namespace GSM.Application.Notifications;
 
-/// <summary>Un aviso personal a un miembro, antes de persistirlo.</summary>
+/// <summary>
+/// Un aviso personal a un miembro, antes de persistirlo. <paramref name="ScheduledFor"/> nulo = ya (N5: con una
+/// hora futura el aviso es programado y no aparece en la bandeja ni sale hasta entonces).
+/// </summary>
 public sealed record MemberNotice(
     Guid GymId,
     Guid MemberId,
@@ -16,7 +19,8 @@ public sealed record MemberNotice(
     Guid ReferenceId,
     string Title,
     string Body,
-    string? Link);
+    string? Link,
+    DateTimeOffset? ScheduledFor = null);
 
 /// <summary>
 /// Crea avisos personales y, si se pide, su correo, de forma idempotente: si ya existe un aviso con la
@@ -117,7 +121,7 @@ public sealed class MemberNoticeWriter(
     {
         var notification = Notification.CreateForMember(
             notice.GymId, notice.MemberId, notice.Type, notice.Category, notice.ReferenceId,
-            notice.Title, Truncate(notice.Body, Notification.BodyMaxLength), notice.Link, clock.UtcNow);
+            notice.Title, Truncate(notice.Body, Notification.BodyMaxLength), notice.Link, notice.ScheduledFor ?? clock.UtcNow);
         notifications.Add(notification);
         return notification;
     }
