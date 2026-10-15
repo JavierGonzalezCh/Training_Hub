@@ -49,5 +49,16 @@ public sealed class ClassBookingRepository(GsmDbContext dbContext) : IClassBooki
         => Bookings.CountAsync(
             b => b.MemberId == memberId && b.Status == ClassBookingStatus.Attended, cancellationToken);
 
+    public async Task<int> CountFutureActiveForMemberAsync(
+        Guid memberId, DateOnly today, TimeOnly nowTime, CancellationToken cancellationToken = default)
+        => await (
+            from b in Bookings.Where(b => b.MemberId == memberId && b.Status == ClassBookingStatus.Booked)
+            join s in dbContext.Set<ClassSession>() on b.SessionId equals s.Id
+            where s.SessionDate > today || (s.SessionDate == today && s.StartTime > nowTime)
+            select b.Id).CountAsync(cancellationToken);
+
+    public Task<int> CountStrikesSinceAsync(Guid memberId, DateTimeOffset since, CancellationToken cancellationToken = default)
+        => Bookings.CountAsync(b => b.MemberId == memberId && b.StrikeAt != null && b.StrikeAt > since, cancellationToken);
+
     public void Add(ClassBooking booking) => Bookings.Add(booking);
 }

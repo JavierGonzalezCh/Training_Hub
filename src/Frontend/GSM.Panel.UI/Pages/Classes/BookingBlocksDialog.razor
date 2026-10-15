@@ -1,0 +1,101 @@
+@* Miembros con la penalización de reservas vigente (Classes v2, C3). El staff puede levantarla con motivo. *@
+@inject IClassBookingBlocksClient Blocks
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_items.Count == 0)
+        {
+            <MudText Color="Color.Secondary" Class="gsm-blocks-empty">Nadie tiene reservas bloqueadas por inasistencias.</MudText>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var item in _items)
+                {
+                    <div class="gsm-block-row d-flex align-center" style="gap:1rem">
+                        <div style="flex:1">
+                            <MudText Typo="Typo.subtitle2">@item.MemberName</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                No puede reservar hasta el @GsmFormat.Day(item.BlockedUntil)
+                            </MudText>
+                        </div>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => StartLift(item))">Levantar</MudButton>
+                    </div>
+                }
+            </MudStack>
+        }
+
+        @if (_lifting is not null)
+        {
+            <MudTextField @bind-Value="_reason" Label="Motivo" Immediate="true" Class="mt-4" id="lift-reason"
+                          HelperText="@($"Levantar la penalización de {_lifting.MemberName}")" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="ConfirmLiftAsync"
+                       Disabled="@string.IsNullOrWhiteSpace(_reason)" id="lift-confirm">
+                Confirmar
+            </MudButton>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Close())">Cerrar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private List<BookingBlockResponse> _items = [];
+    private BookingBlockResponse? _lifting;
+    private string? _reason;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = (await Blocks.ClassBookingBlocksAsync())?.ToList() ?? [];
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void StartLift(BookingBlockResponse item)
+    {
+        _lifting = item;
+        _reason = null;
+    }
+
+    private async Task ConfirmLiftAsync()
+    {
+        if (_lifting is null || string.IsNullOrWhiteSpace(_reason))
+        {
+            return;
+        }
+
+        try
+        {
+            await Blocks.LiftAsync(_lifting.Id, new LiftBookingBlockRequest { Reason = _reason.Trim() });
+            Snackbar.Add("Penalización levantada.", Severity.Success);
+            _lifting = null;
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

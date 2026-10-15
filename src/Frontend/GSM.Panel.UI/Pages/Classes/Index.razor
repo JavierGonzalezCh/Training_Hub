@@ -14,6 +14,9 @@
                OnClick="@(() => Navigation.NavigateTo("/classes/schedule"))">
         Horario semanal
     </MudButton>
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.EventBusy" OnClick="OpenBlocksAsync" id="open-blocks">
+        Penalizados
+    </MudButton>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
         Nueva clase
     </MudButton>
@@ -115,6 +118,9 @@ else
             _loading = false;
         }
     }
+
+    private async Task OpenBlocksAsync()
+        => await Dialogs.ShowAsync<BookingBlocksDialog>("Penalizados por inasistencia");
 
     private async Task OpenCreateAsync()
     {

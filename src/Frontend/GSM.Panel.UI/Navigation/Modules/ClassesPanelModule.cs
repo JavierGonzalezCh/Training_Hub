@@ -12,4 +12,7 @@ public sealed class ClassesPanelModule : IPanelModule
         new("Clases", Icons.Material.Outlined.CalendarMonth, "/classes", PanelSections.Training, 10,
             BottomBar: true, BottomOrder: 40),
     ];
+
+    public IEnumerable<PanelSettingsSection> SettingsSections =>
+        [new("Reservas de clases", 45, typeof(Pages.Settings.ClassRulesTab))];
 }

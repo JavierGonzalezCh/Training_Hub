@@ -71,6 +71,8 @@ public sealed class BookClassHandler(
     IClassRepository classes,
     IClassSessionRepository sessions,
     IClassBookingRepository bookings,
+    IClassSettingsRepository classSettings,
+    IBookingBlockRepository blocks,
     IUnitOfWork unitOfWork,
     ILogger<BookClassHandler> logger)
 {
@@ -119,6 +121,10 @@ public sealed class BookClassHandler(
         await ClassAccess.EnsureCoveredAsync(
             memberships, self.Id, date, "reservar esta clase", cancellationToken);
 
+        // C3: penalización vigente, ventana de reserva y máximo de reservas activas (también antes de materializar).
+        var rules = await ClassBookingRules.LoadAsync(classSettings, gymId, cancellationToken);
+        await ClassBookingRules.EnsureCanBookAsync(clock, blocks, bookings, rules, self.Id, date, cancellationToken);
+
         var session = existing
             ?? await ClassSessionMaterializer.GetOrCreateAsync(sessions, unitOfWork, gymClass, date, cancellationToken);
 
@@ -160,7 +166,10 @@ public sealed class BookClassHandler(
     }
 }
 
-/// <summary>El miembro cancela su reserva. Permitido hasta la hora de inicio de la sesión.</summary>
+/// <summary>
+/// El miembro cancela su reserva. Permitido hasta la hora de inicio de la sesión; pasado el plazo de
+/// cancelación del gym (C3) se cancela igual, para liberar el cupo, pero cuenta como inasistencia.
+/// </summary>
 public sealed class CancelBookingHandler(
     ICurrentUserService currentUser,
     IClock clock,
@@ -168,10 +177,12 @@ public sealed class CancelBookingHandler(
     IMemberReader members,
     IClassSessionRepository sessions,
     IClassBookingRepository bookings,
+    IClassSettingsRepository classSettings,
+    BookingPenaltyService penalties,
     IUnitOfWork unitOfWork,
     ILogger<CancelBookingHandler> logger)
 {
-    public async Task HandleAsync(Guid classId, DateOnly date, CancellationToken cancellationToken)
+    public async Task<CancelBookingResponse> HandleAsync(Guid classId, DateOnly date, CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
         await ClassFeatureGate.EnsureMemberModuleEnabledAsync(gyms, gymId, cancellationToken);
@@ -190,10 +201,17 @@ public sealed class CancelBookingHandler(
 
         ClassBookingSupport.EnsureNotStarted(clock, session);
 
-        booking.CancelByMember(clock.UtcNow);
+        var rules = await ClassBookingRules.LoadAsync(classSettings, gymId, cancellationToken);
+        var late = ClassBookingRules.IsLateCancellation(clock, rules, session);
+
+        booking.CancelByMember(clock.UtcNow, late);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Miembro {MemberId} canceló su reserva en la sesión {SessionId}", self.Id, session.Id);
+        logger.LogInformation(
+            "Miembro {MemberId} canceló su reserva en la sesión {SessionId} (tardía: {Late})", self.Id, session.Id, late);
+
+        var block = late ? await penalties.EvaluateAsync(gymId, self.Id, cancellationToken) : null;
+        return new CancelBookingResponse(late, block?.BlockedUntil);
     }
 }
 
@@ -252,6 +270,7 @@ public sealed class MarkAttendanceHandler(
     IClassBookingRepository bookings,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
+    BookingPenaltyService penalties,
     GetRosterHandler roster,
     ILogger<MarkAttendanceHandler> logger)
 {
@@ -331,11 +350,14 @@ public sealed class MarkAttendanceHandler(
             attendedForEvents.Add(memberId);
         }
 
+        // C3: "no vino" cuenta como inasistencia. Una reserva que nadie marcó no cuenta nunca.
+        var struck = new List<Guid>();
         foreach (var memberId in noShow)
         {
             if (byMember.TryGetValue(memberId, out var booking) && booking.Status == ClassBookingStatus.Booked)
             {
-                booking.MarkNoShow();
+                booking.MarkNoShow(now);
+                struck.Add(memberId);
             }
         }
 
@@ -343,6 +365,11 @@ public sealed class MarkAttendanceHandler(
         logger.LogInformation(
             "Sesión {SessionId}: {Attended} asistentes, {NoShow} ausentes marcados",
             session.Id, attended.Count, noShow.Count);
+
+        foreach (var memberId in struck)
+        {
+            await penalties.EvaluateAsync(gymId, memberId, cancellationToken);
+        }
 
         foreach (var memberId in attendedForEvents)
         {

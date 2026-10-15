@@ -22,5 +22,10 @@ public sealed class ClassBookingConfiguration : IEntityTypeConfiguration<ClassBo
         // Una fila por miembro y sesión; reservar de nuevo tras cancelar reactiva esta misma fila.
         builder.HasIndex(b => new { b.SessionId, b.MemberId }).IsUnique();
         builder.HasIndex(b => b.MemberId);
+
+        // C3: las inasistencias del miembro dentro de la ventana de penalización.
+        builder.HasIndex(b => new { b.MemberId, b.StrikeAt })
+            .HasFilter("strike_at IS NOT NULL")
+            .HasDatabaseName("ix_class_bookings_member_strike");
     }
 }

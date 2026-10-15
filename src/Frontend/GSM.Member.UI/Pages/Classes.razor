@@ -4,6 +4,8 @@
 @inject GymContext GymCtx
 @inject IMeClient Me
 @inject IMemberClassesClient MemberClasses
+@inject IMeClassBookingStatusClient BookingStatus
+@inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
 <PageTitle>Clases — GSM</PageTitle>
@@ -23,6 +25,13 @@
 }
 else
 {
+    @if (BlockedUntil is { } blockedUntil)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" id="booking-blocked">
+            No puedes reservar hasta el @GsmFormat.Day(blockedUntil) por inasistencias. Tus reservas ya hechas se mantienen.
+        </MudAlert>
+    }
+
     <div class="gsm-cal-nav">
         <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" aria-label="Semana anterior" />
         <div class="gsm-cal-nav__label">
@@ -110,9 +119,16 @@ else
                                     Cancelar
                                 </MudButton>
                             }
+                            else if (entry.Capacity is not null && entry.SessionDate > _today.AddDays(WindowDays))
+                            {
+                                <MudChip T="string" Color="Color.Default" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono booking-window-chip">
+                                    ABRE EL @GsmFormat.DayShort(entry.SessionDate.AddDays(-WindowDays)).ToUpperInvariant()
+                                </MudChip>
+                            }
                             else if (entry.Capacity is not null)
                             {
-                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => BookAsync(entry))">
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => BookAsync(entry))"
+                                           Disabled="@(BlockedUntil is not null)">
                                     Reservar
                                 </MudButton>
                             }
@@ -152,6 +168,39 @@ else
     private bool _loading = true;
     private bool _offerPush;
 
+    // C3: reglas de reserva del gym. Los valores por defecto solo rigen si la consulta falla.
+    private DateOnly? BlockedUntil { get; set; }
+    private int WindowDays { get; set; } = 7;
+    private int CancelDeadlineHours { get; set; } = 2;
+
+    private async Task LoadStatusAsync()
+    {
+        try
+        {
+            var status = await BookingStatus.ClassBookingStatusAsync();
+            if (status is null)
+            {
+                return;
+            }
+
+            BlockedUntil = status.BlockedUntil;
+            WindowDays = (int?)status.BookingWindowDays ?? WindowDays;
+            CancelDeadlineHours = (int?)status.CancelDeadlineHours ?? CancelDeadlineHours;
+        }
+        catch (GsmApiException)
+        {
+            // Sin las reglas la pantalla sigue funcionando: el servidor las impone igual al reservar.
+        }
+    }
+
+    /// <summary>Cancelar pasado el plazo del gym libera el cupo pero cuenta como inasistencia.</summary>
+    private bool IsLateCancellation(ScheduleEntry entry)
+    {
+        var nowTime = TimeOnly.ParseExact(GsmFormat.Time(DateTimeOffset.UtcNow), "HH:mm");
+        var now = GsmFormat.Today().ToDateTime(nowTime);
+        return now > entry.SessionDate.ToDateTime(entry.StartTime).AddHours(-CancelDeadlineHours);
+    }
+
     protected override Task OnInitializedAsync() => GymCtx.FeatureFlags?.ShowClasses == false ? Task.CompletedTask : LoadAsync();
 
     private static DateOnly StartOfWeek(DateOnly date)
@@ -173,6 +222,7 @@ else
         {
             var result = await Me.ClassesGET2Async(_weekStart, _weekStart.AddDays(6));
             _entries = result.Entries.ToList();
+            await LoadStatusAsync();
         }
         catch (GsmApiException ex)
         {
@@ -207,10 +257,28 @@ else
 
     private async Task CancelAsync(ScheduleEntry entry)
     {
+        if (IsLateCancellation(entry))
+        {
+            var confirmed = await Dialogs.ShowMessageBox(
+                "Cancelar fuera de plazo",
+                $"El plazo para cancelar sin penalización era hasta {CancelDeadlineHours} h antes de la clase. "
+                + "Puedes cancelar para liberar el cupo, pero contará como inasistencia.",
+                yesText: "Cancelar la reserva", cancelText: "Mantenerla");
+            if (confirmed != true)
+            {
+                return;
+            }
+        }
+
         try
         {
-            await MemberClasses.BookDELETEAsync(entry.ClassId, entry.SessionDate);
+            var result = await MemberClasses.BookDELETEAsync(entry.ClassId, entry.SessionDate);
             Snackbar.Add("Reserva cancelada.", Severity.Success);
+            if (result?.BlockedUntil is { } until)
+            {
+                Snackbar.Add($"No podrás reservar hasta el {GsmFormat.Day(until)} por inasistencias.", Severity.Warning);
+            }
+
             await LoadAsync();
         }
         catch (GsmApiException ex)

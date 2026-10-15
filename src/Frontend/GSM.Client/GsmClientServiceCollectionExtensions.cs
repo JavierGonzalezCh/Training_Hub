@@ -34,6 +34,9 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<ICashRegisterClient, CashRegisterClient>(services, baseUri);
         AddApiClient<ICashShiftsClient, CashShiftsClient>(services, baseUri);
         AddApiClient<IClassesClient, ClassesClient>(services, baseUri);
+        AddApiClient<IClassSettingsClient, ClassSettingsClient>(services, baseUri);
+        AddApiClient<IClassBookingBlocksClient, ClassBookingBlocksClient>(services, baseUri);
+        AddApiClient<IMeClassBookingStatusClient, MeClassBookingStatusClient>(services, baseUri);
         AddApiClient<IDashboardClient, DashboardClient>(services, baseUri);
         AddApiClient<IEquipmentClient, EquipmentClient>(services, baseUri);
         AddApiClient<IExercisesClient, ExercisesClient>(services, baseUri);

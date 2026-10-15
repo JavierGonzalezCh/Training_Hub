@@ -25,13 +25,10 @@ public sealed class MemberClassesController : ControllerBase
         => Ok(await handler.HandleAsync(id, date, cancellationToken));
 
     [HttpDelete]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<CancelBookingResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CancelBooking(
+    public async Task<ActionResult<CancelBookingResponse>> CancelBooking(
         Guid id, DateOnly date, [FromServices] CancelBookingHandler handler, CancellationToken cancellationToken)
-    {
-        await handler.HandleAsync(id, date, cancellationToken);
-        return NoContent();
-    }
+        => Ok(await handler.HandleAsync(id, date, cancellationToken));
 }
