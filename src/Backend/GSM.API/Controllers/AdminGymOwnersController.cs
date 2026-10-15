@@ -31,6 +31,43 @@ public sealed class AdminGymOwnersController : ControllerBase
         Guid gymId, Guid userId, [FromServices] CopyOwnerLinkHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(gymId, userId, cancellationToken));
 
+    /// <summary>El contacto de facturación del gym (para cobros del SaaS y avisos de suscripción).</summary>
+    [HttpGet("~/api/admin/gyms/{gymId:guid}/billing-contact")]
+    [ProducesResponseType<GSM.Application.Gyms.Contracts.BillingContactResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GSM.Application.Gyms.Contracts.BillingContactResponse>> BillingContact(
+        Guid gymId, [FromServices] GSM.Application.Gyms.GetBillingContactHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(gymId, cancellationToken));
+
+    /// <summary>Agrega un Owner al gym (soporte: "el dueño perdió el acceso"). Nace sin contraseña y recibe un enlace.</summary>
+    [HttpPost]
+    [ProducesResponseType<GymOwnerResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<GymOwnerResponse>> Invite(
+        Guid gymId,
+        InviteOwnerRequest request,
+        [FromServices] InviteOwnerHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var owner = await handler.HandleAsync(gymId, request, cancellationToken);
+        return CreatedAtAction(nameof(List), new { gymId }, owner);
+    }
+
+    /// <summary>Quita a un Owner del gym (soporte: "vendió el gym"). 409 si es el último.</summary>
+    [HttpDelete("{userId:guid}")]
+    [ProducesResponseType<GymOwnerResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<GymOwnerResponse>> Remove(
+        Guid gymId,
+        Guid userId,
+        [FromQuery] bool keepAsStaff,
+        [FromQuery] string? staffProfile,
+        [FromServices] RemoveOwnerHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(gymId, userId, keepAsStaff, staffProfile, cancellationToken));
+
     /// <summary>"Reenviar acceso": manda al owner por correo un enlace de activación nuevo (anula los anteriores).</summary>
     [HttpPost("{userId:guid}/resend")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

@@ -24,7 +24,16 @@ public interface IIdentityReader
     Task<IReadOnlySet<Guid>> ListUserIdsWithAnyPermissionAsync(
         Guid gymId, IReadOnlyCollection<GSM.Domain.Identity.StaffPermission> permissions,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// I4/G4: los Owners con acceso activo al gym (cuenta activa), el más antiguo primero. Los avisos "al Owner"
+    /// y el contacto de facturación se resuelven contra esta lista.
+    /// </summary>
+    Task<IReadOnlyList<GymOwnerDto>> ListActiveOwnersAsync(Guid gymId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Un Owner activo del gym.</summary>
+public sealed record GymOwnerDto(Guid UserId, string FullName, string Email);
 
 /// <summary>La persona. El gym y el rol ya no son de la cuenta sino de cada acceso (<c>GymAccess</c>).</summary>
 public sealed record IdentityUserDto(Guid Id, string FullName, bool IsSuperAdmin);

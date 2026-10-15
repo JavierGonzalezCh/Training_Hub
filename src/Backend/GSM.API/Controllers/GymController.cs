@@ -44,6 +44,23 @@ public sealed class GymController : ControllerBase
         UpdateGymRequest request, [FromServices] UpdateGymHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
 
+    /// <summary>El Owner marcado como contacto de facturación (cobros del SaaS, avisos de suscripción).</summary>
+    [HttpGet("billing-contact")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<BillingContactResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<BillingContactResponse>> GetBillingContact(
+        [FromServices] GetBillingContactHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Marca a un Owner activo del gym como contacto de facturación. 422 si no es Owner del gym.</summary>
+    [HttpPut("billing-contact")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<BillingContactResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<BillingContactResponse>> SetBillingContact(
+        SetBillingContactRequest request, [FromServices] SetBillingContactHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
     [HttpGet("feature-flags")]
     [ProducesResponseType<GymFeatureFlagsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<GymFeatureFlagsResponse>> GetFeatureFlags(

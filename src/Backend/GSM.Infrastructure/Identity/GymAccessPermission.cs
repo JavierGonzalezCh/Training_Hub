@@ -46,6 +46,18 @@ public enum StaffAccessAuditAction
     /// o <c>login</c> si ya tenía contraseña). El actor es quien lo copió (Owner o SuperAdmin).
     /// </summary>
     LinkCopied,
+
+    /// <summary>Se dio acceso de Owner a una persona (invitada, o con cuenta previa). I4.</summary>
+    OwnerAdded,
+
+    /// <summary>Un staff pasó a Owner (<c>OldValue</c>: su perfil de staff). I4.</summary>
+    OwnerPromoted,
+
+    /// <summary>Se quitó a un Owner: su acceso se desactivó y sus sesiones se cerraron. I4.</summary>
+    OwnerRemoved,
+
+    /// <summary>Un Owner quedó como staff (<c>NewValue</c>: su perfil de staff). I4.</summary>
+    OwnerDemoted,
 }
 
 /// <summary>

@@ -108,4 +108,15 @@ public sealed class IdentityReader(GsmDbContext dbContext) : IIdentityReader
     private static bool HasTrainer(StaffProfile? profile, bool? adjustment)
         => adjustment
            ?? StaffPermissions.ForProfile(profile ?? StaffProfile.Reception).Contains(StaffPermission.Trainer);
+
+    public async Task<IReadOnlyList<GymOwnerDto>> ListActiveOwnersAsync(
+        Guid gymId, CancellationToken cancellationToken = default)
+        => await (
+                from access in dbContext.GymAccesses
+                join user in dbContext.Users on access.UserId equals user.Id
+                where access.GymId == gymId && access.Role == UserRole.Owner && access.IsActive && user.IsActive
+                orderby access.CreatedAt, access.Id
+                select new GymOwnerDto(user.Id, user.FullName, user.Email!))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
 }

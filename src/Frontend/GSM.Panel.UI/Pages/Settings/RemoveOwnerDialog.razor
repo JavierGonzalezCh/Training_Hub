@@ -1,0 +1,64 @@
+@* Quitar a un Owner (Gyms §6): se desactiva su acceso o queda como staff. No se puede quitar al último.
+   Si el Owner se quita a sí mismo, su sesión se cierra. *@
+@inject IOwnersClient OwnersApi
+@inject SessionService Session
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText>
+            @(IsSelf
+                ? "Vas a dejar de ser Owner de este gimnasio. Tu sesión se cerrará."
+                : $"{Owner.FullName} dejará de ser Owner y sus sesiones en este gimnasio se cerrarán.")
+        </MudText>
+        <MudCheckBox T="bool" @bind-Value="_keepAsStaff" Label="Dejar como staff (perfil Recepción)" Color="Color.Primary"
+                     Class="mt-2" data-testid="keep-as-staff" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="ConfirmAsync" Disabled="_saving"
+                   data-testid="confirm-remove-owner">Quitar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public GymOwnerResponse Owner { get; set; } = null!;
+
+    /// <summary><c>true</c> si quien lo quita es el mismo Owner.</summary>
+    [Parameter]
+    public bool IsSelf { get; set; }
+
+    private bool _keepAsStaff;
+    private bool _saving;
+
+    private async Task ConfirmAsync()
+    {
+        _saving = true;
+        try
+        {
+            await OwnersApi.OwnersDELETEAsync(Owner.UserId, _keepAsStaff, _keepAsStaff ? "reception" : null);
+            Snackbar.Add($"{Owner.FullName} ya no es Owner.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+
+            if (IsSelf)
+            {
+                // Sus sesiones en este gimnasio quedaron cerradas: se sale limpio.
+                await Session.LogoutAsync();
+                Navigation.NavigateTo("/login", forceLoad: true);
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

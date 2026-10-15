@@ -45,6 +45,10 @@ public static class StaffLabels
             "link_copied" => newValue == "login"
                 ? $"{actor} copió el enlace de acceso de {target}"
                 : $"{actor} copió el enlace de activación de {target}",
+            "owner_added" => $"{actor} agregó a {target} como Owner",
+            "owner_promoted" => $"{actor} ascendió a {target} de staff ({Profile(oldValue)}) a Owner",
+            "owner_removed" => $"{actor} quitó a {target} como Owner",
+            "owner_demoted" => $"{actor} dejó a {target} como staff ({Profile(newValue)}) en vez de Owner",
             _ => $"{actor} modificó el acceso de {target}",
         };
 }
