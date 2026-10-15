@@ -38,7 +38,7 @@ public sealed class RunMonthlyMetricsHandler(
 
         var rows = await subscriptions.GetPortfolioAsync(cancellationToken);
         var inputs = rows
-            .Select(r => new GymMetricInput(r.GymId, r.ManualStatus, r.MonthlyPrice, r.StartedOn, r.TrialEndsOn, r.PaidThrough))
+            .Select(r => new GymMetricInput(r.GymId, r.ManualStatus, r.MonthlyPrice, r.StartedOn, r.TrialEndsOn, r.PaidThrough, r.TrialGraceDays))
             .ToList();
 
         var previous = await metrics.GetAsync(month.AddMonths(-1), cancellationToken);

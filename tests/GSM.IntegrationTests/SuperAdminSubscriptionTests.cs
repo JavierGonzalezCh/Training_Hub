@@ -1,4 +1,4 @@
-using GSM.Application.Gyms;
+﻿using GSM.Application.Gyms;
 using GSM.Application.Gyms.Contracts;
 using GSM.Application.SuperAdmin;
 using GSM.Application.SuperAdmin.Contracts;
@@ -154,6 +154,93 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
         Assert.Equal(Today, detail.PaidThrough);
         Assert.NotNull(await scope.ServiceProvider.GetRequiredService<ISubscriptionReader>()
             .GetEffectiveStatusAsync(world.NoSubscriptionGym, default));
+    }
+
+    [Fact]
+    public async Task Trial_ended_yesterday_without_payment_has_full_access_and_the_banner_state()
+    {
+        var gymId = await SeedTrialGymAsync(trialEndedDaysAgo: 1);
+
+        using var scope = SuperAdmin();
+        var reader = scope.ServiceProvider.GetRequiredService<ISubscriptionReader>();
+        var view = await reader.GetStatusViewAsync(gymId, default);
+
+        Assert.Equal(EffectiveSubscriptionStatus.TrialEnded, view!.Status);
+        Assert.Equal(2, view.DaysUntilDisabled);
+        Assert.True(await reader.IsWriteAllowedAsync(gymId, default));
+        Assert.Equal("TrialEnded", view.ToInfo().Status);
+    }
+
+    [Fact]
+    public async Task Past_the_trial_grace_days_the_gym_is_disabled_and_read_only()
+    {
+        var gymId = await SeedTrialGymAsync(trialEndedDaysAgo: 4);
+
+        using var scope = SuperAdmin();
+        var reader = scope.ServiceProvider.GetRequiredService<ISubscriptionReader>();
+
+        Assert.Equal(EffectiveSubscriptionStatus.Disabled, await reader.GetEffectiveStatusAsync(gymId, default));
+        Assert.False(await reader.IsWriteAllowedAsync(gymId, default));
+    }
+
+    [Fact]
+    public async Task Confirming_a_payment_after_the_trial_ends_leaves_trial_ended()
+    {
+        var gymId = await SeedTrialGymAsync(trialEndedDaysAgo: 1);
+
+        using var scope = SuperAdmin();
+        var response = await scope.ServiceProvider.GetRequiredService<RegisterSubscriptionPaymentHandler>()
+            .HandleAsync(gymId, new RegisterSubscriptionPaymentRequest(
+                100_000m, GSM.Domain.Payments.PaymentMethod.BankTransfer, null, null, null, null), default);
+
+        Assert.Equal("Active", response.Subscription.EffectiveStatus);
+        Assert.Null(response.Subscription.DaysUntilDisabled);
+    }
+
+    [Fact]
+    public async Task Trial_grace_days_are_editable_by_the_superadmin_and_respected()
+    {
+        var gymId = await SeedTrialGymAsync(trialEndedDaysAgo: 4);
+
+        using var scope = SuperAdmin();
+        var detail = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
+            .HandleAsync(gymId, new UpdateSubscriptionRequest(GymPlan.Basic, 100_000m, TrialGraceDays: 7), default);
+
+        Assert.Equal(7, detail.TrialGraceDays);
+        Assert.Equal("TrialEnded", detail.EffectiveStatus);
+        Assert.Equal(3, detail.DaysUntilDisabled);
+
+        // Omitir el campo no lo reinicia.
+        var again = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
+            .HandleAsync(gymId, new UpdateSubscriptionRequest(GymPlan.Basic, 100_000m), default);
+        Assert.Equal(7, again.TrialGraceDays);
+
+        await Assert.ThrowsAnyAsync<Exception>(() => scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
+            .HandleAsync(gymId, new UpdateSubscriptionRequest(GymPlan.Basic, 100_000m, TrialGraceDays: -1), default));
+    }
+
+    [Fact]
+    public async Task A_gym_without_subscription_is_never_trial_ended()
+    {
+        var world = await SeedAsync();
+
+        using var scope = SuperAdmin();
+        Assert.Null(await scope.ServiceProvider.GetRequiredService<ISubscriptionReader>()
+            .GetStatusViewAsync(world.NoSubscriptionGym, default));
+    }
+
+    /// <summary>Gym en prueba cuya prueba terminó hace <paramref name="trialEndedDaysAgo"/> días, sin ningún pago.</summary>
+    private async Task<Guid> SeedTrialGymAsync(int trialEndedDaysAgo)
+    {
+        await SeedAsync();
+        using var scope = factory.CreateScopeWithMigration();
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var end = Today.AddDays(-trialEndedDaysAgo);
+        var id = MakeGym(db, "sa-trial", gymId =>
+            GymSubscription.Create(gymId, GymPlan.Basic, 100_000m, end.AddDays(-30), end, trialEndsOn: end));
+        await db.SaveChangesAsync();
+        return id;
     }
 
     private IServiceScope SuperAdmin()

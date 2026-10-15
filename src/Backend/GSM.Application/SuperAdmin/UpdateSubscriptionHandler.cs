@@ -61,6 +61,11 @@ public sealed class UpdateSubscriptionHandler(
 
         sub.SetMemberLimitOverride(request.MemberLimitOverride);
 
+        if (request.TrialGraceDays is { } graceDays)
+        {
+            sub.SetTrialGraceDays(graceDays);
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(

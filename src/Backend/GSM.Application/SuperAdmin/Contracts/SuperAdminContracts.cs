@@ -52,16 +52,19 @@ public sealed record SubscriptionDetail(
     string EffectiveStatus,
     string ManualStatus,
     int? DaysUntilDisabled,
-    string? Notes);
+    string? Notes,
+    int TrialGraceDays);
 
 /// <param name="Plan">Enum heredado (<c>basic</c>/<c>pro</c>/<c>enterprise</c>). Si viene <paramref name="SaasPlanId"/> manda este.</param>
 /// <param name="SaasPlanId">Plan del SaaS (S2). Si se omite, se resuelve por el nombre de <paramref name="Plan"/>.</param>
 /// <param name="MemberLimitOverride">Límite propio del cliente; nulo = el del plan (el PUT reemplaza el valor anterior).</param>
+/// <param name="TrialGraceDays">Días de <c>trial_ended</c> tras la prueba (0 a 60). Nulo = no cambia el valor actual.</param>
 public sealed record UpdateSubscriptionRequest(
     GymPlan Plan,
     decimal MonthlyPrice,
     Guid? SaasPlanId = null,
-    int? MemberLimitOverride = null);
+    int? MemberLimitOverride = null,
+    int? TrialGraceDays = null);
 
 public sealed record SaasPlanItem(
     Guid Id,

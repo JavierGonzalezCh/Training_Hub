@@ -21,7 +21,8 @@ public sealed record GymMetricInput(
     decimal MonthlyPrice,
     DateOnly StartedOn,
     DateOnly? TrialEndsOn,
-    DateOnly PaidThrough);
+    DateOnly PaidThrough,
+    int TrialGraceDays);
 
 public static class MonthlyMetricsCalculator
 {
@@ -50,7 +51,7 @@ public static class MonthlyMetricsCalculator
                 continue;
             }
 
-            var end = GymSubscription.DeriveStatus(gym.ManualStatus, lastDay, gym.PaidThrough, gym.TrialEndsOn);
+            var end = GymSubscription.DeriveStatus(gym.ManualStatus, lastDay, gym.PaidThrough, gym.TrialEndsOn, gym.TrialGraceDays);
             states[gym.GymId.ToString()] = end.ToString();
 
             var isNew = gym.StartedOn >= month;
@@ -70,7 +71,7 @@ public static class MonthlyMetricsCalculator
             }
             else if (!isNew)
             {
-                start = GymSubscription.DeriveStatus(gym.ManualStatus, dayBefore, gym.PaidThrough, gym.TrialEndsOn);
+                start = GymSubscription.DeriveStatus(gym.ManualStatus, dayBefore, gym.PaidThrough, gym.TrialEndsOn, gym.TrialGraceDays);
             }
 
             var wasActive = start is EffectiveSubscriptionStatus.Active or EffectiveSubscriptionStatus.Overdue;
@@ -85,13 +86,14 @@ public static class MonthlyMetricsCalculator
                 mrr += gym.MonthlyPrice;
             }
 
-            if (end == EffectiveSubscriptionStatus.Trial)
+            // Una prueba terminada sin pago, dentro de su gracia, sigue siendo una prueba sin convertir.
+            if (end is EffectiveSubscriptionStatus.Trial or EffectiveSubscriptionStatus.TrialEnded)
             {
                 trial++;
             }
 
             var endedLost = end is EffectiveSubscriptionStatus.Disabled or EffectiveSubscriptionStatus.Suspended;
-            var wasInTrial = start == EffectiveSubscriptionStatus.Trial
+            var wasInTrial = start is EffectiveSubscriptionStatus.Trial or EffectiveSubscriptionStatus.TrialEnded
                              || (start is null && gym.TrialEndsOn is not null);
 
             // P13: el churn solo cuenta clientes (al día o en mora al inicio); una prueba que se cae va aparte.

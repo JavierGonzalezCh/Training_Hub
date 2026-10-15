@@ -52,6 +52,12 @@ else if (_gym is { } gym)
                 {
                     <MudText Typo="Typo.body2" Color="Color.Error">@days días para deshabilitar</MudText>
                 }
+                @if (gym.Subscription.TrialEndsOn is { } trialEnd)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="trial-info">
+                        Prueba hasta @GsmFormat.Day(trialEnd) · @gym.Subscription.TrialGraceDays día@(gym.Subscription.TrialGraceDays == 1 ? "" : "s") de gracia
+                    </MudText>
+                }
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="4">

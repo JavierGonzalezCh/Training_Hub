@@ -15,6 +15,12 @@
         </MudSelect>
         <MudNumericField T="int?" @bind-Value="_limitOverride" Label="Límite de miembros propio" Min="1" Class="mb-3"
                          HelperText="@OverrideHelp()" data-testid="limit-override" />
+        @if (Current.TrialEndsOn is not null)
+        {
+            <MudNumericField T="int" @bind-Value="_trialGraceDays" Label="Días de gracia tras la prueba" Min="0" Max="60" Class="mb-3"
+                             HelperText="Días con acceso total y letrero después de que termina la prueba sin pago. Pasados, el gym queda en solo lectura."
+                             data-testid="trial-grace-days" />
+        }
         <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_price" Label="Precio mensual (COP)" Min="0" />
     </DialogContent>
     <DialogActions>
@@ -39,6 +45,7 @@
     private Guid? _planId;
     private int? _limitOverride;
     private decimal _price;
+    private int _trialGraceDays = 3;
     private bool _submitting;
     private string? _error;
 
@@ -47,6 +54,7 @@
         _price = (decimal)Current.MonthlyPrice;
         _limitOverride = Current.MemberLimitOverride;
         _planId = Current.SaasPlanId;
+        _trialGraceDays = Current.TrialGraceDays;
 
         try
         {
@@ -85,6 +93,7 @@
                 SaasPlanId = _planId,
                 MemberLimitOverride = _limitOverride,
                 MonthlyPrice = (double)_price,
+                TrialGraceDays = Current.TrialEndsOn is not null ? _trialGraceDays : null,
             });
             MudDialog.Close(DialogResult.Ok(true));
         }

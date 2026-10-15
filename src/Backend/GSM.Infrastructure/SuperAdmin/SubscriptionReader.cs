@@ -44,7 +44,7 @@ public sealed class SubscriptionReader(GsmDbContext dbContext, IClock clock) : I
                 from s in dbContext.Set<GymSubscription>().AsNoTracking()
                 join g in dbContext.Set<Gym>().IgnoreQueryFilters() on s.GymId equals g.Id
                 where s.GymId == gymId
-                select new { g.Status, s.PaidThrough, s.TrialEndsOn })
+                select new { g.Status, s.PaidThrough, s.TrialEndsOn, s.TrialGraceDays })
             .FirstOrDefaultAsync(cancellationToken);
 
         SubscriptionStatusView? view = null;
@@ -52,9 +52,9 @@ public sealed class SubscriptionReader(GsmDbContext dbContext, IClock clock) : I
         {
             var today = clock.Today;
             view = new SubscriptionStatusView(
-                GymSubscription.DeriveStatus(row.Status, today, row.PaidThrough, row.TrialEndsOn),
+                GymSubscription.DeriveStatus(row.Status, today, row.PaidThrough, row.TrialEndsOn, row.TrialGraceDays),
                 row.PaidThrough,
-                GymSubscription.DaysUntilDisabled(row.Status, today, row.PaidThrough, row.TrialEndsOn));
+                GymSubscription.DaysUntilDisabled(row.Status, today, row.PaidThrough, row.TrialEndsOn, row.TrialGraceDays));
         }
 
         _cache[gymId] = view;
