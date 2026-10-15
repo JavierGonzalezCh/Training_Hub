@@ -9,7 +9,7 @@ namespace GSM.Application.Members.Abstractions;
 public sealed record MemberPageQuery(
     string? Search, MemberStatus? Status, string? Tag, int Page, int PageSize,
     IReadOnlyCollection<Guid>? Ids = null, bool ExcludeIds = false,
-    Guid? TrainerUserId = null, bool WithoutTrainer = false);
+    Guid? TrainerUserId = null, bool WithoutTrainer = false, bool WithHealthAlerts = false);
 
 /// <summary>Acceso de escritura/consulta a las entidades del módulo Members. Sin <c>SaveChanges</c>.</summary>
 public interface IMemberRepository
@@ -36,7 +36,16 @@ public interface IMemberRepository
 
     void Add(MemberChange change);
 
+    /// <summary><paramref name="includeSensitive"/> falso deja fuera las filas de salud (quien no tiene el permiso).</summary>
     Task<(IReadOnlyList<MemberChange> Items, int Total)> GetChangesPageAsync(
+        Guid memberId, int page, int pageSize, bool includeSensitive, CancellationToken cancellationToken = default);
+
+    // --- Consultas de salud (§10) ---
+
+    /// <summary>Registra la consulta; si ya hay una del mismo usuario, miembro y día, no hace nada. Escribe al instante, sin <c>SaveChanges</c>.</summary>
+    Task LogHealthAccessAsync(MemberHealthAccess access, CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<MemberHealthAccess> Items, int Total)> GetHealthAccessPageAsync(
         Guid memberId, int page, int pageSize, CancellationToken cancellationToken = default);
 
     // --- Notas internas ---

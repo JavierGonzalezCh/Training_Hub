@@ -33,8 +33,18 @@ public sealed record MemberProfile(
     string? GuardianPhone = null,
     string? GuardianRelationship = null);
 
-/// <summary>Un campo de la ficha que cambió: nombre estable y valores en texto.</summary>
-public sealed record MemberFieldChange(string Field, string? OldValue, string? NewValue);
+/// <summary>
+/// Un campo de la ficha que cambió: nombre estable y valores en texto. <paramref name="IsSensitive"/>
+/// marca los campos de salud: sus filas del historial solo las ve quien tenga el permiso de salud.
+/// </summary>
+public sealed record MemberFieldChange(string Field, string? OldValue, string? NewValue, bool IsSensitive = false);
+
+/// <summary>Datos de salud de la ficha (M3). Datos sensibles (Ley 1581); se editan aparte del resto de la ficha.</summary>
+public sealed record MemberHealthData(
+    string? MedicalConditions,
+    string? Medications,
+    string? TrainingRestrictions,
+    DateOnly? MedicalClearanceDate);
 
 /// <summary>
 /// Persona que asiste al gimnasio. Puede existir sin <see cref="UserId"/> (registrada en recepción,
@@ -101,6 +111,23 @@ public sealed class Member : BaseEntity, ITenantEntity
     /// edición de la ficha no lo toca.
     /// </summary>
     public Guid? TrainerUserId { get; private set; }
+
+    /// <summary>Salud (M3): datos sensibles. Nunca viajan en el listado ni en <c>MemberDetail</c>; salen por <c>/health</c>.</summary>
+    public string? MedicalConditions { get; private set; }
+
+    public string? Medications { get; private set; }
+
+    public string? TrainingRestrictions { get; private set; }
+
+    /// <summary>Fecha del certificado o apto médico.</summary>
+    public DateOnly? MedicalClearanceDate { get; private set; }
+
+    /// <summary>
+    /// Hay condiciones o restricciones anotadas. Es lo único de salud que ve el staff sin permiso. Las
+    /// consultas lo repiten como expresión (<c>MedicalConditions != null || TrainingRestrictions != null</c>);
+    /// los campos se guardan nulos cuando quedan vacíos.
+    /// </summary>
+    public bool HasHealthAlerts => MedicalConditions is not null || TrainingRestrictions is not null;
 
     public string? GuardianName { get; private set; }
 
@@ -195,6 +222,47 @@ public sealed class Member : BaseEntity, ITenantEntity
             }
         }
 
+        return changes;
+    }
+
+    public const int HealthTextMaxLength = 1000;
+
+    /// <summary>
+    /// Reemplaza los datos de salud y devuelve un cambio sensible por cada campo que de verdad cambió.
+    /// Los textos vacíos quedan nulos. La fecha del apto médico no puede ser futura.
+    /// </summary>
+    public IReadOnlyList<MemberFieldChange> UpdateHealth(MemberHealthData data, DateOnly today)
+    {
+        if (data.MedicalClearanceDate is { } clearance && clearance > today)
+        {
+            throw new ValidationDomainException("La fecha del apto médico no puede ser futura.");
+        }
+
+        var conditions = OptionalText(data.MedicalConditions, "Las condiciones médicas", HealthTextMaxLength);
+        var medications = OptionalText(data.Medications, "Los medicamentos", HealthTextMaxLength);
+        var restrictions = OptionalText(data.TrainingRestrictions, "Las restricciones de entrenamiento", HealthTextMaxLength);
+
+        var changes = new List<MemberFieldChange>();
+        void Track(string field, string? before, string? after)
+        {
+            if (!string.Equals(before, after, StringComparison.Ordinal))
+            {
+                changes.Add(new MemberFieldChange(field, before, after, IsSensitive: true));
+            }
+        }
+
+        Track("medical_conditions", MedicalConditions, conditions);
+        Track("medications", Medications, medications);
+        Track("training_restrictions", TrainingRestrictions, restrictions);
+        Track(
+            "medical_clearance_date",
+            MedicalClearanceDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            data.MedicalClearanceDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+        MedicalConditions = conditions;
+        Medications = medications;
+        TrainingRestrictions = restrictions;
+        MedicalClearanceDate = data.MedicalClearanceDate;
         return changes;
     }
 

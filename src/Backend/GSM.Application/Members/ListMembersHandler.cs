@@ -45,7 +45,7 @@ public sealed class ListMembersHandler(
         }
 
         var (items, total) = await members.GetPageAsync(
-            new MemberPageQuery(query.Search?.Trim(), query.Status, query.Tag?.Trim(), page, pageSize, ids, exclude, query.TrainerUserId, query.WithoutTrainer),
+            new MemberPageQuery(query.Search?.Trim(), query.Status, query.Tag?.Trim(), page, pageSize, ids, exclude, query.TrainerUserId, query.WithoutTrainer, query.WithHealthAlerts),
             cancellationToken);
 
         var statuses = await memberships.GetCommercialStatusesAsync(

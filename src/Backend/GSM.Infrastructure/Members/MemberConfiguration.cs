@@ -29,7 +29,13 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
         builder.Property(m => m.Tags).HasColumnType("text[]").IsRequired();
         builder.Property(m => m.Status).HasColumnName("status");
 
+        // Salud (M3): datos sensibles; nulos cuando están vacíos (HasHealthAlerts se deriva de eso).
+        builder.Property(m => m.MedicalConditions).HasMaxLength(Member.HealthTextMaxLength);
+        builder.Property(m => m.Medications).HasMaxLength(Member.HealthTextMaxLength);
+        builder.Property(m => m.TrainingRestrictions).HasMaxLength(Member.HealthTextMaxLength);
+
         builder.Ignore(m => m.IsProfileIncomplete);
+        builder.Ignore(m => m.HasHealthAlerts);
 
         // Un mismo número puede repetirse con otro tipo de documento (cc 123 y ti 123).
         builder.HasIndex(m => new { m.GymId, m.DocumentType, m.DocumentNumber }).IsUnique();
@@ -69,7 +75,27 @@ public sealed class MemberChangeConfiguration : IEntityTypeConfiguration<MemberC
     }
 }
 
-public sealed class MemberNoteConfiguration : IEntityTypeConfiguration<MemberNote>
+public sealed class MemberHealthAccessConfiguration : IEntityTypeConfiguration<MemberHealthAccess>
+{
+    public void Configure(EntityTypeBuilder<MemberHealthAccess> builder)
+    {
+        builder.ToTable("health_access_log", "members");
+
+        builder.Property(a => a.Role).HasMaxLength(20).IsRequired();
+
+        // Una fila por usuario, miembro y día (§10). El repositorio inserta con ON CONFLICT sobre este índice.
+        builder.HasIndex(a => new { a.MemberId, a.UserId, a.AccessedOn }).IsUnique();
+        builder.HasIndex(a => new { a.MemberId, a.AccessedAt });
+        builder.HasIndex(a => a.GymId);
+
+        builder.HasOne<Member>()
+            .WithMany()
+            .HasForeignKey(a => a.MemberId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class MemberNoteConfiguration: IEntityTypeConfiguration<MemberNote>
 {
     public void Configure(EntityTypeBuilder<MemberNote> builder)
     {
