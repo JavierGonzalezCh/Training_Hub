@@ -37,7 +37,8 @@ public sealed record UpdateExerciseRequest(
 /// <summary>
 /// <c>MuscleGroup</c> se deriva del músculo principal (<c>UpperBody</c>, <c>LowerBody</c>, <c>Core</c>,
 /// <c>FullBody</c>) y no se guarda. <c>IsHidden</c>: el gym actual ocultó este ejercicio del sistema.
-/// Los enums salen como texto.
+/// Los enums salen como texto. <c>IsAvailableHere</c>: ¿se puede hacer hoy en este gym? (Equipment §5; sin
+/// inventario siempre <c>true</c>). <c>Machines</c>: las máquinas del gym a las que está ligado (vacío si no hay).
 /// </summary>
 public sealed record ExerciseResponse(
     Guid Id,
@@ -57,8 +58,51 @@ public sealed record ExerciseResponse(
     string? ImageUrl,
     bool IsActive,
     bool IsHidden,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    bool IsAvailableHere = true,
+    IReadOnlyList<EquipmentMachineInfo>? Machines = null);
 
 /// <summary>Duplicar un ejercicio (casi siempre del sistema) como copia del gym.</summary>
 public sealed record DuplicateExerciseRequest(bool HideOriginal = false);
 
+
+/// <summary>
+/// Una máquina del gym a la que está ligado un ejercicio. <c>PhotoUrl</c> ya resuelve foto propia → imagen del
+/// modelo (<c>null</c> = la UI pone el ícono del tipo). <c>Type</c> y <c>Status</c> salen como texto
+/// (<c>Available</c>, <c>Maintenance</c>, <c>OutOfService</c>).
+/// </summary>
+public sealed record EquipmentMachineInfo(
+    Guid Id,
+    string Name,
+    string Type,
+    string? PhotoUrl,
+    string? Zone,
+    string? Instructions,
+    string Status,
+    DateOnly? ExpectedBackOn);
+
+/// <summary>
+/// Disponibilidad de un ejercicio en el gym actual y las máquinas que usa. Con <c>Machines</c> vacío y
+/// <c>IsAvailable = false</c>, el gym no tiene los tipos de equipo que pide el ejercicio.
+/// </summary>
+public sealed record ExerciseEquipmentInfo(bool IsAvailable, IReadOnlyList<EquipmentMachineInfo> Machines);
+
+/// <summary>Modelo del catálogo de máquinas al que el sistema liga un ejercicio. <c>Type</c> sale como texto.</summary>
+public sealed record ExerciseLinkedModel(Guid Id, string Name, string Type);
+
+/// <summary>
+/// Cómo está ligado un ejercicio. <c>Models</c>: ligas del sistema (SuperAdmin). <c>ItemIds</c>: ligas propias del
+/// gym; si hay alguna, solo esas cuentan en este gym (sirven para corregir el ligado automático por modelo).
+/// <c>Machines</c>: las máquinas del gym que resultan de eso.
+/// </summary>
+public sealed record ExerciseEquipmentLinksResponse(
+    IReadOnlyList<ExerciseLinkedModel> Models,
+    IReadOnlyList<Guid> ItemIds,
+    IReadOnlyList<EquipmentMachineInfo> Machines,
+    bool IsAvailableHere);
+
+/// <summary>SuperAdmin: deja el ejercicio del sistema ligado exactamente a estos modelos (máximo 20; vacío = ninguno).</summary>
+public sealed record SetExerciseEquipmentModelsRequest(IReadOnlyList<Guid> ModelIds);
+
+/// <summary>Staff: deja el ejercicio ligado exactamente a estas máquinas del gym (máximo 20; vacío = volver al ligado por modelo).</summary>
+public sealed record SetExerciseEquipmentItemsRequest(IReadOnlyList<Guid> ItemIds);

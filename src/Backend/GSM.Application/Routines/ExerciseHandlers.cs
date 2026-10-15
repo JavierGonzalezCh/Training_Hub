@@ -1,4 +1,5 @@
 ﻿using GSM.Application.Common.Abstractions;
+using GSM.Application.Equipment.Public;
 using GSM.Application.Routines.Abstractions;
 using GSM.Application.Routines.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -6,7 +7,7 @@ using GSM.Domain.Routines;
 
 namespace GSM.Application.Routines;
 
-public sealed class ListExercisesHandler(IExerciseRepository exercises)
+public sealed class ListExercisesHandler(IExerciseRepository exercises, ExerciseEquipmentResolver equipment)
 {
     public async Task<IReadOnlyList<ExerciseResponse>> HandleAsync(
         ExerciseFilter filter, CancellationToken cancellationToken)
@@ -18,11 +19,21 @@ public sealed class ListExercisesHandler(IExerciseRepository exercises)
             ? await exercises.GetHiddenIdsAsync(list.Select(e => e.Id).ToList(), cancellationToken)
             : new HashSet<Guid>();
 
-        return list.Select(e => ExerciseMapper.ToResponse(e, hidden.Contains(e.Id))).ToList();
+        // Disponibilidad en el gym (Equipment §5). Un superadmin sin gym o un gym sin inventario: todo disponible.
+        var availability = await equipment.ResolveAsync(
+            list.Select(ExerciseNeed.Of).ToList(), cancellationToken);
+
+        var visible = filter.OnlyAvailableHere
+            ? list.Where(e => !availability.TryGetValue(e.Id, out var info) || info.IsAvailable).ToList()
+            : list;
+
+        return visible
+            .Select(e => ExerciseMapper.ToResponse(e, hidden.Contains(e.Id), availability.GetValueOrDefault(e.Id)))
+            .ToList();
     }
 }
 
-public sealed class GetExerciseHandler(IExerciseRepository exercises)
+public sealed class GetExerciseHandler(IExerciseRepository exercises, ExerciseEquipmentResolver equipment)
 {
     public async Task<ExerciseResponse> HandleAsync(Guid exerciseId, CancellationToken cancellationToken)
     {
@@ -30,12 +41,16 @@ public sealed class GetExerciseHandler(IExerciseRepository exercises)
             ?? throw new NotFoundException("Ejercicio no encontrado.");
 
         var hidden = await exercises.GetHiddenIdsAsync([exercise.Id], cancellationToken);
-        return ExerciseMapper.ToResponse(exercise, hidden.Contains(exercise.Id));
+        return ExerciseMapper.ToResponse(
+            exercise, hidden.Contains(exercise.Id), await equipment.ResolveOneAsync(exercise, cancellationToken));
     }
 }
 
 public sealed class CreateExerciseHandler(
-    ICurrentUserService currentUser, IExerciseRepository exercises, IUnitOfWork unitOfWork)
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
+    IUnitOfWork unitOfWork)
 {
     public async Task<ExerciseResponse> HandleAsync(
         CreateExerciseRequest request, CancellationToken cancellationToken)
@@ -58,12 +73,16 @@ public sealed class CreateExerciseHandler(
         exercises.Add(exercise);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return ExerciseMapper.ToResponse(exercise);
+        return ExerciseMapper.ToResponse(
+            exercise, false, await equipment.ResolveOneAsync(exercise, cancellationToken));
     }
 }
 
 public sealed class UpdateExerciseHandler(
-    ICurrentUserService currentUser, IExerciseRepository exercises, IUnitOfWork unitOfWork)
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
+    IUnitOfWork unitOfWork)
 {
     public async Task<ExerciseResponse> HandleAsync(
         Guid exerciseId, UpdateExerciseRequest request, CancellationToken cancellationToken)
@@ -86,7 +105,8 @@ public sealed class UpdateExerciseHandler(
             request.IsUnilateral ?? false, request.Difficulty ?? Difficulty.Intermediate);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        return ExerciseMapper.ToResponse(exercise);
+        return ExerciseMapper.ToResponse(
+            exercise, false, await equipment.ResolveOneAsync(exercise, cancellationToken));
     }
 }
 
@@ -170,7 +190,10 @@ public sealed class ShowExerciseHandler(
 /// mismo paso para que el gym quede solo con su versión (solo si el original es del sistema).
 /// </summary>
 public sealed class DuplicateExerciseHandler(
-    ICurrentUserService currentUser, IExerciseRepository exercises, IUnitOfWork unitOfWork)
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
+    IUnitOfWork unitOfWork)
 {
     public async Task<ExerciseResponse> HandleAsync(
         Guid exerciseId, DuplicateExerciseRequest request, CancellationToken cancellationToken)
@@ -195,7 +218,133 @@ public sealed class DuplicateExerciseHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        return ExerciseMapper.ToResponse(copy);
+        return ExerciseMapper.ToResponse(
+            copy, false, await equipment.ResolveOneAsync(copy, cancellationToken));
+    }
+}
+
+/// <summary>
+/// Cómo está ligado un ejercicio a máquinas: las ligas del sistema (modelos), las del gym y las máquinas del gym
+/// que resultan de ambas. Lo ve el staff del gym y el superadmin (que solo ve las ligas de modelo).
+/// </summary>
+public sealed class GetExerciseEquipmentHandler(
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    IExerciseEquipmentRepository links,
+    IEquipmentReader equipment,
+    ExerciseEquipmentResolver resolver)
+{
+    public async Task<ExerciseEquipmentLinksResponse> HandleAsync(Guid exerciseId, CancellationToken cancellationToken)
+    {
+        var exercise = await exercises.GetVisibleByIdAsync(exerciseId, cancellationToken)
+            ?? throw new NotFoundException("Ejercicio no encontrado.");
+
+        var modelIds = (await links.ListModelLinksAsync([exerciseId], cancellationToken))
+            .Select(l => l.ModelId).ToList();
+        var models = (await equipment.GetModelsAsync(modelIds, cancellationToken))
+            .OrderBy(m => m.Name)
+            .Select(m => new ExerciseLinkedModel(m.Id, m.Name, m.Type.ToString()))
+            .ToList();
+
+        if (currentUser.GymId is null)
+        {
+            return new ExerciseEquipmentLinksResponse(models, [], [], true);
+        }
+
+        var itemIds = (await links.ListItemLinksAsync([exerciseId], cancellationToken))
+            .Select(l => l.EquipmentItemId).ToList();
+        var info = await resolver.ResolveOneAsync(exercise, cancellationToken);
+
+        return new ExerciseEquipmentLinksResponse(
+            models, itemIds, info?.Machines ?? [], info?.IsAvailable ?? true);
+    }
+}
+
+/// <summary>
+/// SuperAdmin: deja un ejercicio del sistema ligado exactamente a estos modelos del catálogo de máquinas.
+/// Un modelo inexistente es 422; un ejercicio de un gym, 403.
+/// </summary>
+public sealed class SetExerciseEquipmentModelsHandler(
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    IExerciseEquipmentRepository links,
+    IEquipmentReader equipment,
+    IUnitOfWork unitOfWork)
+{
+    public async Task HandleAsync(
+        Guid exerciseId, SetExerciseEquipmentModelsRequest request, CancellationToken cancellationToken)
+    {
+        if (!currentUser.IsSuperAdmin)
+        {
+            throw new ForbiddenDomainException("Solo un superadmin liga ejercicios del sistema a modelos de máquina.");
+        }
+
+        // Un superadmin solo ve el catálogo del sistema, así que un ejercicio de un gym sale como no encontrado.
+        _ = await exercises.GetVisibleByIdAsync(exerciseId, cancellationToken)
+            ?? throw new NotFoundException("Ejercicio no encontrado.");
+
+        var ids = ExerciseLinkIds.Clean(request.ModelIds);
+        var found = await equipment.GetModelsAsync(ids, cancellationToken);
+        if (found.Count != ids.Count)
+        {
+            throw new ValidationDomainException("Algún modelo de máquina no existe.");
+        }
+
+        await links.ReplaceModelLinksAsync(exerciseId, ids, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}
+
+/// <summary>
+/// Staff: deja un ejercicio (del sistema o del gym) ligado exactamente a estas máquinas del gym. Sirve para las
+/// máquinas propias o para corregir el ligado automático; vacío = volver al ligado por modelo.
+/// Una máquina que no es del gym o está dada de baja es 422.
+/// </summary>
+public sealed class SetExerciseEquipmentItemsHandler(
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    IExerciseEquipmentRepository links,
+    IEquipmentReader equipment,
+    IUnitOfWork unitOfWork)
+{
+    public async Task HandleAsync(
+        Guid exerciseId, SetExerciseEquipmentItemsRequest request, CancellationToken cancellationToken)
+    {
+        var gymId = ExerciseVisibility.RequireGym(currentUser);
+        _ = await exercises.GetVisibleByIdAsync(exerciseId, cancellationToken)
+            ?? throw new NotFoundException("Ejercicio no encontrado.");
+
+        var ids = ExerciseLinkIds.Clean(request.ItemIds);
+        var inventory = (await equipment.GetActiveItemsAsync(gymId, cancellationToken))
+            .Select(i => i.Id).ToHashSet();
+        if (ids.Any(id => !inventory.Contains(id)))
+        {
+            throw new ValidationDomainException("Alguna máquina no existe en el inventario del gym.");
+        }
+
+        await links.ReplaceItemLinksAsync(gymId, exerciseId, ids, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}
+
+internal static class ExerciseLinkIds
+{
+    public const int Max = 20;
+
+    public static IReadOnlyList<Guid> Clean(IReadOnlyList<Guid>? ids)
+    {
+        var clean = (ids ?? []).Distinct().ToList();
+        if (clean.Count > Max)
+        {
+            throw new ValidationDomainException($"Un ejercicio se liga como máximo a {Max} máquinas o modelos.");
+        }
+
+        if (clean.Contains(Guid.Empty))
+        {
+            throw new ValidationDomainException("Identificador de máquina no válido.");
+        }
+
+        return clean;
     }
 }
 

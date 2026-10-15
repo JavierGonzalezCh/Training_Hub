@@ -9,7 +9,8 @@ namespace GSM.Application.Routines;
 /// </summary>
 public static class ExerciseMapper
 {
-    public static ExerciseResponse ToResponse(Exercise exercise, bool isHidden = false)
+    public static ExerciseResponse ToResponse(
+        Exercise exercise, bool isHidden = false, ExerciseEquipmentInfo? availability = null)
         => new(
             exercise.Id,
             exercise.GymId,
@@ -28,5 +29,7 @@ public static class ExerciseMapper
             exercise.ImageUrl,
             exercise.IsActive,
             isHidden,
-            exercise.CreatedAt);
+            exercise.CreatedAt,
+            availability?.IsAvailable ?? true,
+            availability?.Machines ?? []);
 }

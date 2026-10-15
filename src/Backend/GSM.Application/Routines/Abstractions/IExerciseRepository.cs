@@ -6,6 +6,7 @@ namespace GSM.Application.Routines.Abstractions;
 /// <summary>
 /// Filtro del listado del catálogo. Todo opcional. <c>MuscleGroup</c> es el primer paso del filtro en
 /// dos pasos (grupo → músculo); <c>IncludeHidden</c> trae también los ejercicios del sistema que el gym ocultó.
+/// <c>OnlyAvailableHere</c> ("solo lo que se puede hacer en mi gym") lo aplica el caso de uso con Equipment, no el repositorio.
 /// </summary>
 public sealed record ExerciseFilter(
     string? Search,
@@ -15,11 +16,13 @@ public sealed record ExerciseFilter(
     MuscleGroup? MuscleGroup = null,
     ExerciseType? ExerciseType = null,
     Difficulty? Difficulty = null,
-    bool IncludeHidden = false);
+    bool IncludeHidden = false,
+    bool OnlyAvailableHere = false);
 
 /// <summary>Lo mínimo de un ejercicio que necesitan las respuestas de las rutinas.</summary>
 public sealed record ExerciseSummary(
-    string Name, Muscle PrimaryMuscle, TrackingType TrackingType, bool IsUnilateral);
+    string Name, Muscle PrimaryMuscle, TrackingType TrackingType, bool IsUnilateral,
+    IReadOnlyList<EquipmentType>? Equipment = null);
 
 /// <summary>
 /// Acceso a <see cref="Exercise"/>. **Toda** consulta aplica el filtro híbrido

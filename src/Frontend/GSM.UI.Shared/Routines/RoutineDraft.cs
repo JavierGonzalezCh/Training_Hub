@@ -122,6 +122,7 @@ public sealed class RoutineDraft
                 Group = e.Group,
                 RestSeconds = e.RestSeconds,
                 Notes = e.Notes,
+                Equipment = e.Equipment,
             }).ToList(),
         }).ToList(),
     };
@@ -294,6 +295,15 @@ public sealed class DraftExercise
     public int? RestSeconds { get; set; } = 60;
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Disponibilidad del ejercicio en el gym y sus máquinas (Equipment §5). Viene de la rutina guardada o del
+    /// ejercicio elegido; solo alimenta el aviso del editor, nunca se envía al servidor.
+    /// </summary>
+    public ExerciseEquipmentInfo? Equipment { get; set; }
+
+    /// <summary>Aviso del editor ("Prensa 45° en mantenimiento hasta el 15 oct"); no impide guardar.</summary>
+    public string? EquipmentWarning => EquipmentNotice.Warning(Equipment);
+
     /// <summary>Qué campos de cada serie aplican al ejercicio elegido.</summary>
     public TrackingFields Fields => TrackingFields.Of(Exercise?.TrackingType);
 
@@ -302,6 +312,13 @@ public sealed class DraftExercise
     {
         var before = Exercise?.TrackingType;
         Exercise = exercise;
+        Equipment = exercise is null
+            ? null
+            : new ExerciseEquipmentInfo
+            {
+                IsAvailable = exercise.IsAvailableHere != false,
+                Machines = exercise.Machines?.ToList() ?? [],
+            };
         if (exercise is not null && exercise.TrackingType != before)
         {
             Sets = DraftSet.DefaultsFor(exercise.TrackingType);

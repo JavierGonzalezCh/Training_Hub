@@ -66,6 +66,8 @@ public sealed record SetTargetResponse(
 /// <c>TrackingType</c> (qué se mide: <c>RepsWeight</c>, <c>Reps</c>, <c>Time</c>, <c>Distance</c>, <c>TimeDistance</c>),
 /// <c>IsUnilateral</c> y <c>MuscleGroup</c> (<c>UpperBody</c>, <c>LowerBody</c>, <c>Core</c>, <c>FullBody</c>) los hereda
 /// la línea de su ejercicio. <c>SetTargets</c> trae solo los campos que corresponden al <c>TrackingType</c>.
+/// <c>Equipment</c>: disponibilidad y máquinas del ejercicio en el gym (foto, zona, instrucciones, estado);
+/// <c>null</c> si el gym no tiene inventario o no se pudo resolver.
 /// </summary>
 public sealed record RoutineExerciseResponse(
     Guid Id,
@@ -78,7 +80,8 @@ public sealed record RoutineExerciseResponse(
     string? Notes,
     string TrackingType = "RepsWeight",
     bool IsUnilateral = false,
-    string MuscleGroup = "FullBody");
+    string MuscleGroup = "FullBody",
+    ExerciseEquipmentInfo? Equipment = null);
 
 public sealed record RoutineDayResponse(
     Guid Id,
