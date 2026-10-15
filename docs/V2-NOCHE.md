@@ -181,6 +181,12 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **C3-4:** la penalización se levanta desde "Penalizados" en Clases, no desde la ficha del miembro. ¿También en la ficha?
 - **C3-5:** los eventos `BookingPenaltyApplied`/`Lifted` aún **no avisan al miembro** (falta un consumidor en Notifications; ¿va en C8?).
 
+- **R4-2:** una serie no exige objetivo (reps, tiempo o distancia); solo mínimo 1 serie por línea. ¿Se exige?
+- **R4-3:** las líneas de una superserie no tienen que tener el mismo número de series; el backend no exige mínimo 2 líneas (la UI suelta las de una sola). Confirmar.
+- **R4-4:** los campos que no aplican al tipo de medida se descartan en silencio (no 422). Confirmar.
+- **R4-5:** planeado vs hecho se compara en el cliente: gana la peor medida; una serie al fallo se cumple con ≥ 1 repetición. Confirmar.
+- **R4 (dato):** la migración es irreversible en datos (las repeticiones no numéricas pasan a notas). Cuando entre R3b (peso + distancia), añadir esa medida a las series.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
