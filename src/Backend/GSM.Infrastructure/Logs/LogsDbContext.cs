@@ -73,6 +73,28 @@ public sealed class SlowRequestRow : LogRowBase
     public int StatusCode { get; set; }
 }
 
+/// <summary>Fila de <c>logs.external_failures</c> (particionada por mes).</summary>
+public sealed class ExternalFailureRow : LogRowBase
+{
+    public string Provider { get; set; } = "";
+    public string Operation { get; set; } = "";
+    public int? StatusCode { get; set; }
+    public string? ResponseBody { get; set; }
+    public int DurationMs { get; set; }
+    public int Attempt { get; set; } = 1;
+}
+
+/// <summary>Fila de <c>logs.client_errors</c> (particionada por mes).</summary>
+public sealed class ClientErrorRow : LogRowBase
+{
+    public string Platform { get; set; } = "";
+    public string? Route { get; set; }
+    public string ExceptionType { get; set; } = "";
+    public string Message { get; set; } = "";
+    public string? StackTrace { get; set; }
+    public string? DeviceInfo { get; set; }
+}
+
 /// <summary>Fila de <c>logs.heartbeats</c>.</summary>
 public sealed class HeartbeatRow
 {
@@ -108,6 +130,8 @@ public sealed class LogsDbContext(DbContextOptions<LogsDbContext> options) : DbC
     public DbSet<BusinessRejectionRow> BusinessRejections => Set<BusinessRejectionRow>();
     public DbSet<SecurityEventRow> SecurityEvents => Set<SecurityEventRow>();
     public DbSet<SlowRequestRow> SlowRequests => Set<SlowRequestRow>();
+    public DbSet<ExternalFailureRow> ExternalFailures => Set<ExternalFailureRow>();
+    public DbSet<ClientErrorRow> ClientErrors => Set<ClientErrorRow>();
     public DbSet<HeartbeatRow> Heartbeats => Set<HeartbeatRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -127,6 +151,8 @@ public sealed class LogsDbContext(DbContextOptions<LogsDbContext> options) : DbC
         modelBuilder.Entity<BusinessRejectionRow>().ToTable("business_rejections").HasKey(e => e.Id);
         modelBuilder.Entity<SecurityEventRow>().ToTable("security_events").HasKey(e => e.Id);
         modelBuilder.Entity<SlowRequestRow>().ToTable("slow_requests").HasKey(e => e.Id);
+        modelBuilder.Entity<ExternalFailureRow>().ToTable("external_failures").HasKey(e => e.Id);
+        modelBuilder.Entity<ClientErrorRow>().ToTable("client_errors").HasKey(e => e.Id);
 
         modelBuilder.Entity<JobRunRow>().ToTable("job_runs").HasKey(e => e.Id);
 

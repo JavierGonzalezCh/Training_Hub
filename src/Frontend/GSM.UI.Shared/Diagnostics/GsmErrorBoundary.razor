@@ -1,0 +1,54 @@
+@inherits ErrorBoundaryBase
+@using GSM.UI.Shared.Diagnostics
+
+@if (CurrentException is null)
+{
+    @ChildContent
+}
+else
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="my-4" data-testid="error-boundary">
+        <div>@(_code is null ? "Algo salió mal." : $"Algo salió mal · código {_code}")</div>
+        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="Recover" Class="mt-2">Reintentar</MudButton>
+    </MudAlert>
+}
+
+@implements IDisposable
+
+@code {
+    [Inject] private IServiceProvider Services { get; set; } = default!;
+
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    private string? _code;
+
+    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
+
+    // Un error de una pantalla no debe dejar atascado el resto del panel: al navegar, el borde se recupera.
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (CurrentException is not null)
+        {
+            _ = InvokeAsync(Recover);
+        }
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+
+    protected override Task OnErrorAsync(Exception exception)
+    {
+        // El reporte es opcional: si el host no lo registra (o falla), solo se muestra el aviso.
+        try
+        {
+            _code = Services.GetService(typeof(ClientErrorReporter)) is ClientErrorReporter reporter
+                ? reporter.Report(exception)
+                : null;
+        }
+        catch
+        {
+            _code = null;
+        }
+
+        return Task.CompletedTask;
+    }
+}

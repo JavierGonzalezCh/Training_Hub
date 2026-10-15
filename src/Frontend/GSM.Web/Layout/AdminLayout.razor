@@ -46,7 +46,9 @@
 
     <MudMainContent Class="gsm-main">
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="gsm-page">
-            @Body
+            <GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
+                @Body
+            </GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
         </MudContainer>
     </MudMainContent>
 </MudLayout>

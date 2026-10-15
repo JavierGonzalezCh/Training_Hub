@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using GSM.Application.Common.Logs;
 using GSM.Application.Notifications.Abstractions;
 using GSM.Domain.Notifications;
 using Microsoft.Extensions.Logging;
@@ -31,14 +33,17 @@ public sealed class FcmPushSender : IPushSender
     private readonly HttpClient _httpClient;
     private readonly FcmOptions _options;
     private readonly ILogger<FcmPushSender> _logger;
+    private readonly ILogStore? _logStore;
     private readonly SemaphoreSlim _tokenLock = new(1, 1);
     private readonly ServiceAccount? _account;
 
     private string? _accessToken;
     private DateTimeOffset _accessTokenExpiresAt;
 
-    public FcmPushSender(HttpClient httpClient, IOptions<FcmOptions> options, ILogger<FcmPushSender> logger)
+    public FcmPushSender(
+        HttpClient httpClient, IOptions<FcmOptions> options, ILogger<FcmPushSender> logger, ILogStore? logStore = null)
     {
+        _logStore = logStore;
         _httpClient = httpClient;
         _options = options.Value;
         _logger = logger;
@@ -54,6 +59,27 @@ public sealed class FcmPushSender : IPushSender
             return PushSendResult.NotConfigured;
         }
 
+        // LG3: toda falla (red, OAuth, 5xx, cuota) queda en logs.external_failures y se propaga igual que antes
+        // para que el dispatcher reintente. Un token que FCM ya no reconoce es un resultado normal, no una falla.
+        var started = Stopwatch.GetTimestamp();
+        try
+        {
+            return await SendCoreAsync(message, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // El mensaje de la excepción es "FCM respondió {status}: {cuerpo recortado}"; la limpieza (§3) la hace el LogStore.
+            _logStore?.RecordExternalFailure(new ExternalFailureLogEntry(
+                ExternalProviders.Fcm, ExternalOperations.Send,
+                ex is HttpRequestException { StatusCode: { } status } ? (int)status : null,
+                $"{ex.GetType().Name}: {ex.Message}",
+                (int)Math.Min(Stopwatch.GetElapsedTime(started).TotalMilliseconds, int.MaxValue)));
+            throw;
+        }
+    }
+
+    private async Task<PushSendResult> SendCoreAsync(PushMessage message, CancellationToken cancellationToken)
+    {
         var accessToken = await GetAccessTokenAsync(cancellationToken);
         using var request = new HttpRequestMessage(
             HttpMethod.Post, $"https://fcm.googleapis.com/v1/projects/{_options.ProjectId}/messages:send")
@@ -82,7 +108,8 @@ public sealed class FcmPushSender : IPushSender
             _accessToken = null; // el próximo intento pide uno nuevo
         }
 
-        throw new HttpRequestException($"FCM respondió {(int)response.StatusCode}: {Truncate(body, 300)}");
+        throw new HttpRequestException(
+            $"FCM respondió {(int)response.StatusCode}: {Truncate(body, 300)}", null, response.StatusCode);
     }
 
     internal static object BuildPayload(PushMessage message)
@@ -144,7 +171,8 @@ public sealed class FcmPushSender : IPushSender
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                throw new HttpRequestException($"Google OAuth respondió {(int)response.StatusCode}.");
+                throw new HttpRequestException(
+                    $"Google OAuth respondió {(int)response.StatusCode}.", null, response.StatusCode);
             }
 
             var node = JsonNode.Parse(json)!;

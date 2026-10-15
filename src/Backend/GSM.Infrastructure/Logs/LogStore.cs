@@ -189,6 +189,57 @@ public sealed class LogStore : BackgroundService, ILogStore
         });
     }
 
+    public void RecordExternalFailure(ExternalFailureLogEntry entry)
+    {
+        Guard(() =>
+        {
+            var row = new ExternalFailureRow
+            {
+                Provider = Clip(entry.Provider, 32)!,
+                Operation = Clip(entry.Operation, 64)!,
+                StatusCode = entry.StatusCode,
+                ResponseBody = entry.ResponseBody is null
+                    ? null
+                    : Clip(LogSanitizer.SanitizeText(Clip(entry.ResponseBody, MessageMax)!), MessageMax),
+                DurationMs = entry.DurationMs,
+                Attempt = entry.Attempt,
+            };
+            Stamp(row);
+            Enqueue(row);
+        });
+    }
+
+    public void RecordClientError(ClientErrorLogEntry entry)
+    {
+        Guard(() =>
+        {
+            var row = new ClientErrorRow
+            {
+                Platform = Clip(entry.Platform, 32)!,
+                Route = entry.Route is null ? null : Clip(LogSanitizer.StripQuery(entry.Route), 512),
+                ExceptionType = Clip(LogSanitizer.SanitizeText(entry.ExceptionType), 256)!,
+                Message = Clip(LogSanitizer.SanitizeText(Clip(entry.Message, MessageMax)!), MessageMax)!,
+                StackTrace = entry.StackTrace is null
+                    ? null
+                    : Clip(LogSanitizer.SanitizeText(Clip(entry.StackTrace, StackTraceMax)!), StackTraceMax),
+                DeviceInfo = Clip(entry.DeviceInfo, 512),
+            };
+            Stamp(row);
+            if (!string.IsNullOrWhiteSpace(entry.TraceId))
+            {
+                // El código de la petición que falló (el que vio el usuario); el de este envío no serviría para buscar.
+                row.TraceId = Clip(entry.TraceId.Trim(), 64);
+            }
+
+            if (!string.IsNullOrWhiteSpace(entry.AppVersion))
+            {
+                row.AppVersion = Clip(entry.AppVersion.Trim(), 64);
+            }
+
+            Enqueue(row);
+        });
+    }
+
     public void RecordHeartbeat(string process, DateTimeOffset at) =>
         Guard(() => Enqueue(new HeartbeatRow { Process = Clip(process, 64)!, LastBeatAt = at }));
 
@@ -303,6 +354,8 @@ public sealed class LogStore : BackgroundService, ILogStore
                     case BusinessRejectionRow row: db.BusinessRejections.Add(row); break;
                     case SecurityEventRow row: db.SecurityEvents.Add(row); break;
                     case SlowRequestRow row: db.SlowRequests.Add(row); break;
+                    case ExternalFailureRow row: db.ExternalFailures.Add(row); break;
+                    case ClientErrorRow row: db.ClientErrors.Add(row); break;
                 }
             }
 

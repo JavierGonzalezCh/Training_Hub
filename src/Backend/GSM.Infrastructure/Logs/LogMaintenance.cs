@@ -17,7 +17,7 @@ public sealed class LogMaintenance(IDbContextFactory<LogsDbContext> contextFacto
 
     /// <summary>Tablas particionadas por mes sobre <c>occurred_at</c>; sus particiones se llaman <c>&lt;tabla&gt;_YYYYMM</c>.</summary>
     public static readonly string[] PartitionedTables =
-        ["errors", "business_rejections", "security_events", "slow_requests"];
+        ["errors", "business_rejections", "security_events", "slow_requests", "external_failures", "client_errors"];
 
     /// <summary>Cuántos meses por delante mantiene creados la purga.</summary>
     public const int MonthsAhead = 12;
