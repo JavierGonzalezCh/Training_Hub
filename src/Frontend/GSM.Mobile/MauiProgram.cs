@@ -33,6 +33,8 @@ public static class MauiProgram
         builder.Services.AddGsmMemberUi();
         builder.Services.AddSingleton<IQrScanner, ZxingQrScanner>();
         builder.Services.AddSingleton<GSM.UI.Shared.IClipboard, MauiClipboard>();
+        builder.Services.AddSingleton<GSM.UI.Shared.Diagnostics.IClientEnvironment, MauiClientEnvironment>();
+        MauiCrashReporter.Install(ApiBaseUrl);
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

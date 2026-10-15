@@ -27,6 +27,12 @@ public interface ILogStore
     /// <summary>Una petición que tardó más que <c>Logs:SlowRequestMs</c>.</summary>
     void RecordSlowRequest(SlowRequestLogEntry entry);
 
+    /// <summary>Una llamada fallida a un servicio externo (Resend, R2, Firebase).</summary>
+    void RecordExternalFailure(ExternalFailureLogEntry entry);
+
+    /// <summary>Un error que reportó el navegador o la app (<c>POST /api/logs/client</c>).</summary>
+    void RecordClientError(ClientErrorLogEntry entry);
+
     /// <summary>Marca que un proceso sigue vivo (upsert por nombre de proceso).</summary>
     void RecordHeartbeat(string process, DateTimeOffset at);
 
@@ -101,6 +107,58 @@ public sealed record SlowRequestLogEntry(
     string? Endpoint,
     int DurationMs,
     int StatusCode);
+
+/// <param name="Provider">Ver <see cref="ExternalProviders"/>.</param>
+/// <param name="Operation">Ver <see cref="ExternalOperations"/>.</param>
+/// <param name="ResponseBody">Respuesta del proveedor; la implementación la limpia (§3) y la recorta.</param>
+/// <param name="Attempt">Número de intento (1 si no hay reintentos propios).</param>
+public sealed record ExternalFailureLogEntry(
+    string Provider,
+    string Operation,
+    int? StatusCode,
+    string? ResponseBody,
+    int DurationMs,
+    int Attempt = 1);
+
+/// <summary>Plataformas válidas de <c>logs.client_errors</c> (docs/GSM-logs.md §4.6).</summary>
+public static class ClientPlatforms
+{
+    public const string WebPanel = "web_panel";
+    public const string WebMember = "web_member";
+    public const string Android = "android";
+    public const string Ios = "ios";
+
+    public static readonly string[] All = [WebPanel, WebMember, Android, Ios];
+}
+
+/// <param name="TraceId">El código de rastreo de la petición que falló, si el cliente lo tenía; si no, el de este envío.</param>
+/// <param name="Route">Pantalla donde pasó; la implementación le quita la consulta (puede llevar códigos).</param>
+/// <param name="AppVersion">Versión del cliente; si es <c>null</c> se usa la de la API.</param>
+public sealed record ClientErrorLogEntry(
+    string Platform,
+    string? Route,
+    string ExceptionType,
+    string Message,
+    string? StackTrace,
+    string? DeviceInfo,
+    string? TraceId = null,
+    string? AppVersion = null);
+
+public static class ExternalProviders
+{
+    public const string Resend = "resend";
+    public const string R2 = "r2";
+    public const string Fcm = "fcm";
+}
+
+public static class ExternalOperations
+{
+    public const string SendEmail = "send_email";
+    public const string Upload = "upload";
+    public const string Delete = "delete";
+    public const string Send = "send";
+    public const string Auth = "auth";
+}
 
 /// <summary>Nombres de los eventos de <c>logs.security_events</c> (docs/GSM-logs.md §4.7).</summary>
 public static class SecurityEventTypes

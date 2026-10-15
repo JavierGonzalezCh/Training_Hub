@@ -38,7 +38,8 @@ public static class NotificationsInfrastructureRegistration
             services.AddSingleton<IPushSender>(sp => new FcmPushSender(
                 sp.GetRequiredService<IHttpClientFactory>().CreateClient("fcm"),
                 sp.GetRequiredService<IOptions<FcmOptions>>(),
-                sp.GetRequiredService<ILogger<FcmPushSender>>()));
+                sp.GetRequiredService<ILogger<FcmPushSender>>(),
+                sp.GetRequiredService<GSM.Application.Common.Logs.ILogStore>()));
         }
         else
         {

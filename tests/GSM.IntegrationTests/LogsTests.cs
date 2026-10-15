@@ -346,6 +346,55 @@ public sealed class LogsTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal(1, await check.SlowRequests.CountAsync(e => e.TraceId == marker));
     }
 
+    [Fact]
+    public async Task Lg3_tables_are_partitioned_by_month_and_purged_like_errors()
+    {
+        await using var host = TestHost();
+        var maintenance = host.Services.GetRequiredService<LogMaintenance>();
+        var now = DateTimeOffset.UtcNow;
+        var old = now.AddDays(-800);
+        var recent = now.AddDays(-2);
+        var marker = $"lg3-{Guid.NewGuid():N}";
+
+        foreach (var table in new[] { "external_failures", "client_errors" })
+        {
+            await maintenance.EnsurePartitionAsync(table, old);
+        }
+
+        await using (var db = OpenLogs(host))
+        {
+            db.ExternalFailures.AddRange(
+                new ExternalFailureRow { Id = Guid.CreateVersion7(), OccurredAt = old, TraceId = marker, Provider = "resend", Operation = "send_email", DurationMs = 10 },
+                new ExternalFailureRow { Id = Guid.CreateVersion7(), OccurredAt = recent, TraceId = marker, Provider = "resend", Operation = "send_email", DurationMs = 10 });
+            db.ClientErrors.AddRange(
+                new ClientErrorRow { Id = Guid.CreateVersion7(), OccurredAt = old, TraceId = marker, Platform = "android", ExceptionType = "T", Message = "m" },
+                new ClientErrorRow { Id = Guid.CreateVersion7(), OccurredAt = recent, TraceId = marker, Platform = "android", ExceptionType = "T", Message = "m" });
+            await db.SaveChangesAsync();
+            await db.Heartbeats.Where(h => h.Process == LogMaintenance.PurgeHeartbeat).ExecuteDeleteAsync();
+        }
+
+        var result = await maintenance.RunDailyIfDueAsync();
+
+        Assert.NotNull(result);
+        Assert.True(result!.PartitionsDropped >= 2);               // una partición vieja por cada tabla nueva
+        await using var check = OpenLogs(host);
+        Assert.Equal(1, await check.ExternalFailures.CountAsync(e => e.TraceId == marker));
+        Assert.Equal(1, await check.ClientErrors.CountAsync(e => e.TraceId == marker));
+    }
+
+    [Fact]
+    public void Sanitizer_cleans_free_text_and_strips_route_queries()
+    {
+        var clean = LogSanitizer.SanitizeText(
+            "falló Bearer abc.def-ghi para ana@example.com con password=hunter2 y eyJhbGciOi.eyJzdWIiOi.firma");
+
+        Assert.DoesNotContain("abc.def-ghi", clean);
+        Assert.DoesNotContain("ana@example.com", clean);
+        Assert.DoesNotContain("hunter2", clean);
+        Assert.DoesNotContain("eyJhbGciOi", clean);
+        Assert.Equal("/app/registro", LogSanitizer.StripQuery("/app/registro?code=XYZ#frag"));
+    }
+
     // ------------------------------------------------------------------ utilidades puras
 
     [Fact]

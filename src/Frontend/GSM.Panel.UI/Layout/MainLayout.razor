@@ -85,7 +85,9 @@
                                       Title="Activa los avisos del gimnasio"
                                       Message="Recibe en este teléfono las alertas del gimnasio aunque el panel esté cerrado. Elige cuáles quieres en «Avisos en el teléfono»." />
             </AuthorizeView>
-            @Body
+            <GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
+                @Body
+            </GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
         </MudContainer>
     </MudMainContent>
     <BottomNav />

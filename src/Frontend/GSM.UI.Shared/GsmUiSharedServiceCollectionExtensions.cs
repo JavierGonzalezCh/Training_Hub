@@ -39,6 +39,11 @@ public static class GsmUiSharedServiceCollectionExtensions
         // Push (N2): cada host registra su IPushNotifications (la web, el navegador); sin uno, no hay push.
         services.TryAddScoped<GSM.UI.Shared.Push.IPushNotifications, GSM.UI.Shared.Push.UnsupportedPushNotifications>();
         services.AddScoped<GSM.UI.Shared.Push.PushRegistrationService>();
+
+        // Errores del cliente (LG3): cada host registra su IClientEnvironment; el reporte alimenta logs.client_errors.
+        services.AddScoped<GSM.UI.Shared.Diagnostics.ClientErrorReporter>();
+        services.AddSingleton<Microsoft.Extensions.Logging.ILoggerProvider>(
+            sp => new GSM.UI.Shared.Diagnostics.ClientErrorLoggerProvider(sp));
         return services;
     }
 }
