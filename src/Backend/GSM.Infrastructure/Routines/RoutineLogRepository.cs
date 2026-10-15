@@ -49,9 +49,6 @@ public sealed class RoutineLogRepository(GsmDbContext dbContext) : IRoutineLogRe
                       log.RoutineExerciseId,
                       ex.ExerciseId,
                       catalog != null ? catalog.Name : "?",
-                      log.SetsDone,
-                      log.RepsDone,
-                      log.WeightKg,
                       log.Notes,
                       log.CompletedAt,
                       log.Sets))

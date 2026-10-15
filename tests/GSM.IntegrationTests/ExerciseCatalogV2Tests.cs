@@ -167,9 +167,9 @@ public sealed class ExerciseCatalogV2Tests(ApiFactory factory) : IClassFixture<A
                     [
                         new RoutineDayInput(null, false,
                         [
-                            new RoutineExerciseInput(hamstringId, 3, "8", null, 60, null),
-                            new RoutineExerciseInput(lumbarId, 3, "30", null, 60, null),
-                            new RoutineExerciseInput(hamstringId, 3, "8", null, 60, null),
+                            new RoutineExerciseInput(hamstringId, TestSets.Normal(3, 8), 60, null),
+                            new RoutineExerciseInput(lumbarId, TestSets.Normal(3, 30), 60, null),
+                            new RoutineExerciseInput(hamstringId, TestSets.Normal(3, 8), 60, null),
                         ]),
                     ]),
                     default);
@@ -210,7 +210,7 @@ public sealed class ExerciseCatalogV2Tests(ApiFactory factory) : IClassFixture<A
                 var routine = await scope.ServiceProvider.GetRequiredService<AssignRoutineHandler>().HandleAsync(
                     world.MemberA,
                     new SaveRoutineRequest("Con remo", null,
-                        [new RoutineDayInput("Espalda", false, [new RoutineExerciseInput(systemId, 3, "8-12", null, 60, null)])]),
+                        [new RoutineDayInput("Espalda", false, [new RoutineExerciseInput(systemId, TestSets.Normal(3, 8, 12), 60, null)])]),
                     default);
                 routineId = routine.Id;
             }

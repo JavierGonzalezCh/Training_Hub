@@ -32,10 +32,20 @@ public sealed class RoutineExerciseInputValidator : AbstractValidator<RoutineExe
     public RoutineExerciseInputValidator()
     {
         RuleFor(x => x.ExerciseId).NotEmpty();
-        RuleFor(x => x.TargetSets).GreaterThanOrEqualTo(1);
-        RuleFor(x => x.TargetReps).NotEmpty().MaximumLength(30);
-        RuleFor(x => x.TargetWeightKg).GreaterThanOrEqualTo(0).When(x => x.TargetWeightKg.HasValue);
+        RuleFor(x => x.SetTargets).NotEmpty().Must(t => t is null || t.Count <= 30)
+            .WithMessage("Una línea admite como máximo 30 series.");
+        RuleForEach(x => x.SetTargets).SetValidator(new SetTargetInputValidator());
+        RuleFor(x => x.Group).GreaterThanOrEqualTo(1).When(x => x.Group.HasValue);
         RuleFor(x => x.RestSeconds).GreaterThanOrEqualTo(0).When(x => x.RestSeconds.HasValue);
         RuleFor(x => x.Notes).MaximumLength(500);
+    }
+}
+
+public sealed class SetTargetInputValidator : AbstractValidator<SetTargetInput>
+{
+    public SetTargetInputValidator()
+    {
+        RuleFor(x => x.SetType).Must(t => GSM.Domain.Routines.SetTypes.Parse(t) is not null)
+            .WithMessage("El tipo de serie debe ser \"normal\", \"warmup\", \"drop\" o \"failure\".");
     }
 }

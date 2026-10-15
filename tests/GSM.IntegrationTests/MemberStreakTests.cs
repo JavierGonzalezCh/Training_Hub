@@ -120,9 +120,9 @@ public sealed class MemberStreakTests(ApiFactory factory) : IClassFixture<ApiFac
 
             var request = new SaveRoutineRequest("PPL", null,
             [
-                new RoutineDayInput("D1", false, [new RoutineExerciseInput(exerciseId, 3, "10", null, 60, null)]),
-                new RoutineDayInput("D2", false, [new RoutineExerciseInput(exerciseId, 3, "10", null, 60, null)]),
-                new RoutineDayInput("D3", false, [new RoutineExerciseInput(exerciseId, 3, "10", null, 60, null)]),
+                new RoutineDayInput("D1", false, [new RoutineExerciseInput(exerciseId, TestSets.Normal(3, 10), 60, null)]),
+                new RoutineDayInput("D2", false, [new RoutineExerciseInput(exerciseId, TestSets.Normal(3, 10), 60, null)]),
+                new RoutineDayInput("D3", false, [new RoutineExerciseInput(exerciseId, TestSets.Normal(3, 10), 60, null)]),
                 new RoutineDayInput(null, true, []),
             ]);
             await scope.ServiceProvider.GetRequiredService<AssignRoutineHandler>()

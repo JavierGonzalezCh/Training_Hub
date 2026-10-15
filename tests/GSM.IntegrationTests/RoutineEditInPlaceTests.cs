@@ -39,13 +39,13 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
         var w = await SeedAsync();
         await LogAsync(w, w.Lines[0]);
 
-        var request = Request(w, mutateLine: (i, line) => i == 0 ? line with { TargetSets = 5, TargetReps = "6-8" } : line);
+        var request = Request(w, mutateLine: (i, line) => i == 0 ? line with { SetTargets = TestSets.Normal(5, 6, 8) } : line);
         var updated = await UpdateAsync(w, request);
 
         var first = updated.Days.Single(d => !d.IsRest).Exercises.First();
         Assert.Equal(w.Lines[0], first.Id);
-        Assert.Equal(5, first.TargetSets);
-        Assert.Equal("6-8", first.TargetReps);
+        Assert.Equal(5, first.SetTargets.Count);
+        Assert.All(first.SetTargets, s => Assert.Equal((6, 8), (s.RepsMin, s.RepsMax)));
         Assert.Equal(1, await CountLogsAsync(w));
     }
 
@@ -79,7 +79,7 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
             // Registrar sobre una línea retirada ya no procede.
             await Assert.ThrowsAsync<ConflictException>(() =>
                 scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
-                    w.Lines[2], new LogRoutineExerciseRequest(null, null, null, null), default));
+                    w.Lines[2], new LogRoutineExerciseRequest(null), default));
         }
     }
 
@@ -88,7 +88,7 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
     {
         var w = await SeedAsync();
 
-        var request = Request(w, addLine: new RoutineExerciseInput(w.CatalogIds[3], 2, "15", null, 30, null));
+        var request = Request(w, addLine: new RoutineExerciseInput(w.CatalogIds[3], TestSets.Normal(2, 15), 30, null));
         var updated = await UpdateAsync(w, request);
 
         var lines = updated.Days.Single(d => !d.IsRest).Exercises;
@@ -108,8 +108,8 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
         var request = new SaveRoutineRequest("Rutina", null,
         [
             new RoutineDayInput("D1", false, w.Lines.Select((id, i) =>
-                new RoutineExerciseInput(w.CatalogIds[i], 3, "10", null, 60, null, id)).ToList(), w.TrainingDayId),
-            new RoutineDayInput("Nuevo", false, [new RoutineExerciseInput(w.CatalogIds[3], 3, "10", null, 60, null)]),
+                new RoutineExerciseInput(w.CatalogIds[i], TestSets.Normal(3, 10), 60, null, Id: id)).ToList(), w.TrainingDayId),
+            new RoutineDayInput("Nuevo", false, [new RoutineExerciseInput(w.CatalogIds[3], TestSets.Normal(3, 10), 60, null)]),
         ]);
         var updated = await UpdateAsync(w, request);
 
@@ -127,7 +127,7 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
 
         // Retirar el día con registros retira también sus líneas, sin tocar los registros.
         var onlyNew = new SaveRoutineRequest("Rutina", null,
-            [new RoutineDayInput("Nuevo", false, [new RoutineExerciseInput(w.CatalogIds[3], 3, "10", null, 60, null)],
+            [new RoutineDayInput("Nuevo", false, [new RoutineExerciseInput(w.CatalogIds[3], TestSets.Normal(3, 10), 60, null)],
                 updated.Days[1].Id)]);
         // El contexto de este scope ya cargó el día y sus líneas; se edita desde uno limpio.
         var again = await UpdateAsync(w, onlyNew);
@@ -204,7 +204,7 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
         RoutineExerciseInput? addLine = null)
     {
         var lines = w.Lines
-            .Select((id, i) => new RoutineExerciseInput(w.CatalogIds[i], 3, "10", null, 60, null, id))
+            .Select((id, i) => new RoutineExerciseInput(w.CatalogIds[i], TestSets.Normal(3, 10), 60, null, Id: id))
             .Select((line, i) => mutateLine?.Invoke(i, line) ?? line)
             .Where((_, i) => i != dropLine)
             .ToList();
@@ -231,7 +231,7 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
     {
         using var scope = AsMember(w);
         await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>()
-            .HandleAsync(lineId, new LogRoutineExerciseRequest(3, "10", 20m, null), default);
+            .HandleAsync(lineId, new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", 10, 20m, null, null, null)]), default);
     }
 
     private async Task<int> CountLogsAsync(World w)
@@ -288,7 +288,7 @@ public sealed class RoutineEditInPlaceTests(ApiFactory factory) : IClassFixture<
             new SaveRoutineRequest("Rutina", null,
             [
                 new RoutineDayInput("D1", false,
-                    catalog.Take(3).Select(id => new RoutineExerciseInput(id, 3, "10", null, 60, null)).ToList()),
+                    catalog.Take(3).Select(id => new RoutineExerciseInput(id, TestSets.Normal(3, 10), 60, null)).ToList()),
                 new RoutineDayInput(null, true, []),
             ]),
             default);

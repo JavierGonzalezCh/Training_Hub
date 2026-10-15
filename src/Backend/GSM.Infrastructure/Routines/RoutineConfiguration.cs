@@ -56,8 +56,16 @@ public sealed class RoutineExerciseConfiguration : IEntityTypeConfiguration<Rout
     {
         builder.ToTable("routine_exercises", "routines");
 
-        builder.Property(e => e.TargetReps).HasMaxLength(30).IsRequired();
-        builder.Property(e => e.TargetWeightKg).HasPrecision(6, 2);
+        // Series planeadas una por una como JSON en la propia fila: se leen y se escriben siempre con la línea.
+        builder.OwnsMany(e => e.SetTargets, target =>
+        {
+            target.ToJson("set_targets");
+            target.Property(x => x.SetType).HasConversion<string>();
+            target.Property(x => x.WeightKg).HasPrecision(6, 2);
+        });
+
+        // "group" es palabra reservada en SQL: la columna se llama group_number.
+        builder.Property(e => e.Group).HasColumnName("group_number");
         builder.Property(e => e.Notes).HasMaxLength(500);
         builder.Property(e => e.RetiredOn).HasColumnType("date");
 

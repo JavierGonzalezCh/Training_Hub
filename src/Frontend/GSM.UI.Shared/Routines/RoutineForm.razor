@@ -78,28 +78,82 @@
         {
             @foreach (var exercise in day.Exercises)
             {
-                <MudGrid Class="mb-2">
-                    <MudItem xs="12" sm="3">
-                        <MudAutocomplete T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Exercise = e)"
-                                          SearchFunc="SearchExercisesAsync" ToStringFunc="@(e => e?.Name ?? string.Empty)"
-                                          Placeholder="Ejercicio" Dense="true" />
-                    </MudItem>
-                    <MudItem xs="6" sm="2">
-                        <MudNumericField T="int" @bind-Value="exercise.TargetSets" Label="Series" Min="1" />
-                    </MudItem>
-                    <MudItem xs="6" sm="2">
-                        <MudTextField T="string" @bind-Value="exercise.TargetReps" Label="Reps (p. ej. 8-12)" />
-                    </MudItem>
-                    <MudItem xs="6" sm="2">
-                        <MudNumericField T="decimal?" @bind-Value="exercise.TargetWeightKg" Label="Kg" />
-                    </MudItem>
-                    <MudItem xs="6" sm="2">
-                        <MudNumericField T="int?" @bind-Value="exercise.RestSeconds" Label="Descanso (s)" />
-                    </MudItem>
-                    <MudItem xs="12" sm="1" Class="d-flex justify-end">
-                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))" />
-                    </MudItem>
-                </MudGrid>
+                var lineIndex = day.Exercises.IndexOf(exercise);
+                var linked = day.IsLinkedWithPrevious(exercise);
+                var fields = exercise.Fields;
+                <div class="gsm-routine-line mb-3 pl-3" data-testid="@($"line-{index}-{lineIndex}")"
+                     style="@(exercise.Group is not null ? "border-left:3px solid var(--mud-palette-primary)" : "border-left:3px solid transparent")">
+                    <MudGrid Class="mb-1">
+                        <MudItem xs="12" sm="5">
+                            <MudAutocomplete T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Select(e))"
+                                              SearchFunc="SearchExercisesAsync" ToStringFunc="@(e => e?.Name ?? string.Empty)"
+                                              Placeholder="Ejercicio" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="6" sm="2">
+                            <MudNumericField T="int?" @bind-Value="exercise.RestSeconds" Label="@(exercise.Group is not null ? "Descanso por vuelta (s)" : "Descanso (s)")" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4" Class="d-flex align-center">
+                            @if (lineIndex > 0)
+                            {
+                                <MudButton Variant="@(linked ? Variant.Filled : Variant.Outlined)" Size="Size.Small" Color="Color.Primary"
+                                           data-testid="@($"link-{index}-{lineIndex}")"
+                                           OnClick="@(() => day.ToggleLinkWithPrevious(exercise))">
+                                    @(linked ? "En superserie con el anterior" : "Unir con el anterior")
+                                </MudButton>
+                            }
+                        </MudItem>
+                        <MudItem xs="6" sm="1" Class="d-flex justify-end">
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))" />
+                        </MudItem>
+                    </MudGrid>
+
+                    @if (exercise.Exercise is not null)
+                    {
+                        @for (var setIndex = 0; setIndex < exercise.Sets.Count; setIndex++)
+                        {
+                            var set = exercise.Sets[setIndex];
+                            var number = setIndex;
+                            <div class="d-flex align-center flex-wrap mb-1" style="gap:0.5rem" data-testid="@($"set-{index}-{lineIndex}-{number}")">
+                                <MudText Typo="Typo.caption" Class="gsm-mono" Style="width:3.5rem">Serie @(number + 1)</MudText>
+                                <label class="gsm-native-field"><select aria-label="@($"Tipo de la serie {number + 1}")" data-testid="@($"set-type-{index}-{lineIndex}-{number}")"
+                                        @onchange="@(e => set.SetType = e.Value?.ToString() ?? "normal")">
+                                    @foreach (var (value, label) in SetPlan.SetTypes)
+                                    {
+                                        <option value="@value" selected="@(set.SetType == value)">@label</option>
+                                    }
+                                </select></label>
+                                @if (fields.Reps && !set.IsFailure)
+                                {
+                                    <MudNumericField T="int?" @bind-Value="set.RepsMin" Label="Reps mín." Style="width:6rem" Margin="Margin.Dense" />
+                                    <MudNumericField T="int?" @bind-Value="set.RepsMax" Label="Reps máx." Style="width:6rem" Margin="Margin.Dense" />
+                                }
+                                @if (fields.Weight)
+                                {
+                                    <MudNumericField T="decimal?" @bind-Value="set.WeightKg" Label="Kg" Style="width:5.5rem" Margin="Margin.Dense" />
+                                }
+                                @if (fields.Time)
+                                {
+                                    <MudNumericField T="int?" @bind-Value="set.DurationSeconds" Label="Tiempo (s)" Style="width:6.5rem" Margin="Margin.Dense" />
+                                }
+                                @if (fields.Distance)
+                                {
+                                    <MudNumericField T="int?" @bind-Value="set.DistanceM" Label="Distancia (m)" Style="width:7rem" Margin="Margin.Dense" />
+                                }
+                                <MudNumericField T="int?" @bind-Value="set.Rir" Label="RIR" Min="0" Max="10" Style="width:4.5rem" Margin="Margin.Dense" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Disabled="exercise.Sets.Count <= 1"
+                                               aria-label="@($"Quitar la serie {number + 1}")" OnClick="@(() => exercise.Sets.RemoveAt(number))" />
+                            </div>
+                        }
+                        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add"
+                                   data-testid="@($"add-set-{index}-{lineIndex}")" OnClick="@(() => exercise.AddSet())">
+                            Añadir serie
+                        </MudButton>
+                        @if (exercise.Exercise.IsUnilateral == true)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2">Las repeticiones son por lado.</MudText>
+                        }
+                    }
+                </div>
             }
             <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
                        OnClick="@(() => day.Exercises.Add(new DraftExercise()))">

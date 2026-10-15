@@ -57,7 +57,10 @@ public sealed class LogRoutineExerciseHandler(
 
         var today = clock.Today;
         var now = clock.UtcNow;
-        var sets = request.Sets?.Select(s => new RoutineSetEntry(0, s.Reps, s.WeightKg)).ToList();
+        var sets = request.Sets?.Select(s => new RoutineSetEntry(
+            0,
+            SetTypes.Parse(s.SetType) ?? throw new ValidationDomainException("Tipo de serie inválido."),
+            s.Reps, s.WeightKg, s.DurationSeconds, s.DistanceM, s.Rir)).ToList();
 
         var existing = await logs.GetAsync(routineExerciseId, today, cancellationToken);
 
@@ -70,14 +73,14 @@ public sealed class LogRoutineExerciseHandler(
         RoutineExerciseLog log;
         if (existing is not null)
         {
-            existing.Update(now, request.SetsDone, request.RepsDone, request.WeightKg, request.Notes, sets);
+            existing.Update(now, request.Notes, sets);
             log = existing;
         }
         else
         {
             log = RoutineExerciseLog.Record(
                 reference.GymId, memberId, routineExerciseId, reference.ExerciseId, today, now,
-                request.SetsDone, request.RepsDone, request.WeightKg, request.Notes, sets);
+                request.Notes, sets);
             logs.Add(log);
         }
 
@@ -94,8 +97,8 @@ public sealed class LogRoutineExerciseHandler(
 
         return new RoutineLogResponse(
             log.Id, log.RoutineExerciseId, log.PerformedOn,
-            log.SetsDone, log.RepsDone, log.WeightKg, log.Notes, log.CompletedAt,
-            log.Sets.Select(s => new SetResponse(s.Number, s.Reps, s.WeightKg)).ToList());
+            log.Notes, log.CompletedAt,
+            log.Sets.Select(RoutineMapper.ToSetResponse).ToList());
     }
 }
 
@@ -150,8 +153,8 @@ public sealed class GetMyRoutineHistoryHandler(
         return rows
             .Select(r => new RoutineHistoryItem(
                 r.PerformedOn, r.RoutineExerciseId, r.ExerciseId, r.ExerciseName,
-                r.SetsDone, r.RepsDone, r.WeightKg, r.Notes, r.CompletedAt,
-                r.Sets?.Select(s => new SetResponse(s.Number, s.Reps, s.WeightKg)).ToList()))
+                r.Notes, r.CompletedAt,
+                r.Sets?.Select(RoutineMapper.ToSetResponse).ToList()))
             .ToList();
     }
 }

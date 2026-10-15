@@ -70,6 +70,8 @@ public sealed class RoutineDay : BaseEntity, ITenantEntity
             throw new ValidationDomainException("Un día de descanso no admite ejercicios.");
         }
 
+        EnsureGroupsAreContiguous(draft.Exercises);
+
         var current = _exercises.Where(e => e.RetiredOn is null).ToDictionary(e => e.Id);
         var kept = new HashSet<Guid>();
         var order = 1;
@@ -99,6 +101,32 @@ public sealed class RoutineDay : BaseEntity, ITenantEntity
         foreach (var removed in current.Values.Where(e => !kept.Contains(e.Id)))
         {
             removed.Retire(today);
+        }
+    }
+
+    // Las líneas de un grupo (superserie o circuito) se hacen seguidas: no pueden intercalarse otras.
+    private static void EnsureGroupsAreContiguous(IReadOnlyList<RoutineExerciseDraft> lines)
+    {
+        var closed = new HashSet<int>();
+        int? open = null;
+        foreach (var line in lines)
+        {
+            if (line.Group == open)
+            {
+                continue;
+            }
+
+            if (open is { } finished)
+            {
+                closed.Add(finished);
+            }
+
+            open = line.Group;
+            if (open is { } started && closed.Contains(started))
+            {
+                throw new ValidationDomainException(
+                    "Las líneas de una superserie deben ir seguidas: no pueden intercalarse otros ejercicios.");
+            }
         }
     }
 }

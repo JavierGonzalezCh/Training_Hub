@@ -2146,6 +2146,52 @@ a.gsm-m-card:hover {
     color: var(--gsm-accent-text);
 }
 
+.gsm-m-ex--grouped {
+    border-left: 3px solid var(--gsm-accent-text);
+}
+
+.gsm-m-setrow {
+    margin-top: 0.85rem;
+}
+
+.gsm-m-setrow__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.gsm-m-setrow__plan {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-setrow__status {
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
+.gsm-m-setrow__status.is-met,
+.gsm-m-setrow__status.is-exceeded {
+    color: var(--gsm-ok);
+}
+
+.gsm-m-setrow__status.is-below {
+    color: var(--gsm-warn, var(--gsm-text-2));
+}
+
+.gsm-m-setrow__fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+
 .gsm-m-ex__actions {
     display: flex;
     align-items: center;

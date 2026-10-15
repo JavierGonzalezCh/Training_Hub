@@ -109,9 +109,17 @@ public sealed class RoutineDraft
                     TrackingType = e.TrackingType ?? "RepsWeight",
                     IsUnilateral = e.IsUnilateral ?? false,
                 },
-                TargetSets = e.TargetSets,
-                TargetReps = e.TargetReps,
-                TargetWeightKg = e.TargetWeightKg is { } w ? (decimal)w : null,
+                Sets = (e.SetTargets ?? []).OrderBy(t => t.Number).Select(t => new DraftSet
+                {
+                    SetType = (t.SetType ?? "normal").ToLowerInvariant(),
+                    RepsMin = t.RepsMin,
+                    RepsMax = t.RepsMax,
+                    WeightKg = t.WeightKg is { } w ? (decimal)w : null,
+                    DurationSeconds = t.DurationSeconds,
+                    DistanceM = t.DistanceM,
+                    Rir = t.Rir,
+                }).ToList(),
+                Group = e.Group,
                 RestSeconds = e.RestSeconds,
                 Notes = e.Notes,
             }).ToList(),
@@ -155,15 +163,23 @@ public sealed class RoutineDraft
             IsRest = !IsWeekly && d.IsRest,
             Exercises = !IsWeekly && d.IsRest
                 ? []
-                : d.Exercises.Where(e => e.Exercise is not null).Select(e => new RoutineExerciseInput
+                : d.RequestLines().Select(x => new RoutineExerciseInput
                 {
-                    Id = e.Id,
-                    ExerciseId = e.Exercise!.Id,
-                    TargetSets = e.TargetSets,
-                    TargetReps = e.TargetReps,
-                    TargetWeightKg = e.TargetWeightKg is { } w ? (double)w : null,
-                    RestSeconds = e.RestSeconds,
-                    Notes = e.Notes,
+                    Id = x.Line.Id,
+                    ExerciseId = x.Line.Exercise!.Id,
+                    SetTargets = x.Line.Sets.Select(t => new SetTargetInput
+                    {
+                        SetType = t.SetType,
+                        RepsMin = t.RepsMin,
+                        RepsMax = t.RepsMax,
+                        WeightKg = t.WeightKg is { } w ? (double)w : null,
+                        DurationSeconds = t.DurationSeconds,
+                        DistanceM = t.DistanceM,
+                        Rir = t.Rir,
+                    }).ToList(),
+                    Group = x.Group,
+                    RestSeconds = x.Line.RestSeconds,
+                    Notes = x.Line.Notes,
                 }).ToList(),
         }).ToList(),
     };
@@ -190,6 +206,74 @@ public sealed class DraftDay
 
     /// <summary>"Tren superior · Core": nombre sugerido cuando el día no tiene nombre; <c>null</c> sin ejercicios.</summary>
     public string? SuggestedName => GSM.UI.Shared.Formatting.RoutineLabels.MuscleGroupsSummary(MuscleGroups);
+
+    /// <summary>¿La línea está unida a la anterior en una superserie o circuito?</summary>
+    public bool IsLinkedWithPrevious(DraftExercise line)
+    {
+        var index = Exercises.IndexOf(line);
+        return index > 0 && line.Group is not null && Exercises[index - 1].Group == line.Group;
+    }
+
+    /// <summary>Une la línea con la anterior (misma superserie) o, si ya estaba unida, la separa junto con las que le siguen.</summary>
+    public void ToggleLinkWithPrevious(DraftExercise line)
+    {
+        var index = Exercises.IndexOf(line);
+        if (index <= 0)
+        {
+            return;
+        }
+
+        var previous = Exercises[index - 1];
+        var next = Exercises.Max(e => e.Group ?? 0) + 1;
+        if (IsLinkedWithPrevious(line))
+        {
+            // La línea y las que le siguen del mismo grupo pasan a un grupo propio; si queda una sola, se suelta al enviar.
+            var old = line.Group;
+            for (var i = index; i < Exercises.Count && Exercises[i].Group == old; i++)
+            {
+                Exercises[i].Group = next;
+            }
+        }
+        else
+        {
+            previous.Group ??= next;
+            line.Group = previous.Group;
+        }
+    }
+
+    /// <summary>
+    /// Las líneas que se envían (con ejercicio elegido) y el grupo de cada una: las rachas contiguas con el mismo número
+    /// y de dos o más líneas forman un grupo numerado 1..n; el resto va suelto. Un borrador nunca envía un grupo partido
+    /// ni de una sola línea.
+    /// </summary>
+    public IReadOnlyList<(DraftExercise Line, int? Group)> RequestLines()
+    {
+        var lines = Exercises.Where(e => e.Exercise is not null).ToList();
+        var result = new List<(DraftExercise, int?)>();
+        var next = 1;
+        var i = 0;
+        while (i < lines.Count)
+        {
+            var run = 1;
+            if (lines[i].Group is { } group)
+            {
+                while (i + run < lines.Count && lines[i + run].Group == group)
+                {
+                    run++;
+                }
+            }
+
+            int? assigned = run > 1 ? next++ : null;
+            for (var k = 0; k < run; k++)
+            {
+                result.Add((lines[i + k], assigned));
+            }
+
+            i += run;
+        }
+
+        return result;
+    }
 }
 
 public sealed class DraftExercise
@@ -197,9 +281,68 @@ public sealed class DraftExercise
     /// <summary>Id de la línea en el servidor al editar; <c>null</c> = línea nueva. Conservarlo mantiene su historial.</summary>
     public Guid? Id { get; set; }
     public ExerciseResponse? Exercise { get; set; }
-    public int TargetSets { get; set; } = 3;
-    public string TargetReps { get; set; } = "8-12";
-    public decimal? TargetWeightKg { get; set; }
+
+    /// <summary>Series planeadas, una por una. Una línea nueva arranca con 3 series de 8–12 repeticiones.</summary>
+    public List<DraftSet> Sets { get; set; } = DraftSet.DefaultsFor(null);
+
+    /// <summary>
+    /// Superserie o circuito: las líneas contiguas con el mismo número se hacen seguidas. <c>null</c> = suelto.
+    /// Al enviar, los números se renumeran y los grupos de una sola línea se sueltan (ver <see cref="DraftDay.RequestLines"/>).
+    /// </summary>
+    public int? Group { get; set; }
+
     public int? RestSeconds { get; set; } = 60;
     public string? Notes { get; set; }
+
+    /// <summary>Qué campos de cada serie aplican al ejercicio elegido.</summary>
+    public TrackingFields Fields => TrackingFields.Of(Exercise?.TrackingType);
+
+    /// <summary>Elige el ejercicio; si cambia lo que se mide, las series se reemplazan por unas de partida adecuadas.</summary>
+    public void Select(ExerciseResponse? exercise)
+    {
+        var before = Exercise?.TrackingType;
+        Exercise = exercise;
+        if (exercise is not null && exercise.TrackingType != before)
+        {
+            Sets = DraftSet.DefaultsFor(exercise.TrackingType);
+        }
+    }
+
+    /// <summary>Añade una serie copiando la última (o una de partida si no hay).</summary>
+    public DraftSet AddSet()
+    {
+        var set = Sets.Count > 0 ? Sets[^1].Clone() : DraftSet.DefaultsFor(Exercise?.TrackingType)[0];
+        Sets.Add(set);
+        return set;
+    }
+}
+
+/// <summary>Objetivo de una serie en el editor. Los campos que no aplican al ejercicio se ignoran en el servidor.</summary>
+public sealed class DraftSet
+{
+    /// <summary><c>normal</c>, <c>warmup</c>, <c>drop</c> o <c>failure</c>.</summary>
+    public string SetType { get; set; } = "normal";
+    public int? RepsMin { get; set; }
+    public int? RepsMax { get; set; }
+    public decimal? WeightKg { get; set; }
+    public int? DurationSeconds { get; set; }
+    public int? DistanceM { get; set; }
+    public int? Rir { get; set; }
+
+    public bool IsFailure => SetType == "failure";
+
+    public DraftSet Clone() => (DraftSet)MemberwiseClone();
+
+    /// <summary>Series de partida según lo que se mide: tres de 8–12 repeticiones, o una de tiempo/distancia.</summary>
+    public static List<DraftSet> DefaultsFor(string? tracking)
+    {
+        var fields = TrackingFields.Of(tracking);
+        return Enumerable.Range(0, fields.Reps ? 3 : 1).Select(_ => new DraftSet
+        {
+            RepsMin = fields.Reps ? 8 : null,
+            RepsMax = fields.Reps ? 12 : null,
+            DurationSeconds = fields.Time ? (fields.Distance ? 600 : 30) : null,
+            DistanceM = fields.Distance ? 1000 : null,
+        }).ToList();
+    }
 }

@@ -25,9 +25,8 @@ public sealed record RoutineDayDraft(
 
 public sealed record RoutineExerciseDraft(
     Guid ExerciseId,
-    int TargetSets,
-    string TargetReps,
-    decimal? TargetWeightKg,
+    IReadOnlyList<SetTarget> SetTargets,
     int? RestSeconds,
     string? Notes,
+    int? Group = null,
     Guid? Id = null);

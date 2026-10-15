@@ -19,11 +19,17 @@ public sealed class RoutineExercise : BaseEntity, ITenantEntity
 
     public int Order { get; private set; }
 
-    public int TargetSets { get; private set; }
+    /// <summary>
+    /// Series planeadas una por una (JSON en la misma fila). Solo traen los campos que corresponden al
+    /// <c>tracking_type</c> del ejercicio.
+    /// </summary>
+    public List<SetTarget> SetTargets { get; private set; } = [];
 
-    public string TargetReps { get; private set; } = string.Empty;
-
-    public decimal? TargetWeightKg { get; private set; }
+    /// <summary>
+    /// Las líneas del mismo día con el mismo grupo forman una superserie o circuito y se hacen seguidas.
+    /// <c>null</c> = ejercicio suelto.
+    /// </summary>
+    public int? Group { get; private set; }
 
     public int? RestSeconds { get; private set; }
 
@@ -54,20 +60,19 @@ public sealed class RoutineExercise : BaseEntity, ITenantEntity
             throw new ValidationDomainException("La línea necesita un ejercicio.");
         }
 
-        if (draft.TargetSets < 1)
+        if (draft.SetTargets is null || draft.SetTargets.Count == 0)
         {
-            throw new ValidationDomainException("target_sets debe ser al menos 1.");
+            throw new ValidationDomainException("La línea necesita al menos una serie.");
         }
 
-        var reps = (draft.TargetReps ?? string.Empty).Trim();
-        if (reps.Length is 0 or > 30)
+        if (draft.SetTargets.Count > SetTargetRules.MaxSets)
         {
-            throw new ValidationDomainException("target_reps es obligatorio y no puede exceder 30 caracteres.");
+            throw new ValidationDomainException($"Una línea admite como máximo {SetTargetRules.MaxSets} series.");
         }
 
-        if (draft.TargetWeightKg is < 0)
+        if (draft.Group is < 1)
         {
-            throw new ValidationDomainException("target_weight_kg no puede ser negativo.");
+            throw new ValidationDomainException("El grupo de superserie debe ser un número positivo.");
         }
 
         if (draft.RestSeconds is < 0)
@@ -77,9 +82,8 @@ public sealed class RoutineExercise : BaseEntity, ITenantEntity
 
         ExerciseId = draft.ExerciseId;
         Order = order;
-        TargetSets = draft.TargetSets;
-        TargetReps = reps;
-        TargetWeightKg = draft.TargetWeightKg;
+        SetTargets = draft.SetTargets.Select((t, i) => t with { Number = i + 1 }).ToList();
+        Group = draft.Group;
         RestSeconds = draft.RestSeconds;
         Notes = string.IsNullOrWhiteSpace(draft.Notes) ? null : draft.Notes.Trim();
     }
