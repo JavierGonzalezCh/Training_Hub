@@ -215,6 +215,12 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **N5-6 (hueco de Classes):** desactivar una clase no cancela sus reservas futuras ni sus recordatorios.
 - **N5-7:** `BookingPenaltyApplied` sigue sin aviso al miembro (ver C3-5).
 
+- **CO2-1:** dentro de un filtro los valores suman (O); entre filtros, "y". Confirmar.
+- **CO2-2:** publicar un segmento sin miembros da 422. Confirmar.
+- **CO2-3:** el filtro de plan solo cuenta membresías que cubren hoy (no en gracia ni congelados); el de clase cuenta reservas y asistencias de los últimos 30 días. Confirmar.
+- **CO2-4 (hueco):** `GET api/announcements/email-audience` ignora el segmento: la confirmación por email puede decir "a N miembros" con N mayor. ¿Se corrige ya?
+- **CO2-5 (para CO4):** la publicación programada corre sin usuario; los readers de la audiencia necesitarán el gym explícito.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
