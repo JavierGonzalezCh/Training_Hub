@@ -276,6 +276,7 @@ Las del plan §4 (ninguna se hace esta noche):
 - Teléfono Android o emulador (AP3, N3, A6, escáner QR).
 - Imágenes de ejercicios y máquinas con licencia.
 - Revisión legal (Ley 1581, Ley 2300).
+- **Despliegue (DP):** configurar `ForwardedHeaders` detrás del proxy de Dokploy; sin eso, la IP de `logs.security_events` y del límite de peticiones por IP sería la del proxy, no la del cliente (salió de LG2).
 
 ## 4. Riesgos y desvíos aceptados al unir
 
@@ -297,6 +298,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: lanzada la tanda I4+G4, A3, MS2 y LG3 (solo escriben código).
 - 2026-10-15: R3b, N1b, S1b y LG2 unidas sin conflictos. Migraciones `V2_R3b_N1b_S1b` (enum + 2 columnas + `SqlScript("N1b")`) y `V2_R3b_LG2_Scripts` (`R3b`, `LG2`). Al integrar: `OnRejected` devuelve `ValueTask` y el test de login ya no exige IP. **La primera corrida dio 10 fallos de LG2 que no se repitieron en dos corridas más** (probablemente la corrida que aplicó las migraciones nuevas); un bUnit de `CommercialStatusUiTests` falló una vez y pasó 3 de 3. **Suite: 722 integración + 339 bUnit, todo verde.**
 - 2026-10-15: MS1b, G3b, R2b y L1 unidas. Conflicto en `AchievementMetrics` (L1 extrajo `ComputeStreakAsync`, R2b cambió el inicio del calendario). Migración `V2_R2b_RoutineDayAddedOn`. Al integrar: `Is24Hours` sale `bool?` en el cliente (NSwag con propiedades `init`), test rotativo de R2b añadido y dos expectativas corregidas. **Suite: 691 integración + 334 bUnit, todo verde.**
 - 2026-10-15: suite de CO5 corrida en primer plano: **668 integración + 329 bUnit, todo verde. Ola 3 cerrada.** Quitados los 25 worktrees de tareas ya unidas (ramas conservadas; se deja el del primer intento de P2, con 2 archivos sin commitear). Lanzada la tanda: MS1b, G3b, R2b y L1 (solo escriben código).
