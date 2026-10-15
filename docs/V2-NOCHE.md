@@ -175,6 +175,12 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **S2-4:** bajar el límite por debajo del uso no expulsa a nadie, solo bloquea membresías nuevas. Confirmar.
 - **Observación S2:** la spec menciona `TrialGraceDays` en `GymSubscription` y S1 no lo trae.
 
+- **C3-1:** ¿un valor 0 debe apagar una regla? Hoy el mínimo es 1 en límite de inasistencias, ventana y máximo de reservas; solo el plazo de cancelación admite 0.
+- **C3-2:** "bloqueado hasta el X" es inclusivo (7 días contando el día en que se llega al límite). Confirmar.
+- **C3-3:** una cancelación tardía cuenta como inasistencia aunque luego vuelva a reservar; marcar asistencia la borra. Confirmar.
+- **C3-4:** la penalización se levanta desde "Penalizados" en Clases, no desde la ficha del miembro. ¿También en la ficha?
+- **C3-5:** los eventos `BookingPenaltyApplied`/`Lifted` aún **no avisan al miembro** (falta un consumidor en Notifications; ¿va en C8?).
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
