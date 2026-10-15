@@ -191,6 +191,11 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **R4-5:** planeado vs hecho se compara en el cliente: gana la peor medida; una serie al fallo se cumple con ≥ 1 repetición. Confirmar.
 - **R4 (dato):** la migración es irreversible en datos (las repeticiones no numéricas pasan a notas). Cuando entre R3b (peso + distancia), añadir esa medida a las series.
 
+- **CO7-1:** `ReminderDaysBefore = 0` apaga **los tres** recordatorios (antes, vence hoy, último día de gracia). ¿O solo el de "N días antes"?
+- **CO7-3:** los tres avisos comparten tipo e ícono; se distinguen por un `ReferenceId` derivado (MD5 de `membresía:paso`). ¿Tipos de aviso propios?
+- **CO7-4:** revisar el texto del último día de gracia ("Hoy es tu último día para renovar sin perder tu fecha").
+- **CO7 (para MS5):** cuando existan tiqueteras, excluir las que no tienen gracia del aviso de último día.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
