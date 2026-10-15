@@ -103,6 +103,13 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **I7-6:** cerrar `/kiosk` a la sesión normal del staff va en **A3**.
 - **N2-7:** una promoción no puede marcarse como importante (Ley 1581): **hecho**. Resto de N2 aceptado (Firebase sin probar; importante sin fecha queda hasta archivarse; no cuenta para el límite de fijados).
 
+**Preguntas de la tanda del 2026-10-14 (para responder mañana):**
+
+- **M3-1 (desvío de la spec):** §5 dice que `GET /api/members/{id}` trae la salud vacía sin permiso. El agente dejó la ficha solo con `HasHealthAlerts` y puso el detalle en `GET /api/members/{id}/health`, así el registro de consultas refleja abrir la pestaña y ningún otro endpoint filtra salud. ¿Se acepta?
+- **M3-2:** sin autorización de datos aceptada, `PUT .../health` responde **409** y `GET` responde 200 con `consentRequired=true`. ¿Otro código?
+- **M3-3:** el miembro leyendo su propia salud queda para **M5** (`/api/me/profile`); `/health` da 403 al miembro. Confirmar.
+- **M3-4:** la consulta de un SuperAdmin impersonando no va a `health_access_log` (ya queda en `superadmin.impersonation_actions`). Confirmar.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
