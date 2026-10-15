@@ -6,6 +6,7 @@
 @inject GymContext GymCtx
 @inject IMeClient Me
 @inject IRoutineExercisesClient RoutineExercises
+@inject IExercisesClient ExercisesApi
 @inject ISnackbar Snackbar
 
 <PageTitle>Mi rutina — GSM</PageTitle>
@@ -71,7 +72,8 @@ else
             @foreach (var exercise in today.Exercises)
             {
                 var state = StateOf(exercise);
-                var fields = TrackingFields.Of(exercise.TrackingType);
+                var fields = TrackingFields.Of(state.Replacement?.TrackingType ?? exercise.TrackingType);
+                var unilateral = state.Replacement?.IsUnilateral ?? exercise.IsUnilateral == true;
                 var targets = exercise.SetTargets.OrderBy(t => t.Number).ToList();
                 var outcomes = OutcomesOf(exercise, state);
                 var inGroup = groupLabels.TryGetValue(exercise.Id, out var groupLabel);
@@ -82,7 +84,11 @@ else
                             <MudIcon Icon="@(state.Done ? Icons.Material.Filled.CheckCircle : Icons.Material.Outlined.RadioButtonUnchecked)" />
                         </span>
                         <span class="gsm-m-ex__title">
-                            <span class="gsm-m-ex__name">@exercise.ExerciseName@(inGroup ? $" · superserie {groupLabel}" : "")</span>
+                            <span class="gsm-m-ex__name">@(state.Replacement?.Name ?? exercise.ExerciseName)@(inGroup ? $" · superserie {groupLabel}" : "")</span>
+                            @if (state.Replacement is not null)
+                            {
+                                <span class="gsm-m-ex__target" data-testid="@($"replaced-{exercise.Id}")">Hoy en lugar de @exercise.ExerciseName</span>
+                            }
                             <span class="gsm-m-ex__target">
                                 Meta: @SetPlan.Summary(targets, exercise.IsUnilateral == true)@(exercise.RestSeconds is { } rest ? (inGroup ? $" · descanso por vuelta {rest} s" : $" · descanso {rest} s") : "")
                             </span>
@@ -135,6 +141,21 @@ else
                                     }
                                 </div>
                             }
+                            <div class="gsm-m-ex__actions">
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.SwapHoriz"
+                                           data-testid="@($"other-{exercise.Id}")"
+                                           OnClick="() => state.Picking = !state.Picking">Hacer otro ejercicio hoy</MudButton>
+                                @if (state.Replacement is not null)
+                                {
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" data-testid="@($"undo-other-{exercise.Id}")"
+                                               OnClick="() => ClearReplacement(exercise, state)">Volver al planeado</MudButton>
+                                }
+                            </div>
+                            @if (state.Picking)
+                            {
+                                <AlternativePicker ExerciseId="exercise.ExerciseId" TestIdPrefix="@($"ex-{exercise.Id}-")"
+                                                   OnPick="@(alt => ChooseReplacement(exercise, state, alt))" />
+                            }
                             @for (var n = 0; n < state.Rows.Count; n++)
                             {
                                 var row = state.Rows[n];
@@ -163,7 +184,7 @@ else
                                         }
                                         @if (fields.Reps)
                                         {
-                                            <MudNumericField T="int?" @bind-Value="row.Reps" Label="@(exercise.IsUnilateral == true ? "Reps por lado" : "Reps")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                            <MudNumericField T="int?" @bind-Value="row.Reps" Label="@(unilateral ? "Reps por lado" : "Reps")" Variant="Variant.Outlined" Margin="Margin.Dense"
                                                              Min="0" Max="1000" HideSpinButtons="true" Immediate="true"
                                                              aria-label="@($"Repeticiones de la serie {index + 1}")" />
                                         }
@@ -235,6 +256,10 @@ else
         public bool Open { get; set; }
         public bool Done { get; set; }
         public bool Saving { get; set; }
+
+        /// <summary>Alternativa elegida solo para hoy ("Hacer otro ejercicio hoy"); <c>null</c> = el ejercicio planeado.</summary>
+        public ExerciseAlternativeResponse? Replacement { get; set; }
+        public bool Picking { get; set; }
     }
     private bool _loading = true;
     private string? _createError;
@@ -296,6 +321,36 @@ else
             exercise.SetTargets,
             state.Rows.Select(r => new DoneSet(r.Reps, r.Weight, r.DurationSeconds, r.DistanceM, r.Rir)).ToList());
 
+    private static IEnumerable<SetRow> RowsFor(string? tracking)
+        => DraftSet.DefaultsFor(tracking).Select(d => new SetRow
+        {
+            Reps = d.RepsMin,
+            DurationSeconds = d.DurationSeconds,
+            DistanceM = d.DistanceM,
+        });
+
+    // El reemplazo vale solo hoy: las series de partida son las del ejercicio elegido, no las del plan.
+    private static Task ChooseReplacement(RoutineExerciseResponse exercise, ExerciseState state, ExerciseAlternativeResponse alt)
+    {
+        state.Replacement = alt;
+        state.Picking = false;
+        state.Rows = RowsFor(alt.TrackingType).ToList();
+        return Task.CompletedTask;
+    }
+
+    private static void ClearReplacement(RoutineExerciseResponse exercise, ExerciseState state)
+    {
+        state.Replacement = null;
+        state.Rows = exercise.SetTargets.OrderBy(t => t.Number).Select(t => new SetRow
+        {
+            Type = (t.SetType ?? "normal").ToLowerInvariant(),
+            Weight = t.WeightKg,
+            Reps = t.RepsMin,
+            DurationSeconds = t.DurationSeconds,
+            DistanceM = t.DistanceM,
+        }).ToList();
+    }
+
     private static void AddSet(ExerciseState state)
     {
         var last = state.Rows.LastOrDefault();
@@ -326,6 +381,11 @@ else
 
                 var state = StateOf(exercise);
                 state.Done = true;
+                if (item.PlannedExerciseId is not null && item.ExerciseId != exercise.ExerciseId)
+                {
+                    state.Replacement = await FindAlternativeAsync(exercise.ExerciseId, item.ExerciseId, item.ExerciseName);
+                }
+
                 if (item.Sets is { Count: > 0 } sets)
                 {
                     state.Rows = sets.OrderBy(x => x.Number).Select(x => new SetRow
@@ -346,6 +406,24 @@ else
         }
     }
 
+    private async Task<ExerciseAlternativeResponse> FindAlternativeAsync(Guid plannedId, Guid performedId, string name)
+    {
+        try
+        {
+            var found = (await ExercisesApi.GetAlternativesAsync(plannedId)).FirstOrDefault(a => a.Id == performedId);
+            if (found is not null)
+            {
+                return found;
+            }
+        }
+        catch (GsmApiException)
+        {
+            // Sin la lista se muestra el nombre y se miden los campos del plan.
+        }
+
+        return new ExerciseAlternativeResponse { Id = performedId, Name = name, TrackingType = "RepsWeight" };
+    }
+
     private async Task SaveAsync(RoutineExerciseResponse exercise, ExerciseState state)
     {
         state.Saving = true;
@@ -353,6 +431,7 @@ else
         {
             await RoutineExercises.LogPOSTAsync(exercise.Id, new LogRoutineExerciseRequest
             {
+                ReplacementExerciseId = state.Replacement?.Id,
                 Sets = state.Rows.Select(r => new LogSetRequest
                 {
                     SetType = r.Type,

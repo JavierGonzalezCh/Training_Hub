@@ -35,6 +35,10 @@ public interface IExerciseRepository
     Task<IReadOnlyList<Exercise>> ListVisibleAsync(
         ExerciseFilter filter, CancellationToken cancellationToken = default);
 
+    /// <summary>Los ejercicios visibles de entre <paramref name="exerciseIds"/>, activos o no, ocultos o no.</summary>
+    Task<IReadOnlyList<Exercise>> ListVisibleByIdsAsync(
+        IReadOnlyCollection<Guid> exerciseIds, CancellationToken cancellationToken = default);
+
     /// <summary>¿Hay ya un ejercicio con ese nombre en el ámbito indicado (<c>null</c> = catálogo del sistema)?</summary>
     Task<bool> NameTakenAsync(
         string name, Guid? gymId, Guid? excludeExerciseId, CancellationToken cancellationToken = default);

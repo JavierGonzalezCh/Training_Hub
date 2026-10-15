@@ -82,6 +82,12 @@ public sealed class ExerciseRepository(GsmDbContext dbContext, ICurrentUserServi
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Exercise>> ListVisibleByIdsAsync(
+        IReadOnlyCollection<Guid> exerciseIds, CancellationToken cancellationToken = default)
+        => exerciseIds.Count == 0
+            ? []
+            : await VisibleToCurrentGym().Where(e => exerciseIds.Contains(e.Id)).ToListAsync(cancellationToken);
+
     public Task<bool> NameTakenAsync(
         string name, Guid? gymId, Guid? excludeExerciseId, CancellationToken cancellationToken = default)
         => Exercises.AnyAsync(

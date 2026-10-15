@@ -119,6 +119,41 @@ public sealed class ExercisesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Alternativas del ejercicio: recomendadas primero y luego sugeridas (máximo 6).</summary>
+    [HttpGet("{id:guid}/alternatives")]
+    [ProducesResponseType<IReadOnlyList<ExerciseAlternativeResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<ExerciseAlternativeResponse>>> GetAlternatives(
+        Guid id, [FromServices] GetExerciseAlternativesHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>Guarda una alternativa recomendada (en los dos sentidos): del gym para el staff, del sistema para el superadmin.</summary>
+    [HttpPut("{id:guid}/alternatives/{alternativeId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> AddAlternative(
+        Guid id, Guid alternativeId, [FromServices] AddExerciseAlternativeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, alternativeId, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Quita una alternativa recomendada del ámbito de quien llama.</summary>
+    [HttpDelete("{id:guid}/alternatives/{alternativeId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RemoveAlternative(
+        Guid id, Guid alternativeId, [FromServices] RemoveExerciseAlternativeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, alternativeId, cancellationToken);
+        return NoContent();
+    }
+
     /// <summary>Cómo está ligado el ejercicio a máquinas: modelos del sistema, ligas del gym y máquinas resultantes.</summary>
     [HttpGet("{id:guid}/equipment")]
     [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]

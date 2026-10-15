@@ -1,0 +1,71 @@
+@* Lista de alternativas de un ejercicio (R5): recomendadas primero y luego sugeridas. La usan "Cambiar por…" del editor y "Hacer otro ejercicio hoy" de la app. *@
+@inject IExercisesClient ExercisesApi
+
+<div class="gsm-alternatives" data-testid="@($"{TestIdPrefix}alternatives")">
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+    }
+    else if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">@_error</MudAlert>
+    }
+    else if (_items.Count == 0)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="@($"{TestIdPrefix}no-alternatives")">Este ejercicio no tiene alternativas.</MudText>
+    }
+    else
+    {
+        <ul class="gsm-alternatives__list" style="list-style:none;padding:0;margin:0">
+            @foreach (var item in _items)
+            {
+                var alt = item;
+                <li class="d-flex align-center flex-wrap" style="gap:0.5rem" data-testid="@($"{TestIdPrefix}alt-{alt.Id}")">
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => OnPick.InvokeAsync(alt))"
+                               data-testid="@($"{TestIdPrefix}pick-{alt.Id}")">@alt.Name</MudButton>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" data-testid="@($"{TestIdPrefix}source-{alt.Id}")">
+                        @(alt.Source == "recommended" ? "Recomendada" : "Sugerida")
+                    </MudChip>
+                    @if (!alt.IsAvailableHere)
+                    {
+                        <MudText Typo="Typo.caption" Style="color:var(--mud-palette-warning)" data-testid="@($"{TestIdPrefix}unavailable-{alt.Id}")">
+                            No disponible hoy en el gimnasio
+                        </MudText>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid ExerciseId { get; set; }
+
+    [Parameter]
+    public EventCallback<ExerciseAlternativeResponse> OnPick { get; set; }
+
+    /// <summary>Prefijo de los <c>data-testid</c>, para distinguir varias listas en la misma pantalla.</summary>
+    [Parameter]
+    public string TestIdPrefix { get; set; } = string.Empty;
+
+    private List<ExerciseAlternativeResponse> _items = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = (await ExercisesApi.GetAlternativesAsync(ExerciseId)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

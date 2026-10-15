@@ -14,6 +14,7 @@ public static class RoutinesInfrastructureRegistration
     {
         services.AddScoped<IExerciseRepository, ExerciseRepository>();
         services.AddScoped<IExerciseEquipmentRepository, ExerciseEquipmentRepository>();
+        services.AddScoped<IExerciseAlternativeRepository, ExerciseAlternativeRepository>();
         services.AddScoped<IRoutineRepository, RoutineRepository>();
         services.AddScoped<IRoutineLogRepository, RoutineLogRepository>();
         services.AddScoped<IRoutineReader, RoutineReader>();

@@ -12,6 +12,7 @@ public static class RoutinesModuleRegistration
         // Añade aquí solo lo que el scanning no cubra.
 
         services.AddScoped<ExerciseEquipmentResolver>();
+        services.AddScoped<ExerciseAlternativesResolver>();
 
         return services;
     }

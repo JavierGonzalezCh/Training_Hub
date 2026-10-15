@@ -102,6 +102,19 @@
                                 </MudButton>
                             }
                         </MudItem>
+                        @if (exercise.Exercise is not null)
+                        {
+                            <MudItem xs="12" Class="pt-0">
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.SwapHoriz"
+                                           data-testid="@($"change-{index}-{lineIndex}")"
+                                           OnClick="@(() => TogglePicker(exercise))">Cambiar por…</MudButton>
+                                @if (_picking.Contains(exercise))
+                                {
+                                    <AlternativePicker ExerciseId="exercise.Exercise.Id" TestIdPrefix="@($"line-{index}-{lineIndex}-")"
+                                                       OnPick="@(alt => ReplaceAsync(exercise, alt))" />
+                                }
+                            </MudItem>
+                        }
                         <MudItem xs="6" sm="1" Class="d-flex justify-end">
                             <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))" />
                         </MudItem>
@@ -177,6 +190,24 @@
 @code {
     [Parameter, EditorRequired]
     public RoutineDraft Draft { get; set; } = default!;
+
+    // Líneas con la lista de alternativas abierta ("Cambiar por…").
+    private readonly HashSet<DraftExercise> _picking = [];
+
+    private void TogglePicker(DraftExercise line)
+    {
+        if (!_picking.Remove(line))
+        {
+            _picking.Add(line);
+        }
+    }
+
+    private Task ReplaceAsync(DraftExercise line, ExerciseAlternativeResponse alternative)
+    {
+        line.ReplaceWith(alternative);
+        _picking.Remove(line);
+        return Task.CompletedTask;
+    }
 
     private void OnModeChanged(string mode) => Draft.SetMode(mode);
 

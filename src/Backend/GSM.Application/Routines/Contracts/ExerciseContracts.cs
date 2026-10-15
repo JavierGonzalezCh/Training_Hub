@@ -101,6 +101,26 @@ public sealed record ExerciseEquipmentLinksResponse(
     IReadOnlyList<EquipmentMachineInfo> Machines,
     bool IsAvailableHere);
 
+/// <summary>
+/// Una alternativa a un ejercicio (R5). <c>Source</c>: <c>recommended</c> (la guardó el SuperAdmin o el gym) o
+/// <c>suggested</c> (calculada al vuelo). Las recomendadas van primero. <c>IsAvailableHere</c> es falso si hoy no se
+/// puede hacer en el gym (máquina en mantenimiento o equipo que no tiene); las sugeridas nunca salen así, pero una
+/// recomendada sí puede. Los enums salen como texto.
+/// </summary>
+public sealed record ExerciseAlternativeResponse(
+    Guid Id,
+    string Name,
+    string Source,
+    string PrimaryMuscle,
+    string MuscleGroup,
+    string ExerciseType,
+    string TrackingType,
+    bool IsUnilateral,
+    string Difficulty,
+    string? ImageUrl,
+    bool IsAvailableHere,
+    IReadOnlyList<EquipmentMachineInfo> Machines);
+
 /// <summary>SuperAdmin: deja el ejercicio del sistema ligado exactamente a estos modelos (máximo 20; vacío = ninguno).</summary>
 public sealed record SetExerciseEquipmentModelsRequest(IReadOnlyList<Guid> ModelIds);
 
