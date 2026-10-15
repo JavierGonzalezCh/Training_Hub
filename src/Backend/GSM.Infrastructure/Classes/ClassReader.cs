@@ -19,6 +19,22 @@ public sealed class ClassReader(GsmDbContext dbContext, IClock clock) : IClassRe
         => dbContext.Set<GymClass>().Where(c => c.Id == classId).Select(c => (string?)c.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyCollection<Guid>> GetMemberIdsByClassesAsync(
+        IReadOnlyCollection<Guid> classIds, DateOnly since, CancellationToken cancellationToken = default)
+    {
+        if (classIds.Count == 0)
+        {
+            return [];
+        }
+
+        var query =
+            from b in Bookings.Where(b => b.Status == ClassBookingStatus.Booked || b.Status == ClassBookingStatus.Attended)
+            join s in dbContext.Set<ClassSession>() on b.SessionId equals s.Id
+            where classIds.Contains(s.ClassId) && s.SessionDate >= since
+            select b.MemberId;
+        return await query.Distinct().ToListAsync(cancellationToken);
+    }
+
     public Task<int> GetAttendedCountAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Bookings.CountAsync(
             b => b.MemberId == memberId && b.Status == ClassBookingStatus.Attended, cancellationToken);

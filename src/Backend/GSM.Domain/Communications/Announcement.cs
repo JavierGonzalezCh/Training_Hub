@@ -53,9 +53,25 @@ public sealed class Announcement : BaseEntity, ITenantEntity
     /// <summary>Quién marcó el anuncio como importante (auditoría). Nulo si no lo es.</summary>
     public Guid? ImportantMarkedBy { get; private set; }
 
+    /// <summary>
+    /// CO2: filtros de la audiencia. Vacíos = todos los miembros. Dentro de un filtro, los valores suman
+    /// ("vencidos o en gracia"); entre filtros se combinan con "y".
+    /// </summary>
+    public AnnouncementAudience Audience { get; private set; } = AnnouncementAudience.Everyone;
+
+    /// <summary>
+    /// Verdadero si <see cref="Audience"/> tiene algún filtro. Entonces los destinatarios se fijan al publicar
+    /// en <c>announcement_recipients</c>; si no, el anuncio lo ve todo el gym (también quien entre después).
+    /// </summary>
+    public bool IsSegmented { get; private set; }
+
+    /// <summary>A cuántos miembros llegó, fijado al publicar. Solo si <see cref="IsSegmented"/>.</summary>
+    public int? RecipientCount { get; private set; }
+
     public static Announcement CreateDraft(
         Guid gymId, Guid authorUserId, string title, string body, bool pinned, DateOnly? expiresOn, bool sendEmail,
-        AnnouncementCategory category = AnnouncementCategory.GymNews, bool important = false)
+        AnnouncementCategory category = AnnouncementCategory.GymNews, bool important = false,
+        AnnouncementAudience? audience = null)
     {
         if (gymId == Guid.Empty)
         {
@@ -70,6 +86,7 @@ public sealed class Announcement : BaseEntity, ITenantEntity
             Category = category,
         };
         announcement.Apply(title, body, expiresOn, sendEmail);
+        announcement.SetAudience(audience);
         if (important)
         {
             announcement.SetImportant(true, authorUserId);
@@ -103,6 +120,32 @@ public sealed class Announcement : BaseEntity, ITenantEntity
 
         IsImportant = important;
         ImportantMarkedBy = important ? markedBy : null;
+    }
+
+    /// <summary>
+    /// Fija los filtros de la audiencia, solo mientras es borrador: ya publicado, los destinatarios están
+    /// fijados y no se cambian. <c>null</c> o vacía = todos.
+    /// </summary>
+    public void SetAudience(AnnouncementAudience? audience)
+    {
+        if (Status != AnnouncementStatus.Draft)
+        {
+            throw new ConflictException("Un anuncio publicado ya no puede cambiar de audiencia.");
+        }
+
+        Audience = audience ?? AnnouncementAudience.Everyone;
+        IsSegmented = !Audience.IsEveryone;
+    }
+
+    /// <summary>Anota a cuántos miembros llegó un anuncio segmentado. Lo llama el caso de uso al publicar.</summary>
+    public void SetRecipientCount(int count)
+    {
+        if (count < 0)
+        {
+            throw new ValidationDomainException("La cantidad de destinatarios no puede ser negativa.");
+        }
+
+        RecipientCount = IsSegmented ? count : null;
     }
 
     /// <summary>

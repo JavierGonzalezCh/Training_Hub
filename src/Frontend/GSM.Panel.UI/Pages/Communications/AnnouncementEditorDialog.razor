@@ -27,6 +27,21 @@
                     <MudSwitch T="bool" @bind-Value="_pinned" Label="Fijar arriba" Color="Color.Primary" Class="mt-3" />
                 }
 
+                @* Audiencia (CO2): editable en borrador; publicado, los destinatarios ya están fijados. *@
+                @if (IsDraft)
+                {
+                    <div class="mt-3">
+                        <div class="gsm-eyebrow">Audiencia</div>
+                        <AnnouncementAudiencePicker Audience="_audienceFilter" AudienceChanged="a => _audienceFilter = a" />
+                    </div>
+                }
+                else if (Existing?.RecipientCount is { } reached)
+                {
+                    <p class="gsm-editor__hint" data-testid="audience-fixed">
+                        Llegó a @reached @(reached == 1 ? "miembro" : "miembros") (fijados al publicar).
+                    </p>
+                }
+
                 @if (Existing is null || Existing.Status == "Draft")
                 {
                     <MudSelect T="int" Value="_category" ValueChanged="CategoryChangedAsync" Label="Tipo de anuncio" Class="mt-2"
@@ -114,6 +129,7 @@
     private bool _important;
     private bool _canMarkImportant;
     private int? _audience;
+    private AnnouncementAudienceDto _audienceFilter = new();
     private int _category;
     private string? _error;
     private bool _submitting;
@@ -133,6 +149,7 @@
             _sendEmail = a.SendEmail;
             _category = a.Category == "Promotions" ? 1 : 0;
             _important = a.Important;
+            _audienceFilter = a.Audience;
         }
 
         // Solo el Owner (o un SuperAdmin impersonando) puede marcar el anuncio como importante, y solo en borrador.
@@ -191,6 +208,7 @@
                 {
                     Title = _title, Body = _body, Pinned = _pinned, ExpiresOn = expires, SendEmail = _sendEmail, Category = _category,
                     Important = _canMarkImportant && _important,
+                    Audience = _audienceFilter,
                 })).Id;
             }
             else
@@ -200,6 +218,7 @@
                 {
                     Title = _title, Body = _body, ExpiresOn = expires, SendEmail = _sendEmail, Category = _category,
                     Important = _canMarkImportant ? _important : null,
+                    Audience = IsDraft ? _audienceFilter : null,
                 });
             }
 

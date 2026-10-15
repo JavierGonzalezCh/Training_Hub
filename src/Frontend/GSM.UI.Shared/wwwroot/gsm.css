@@ -2509,12 +2509,28 @@ a.gsm-m-card:hover {
     gap: 0.3rem;
 }
 
-.gsm-announcement__email {
+.gsm-announcement__email,
+.gsm-announcement__audience {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     font-size: 0.8125rem;
     color: var(--gsm-text-2);
+}
+
+/* CO2: lista de revisión de la audiencia en el editor. */
+.gsm-audience__list {
+    max-height: 10rem;
+    overflow-y: auto;
+    margin: 0.25rem 0 0;
+    padding-left: 1.25rem;
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-audience__more {
+    list-style: none;
+    font-style: italic;
 }
 
 /* Editor: formulario y vista previa lado a lado; en pantallas estrechas, uno bajo el otro. */

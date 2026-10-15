@@ -30,6 +30,20 @@ public interface IMemberReader
     Task<IReadOnlyDictionary<Guid, string>> GetWhatsAppPhonesAsync(
         IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Ids de los miembros activos del gym en contexto que tienen alguna de las etiquetas (sin distinguir
+    /// mayúsculas). Filtro "etiqueta" de la audiencia de un anuncio (CO2).
+    /// </summary>
+    Task<IReadOnlyCollection<Guid>> GetActiveMemberIdsByTagsAsync(
+        IReadOnlyCollection<string> tags, CancellationToken cancellationToken = default);
+
+    /// <summary>Etiquetas distintas en uso entre los miembros activos del gym en contexto, ordenadas (CO2).</summary>
+    Task<IReadOnlyList<string>> GetActiveTagsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Nombre completo de cada miembro pedido (revisar una audiencia, CO2). Los que no existen no aparecen.</summary>
+    Task<IReadOnlyDictionary<Guid, string>> GetFullNamesAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
+
     /// <summary>La invitación más reciente sin canjear del miembro (puede estar vencida: lo decide quien llama). <c>null</c> si no hay.</summary>
     Task<MemberInvitationView?> GetPendingInvitationAsync(Guid memberId, CancellationToken cancellationToken = default);
 

@@ -39,7 +39,8 @@ public sealed class ReactToAnnouncementHandler(
         var requested = kind is null ? (ReactionKind?)null : ParseKind(kind);
 
         var announcement = await announcements.GetAsync(announcementId, cancellationToken);
-        if (announcement is null || !announcement.IsVisibleOn(clock.Today))
+        if (announcement is null || !announcement.IsVisibleOn(clock.Today)
+            || !await announcements.IsVisibleToMemberAsync(announcement, self.Id, cancellationToken))
         {
             throw new NotFoundException("Anuncio no encontrado.");
         }
@@ -125,7 +126,7 @@ public sealed class GetUnreadCountHandler(
         var self = await FeedMember.ResolveAsync(currentUser, members, cancellationToken);
 
         var state = await feedStates.GetAsync(self.Id, cancellationToken);
-        var unread = await announcements.CountVisibleSinceAsync(clock.Today, state?.AnnouncementsSeenAt, cancellationToken);
+        var unread = await announcements.CountVisibleSinceAsync(self.Id, clock.Today, state?.AnnouncementsSeenAt, cancellationToken);
 
         var unreadCount = await unreadNotifications.HandleAsync(cancellationToken);
         return new UnreadCountResponse(unread, unreadCount);

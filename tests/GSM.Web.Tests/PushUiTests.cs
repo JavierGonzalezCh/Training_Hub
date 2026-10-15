@@ -108,6 +108,25 @@ public class PushUiTests : TestContext
         public Task<AnnouncementResponse> PinAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
         public Task<AnnouncementResponse> UnpinAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+        public Task<AudiencePreviewResponse> AudiencePreviewAsync(AnnouncementAudienceDto body, CancellationToken cancellationToken = default)
+            => Task.FromResult(new AudiencePreviewResponse { Count = 3, Truncated = false, Members = [] });
+
+        public Task<AudienceTagsResponse> AudienceTagsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new AudienceTagsResponse { Tags = [] });
+
+        public Task<AudiencePreviewResponse> RecipientsAsync(Guid id, CancellationToken cancellationToken = default)
+            => Task.FromResult(new AudiencePreviewResponse { Count = 0, Truncated = false, Members = [] });
+    }
+
+    /// <summary>Planes y clases vacíos para el selector de audiencia del editor.</summary>
+    private sealed class EmptyListHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("[]", System.Text.Encoding.UTF8, "application/json"),
+            });
     }
 
     private readonly FakeDevice _device = new();
@@ -121,6 +140,9 @@ public class PushUiTests : TestContext
         Services.AddSingleton<IPushNotifications>(_device);
         Services.AddSingleton<IPushClient>(_push);
         Services.AddSingleton<IAnnouncementsClient>(_announcements);
+        var emptyLists = new HttpClient(new EmptyListHandler()) { BaseAddress = new Uri("http://localhost") };
+        Services.AddSingleton<IMembershipPlansClient>(new MembershipPlansClient(emptyLists));
+        Services.AddSingleton<IClassesClient>(new ClassesClient(emptyLists));
         Services.AddScoped<PushRegistrationService>();
     }
 
