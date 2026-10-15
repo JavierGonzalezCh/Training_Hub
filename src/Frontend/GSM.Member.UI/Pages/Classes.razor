@@ -100,7 +100,7 @@ else
                             {
                                 <MudChip T="string" Color="Color.Error" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">CANCELADA</MudChip>
                             }
-                            else if (entry.OutsideOpeningHours && entry.MyBookingStatus is not "Booked")
+                            else if (entry.OutsideOpeningHours == true && entry.MyBookingStatus is not "Booked")
                             {
                                 <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono outside-hours-chip">GYM CERRADO</MudChip>
                             }

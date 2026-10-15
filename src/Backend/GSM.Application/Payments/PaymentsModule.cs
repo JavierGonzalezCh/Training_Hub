@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using GSM.Application.Payments;
 
 namespace GSM.Application;
 

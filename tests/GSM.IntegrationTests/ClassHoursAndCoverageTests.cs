@@ -397,11 +397,11 @@ public sealed class ClassHoursAndCoverageTests(ApiFactory factory) : IClassFixtu
 
     // ---------- Siembra y ayudas ----------
 
-    private Task<ClassResponse> CreateAsync(
+    private async Task<ClassResponse> CreateAsync(
         World w, TimeOnly start, int minutes, ClassDayOfWeek[] days, int? capacity = 10)
     {
         using var scope = Staff(w);
-        return scope.ServiceProvider.GetRequiredService<CreateClassHandler>()
+        return await scope.ServiceProvider.GetRequiredService<CreateClassHandler>()
             .HandleAsync(Request(start, minutes, days, capacity), default);
     }
 
@@ -409,10 +409,10 @@ public sealed class ClassHoursAndCoverageTests(ApiFactory factory) : IClassFixtu
         => new("Spinning", null, "Ana", capacity, start, minutes,
             IsRecurring: true, DaysOfWeek: days, ScheduledDate: null);
 
-    private Task<ClassResponse> CreateOneOffAsync(World w, DateOnly date)
+    private async Task<ClassResponse> CreateOneOffAsync(World w, DateOnly date)
     {
         using var scope = Staff(w);
-        return scope.ServiceProvider.GetRequiredService<CreateClassHandler>().HandleAsync(
+        return await scope.ServiceProvider.GetRequiredService<CreateClassHandler>().HandleAsync(
             new SaveClassRequest("Taller", null, null, 10, new TimeOnly(7, 0), 45,
                 IsRecurring: false, DaysOfWeek: null, ScheduledDate: date), default);
     }

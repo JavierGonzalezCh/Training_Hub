@@ -5,6 +5,7 @@ using GSM.Client.Generated;
 using GSM.Panel.UI.Pages.Members;
 using GSM.UI.Shared.Formatting;
 using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
 using MudBlazor.Services;
 
 namespace GSM.Web.Tests;
@@ -125,6 +126,7 @@ public class MemberHealthUiTests : TestContext
             new MemberHealthAccessItem { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), UserName = "Carlos Coach", Role = "staff", AccessedAt = DateTimeOffset.UtcNow },
         ];
 
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<MemberHealthAccessPanel>(p => p.Add(x => x.MemberId, Guid.NewGuid()));
 
         Assert.Contains("Carlos Coach", cut.Markup);

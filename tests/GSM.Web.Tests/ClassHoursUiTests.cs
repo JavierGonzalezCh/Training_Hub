@@ -13,7 +13,8 @@ namespace GSM.Web.Tests;
 /// <summary>C1: el panel avisa de las clases que quedaron fuera del horario del gym y marca las ocurrencias "Gym cerrado".</summary>
 public class ClassHoursUiTests : TestContext
 {
-    private static readonly DateOnly Monday = new(2026, 3, 2);
+    private static readonly DateOnly Monday = ThisMonday();
+    private static DateOnly ThisMonday() { var d = DateOnly.FromDateTime(DateTime.Today); return d.AddDays(-(((int)d.DayOfWeek + 6) % 7)); }
 
     [Fact]
     public void The_class_list_warns_about_classes_outside_the_gym_hours()

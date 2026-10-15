@@ -10,7 +10,7 @@ se decide cambiar va en la especificación del módulo.
 | Id | Módulo | Resumen | Severidad | Estado |
 |---|---|---|---|---|
 | B1 | Routines | Editar una rutina borra todo el historial de entrenamiento del miembro | Alta | **Corregido en R1** (v2) |
-| B2 | Dashboard | "Ingresos del mes" compara el mes en curso contra el mes anterior completo | Media | Abierto |
+| B2 | Dashboard | "Ingresos del mes" compara el mes en curso contra el mes anterior completo | Media | **Corregido en P3** (v2) |
 | B3 | Memberships (UI) | El precio del plan sale con formato distinto según la pantalla | Baja | **Corregido** (v2, tarea B3) |
 | B4 | Gyms (UI) | El campo "Aforo" promete medir qué tan lleno está el gym en tiempo real, y nada lo usa | Baja | Abierto |
 
@@ -46,6 +46,8 @@ se decide cambiar va en la especificación del módulo.
   día 7, contra el **mes anterior completo**.
 - **Arreglo propuesto:** comparar contra los mismos días del mes anterior (del 1 al 7 de
   septiembre), usando `IClock.BusinessDayRange`.
+
+- **Corregido en P3 (2026-10-14, rama `v2`):** el dashboard compara contra los mismos días del mes anterior (`IPaymentReader.GetRevenueBetweenDaysAsync`, recortado si el mes anterior es más corto), con `DashboardRevenueComparisonTests`.
 
 ## B3 — Formato del precio distinto según la pantalla
 

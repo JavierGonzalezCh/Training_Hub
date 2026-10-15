@@ -58,7 +58,7 @@ else if (_member is not null)
                     <CommercialStatusChip Status="@_member.CommercialStatus" />
                 }
                 @* El aviso de salud lo ve todo el equipo; el detalle, solo quien tiene el permiso. *@
-                @if (_member.HasHealthAlerts)
+                @if (_member.HasHealthAlerts == true)
                 {
                     <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small"
                              Icon="@Icons.Material.Filled.HealthAndSafety" Class="gsm-health-alert">Tiene restricciones</MudChip>

@@ -138,7 +138,7 @@ public class CashDrawerUiTests : TestContext
         Assert.Contains("explique la diferencia", provider.Find("[data-testid='close-cash-error']").TextContent);
         Assert.DoesNotContain(_cashFake.Calls, c => c.Method == "CloseAsync");
 
-        provider.Find("textarea").Input("Se pagó un domicilio");
+        provider.Find("textarea").Change("Se pagó un domicilio");
         provider.Find("[data-testid='confirm-close-cash']").Click();
 
         var body = (CloseCashShiftRequest)Assert.Single(_cashFake.Calls, c => c.Method == "CloseAsync").Args[0]!;
@@ -167,7 +167,7 @@ public class CashDrawerUiTests : TestContext
 
         Assert.Single(provider.FindAll("[data-testid='refund-question']"));
 
-        provider.Find("textarea").Input("Cobro duplicado");
+        provider.Find("textarea").Change("Cobro duplicado");
         provider.Find("button.mud-button-filled-error").Click();
 
         Assert.DoesNotContain(_paymentsFake.Calls, c => c.Method == "VoidAsync");
@@ -188,7 +188,7 @@ public class CashDrawerUiTests : TestContext
 
         Assert.Empty(provider.FindAll("[data-testid='refund-question']"));
 
-        provider.Find("textarea").Input("Error de cobro");
+        provider.Find("textarea").Change("Error de cobro");
         provider.Find("button.mud-button-filled-error").Click();
 
         var body = (VoidPaymentRequest)Assert.Single(_paymentsFake.Calls, c => c.Method == "VoidAsync").Args[1]!;

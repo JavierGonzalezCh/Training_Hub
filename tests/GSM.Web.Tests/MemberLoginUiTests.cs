@@ -118,7 +118,7 @@ public class MemberLoginUiTests : TestContext
         var (_, gyms, _) = Setup();
         Services.GetRequiredService<NavigationManager>().NavigateTo("/app/entrar?gym=iron-demo");
 
-        var cut = RenderComponent<MemberLogin>(p => p.Add(x => x.GymSlug, "iron-demo"));
+        var cut = RenderComponent<MemberLogin>();
 
         Assert.Equal("iron-demo", gyms.RequestedSlug);
         Assert.Contains("Iron Demo", cut.Find("[data-testid='gym-brand']").TextContent);
@@ -139,7 +139,8 @@ public class MemberLoginUiTests : TestContext
     public void Asking_for_a_code_sends_the_email_and_shows_the_code_field()
     {
         var (auth, _, _) = Setup();
-        var cut = RenderComponent<MemberLogin>(p => p.Add(x => x.GymSlug, "iron-demo"));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/app/entrar?gym=iron-demo");
+        var cut = RenderComponent<MemberLogin>();
 
         cut.Find("[data-testid='use-code']").Click();
         cut.FindAll("input")[0].Input("ana@test.local");

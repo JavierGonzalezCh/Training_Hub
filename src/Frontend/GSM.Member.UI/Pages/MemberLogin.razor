@@ -77,7 +77,7 @@ else
         </MudAlert>
 
         <MudTextField T="string" @bind-Value="_code" Label="Código de 6 dígitos" Class="mb-4 gsm-mono"
-                      Immediate="true" autocomplete="one-time-code" inputmode="numeric" MaxLength="6"
+                      Immediate="true" autocomplete="one-time-code" InputMode="InputMode.numeric" MaxLength="6"
                       OnKeyDown="CodeKeyDownAsync" data-testid="login-code" />
 
         <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="VerifyCodeAsync"

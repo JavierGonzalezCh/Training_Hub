@@ -71,7 +71,7 @@
                 <span class="gsm-identity">
                     <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials($"{context.FirstName} {context.LastName}")</span>
                     <span>@context.FirstName @context.LastName</span>
-                    @if (context.HasHealthAlerts)
+                    @if (context.HasHealthAlerts == true)
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="gsm-health-alert">Restricciones</MudChip>
                     }

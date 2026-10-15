@@ -53,7 +53,10 @@
 | M2 | **Unida** | Texto base de las autorizaciones = **borrador pendiente de revisión legal**. Ver pregunta 20 |
 | N2 | **Unida** (67304c3) | Sin Firebase: detrás de `IPushSender`. Promoción no puede ser importante (añadido al unir) |
 | A1 | Pendiente (va en serie con MS1b, G3b y C1) | — |
-| C1 | Pendiente (va en serie después de A1) | — |
+| C1 | **Unida** (rama `v2-C1-clases-horario-b`) | Horario del gym en crear/editar (422), reservar y asistir (409), cobertura del día de la sesión, cancelación perezosa, clases fuera de horario. Ver preguntas C1 |
+| M3 | **Unida** | Salud en `GET/PUT .../health` con `ViewMemberHealth`, registro de consultas, alerta en lista y ficha. Ver preguntas M3 |
+| I5 | **Unida** | `/app/entrar`: código de 6 dígitos por correo (hash, 10 min, 5 intentos), marca del gym por slug. Ver preguntas I5 |
+| P3 | **Unida** | Caja por turno con arqueo, movimientos, anulaciones en efectivo, reporte imprimible, cierre diario ampliado. **Corrige B2**. Ver preguntas P3 |
 | P2 | **Unida** (07be3c8) | Rama `v2-P2-permisos-pagos-b`. Nota al rechazar añadida al unir |
 | N4 | **Unida** (a99b982) | Preferencias por categoría y canal, horario sin avisos, categoría del anuncio (CO1). Ver pregunta 22. Suite 393 + 187 |
 | I1 | **Unida** | Config nueva `Identity:PublicWebBaseUrl` (producción). Suite 343 + 156 | los correos de cuenta siguen por el camino de Identity (moverlos a Notifications queda pendiente) |
@@ -126,6 +129,14 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **I5-7:** el límite de 5 códigos por hora no se le avisa al miembro (solo no le llega). ¿Mensaje explícito?
 - Observación de I5: `RefreshTokenService.IssueAsync` usa `DateTimeOffset.UtcNow` en vez de `IClock` (candidato a `BUGS.md`).
 
+- **P3-1:** la caja "olvidada" = abierta hace más de **16 h**. Antes de eso, cualquier staff cobra en efectivo en la caja abierta de otro. ¿Se bloquea al staff que no abrió la caja?
+- **P3-2:** mover dinero y cerrar: solo quien abrió la caja o el Owner (`ViewFinances` no basta). Confirmar.
+- **P3-3:** un retiro mayor al efectivo esperado se permite sin límite. ¿Se bloquea?
+- **P3-4:** la barra de la caja solo está en `/payments`, no en Recepción. ¿Se lleva también a Recepción?
+- **P3-5:** el filtro "persona" de la lista de turnos usa un endpoint solo-Owner y se oculta a quien solo tiene `ViewFinances`. ¿Hace falta un endpoint de equipo para ellos?
+- **P3-6 (técnico, sin decidir):** dos aperturas simultáneas las rechaza el índice único, pero esa carrera da 500 en vez de 409. Arreglo pendiente pequeño.
+- **Observación de C1:** reservar una sesión que ya empezó puede dejar la sesión materializada sin reserva (inofensivo; preexistente).
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
@@ -158,6 +169,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-14: C1, M3, I5 y P3 unidas. Migración única `V2_P3_M3_I5` (con `SqlScript("P3")`), cliente regenerado. Al integrar: 1 `using` en Payments, 8 errores de UI (parámetro nuevo `withHealthAlerts`, `bool?` del cliente, `InputMode`), 7 tests bUnit (parámetro de query, popover, `Change` en vez de `Input`, semana actual) y 15 de C1 (helpers que liberaban el scope sin esperar la tarea). **Suite: 528 integración + 260 bUnit, todo verde.**
 - 2026-10-14 (noche): lanzadas C1 (rama `v2-C1-clases-horario-b`), P3 (corrige B2), M3 e I5; los agentes solo escriben código. Preguntas nuevas irán a §2 para responder mañana.
 - 2026-10-12: primera tanda con agentes que solo escriben código (A1, M1b, G1+S1). Se cortaron una vez por conexión y se retomaron. Al integrar: backend compiló a la primera; 2 errores de compilación y 3 de tests, todos menores. Migración única `V2_A1_M1b_MotivosYEntrenador`. **Suite: 460 + 234 en verde.**
 - 2026-10-12: E2, P2, I7 y N2 unidas, con la nota al rechazar (P2) y "promoción no es importante" (N2) añadidas al unir. **Suite completa en verde: 432 integración + 219 bUnit.** Dos cortes de la suite por memoria en segundo plano: correrla en primer plano.

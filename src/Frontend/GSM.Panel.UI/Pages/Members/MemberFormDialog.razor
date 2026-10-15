@@ -253,7 +253,7 @@
 
         try
         {
-            var page = await Members.MembersGETAsync(value, null, null, null, 1, 8, null, null, cancellationToken);
+            var page = await Members.MembersGETAsync(value, null, null, null, 1, 8, null, null, null, cancellationToken);
             return page.Items.Where(m => m.Id != MemberId).ToList();
         }
         catch (GsmApiException)

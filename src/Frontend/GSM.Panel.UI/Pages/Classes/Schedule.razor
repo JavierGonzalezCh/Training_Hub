@@ -43,7 +43,7 @@ else
                     {
                         <MudText Color="Color.Secondary" Typo="Typo.body2">@entry.InstructorName</MudText>
                     }
-                    @if (entry.OutsideOpeningHours)
+                    @if (entry.OutsideOpeningHours == true)
                     {
                         <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono outside-hours-chip">GYM CERRADO</MudChip>
                     }

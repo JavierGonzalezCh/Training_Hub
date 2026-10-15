@@ -72,6 +72,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_status", new[] { "pending", "held", "sent", "failed", "cancelled", "skipped" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement", "void_request_rejected" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "push_platform", new[] { "android", "web_member", "web_panel" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "cash_movement_type", new[] { "withdrawal", "deposit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "void_request_status", new[] { "pending", "approved", "rejected" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "difficulty", new[] { "beginner", "intermediate", "advanced" });
@@ -1599,6 +1600,20 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("last_name");
 
+                    b.Property<DateOnly?>("MedicalClearanceDate")
+                        .HasColumnType("date")
+                        .HasColumnName("medical_clearance_date");
+
+                    b.Property<string>("MedicalConditions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("medical_conditions");
+
+                    b.Property<string>("Medications")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("medications");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
@@ -1629,6 +1644,11 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<Guid?>("TrainerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("trainer_user_id");
+
+                    b.Property<string>("TrainingRestrictions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("training_restrictions");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1797,6 +1817,63 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_consents_member_id_type_accepted_at");
 
                     b.ToTable("member_consents", "members");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberHealthAccess", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AccessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accessed_at");
+
+                    b.Property<DateOnly>("AccessedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("accessed_on");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("role");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_health_access_log");
+
+                    b.HasIndex("GymId")
+                        .HasDatabaseName("ix_health_access_log_gym_id");
+
+                    b.HasIndex("MemberId", "AccessedAt")
+                        .HasDatabaseName("ix_health_access_log_member_id_accessed_at");
+
+                    b.HasIndex("MemberId", "UserId", "AccessedOn")
+                        .IsUnique()
+                        .HasDatabaseName("ix_health_access_log_member_id_user_id_accessed_on");
+
+                    b.ToTable("health_access_log", "members");
                 });
 
             modelBuilder.Entity("GSM.Domain.Members.MemberInvitation", b =>
@@ -2452,12 +2529,146 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("staff_notification_preferences", "notifications");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Payments.CashMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("ShiftId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("shift_id");
+
+                    b.Property<CashMovementType>("Type")
+                        .HasColumnType("payments.cash_movement_type")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cash_movements");
+
+                    b.HasIndex("ShiftId")
+                        .HasDatabaseName("ix_cash_movements_shift_id");
+
+                    b.HasIndex("GymId", "OccurredAt")
+                        .HasDatabaseName("ix_cash_movements_gym_id_occurred_at");
+
+                    b.ToTable("cash_movements", "payments");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Payments.CashShift", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CloseNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("close_notes");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<Guid?>("ClosedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("closed_by");
+
+                    b.Property<decimal?>("CountedCash")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("counted_cash");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal?>("Difference")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("difference");
+
+                    b.Property<decimal?>("ExpectedCash")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("expected_cash");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("opened_at");
+
+                    b.Property<Guid>("OpenedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("opened_by");
+
+                    b.Property<decimal>("OpeningCash")
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("opening_cash");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cash_shifts");
+
+                    b.HasIndex("GymId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_cash_shifts_open_gym")
+                        .HasFilter("closed_at IS NULL");
+
+                    b.HasIndex("OpenedBy")
+                        .HasDatabaseName("ix_cash_shifts_opened_by");
+
+                    b.HasIndex("GymId", "OpenedAt")
+                        .HasDatabaseName("ix_cash_shifts_gym_id_opened_at");
+
+                    b.ToTable("cash_shifts", "payments");
+                });
+
             modelBuilder.Entity("GSM.Domain.Payments.Payment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<bool>("AffectsCashDrawer")
+                        .HasColumnType("boolean")
+                        .HasColumnName("affects_cash_drawer");
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(12,2)")
@@ -2506,6 +2717,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("reverses_payment_id");
 
+                    b.Property<Guid?>("ShiftId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("shift_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -2522,6 +2737,9 @@ namespace GSM.Infrastructure.Migrations
                     b.HasIndex("ReversesPaymentId")
                         .IsUnique()
                         .HasDatabaseName("ix_payments_reverses_payment_id");
+
+                    b.HasIndex("ShiftId")
+                        .HasDatabaseName("ix_payments_shift_id");
 
                     b.HasIndex("GymId", "PaidAt")
                         .HasDatabaseName("ix_payments_gym_id_paid_at");
@@ -3583,6 +3801,56 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("kiosk_devices", "identity");
                 });
 
+            modelBuilder.Entity("GSM.Infrastructure.Identity.LoginCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consumed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_login_codes");
+
+                    b.HasIndex("UserId", "IssuedAt")
+                        .HasDatabaseName("ix_login_codes_user_id_issued_at");
+
+                    b.ToTable("login_codes", "identity");
+                });
+
             modelBuilder.Entity("GSM.Infrastructure.Identity.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3894,6 +4162,16 @@ namespace GSM.Infrastructure.Migrations
                         .HasConstraintName("fk_member_consents_members_member_id");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Members.MemberHealthAccess", b =>
+                {
+                    b.HasOne("GSM.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_health_access_log_members_member_id");
+                });
+
             modelBuilder.Entity("GSM.Domain.Members.MemberInvitation", b =>
                 {
                     b.HasOne("GSM.Domain.Members.Member", null)
@@ -3922,6 +4200,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_notification_deliveries_notifications_notification_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Payments.CashMovement", b =>
+                {
+                    b.HasOne("GSM.Domain.Payments.CashShift", null)
+                        .WithMany()
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cash_movements_cash_shifts");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.GymHiddenExercise", b =>
