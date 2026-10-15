@@ -9,7 +9,8 @@ public sealed record GymOpenStatus(
     bool IsOpen,
     TimeOnly? ClosesAt,
     DateOnly? NextOpensOn,
-    TimeOnly? NextOpensAt)
+    TimeOnly? NextOpensAt,
+    bool Is24Hours = false)
 {
     /// <summary>Un gym sin horario cargado nunca rechaza nada.</summary>
     public static GymOpenStatus NoSchedule { get; } = new(false, true, null, null, null);
@@ -55,6 +56,11 @@ public sealed class OpeningSchedule(
         var currentIndex = today.FindIndex(s => s.Contains(time));
         if (currentIndex >= 0)
         {
+            if (today[currentIndex].IsAllDay)
+            {
+                return new GymOpenStatus(true, true, null, null, null, Is24Hours: true);
+            }
+
             // Une tramos que se tocan (cierra 12:00 y abre 12:00) para informar el cierre real.
             var closes = today[currentIndex].Closes;
             for (var i = currentIndex + 1; i < today.Count && today[i].Opens <= closes; i++)

@@ -377,6 +377,119 @@ public sealed class OpeningHoursTests(ApiFactory factory) : IClassFixture<ApiFac
         Assert.False(string.IsNullOrWhiteSpace(hours.GetProperty("status").GetProperty("text").GetString()));
     }
 
+    // ---------- G3b: Abierto 24 horas ----------
+
+    [Fact]
+    public async Task A_24_hour_day_is_saved_and_read_back_without_slots()
+    {
+        var gymId = await SeedGymAsync();
+        using var scope = Owner(gymId, Monday);
+        var saved = await scope.ServiceProvider.GetRequiredService<UpdateOpeningHoursHandler>()
+            .HandleAsync(Typed24("Tuesday"), default);
+
+        var tuesday = saved.Days.Single(d => d.Day == "Tuesday");
+        Assert.True(tuesday.Is24Hours);
+        Assert.Empty(tuesday.Slots);
+        Assert.False(saved.Days.Single(d => d.Day == "Monday").Is24Hours);
+
+        var read = await scope.ServiceProvider.GetRequiredService<GetOpeningHoursHandler>().HandleAsync(default);
+        Assert.True(read.Days.Single(d => d.Day == "Tuesday").Is24Hours);
+        Assert.NotEmpty(read.Days.Single(d => d.Day == "Wednesday").Slots);
+    }
+
+    [Fact]
+    public async Task A_24_hour_day_with_slots_is_422()
+    {
+        var gymId = await SeedGymAsync();
+        using var scope = Owner(gymId, Monday);
+        var request = Typed24("Tuesday", withSlots: true);
+
+        var ex = await Assert.ThrowsAsync<ValidationDomainException>(() => scope.ServiceProvider
+            .GetRequiredService<UpdateOpeningHoursHandler>().HandleAsync(request, default));
+        Assert.Contains("24 horas", ex.Message);
+    }
+
+    [Fact]
+    public async Task IsOpenAt_is_true_all_day_on_a_24_hour_day_and_reports_it()
+    {
+        var gymId = await SeedGymAsync();
+        using (var scope = Owner(gymId, Monday))
+        {
+            await scope.ServiceProvider.GetRequiredService<UpdateOpeningHoursHandler>()
+                .HandleAsync(Typed24("Tuesday"), default);
+        }
+
+        var tuesday = Monday.AddDays(1);
+        Assert.True(await IsOpenAsync(gymId, tuesday, 0, 0));
+        Assert.True(await IsOpenAsync(gymId, tuesday, 3, 0));
+        Assert.True(await IsOpenAsync(gymId, tuesday, 23, 59));
+        var status = await StatusAsync(gymId, tuesday, 3, 0);
+        Assert.True(status.Is24Hours);
+        Assert.Equal("Abierto 24 horas", OpenStatusText.Badge(status, tuesday));
+
+        // El día normal de al lado no se contagia.
+        Assert.False(await IsOpenAsync(gymId, Monday, 3, 0));
+    }
+
+    [Fact]
+    public async Task A_closing_exception_on_a_24_hour_date_closes_it()
+    {
+        var gymId = await SeedGymAsync();
+        using (var scope = Owner(gymId, Monday))
+        {
+            await scope.ServiceProvider.GetRequiredService<UpdateOpeningHoursHandler>()
+                .HandleAsync(Typed24("Tuesday"), default);
+        }
+
+        var tuesday = Monday.AddDays(1);
+        await UpsertSpecialAsync(gymId, tuesday, closed: true, []);
+
+        Assert.False(await IsOpenAsync(gymId, tuesday, 3, 0));
+        Assert.False(await IsOpenAsync(gymId, tuesday, 23, 59));
+    }
+
+    [Fact]
+    public async Task A_holiday_keeps_the_holiday_schedule_even_when_its_weekday_is_24_hours()
+    {
+        var gymId = await SeedGymAsync();
+        using (var scope = Owner(gymId, Monday))
+        {
+            await scope.ServiceProvider.GetRequiredService<UpdateOpeningHoursHandler>()
+                .HandleAsync(Typed24("Monday"), default);
+        }
+
+        // 2026-10-12 es lunes festivo: manda el horario de festivos (7-13), no el 24 h del lunes.
+        Assert.False(await IsOpenAsync(gymId, HolidayMonday, 3, 0));
+        Assert.True(await IsOpenAsync(gymId, HolidayMonday, 8, 0));
+        Assert.True(await IsOpenAsync(gymId, Monday, 3, 0));
+    }
+
+    private static UpdateOpeningHoursRequest Typed24(string day24, bool withSlots = false)
+    {
+        OpeningDayDto D(string day, params (string, string)[] s)
+        {
+            if (day == day24)
+            {
+                return new OpeningDayDto(
+                    day, withSlots ? [new TimeSlotDto("05:00", "10:00")] : []) { Is24Hours = true };
+            }
+
+            return new OpeningDayDto(day, s.Select(t => new TimeSlotDto(t.Item1, t.Item2)).ToList());
+        }
+
+        return new UpdateOpeningHoursRequest(
+        [
+            D("Monday", ("05:00", "12:00")),
+            D("Tuesday", ("05:00", "22:00")),
+            D("Wednesday", ("05:00", "22:00")),
+            D("Thursday", ("05:00", "22:00")),
+            D("Friday", ("05:00", "22:00")),
+            D("Saturday", ("07:00", "14:00")),
+            D("Sunday", ("07:00", "13:00")),
+            D("Holiday", ("07:00", "13:00")),
+        ]);
+    }
+
     // ---------- Soporte ----------
 
     private static IReadOnlyDictionary<OpeningDay, IReadOnlyList<TimeSlot>> Week()

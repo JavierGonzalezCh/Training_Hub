@@ -53,14 +53,14 @@ public sealed class UpdateOpeningHoursHandler(
                 throw new ValidationDomainException($"El día {day.Day} viene repetido.");
             }
 
-            byDay[parsed] = OpeningSlots.Normalize(OpeningHoursSupport.ToSlots(day.Slots), DayLabel(parsed));
+            byDay[parsed] = OpeningSlots.NormalizeDay(OpeningHoursSupport.ToSlots(day.Slots), day.Is24Hours, DayLabel(parsed));
         }
 
         var missing = OpeningHoursSupport.AllDays.Where(d => !byDay.ContainsKey(d)).ToList();
         if (missing.Count > 0)
         {
             throw new ValidationDomainException(
-                $"Falta el horario de: {string.Join(", ", missing.Select(DayLabel))}. Todos los días llevan al menos un tramo.");
+                $"Falta el horario de: {string.Join(", ", missing.Select(DayLabel))}. Todos los días llevan al menos un tramo o la casilla de 24 horas.");
         }
 
         foreach (var existing in await schedule.GetWeeklySlotsAsync(cancellationToken))

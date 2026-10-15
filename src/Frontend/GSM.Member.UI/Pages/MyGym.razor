@@ -95,7 +95,7 @@ else
                 {
                     <li class="@(string.Equals(day.Day, todayName, StringComparison.OrdinalIgnoreCase) ? "is-today" : null)">
                         <span>@OpeningHoursLabels.Label(day.Day)</span>
-                        <span>@OpeningHoursLabels.Describe(day.Slots)</span>
+                        <span>@OpeningHoursLabels.Describe(day)</span>
                     </li>
                 }
             </ul>

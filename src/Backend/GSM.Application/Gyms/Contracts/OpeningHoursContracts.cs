@@ -7,7 +7,14 @@ namespace GSM.Application.Gyms.Contracts;
 public sealed record TimeSlotDto(string Opens, string Closes);
 
 /// <summary>Los tramos de un día de la semana, o del horario de festivos (<c>Holiday</c>).</summary>
-public sealed record OpeningDayDto(string Day, IReadOnlyList<TimeSlotDto> Slots);
+/// <remarks>
+/// <c>Is24Hours</c> = "Abierto 24 horas": el día no lleva tramos y el gym nunca cierra. Es propiedad y no
+/// parámetro posicional para que quien omite el campo (clientes viejos) lo deje en <c>false</c>.
+/// </remarks>
+public sealed record OpeningDayDto(string Day, IReadOnlyList<TimeSlotDto> Slots)
+{
+    public bool Is24Hours { get; init; }
+}
 
 /// <summary>Cómo está el gym ahora mismo. <c>Text</c> ya viene redactado ("Abierto · cierra a las 22:00").</summary>
 public sealed record GymOpenStatusDto(

@@ -54,9 +54,15 @@ public static class OpeningHoursSupport
         var byDay = weeklySlots.GroupBy(s => s.Day).ToDictionary(g => g.Key, g => g.Select(s => s.Slot));
         return AllDays
             .Where(byDay.ContainsKey)
-            .Select(d => new OpeningDayDto(d.ToString(), ToDto(byDay[d])))
+            .Select(d => ToDayDto(d, byDay[d].ToList()))
             .ToList();
     }
+
+    /// <summary>Un día con el único tramo 00:00–23:59 sale como "Abierto 24 horas", sin tramos.</summary>
+    public static OpeningDayDto ToDayDto(OpeningDay day, IReadOnlyList<TimeSlot> slots)
+        => slots.Count == 1 && slots[0].IsAllDay
+            ? new OpeningDayDto(day.ToString(), []) { Is24Hours = true }
+            : new OpeningDayDto(day.ToString(), ToDto(slots));
 
     public static GymOpenStatusDto ToDto(GymOpenStatus status, DateOnly today)
         => new(
@@ -101,6 +107,11 @@ public static class OpenStatusText
         if (!status.HasSchedule)
         {
             return "Horario sin cargar";
+        }
+
+        if (status.IsOpen && status.Is24Hours)
+        {
+            return "Abierto 24 horas";
         }
 
         if (status.IsOpen)
