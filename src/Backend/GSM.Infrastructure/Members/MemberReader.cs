@@ -16,6 +16,21 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
     public Task<MemberInfo?> GetAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Project(Members.Where(m => m.Id == memberId)).FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<MemberInfo>> FindByDocumentNumberAsync(
+        string documentNumber, CancellationToken cancellationToken = default)
+    {
+        var wanted = documentNumber.Replace(".", string.Empty).Replace(" ", string.Empty).Trim();
+        if (wanted.Length == 0)
+        {
+            return [];
+        }
+
+        return await Project(Members.Where(m =>
+                m.DocumentNumber.Replace(".", "").Replace(" ", "") == wanted))
+            .Take(2)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> ExistsAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Members.AnyAsync(m => m.Id == memberId, cancellationToken);
 

@@ -344,7 +344,7 @@ else if (_member is not null)
                 <RowTemplate>
                     <MudTd DataLabel="Fecha">@GsmFormat.Day(context.AttendanceDate)</MudTd>
                     <MudTd DataLabel="Hora">@GsmFormat.Instant(context.CheckedInAt)</MudTd>
-                    <MudTd DataLabel="Método">@(context.Method == "Qr" ? "QR" : "Manual")</MudTd>
+                    <MudTd DataLabel="Método">@(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")</MudTd>
                 </RowTemplate>
             </ServerTable>
         </MudTabPanel>

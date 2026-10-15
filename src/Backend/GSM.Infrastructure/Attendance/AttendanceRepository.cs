@@ -57,6 +57,11 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
             q = q.Where(a => a.AuthorizedBy != null);
         }
 
+        if (query.DocumentOnly)
+        {
+            q = q.Where(a => a.Method == GSM.Domain.Attendance.AttendanceMethod.Document);
+        }
+
         var total = await q.CountAsync(cancellationToken);
 
         var items = await q

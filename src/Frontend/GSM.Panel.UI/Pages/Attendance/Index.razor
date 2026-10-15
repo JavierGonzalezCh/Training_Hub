@@ -56,7 +56,7 @@
         </MudTd>
         <MudTd DataLabel="Fecha">@GsmFormat.Day(context.AttendanceDate)</MudTd>
         <MudTd DataLabel="Hora">@GsmFormat.Instant(context.CheckedInAt)</MudTd>
-        <MudTd DataLabel="Método">@(context.Method == "Qr" ? "QR" : "Manual")</MudTd>
+        <MudTd DataLabel="Método">@(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")</MudTd>
         <MudTd DataLabel="Autorizada">
             @if (context.Authorized == true)
             {
@@ -76,7 +76,7 @@
             <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None" Class="gsm-card__title">
                 @context.MemberName
             </MudLink>
-            <span class="gsm-mono">@(context.Method == "Qr" ? "QR" : "Manual")</span>
+            <span class="gsm-mono">@(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")</span>
         </div>
         <div class="gsm-card__meta">@GsmFormat.Day(context.AttendanceDate) · @GsmFormat.Instant(context.CheckedInAt)</div>
         <div class="gsm-card__meta">

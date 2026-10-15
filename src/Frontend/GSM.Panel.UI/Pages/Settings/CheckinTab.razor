@@ -32,6 +32,14 @@ else
             </label>
         </fieldset>
 
+        <MudSwitch T="bool" @bind-Value="_byDocument" Color="Color.Primary" data-testid="checkin-by-document"
+                   Label="Entrada con documento en el kiosco" Class="mb-1" />
+        <p class="gsm-choice__hint mb-4">
+            El miembro digita su documento en el teclado del kiosco y entra con las mismas reglas que el QR.
+            Riesgo: alguien puede digitar el número de otra persona; por eso el kiosco muestra el nombre de pila y la foto,
+            y solo vale una entrada por día. Apagada por defecto.
+        </p>
+
         <MudNumericField T="int" @bind-Value="_graceDays" Label="Días de gracia" Min="0" Max="30"
                          HelperText="Días después de vencer la membresía en que el miembro aún entra, con letrero. Pasado ese plazo se rechaza y el gym recibe la alerta; recepción puede dejarlo pasar con motivo."
                          Class="mb-4" Style="max-width:420px" />
@@ -68,6 +76,7 @@ else
     private bool _regenerating;
     private string _mode = Rotating;
     private string _savedMode = Rotating;
+    private bool _byDocument;
     private int _graceDays = 3;
     private int _expiringDays = 7;
     private decimal _enrollmentFee;
@@ -78,6 +87,7 @@ else
         {
             var settings = await Attendance.SettingsGETAsync();
             _mode = _savedMode = settings.Mode;
+            _byDocument = settings.ByDocument;
             var membership = await MembershipSettings.MembershipSettingsGETAsync();
             _graceDays = membership.GraceDays;
             _expiringDays = membership.ExpiringDays;
@@ -99,10 +109,11 @@ else
         try
         {
             // La gracia ya no es de Attendance: vive en los ajustes de membresías (dos llamadas, cada una a su módulo).
-            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode });
+            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode, ByDocument = _byDocument });
             var membership = await MembershipSettings.MembershipSettingsPUTAsync(
                 new UpdateMembershipSettingsRequest { GraceDays = _graceDays, ExpiringDays = _expiringDays, EnrollmentFee = (double)_enrollmentFee });
             _mode = _savedMode = saved.Mode;
+            _byDocument = saved.ByDocument;
             _graceDays = membership.GraceDays;
             _expiringDays = membership.ExpiringDays;
             _enrollmentFee = (decimal)membership.EnrollmentFee;
