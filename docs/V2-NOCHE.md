@@ -110,6 +110,14 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **M3-3:** el miembro leyendo su propia salud queda para **M5** (`/api/me/profile`); `/health` da 403 al miembro. Confirmar.
 - **M3-4:** la consulta de un SuperAdmin impersonando no va a `health_access_log` (ya queda en `superadmin.impersonation_actions`). Confirmar.
 
+- **C1-1:** las tiqueteras aún no existen (MS5); la regla de cobertura de clases por entradas queda pendiente para cuando existan.
+- **C1-2:** cuando el gym cambia su horario, las sesiones futuras con reservas que ya no caben se cancelan **de forma perezosa al abrir el horario del staff** (un GET escribe). ¿Se prefiere un evento `OpeningHoursChanged` de Gyms o la tarea periódica?
+- **C1-3:** el aviso al miembro sale por `ClassSessionCancelled` con motivo "Gym cerrado"; revisar el texto.
+- **C1-4:** marcar asistencia con un asistente que no está al día rechaza **el lote entero** nombrando a la persona. ¿O solo a esa persona?
+- **C1-5:** 409 para "gym cerrado"/"no está al día" al reservar o marcar; 422 al crear/editar fuera de horario. Confirmar.
+- **C1-6:** la cobertura de la asistencia se mide en la fecha de la sesión, no hoy. Confirmar.
+- **C1-7:** el roster no muestra "Gym cerrado" (solo el horario). ¿Hace falta?
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
