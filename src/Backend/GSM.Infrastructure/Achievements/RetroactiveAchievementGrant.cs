@@ -5,6 +5,7 @@ using GSM.Application.Classes.Public;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Application.Members.Public;
+using GSM.Application.Memberships.Public;
 using GSM.Application.Routines.Public;
 using GSM.Domain.Achievements;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,7 @@ public sealed class RetroactiveAchievementGrant(
     IClock clock,
     ICurrentUserService currentUser,
     IMemberReader members,
+    IMembershipReader memberships,
     IAchievementRepository achievements,
     IAttendanceReader attendance,
     IRoutineReader routines,
@@ -88,6 +90,27 @@ public sealed class RetroactiveAchievementGrant(
         {
             var visits = await attendance.GetVisitCountsAsync(candidates, cancellationToken);
             return candidates.Where(m => achievement.IsMetBy(visits.GetValueOrDefault(m), 0, 0, 0)).ToList();
+        }
+
+        // Antigüedad y referidos también en bloque: una consulta por tipo, no una por miembro.
+        if (achievement.ConditionType == AchievementConditionType.TenureMonths)
+        {
+            var covered = await memberships.GetCoveredDaysAsync(candidates, cancellationToken);
+            return candidates
+                .Where(m => achievement.IsMetBy(
+                    0, 0, 0, 0, tenureMonths: AchievementMetrics.TenureMonthsOf(covered.GetValueOrDefault(m))))
+                .ToList();
+        }
+
+        if (achievement.ConditionType == AchievementConditionType.Referrals)
+        {
+            var referred = await members.GetReferredMemberIdsAsync(candidates, cancellationToken);
+            var paid = (await memberships.GetMemberIdsWithPaidMembershipAsync(
+                referred.Values.SelectMany(v => v).Distinct().ToList(), cancellationToken)).ToHashSet();
+            return candidates
+                .Where(m => referred.TryGetValue(m, out var ids)
+                    && achievement.IsMetBy(0, 0, 0, 0, referrals: ids.Count(paid.Contains)))
+                .ToList();
         }
 
         var eligible = new List<Guid>();

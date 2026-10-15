@@ -20,6 +20,8 @@ public sealed class SeedDefaultAchievementsHandler(
         ("50 visitas", "50 check-ins acumulados", AchievementConditionType.Visits, 50),
         ("Racha de 7 días", "7 días seguidos entrenando", AchievementConditionType.Streak, 7),
         ("Racha de 30 días", "30 días seguidos entrenando", AchievementConditionType.Streak, 30),
+        ("1 año con nosotros", "12 meses como miembro", AchievementConditionType.TenureMonths, 12),
+        ("Primer amigo", "Un amigo que referiste ya se inscribió", AchievementConditionType.Referrals, 1),
     ];
 
     public async Task HandleAsync(GymCreated domainEvent, CancellationToken cancellationToken)

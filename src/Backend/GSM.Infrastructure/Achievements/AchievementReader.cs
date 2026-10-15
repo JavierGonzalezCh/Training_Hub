@@ -2,6 +2,8 @@ using GSM.Application.Achievements.Public;
 using GSM.Application.Attendance.Public;
 using GSM.Application.Classes.Public;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Members.Public;
+using GSM.Application.Memberships.Public;
 using GSM.Application.Routines.Public;
 using GSM.Domain.Achievements;
 using GSM.Infrastructure.Persistence;
@@ -14,7 +16,9 @@ public sealed class AchievementReader(
     IClock clock,
     IAttendanceReader attendance,
     IRoutineReader routines,
-    IClassReader classes) : IAchievementReader
+    IClassReader classes,
+    IMemberReader members,
+    IMembershipReader memberships) : IAchievementReader
 {
     public Task<string?> GetAchievementNameAsync(Guid achievementId, CancellationToken cancellationToken = default)
         => dbContext.Set<Achievement>().Where(a => a.Id == achievementId).Select(a => (string?)a.Name)
@@ -32,15 +36,18 @@ public sealed class AchievementReader(
             .Where(u => u.MemberId == memberId)
             .ToDictionaryAsync(u => u.AchievementId, u => u.UnlockedAt, cancellationToken);
 
-        var (visits, streak, sessions, classAttendance) = await AchievementMetrics.ComputeAsync(
-            memberId, clock.Today, attendance, routines, classes, cancellationToken);
+        var (visits, streak, sessions, classAttendance, tenure, referrals) = await AchievementMetrics.ComputeAsync(
+            memberId, clock.Today, attendance, routines, classes, members, memberships,
+            needTenure: achievements.Any(a => a.ConditionType == AchievementConditionType.TenureMonths),
+            needReferrals: achievements.Any(a => a.ConditionType == AchievementConditionType.Referrals),
+            cancellationToken);
 
         return achievements
             .Select(a => new MemberAchievementView(
                 a.Id, a.Name, a.Description, a.IconUrl, a.ConditionType, a.ConditionValue,
                 unlocked.ContainsKey(a.Id),
                 unlocked.TryGetValue(a.Id, out var at) ? at : null,
-                a.ProgressOf(visits, streak, sessions, classAttendance)))
+                a.ProgressOf(visits, streak, sessions, classAttendance, tenure, referrals)))
             .ToList();
     }
 }

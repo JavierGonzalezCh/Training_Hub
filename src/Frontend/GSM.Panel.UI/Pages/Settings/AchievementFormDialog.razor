@@ -45,7 +45,7 @@
                         <MudSelectItem Value="value">@label</MudSelectItem>
                     }
                 </MudSelect>
-                <MudNumericField T="int" @bind-Value="_model.ConditionValue" Label="Valor (p. ej. nº de visitas)" Required="true" Min="1" />
+                <MudNumericField T="int" @bind-Value="_model.ConditionValue" Label="@AchievementConditionLabels.ValueLabel(_model.ConditionType)" Required="true" Min="1" />
             </MudForm>
         }
     </DialogContent>

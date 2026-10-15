@@ -1,6 +1,8 @@
 using GSM.Application.Attendance;
 using GSM.Application.Attendance.Public;
 using GSM.Application.Classes.Public;
+using GSM.Application.Members.Public;
+using GSM.Application.Memberships.Public;
 using GSM.Application.Routines.Public;
 
 namespace GSM.Infrastructure.Achievements;
@@ -12,12 +14,23 @@ namespace GSM.Infrastructure.Achievements;
 /// </summary>
 internal static class AchievementMetrics
 {
-    public static async Task<(int Visits, int Streak, int RoutineSessions, int ClassAttendance)> ComputeAsync(
+    /// <summary>Días de una membresía que hacen un "mes" de antigüedad (spec §3.1: días cubiertos entre 30).</summary>
+    public const int DaysPerTenureMonth = 30;
+
+    public static int TenureMonthsOf(int coveredDays) => coveredDays / DaysPerTenureMonth;
+
+    /// <param name="needTenure">Solo se consultan Memberships si hay un logro de antigüedad pendiente.</param>
+    /// <param name="needReferrals">Solo se consultan Members y Memberships si hay un logro de referidos pendiente.</param>
+    public static async Task<(int Visits, int Streak, int RoutineSessions, int ClassAttendance, int TenureMonths, int Referrals)> ComputeAsync(
         Guid memberId,
         DateOnly today,
         IAttendanceReader attendance,
         IRoutineReader routines,
         IClassReader classes,
+        IMemberReader members,
+        IMembershipReader memberships,
+        bool needTenure,
+        bool needReferrals,
         CancellationToken cancellationToken)
     {
         var visits = await attendance.GetVisitCountAsync(memberId, cancellationToken);
@@ -26,7 +39,25 @@ internal static class AchievementMetrics
 
         var streak = await ComputeStreakAsync(memberId, today, attendance, routines, cancellationToken);
 
-        return (visits, streak, sessions, classAttendance);
+        var tenure = needTenure
+            ? TenureMonthsOf(await memberships.GetCoveredDaysAsync(memberId, cancellationToken))
+            : 0;
+        var referrals = needReferrals ? await CountReferralsAsync(memberId, members, memberships, cancellationToken) : 0;
+
+        return (visits, streak, sessions, classAttendance, tenure, referrals);
+    }
+
+    /// <summary>Referidos de este miembro que ya tienen su primera membresía pagada (spec §3.3).</summary>
+    public static async Task<int> CountReferralsAsync(
+        Guid memberId, IMemberReader members, IMembershipReader memberships, CancellationToken cancellationToken)
+    {
+        var referred = await members.GetReferredMemberIdsAsync([memberId], cancellationToken);
+        if (!referred.TryGetValue(memberId, out var ids) || ids.Count == 0)
+        {
+            return 0;
+        }
+
+        return (await memberships.GetMemberIdsWithPaidMembershipAsync(ids, cancellationToken)).Count;
     }
 
     /// <summary>Solo la racha que puntúa logros (estricta, contra el calendario de la rutina asignada).</summary>
