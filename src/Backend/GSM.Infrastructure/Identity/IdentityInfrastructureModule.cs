@@ -56,6 +56,7 @@ public static class IdentityInfrastructureRegistration
         services.AddScoped<IGymAccessService, GymAccessService>();
         services.AddScoped<IKioskDeviceService, KioskDeviceService>();
         services.AddScoped<ILoginCodeService, LoginCodeService>();
+        services.AddScoped<IEmailChangeService, EmailChangeService>();
         services.AddScoped<IIdentityReader, IdentityReader>();
         services.AddScoped<IUserProvisioning, UserProvisioning>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();

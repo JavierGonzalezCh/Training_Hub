@@ -19,4 +19,6 @@ public partial class GsmDbContext
     public DbSet<KioskDevice> KioskDevices => Set<KioskDevice>();
 
     public DbSet<LoginCode> LoginCodes => Set<LoginCode>();
+
+    public DbSet<EmailChangeRequest> EmailChangeRequests => Set<EmailChangeRequest>();
 }

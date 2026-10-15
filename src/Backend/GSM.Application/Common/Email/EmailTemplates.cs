@@ -109,6 +109,35 @@ public static class EmailTemplates
             Sensitive: true);
     }
 
+    /// <summary>
+    /// Código para confirmar el email nuevo de la cuenta (Identity §3.4). Va al correo nuevo. Marcado
+    /// <c>Sensitive</c>: ningún sender lo vuelca al log.
+    /// </summary>
+    public static EmailMessage EmailChangeCode(string to, string fullName, string code, int minutes)
+    {
+        var html = $"""
+            <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
+            <p>Para usar este correo en tu cuenta de GSM, escribe este código:</p>
+            <p><strong style="font-size:28px;letter-spacing:6px">{code}</strong></p>
+            <p>Vence en {minutes} minutos y sirve una sola vez. Si no lo pediste tú, ignora este correo y no pasará nada.</p>
+            """;
+        return new EmailMessage(to, "Confirma tu correo nuevo", html,
+            $"Código para confirmar tu correo nuevo en GSM: {code} (vence en {minutes} minutos, sirve una sola vez).",
+            Sensitive: true);
+    }
+
+    /// <summary>Aviso al correo viejo de que el email de la cuenta cambió (por si no fue la persona).</summary>
+    public static EmailMessage EmailChangedNotice(string to, string fullName, string newEmail)
+    {
+        var html = $"""
+            <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
+            <p>El correo de tu cuenta de GSM cambió a <strong>{WebUtility.HtmlEncode(newEmail)}</strong>.</p>
+            <p>Si no fuiste tú, avisa a tu gimnasio de inmediato.</p>
+            """;
+        return new EmailMessage(to, "El correo de tu cuenta cambió", html,
+            $"El correo de tu cuenta de GSM cambió a {newEmail}. Si no fuiste tú, avisa a tu gimnasio de inmediato.");
+    }
+
     /// <summary>Restablecer contraseña: el enlace (24 h) abre el formulario precargado.</summary>
     public static EmailMessage PasswordReset(string to, string resetUrl)
     {

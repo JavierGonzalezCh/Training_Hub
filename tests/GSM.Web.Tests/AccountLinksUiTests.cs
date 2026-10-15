@@ -62,6 +62,8 @@ public class AccountLinksUiTests : TestContext
         public Task LogoutAsync(LogoutRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task ForgotPasswordAsync(ForgotPasswordRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task ResetPasswordAsync(ResetPasswordRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task RequestEmailChangeAsync(RequestEmailChangeRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<EmailChangedResponse> ConfirmEmailChangeAsync(ConfirmEmailChangeRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private (FakeAuthClient Auth, InMemoryTokenStore Tokens) Setup()

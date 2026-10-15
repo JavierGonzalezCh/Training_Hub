@@ -16,6 +16,10 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
         Guid trainerUserId, CancellationToken cancellationToken = default)
         => await Members.Where(m => m.TrainerUserId == trainerUserId).ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Member>> GetByUserAcrossGymsAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+        => await Members.IgnoreQueryFilters().Where(m => m.UserId == userId).ToListAsync(cancellationToken);
+
     public async Task<(IReadOnlyList<Member> Items, int Total)> GetPageAsync(
         MemberPageQuery query, CancellationToken cancellationToken = default)
     {

@@ -30,6 +30,12 @@ public interface IMemberRepository
     /// <summary>Miembros (seguidos) que tienen a esta cuenta como entrenador asignado.</summary>
     Task<IReadOnlyList<Member>> GetByTrainerAsync(Guid trainerUserId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Las fichas (seguidas) vinculadas a esta cuenta en TODOS los gyms: ignora el filtro de multi-tenancy. Solo
+    /// para reacciones a eventos de la cuenta (cambio de email), nunca para peticiones de un gym.
+    /// </summary>
+    Task<IReadOnlyList<Member>> GetByUserAcrossGymsAsync(Guid userId, CancellationToken cancellationToken = default);
+
     void Add(Member member);
 
     // --- Historial de cambios ---
