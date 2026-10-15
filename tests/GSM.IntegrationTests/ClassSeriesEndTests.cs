@@ -5,6 +5,7 @@ using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
+using GSM.Domain.Memberships;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -172,6 +173,10 @@ public sealed class ClassSeriesEndTests(ApiFactory factory) : IClassFixture<ApiF
         db.Add(staff);
         db.Add(memberUser);
         db.Add(member);
+        // Desde C1, reservar exige estar al día el día de la sesión.
+        var plan = MembershipPlan.Create(gym.Id, "Mensual", null, 50000m, 30);
+        db.Add(plan);
+        db.Add(Membership.Create(gym.Id, member.Id, plan.Id, Monday.AddDays(-5), 90));
         await db.SaveChangesAsync();
 
         return new World(gym.Id, staff.Id, member.Id, memberUser.Id);

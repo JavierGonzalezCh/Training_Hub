@@ -64,6 +64,10 @@
 | I7 | **Unida** (d9e368b) | Cuenta `kiosk` con código de emparejamiento; sesión sin vencimiento hasta revocar |
 | A1 | **Unida** | Recepción en dos pasos (tarjeta), una entrada por día (409, intento `already_checked_in` sin campana), motivos `membership_frozen`/`pass_exhausted`/`member_inactive`. Migración V2_A1_M1b |
 | M1b | **Unida** | Entrenador asignado validado contra `Trainer`; se limpia al perder el permiso o desactivar la cuenta |
+| C5 | **Unida** | Fecha de fin inclusiva de la serie. Ver preguntas C5 |
+| A1b | **Unida** | Regla de entradas múltiples por miembro (2–5, 2 h entre entradas); el índice por miembro y día deja de ser único. Ver preguntas A1b |
+| M4 | **Unida** | Mediciones de peso/altura con IMC, protegidas con `ViewMemberHealth`. Ver preguntas M4 |
+| I6 | **Unida** | Cambio de email con código; Members sincroniza las fichas por `UserEmailChanged`. Ver preguntas I6 |
 | G1+S1 | **Unida** | Owner invitado sin contraseña, reenviar acceso, prueba opcional o primer pago. Falta S1b (fin de la prueba) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -193,6 +197,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-14: C5, A1b, M4 e I6 unidas sin conflictos. Migración `V2_C5_A1b_M4_I6`, cliente regenerado. Al integrar: cuarto defecto de NSwag (defaults `int` en `ReceptionCardResponse` salían como texto; se quitaron los defaults), 1 error de UI y un test de C5 que no sembraba membresía (exigida desde C1). **Suite: 574 integración + 279 bUnit, todo verde.**
 - 2026-10-14: lanzada la segunda tanda de la noche: C5, A1b, M4 e I6 (solo escriben código).
 - 2026-10-14: C1, M3, I5 y P3 unidas. Migración única `V2_P3_M3_I5` (con `SqlScript("P3")`), cliente regenerado. Al integrar: 1 `using` en Payments, 8 errores de UI (parámetro nuevo `withHealthAlerts`, `bool?` del cliente, `InputMode`), 7 tests bUnit (parámetro de query, popover, `Change` en vez de `Input`, semana actual) y 15 de C1 (helpers que liberaban el scope sin esperar la tarea). **Suite: 528 integración + 260 bUnit, todo verde.**
 - 2026-10-14 (noche): lanzadas C1 (rama `v2-C1-clases-horario-b`), P3 (corrige B2), M3 e I5; los agentes solo escriben código. Preguntas nuevas irán a §2 para responder mañana.

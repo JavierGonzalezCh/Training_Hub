@@ -91,7 +91,7 @@
                 @if (card.MultipleEntries == true)
                 {
                     <MudText Typo="Typo.body2" Class="mt-3" id="multiple-entries">
-                        Entradas múltiples: @card.MaxDailyEntries por día · lleva @(card.EntriesToday ?? 0) hoy
+                        Entradas múltiples: @card.MaxDailyEntries por día · lleva @card.EntriesToday hoy
                     </MudText>
                 }
                 @if (card.MissingWaiver)

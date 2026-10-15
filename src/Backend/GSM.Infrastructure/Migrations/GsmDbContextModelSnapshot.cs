@@ -282,7 +282,6 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_attendances_gym_id_checked_in_at");
 
                     b.HasIndex("MemberId", "AttendanceDate")
-                        .IsUnique()
                         .HasDatabaseName("ix_attendances_member_id_attendance_date");
 
                     b.ToTable("attendances", "attendance");
@@ -386,6 +385,67 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_checkin_settings_gym_id");
 
                     b.ToTable("checkin_settings", "attendance");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Attendance.MemberEntryRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("GrantedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("granted_at");
+
+                    b.Property<Guid>("GrantedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("granted_by");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<int>("MaxDailyEntries")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_daily_entries");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<DateOnly?>("ValidUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("Id")
+                        .HasName("pk_member_entry_rules");
+
+                    b.HasIndex("GymId")
+                        .HasDatabaseName("ix_member_entry_rules_gym_id");
+
+                    b.HasIndex("MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_member_entry_rules_member_id");
+
+                    b.ToTable("member_entry_rules", "attendance", t =>
+                        {
+                            t.HasCheckConstraint("ck_member_entry_rules_max_daily_entries", "max_daily_entries BETWEEN 2 AND 5");
+                        });
                 });
 
             modelBuilder.Entity("GSM.Domain.Classes.ClassBooking", b =>
@@ -539,6 +599,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<int>("DurationMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("duration_minutes");
+
+                    b.Property<DateOnly?>("EndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ends_on");
 
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
@@ -1928,6 +1992,70 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_invitations_member_id");
 
                     b.ToTable("member_invitations", "members");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberMeasurement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<decimal?>("HeightCm")
+                        .HasPrecision(5, 1)
+                        .HasColumnType("numeric(5,1)")
+                        .HasColumnName("height_cm");
+
+                    b.Property<DateOnly>("MeasuredOn")
+                        .HasColumnType("date")
+                        .HasColumnName("measured_on");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<string>("RecordedByRole")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("recorded_by_role");
+
+                    b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by_user_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<decimal>("WeightKg")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("weight_kg");
+
+                    b.HasKey("Id")
+                        .HasName("pk_member_measurements");
+
+                    b.HasIndex("GymId")
+                        .HasDatabaseName("ix_member_measurements_gym_id");
+
+                    b.HasIndex("MemberId", "MeasuredOn")
+                        .HasDatabaseName("ix_member_measurements_member_id_measured_on");
+
+                    b.ToTable("member_measurements", "members", t =>
+                        {
+                            t.HasCheckConstraint("ck_member_measurements_height_cm", "height_cm IS NULL OR (height_cm >= 50 AND height_cm <= 250)");
+
+                            t.HasCheckConstraint("ck_member_measurements_weight_kg", "weight_kg >= 20 AND weight_kg <= 400");
+                        });
                 });
 
             modelBuilder.Entity("GSM.Domain.Members.MemberNote", b =>
@@ -3632,6 +3760,62 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("users", "identity");
                 });
 
+            modelBuilder.Entity("GSM.Infrastructure.Identity.EmailChangeRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consumed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at");
+
+                    b.Property<string>("NewEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("new_email");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_email_change_requests");
+
+                    b.HasIndex("UserId", "IssuedAt")
+                        .HasDatabaseName("ix_email_change_requests_user_id_issued_at");
+
+                    b.ToTable("email_change_requests", "identity");
+                });
+
             modelBuilder.Entity("GSM.Infrastructure.Identity.GymAccess", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4180,6 +4364,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_member_invitations_members_member_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberMeasurement", b =>
+                {
+                    b.HasOne("GSM.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_member_measurements_members_member_id");
                 });
 
             modelBuilder.Entity("GSM.Domain.Members.MemberNote", b =>
