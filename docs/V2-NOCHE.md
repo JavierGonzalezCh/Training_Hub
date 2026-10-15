@@ -87,6 +87,10 @@
 | N1b | **Unida** | `notifications.required_permissions` (`text[]`); campana, contador y push filtrados por permiso. Ver pregunta N1b |
 | S1b | **Unida** | `trial_ended` derivado, `trial_grace_days` (3) por gym; tras la gracia, `disabled` (antes 15 días en `overdue`). Ver preguntas S1b |
 | LG2 | **Unida** | `business_rejections`, `security_events`, `slow_requests` (particionadas por mes). Suite 722 + 339. Ver preguntas LG2 |
+| A3 | **Unida** | `/kiosk` solo con la cuenta de dispositivo (`RequireKiosk`), emparejamiento en `/kiosk/emparejar`, sin nombres; sin migración. Ver preguntas A3 |
+| MS2 | **Unida** | Precio acordado con motivo, matrícula por gym (primera membresía), un solo cobro por el total desde el diálogo. Ver preguntas MS2 |
+| LG3 | **Unida** | `external_failures` y `client_errors`; `POST /api/logs/client` anónimo (20/min, 40 KB); borde de errores en los layouts. Android sin compilar. Ver preguntas LG3 |
+| I4+G4 | **Unida** | Varios Owners, ascender, quitar (nunca el último, candado), traspaso en dos llamadas, contacto de facturación. Suite 756 + 367. Ver preguntas I4 |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -265,6 +269,23 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **LG2-3:** `account_locked` solo sale en el intento que bloquea; los siguientes quedan como `login_failed`. Confirmar.
 - **LG2-4 (pendiente técnico):** `code_attempts_exceeded` no se registra. El agente creyó que el login con código (I5) no existía, pero **sí existe**: falta engancharlo. `document_entry_locked` espera a A4. Tampoco hay test de `permission_denied` ni de `account_locked`.
 
+**Preguntas de la tanda A3/MS2/LG3/I4+G4 (2026-10-15):**
+
+- **A3-1:** el cartel del QR fijo ya no se imprime desde la sesión del staff (solo desde el dispositivo). ¿Vista de impresión para el Owner en Configuración → Check-in?
+- **A3-2:** revocar un kiosco corta el refresh, pero su token sigue sirviendo el código hasta 15 min. Aceptado en I7; confirmar.
+- **A3-3:** el kiosco ya no muestra el nombre del gym (no tiene endpoint). ¿Se agrega un GET pequeño para el rol `kiosk`?
+- **A3-4:** se quitó "Kiosco" del menú (los botones llevan a "Configurar kiosco" en `/settings`). El kiosco es solo web.
+- **MS2-1:** la matrícula se configura en la pestaña Check-in de `/settings` (solo Owner). ¿Otra ubicación?
+- **MS2-2:** se cobra matrícula solo si el miembro nunca tuvo membresía (las canceladas cuentan como historial). Confirmar.
+- **MS2-3:** el servidor no impide una membresía sin pago (el cobro obligatorio lo impone el diálogo). Evitarlo exigiría escritura cruzada o chequeo diferido. ¿Se acepta?
+- **LG3-1:** R2 sin test (el `AmazonS3Client` se crea en el constructor). ¿Inyectar `IAmazonS3`?
+- **LG3-2:** la app Windows (MAUI) no reporta errores (la spec no lista `windows`). ¿Se agrega?
+- **LG3-3 (para LG5):** "5 fallas seguidas del mismo proveedor" no puede saber si hubo un éxito entre medias (no se registran éxitos). Decidir antes de LG5.
+- **I4-1:** `Gym.OwnerId` no se eliminó (la spec dice que desaparece): queda como "fundador histórico" sin efecto. ¿Se elimina en otra tanda?
+- **I4-2:** al bajar a un Owner a staff, perfil Recepción por defecto. Confirmar.
+- **I4-3:** el cambio de contacto de facturación no se audita. ¿Se audita?
+- **I4-4:** el traspaso son dos llamadas desde la UI (primero agregar, luego quitarse). Si el nuevo no activó su cuenta, el gym queda con un Owner pendiente. "Copiar enlace" para el Owner quedó fuera.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
@@ -298,6 +319,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: A3, MS2, LG3 e I4+G4 unidas (MS2 y A3 combinadas solas en `CheckinTab`). Migraciones `V2_MS2_I4` (`SqlScript("MS2")`, `SqlScript("I4")`) y `V2_LG3_Logs`. Al integrar: 1 `using` (LG3), métodos del panel con sufijo `2` (I4), 18 bUnit (autorización de prueba en recepción por el `RequireRole` de A3, selectores, popover, `Change`) y 2 tests de I4 con contraseñas distintas. **Suite: 756 integración + 367 bUnit, todo verde.**
 - 2026-10-15: lanzada la tanda I4+G4, A3, MS2 y LG3 (solo escriben código).
 - 2026-10-15: R3b, N1b, S1b y LG2 unidas sin conflictos. Migraciones `V2_R3b_N1b_S1b` (enum + 2 columnas + `SqlScript("N1b")`) y `V2_R3b_LG2_Scripts` (`R3b`, `LG2`). Al integrar: `OnRejected` devuelve `ValueTask` y el test de login ya no exige IP. **La primera corrida dio 10 fallos de LG2 que no se repitieron en dos corridas más** (probablemente la corrida que aplicó las migraciones nuevas); un bUnit de `CommercialStatusUiTests` falló una vez y pasó 3 de 3. **Suite: 722 integración + 339 bUnit, todo verde.**
 - 2026-10-15: MS1b, G3b, R2b y L1 unidas. Conflicto en `AchievementMetrics` (L1 extrajo `ComputeStreakAsync`, R2b cambió el inicio del calendario). Migración `V2_R2b_RoutineDayAddedOn`. Al integrar: `Is24Hours` sale `bool?` en el cliente (NSwag con propiedades `init`), test rotativo de R2b añadido y dos expectativas corregidas. **Suite: 691 integración + 334 bUnit, todo verde.**
