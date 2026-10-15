@@ -155,6 +155,12 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **A1b-6:** "Check-ins hoy" del dashboard y los conteos de SuperAdmin cuentan **entradas**, no personas. ¿Se cambian a personas distintas? (lo aclara A5)
 - **Riesgo A1b:** sin el índice único por miembro y día, dos escaneos simultáneos pueden registrar dos entradas. ¿Se cierra con un candado por miembro?
 
+- **I6-1:** cambiar el email **no pide la contraseña actual** (el miembro entra con código). Riesgo: una sesión robada puede mover el email. ¿Se exige?
+- **I6-2:** si el email nuevo ya es de otra cuenta, 409 con mensaje claro (permite saber si un email existe). ¿O 202 sin enviar nada?
+- **I6-3:** demasiados pedidos = 409 (no hay 429 en el dominio); código malo/vencido = 422. Confirmar.
+- **I6-4:** el formulario quedó en las pantallas de cuenta actuales (`/cuenta/contrasena`, `/app/cuenta/contrasena`); "Mi perfil" va en M5. Confirmar.
+- **I6-5:** se manda un aviso al correo viejo (no lo pedía la spec); no se cierran las otras sesiones. Confirmar.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
