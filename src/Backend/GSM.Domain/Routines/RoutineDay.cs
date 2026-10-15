@@ -32,12 +32,15 @@ public sealed class RoutineDay : BaseEntity, ITenantEntity
     /// <summary>Día de negocio en que el día salió de la rutina; no se borra, sus registros siguen ligados.</summary>
     public DateOnly? RetiredOn { get; private set; }
 
+    /// <summary>Día de negocio desde el que el día forma parte de la rutina (R2b: la racha juzga cada fecha con lo vigente ese día).</summary>
+    public DateOnly AddedOn { get; private set; }
+
     /// <summary>Líneas vigentes (las retiradas no cuentan).</summary>
     public IReadOnlyList<RoutineExercise> Exercises => _exercises.Where(e => e.RetiredOn is null).ToList();
 
     internal static RoutineDay Create(Guid gymId, int position, RoutineDayDraft draft, DateOnly today)
     {
-        var day = new RoutineDay { GymId = gymId };
+        var day = new RoutineDay { GymId = gymId, AddedOn = today };
         day.Apply(position, draft, today);
         return day;
     }

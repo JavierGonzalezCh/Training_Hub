@@ -20,6 +20,14 @@ public interface IRoutineReader
     Task<DateOnly?> GetActiveRoutineStartAsync(
         Guid memberId, bool onlyAssigned = false, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Desde cuándo calcular la racha contra calendario (R2b): el <c>starts_on</c> más antiguo de las rutinas
+    /// del miembro, si tiene una activa; así las fechas anteriores a un cambio de rutina se juzgan con la
+    /// rutina de entonces. <c>null</c> si no tiene rutina activa.
+    /// </summary>
+    Task<DateOnly?> GetCalendarStartAsync(
+        Guid memberId, bool onlyAssigned = false, CancellationToken cancellationToken = default);
+
     Task<RoutineTrainingCalendar> GetTrainingCalendarAsync(
         Guid memberId, DateOnly from, DateOnly to,
         bool onlyAssigned = false, CancellationToken cancellationToken = default);

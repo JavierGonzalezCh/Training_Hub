@@ -62,10 +62,14 @@ public sealed class GetMemberStreakHandler(
     private async Task<(int Streak, int FreezesAvailable)> ComputeStreakAsync(
         Guid memberId, DateOnly today, StreakFreezeState freezeState, CancellationToken cancellationToken)
     {
-        var routineStart = await routines.GetActiveRoutineStartAsync(
+        var activeStart = await routines.GetActiveRoutineStartAsync(
             memberId, onlyAssigned: false, cancellationToken);
+        // R2b: el calendario arranca en la rutina más antigua, no en la activa.
+        var routineStart = activeStart is null
+            ? null
+            : await routines.GetCalendarStartAsync(memberId, onlyAssigned: false, cancellationToken);
 
-        if (routineStart is not { } start || start > today)
+        if (activeStart is not { } active || active > today || routineStart is not { } start)
         {
             // Sin rutina vigente: regla de siempre (tolerancia de días de descanso), sin congeladores.
             var allDates = await attendance.GetAttendanceDatesAsync(memberId, null, cancellationToken);

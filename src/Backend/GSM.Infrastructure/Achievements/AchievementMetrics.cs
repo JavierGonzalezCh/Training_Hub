@@ -25,8 +25,11 @@ internal static class AchievementMetrics
         var classAttendance = await classes.GetAttendedCountAsync(memberId, cancellationToken);
 
         int streak;
-        var start = await routines.GetActiveRoutineStartAsync(memberId, onlyAssigned: true, cancellationToken);
-        if (start is { } s && s <= today)
+        var activeStart = await routines.GetActiveRoutineStartAsync(memberId, onlyAssigned: true, cancellationToken);
+        var start = activeStart is null
+            ? null
+            : await routines.GetCalendarStartAsync(memberId, onlyAssigned: true, cancellationToken);
+        if (activeStart is { } a && a <= today && start is { } s)
         {
             var calendar = await routines.GetTrainingCalendarAsync(
                 memberId, s, today, onlyAssigned: true, cancellationToken);

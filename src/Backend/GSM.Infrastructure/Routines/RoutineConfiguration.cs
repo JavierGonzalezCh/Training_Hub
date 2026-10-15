@@ -35,6 +35,7 @@ public sealed class RoutineDayConfiguration : IEntityTypeConfiguration<RoutineDa
 
         builder.Property(d => d.Name).HasMaxLength(60);
         builder.Property(d => d.RetiredOn).HasColumnType("date");
+        builder.Property(d => d.AddedOn).HasColumnType("date");
         builder.ToTable(t => t.HasCheckConstraint("ck_routine_days_day_of_week", "day_of_week is null or day_of_week between 1 and 7"));
 
         builder.HasMany(d => d.Exercises)
