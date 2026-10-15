@@ -1,0 +1,61 @@
+@inject IAttendanceClient Attendance
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-4">
+            Se anulará la entrada de <strong>@Entry.MemberName</strong> del @GsmFormat.Day(Entry.AttendanceDate)
+            a las @GsmFormat.Instant(Entry.CheckedInAt). Deja de contar para la racha y las visitas, y el miembro
+            podrá registrar su entrada de nuevo. Los logros ya desbloqueados no se quitan.
+        </MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2"
+                      HelperText="Por ejemplo: se registró al miembro equivocado." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="confirm-void-checkin">
+            @(_submitting ? "Anulando..." : "Anular entrada")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public AttendanceListItem Entry { get; set; } = null!;
+
+    private string _reason = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_reason) || _reason.Trim().Length < 3)
+        {
+            _error = "Escribe el motivo de la anulación.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            // Cliente generado: VoidCheckInAsync(Guid id, VoidCheckInRequest body, CancellationToken).
+            await Attendance.VoidCheckInAsync(Entry.Id, new VoidCheckInRequest { Reason = _reason.Trim() });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

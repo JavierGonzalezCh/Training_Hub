@@ -62,7 +62,14 @@ public sealed record AttendanceListItem(
     bool Authorized = false,
     Guid? AuthorizedBy = null,
     string? AuthorizedByName = null,
-    string? AuthorizationReason = null);
+    string? AuthorizationReason = null,
+    bool Voided = false,
+    DateTimeOffset? VoidedAt = null,
+    Guid? VoidedBy = null,
+    string? VoidedByName = null,
+    string? VoidReason = null);
+
+public sealed record VoidCheckInRequest(string Reason);
 
 public sealed record PeakHourBucket(int Hour, int Count);
 
@@ -74,6 +81,9 @@ public sealed record ListAttendanceQuery
 
     /// <summary>Solo las entradas que recepción dejó pasar fuera de la gracia ("Dejar pasar").</summary>
     public bool AuthorizedOnly { get; init; }
+
+    /// <summary>Incluye también las entradas anuladas (con su motivo). Por defecto no salen.</summary>
+    public bool IncludeVoided { get; init; }
 
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;

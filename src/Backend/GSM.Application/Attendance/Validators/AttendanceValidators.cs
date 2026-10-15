@@ -12,6 +12,14 @@ public sealed class CheckInRequestValidator : AbstractValidator<CheckInRequest>
     }
 }
 
+public sealed class VoidCheckInRequestValidator : AbstractValidator<VoidCheckInRequest>
+{
+    public VoidCheckInRequestValidator()
+    {
+        RuleFor(x => x.Reason).NotEmpty().MinimumLength(3).MaximumLength(500);
+    }
+}
+
 public sealed class SetEntryRuleRequestValidator : AbstractValidator<SetEntryRuleRequest>
 {
     public SetEntryRuleRequestValidator()

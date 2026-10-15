@@ -37,6 +37,8 @@
         <MudDatePicker Label="Hasta" Date="_to" DateChanged="OnToChangedAsync" Class="mr-4" Style="max-width:180px" />
         <MudSwitch T="bool" Value="_authorizedOnly" ValueChanged="OnAuthorizedChangedAsync" Color="Color.Primary"
                    Label="Entradas autorizadas" />
+        <MudSwitch T="bool" Value="_includeVoided" ValueChanged="OnIncludeVoidedChangedAsync" Color="Color.Primary"
+                   Label="Ver anuladas" data-testid="include-voided" />
     </ToolBarContent>
     <HeaderContent>
         <MudTh>Miembro</MudTh>
@@ -44,6 +46,7 @@
         <MudTh>Hora</MudTh>
         <MudTh>Método</MudTh>
         <MudTh>Autorizada</MudTh>
+        <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Miembro">
@@ -64,6 +67,9 @@
                 <MudText Color="Color.Secondary">—</MudText>
             }
         </MudTd>
+        <MudTd DataLabel="">
+            <CheckInVoidAction Entry="context" OnVoided="@(() => _table.RefreshAsync())" />
+        </MudTd>
     </RowTemplate>
     <CardTemplate>
         <div class="gsm-card__row">
@@ -73,6 +79,9 @@
             <span class="gsm-mono">@(context.Method == "Qr" ? "QR" : "Manual")</span>
         </div>
         <div class="gsm-card__meta">@GsmFormat.Day(context.AttendanceDate) · @GsmFormat.Instant(context.CheckedInAt)</div>
+        <div class="gsm-card__meta">
+            <CheckInVoidAction Entry="context" OnVoided="@(() => _table.RefreshAsync())" />
+        </div>
     </CardTemplate>
 </ServerTable>
 
@@ -166,6 +175,7 @@
     private DateTime? _from;
     private DateTime? _to;
     private bool _authorizedOnly;
+    private bool _includeVoided;
     private List<PeakHourBucket>? _peakHours;
     private List<ChartSeries> _series = [];
     private string[] _labels = [];
@@ -198,6 +208,7 @@
                 _from is { } f ? DateOnly.FromDateTime(f) : null,
                 _to is { } t ? DateOnly.FromDateTime(t) : null,
                 _authorizedOnly ? true : null,
+                _includeVoided ? true : null,
                 page, pageSize, cancellationToken);
             return new ServerTablePage<AttendanceListItem>(result.Items.ToList(), result.Total);
         }
@@ -217,6 +228,12 @@
     private async Task OnAuthorizedChangedAsync(bool value)
     {
         _authorizedOnly = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OnIncludeVoidedChangedAsync(bool value)
+    {
+        _includeVoided = value;
         await _table.RefreshAsync();
     }
 

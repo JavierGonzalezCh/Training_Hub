@@ -11,16 +11,19 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
 
     public void Add(AttendanceEntity attendance) => Attendances.Add(attendance);
 
+    public Task<AttendanceEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => Attendances.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+
     public Task<AttendanceEntity?> GetForMemberOnDateAsync(
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
         => Attendances.FirstOrDefaultAsync(
-            a => a.MemberId == memberId && a.AttendanceDate == date, cancellationToken);
+            a => a.MemberId == memberId && a.AttendanceDate == date && a.VoidedAt == null, cancellationToken);
     // Con entradas múltiples puede haber varias; esto solo responde "¿entró ya hoy?".
 
     public async Task<IReadOnlyList<AttendanceEntity>> GetEntriesOnDateAsync(
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
         => await Attendances
-            .Where(a => a.MemberId == memberId && a.AttendanceDate == date)
+            .Where(a => a.MemberId == memberId && a.AttendanceDate == date && a.VoidedAt == null)
             .OrderBy(a => a.CheckedInAt)
             .ToListAsync(cancellationToken);
 
@@ -29,9 +32,14 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
     {
         var q = Attendances.AsQueryable();
 
+        if (!query.IncludeVoided)
+        {
+            q = q.Where(a => a.VoidedAt == null);
+        }
+
         if (query.MemberId is { } memberId)
         {
-            q = q.Where(a => a.MemberId == memberId);
+            q = q.Where(a => a.MemberId == memberId && a.VoidedAt == null);
         }
 
         if (query.From is { } from)
@@ -63,22 +71,22 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
     public async Task<IReadOnlyList<DateOnly>> GetMemberDatesAsync(
         Guid memberId, CancellationToken cancellationToken = default)
         => await Attendances
-            .Where(a => a.MemberId == memberId)
+            .Where(a => a.MemberId == memberId && a.VoidedAt == null)
             .Select(a => a.AttendanceDate)
             .Distinct()
             .ToListAsync(cancellationToken);
 
     public Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default)
-        => Attendances.Where(a => a.MemberId == memberId).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
+        => Attendances.Where(a => a.MemberId == memberId && a.VoidedAt == null).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
 
     public Task<int> GetTodayCountAsync(
         Guid gymId, DateOnly today, CancellationToken cancellationToken = default)
-        => Attendances.CountAsync(a => a.GymId == gymId && a.AttendanceDate == today, cancellationToken);
+        => Attendances.CountAsync(a => a.GymId == gymId && a.AttendanceDate == today && a.VoidedAt == null, cancellationToken);
 
     public async Task<IReadOnlyList<DateTimeOffset>> GetCheckInInstantsAsync(
         DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken = default)
         => await Attendances
-            .Where(a => a.CheckedInAt >= fromUtc && a.CheckedInAt < toUtc)
+            .Where(a => a.CheckedInAt >= fromUtc && a.CheckedInAt < toUtc && a.VoidedAt == null)
             .Select(a => a.CheckedInAt)
             .ToListAsync(cancellationToken);
 }

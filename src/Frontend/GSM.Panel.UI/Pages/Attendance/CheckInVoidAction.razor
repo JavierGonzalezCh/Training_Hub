@@ -1,0 +1,43 @@
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+@* Celda de acciones de una entrada: marca si ya está anulada o, con el permiso, ofrece anularla. *@
+@if (Entry.Voided == true)
+{
+    <MudTooltip Text="@($"{Entry.VoidedByName ?? "Staff"} · {Entry.VoidReason}")">
+        <MudChip T="string" Color="Color.Default" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono"
+                 data-testid="checkin-voided">ANULADA</MudChip>
+    </MudTooltip>
+}
+else
+{
+    <AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.ManageAttendance)">
+        <Authorized>
+            <MudTooltip Text="Anular entrada">
+                <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small"
+                               aria-label="@($"Anular entrada de {Entry.MemberName}")"
+                               data-testid="void-checkin" OnClick="VoidAsync" />
+            </MudTooltip>
+        </Authorized>
+    </AuthorizeView>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public AttendanceListItem Entry { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback OnVoided { get; set; }
+
+    private async Task VoidAsync()
+    {
+        var parameters = new DialogParameters<VoidCheckInDialog> { { x => x.Entry, Entry } };
+        var dialog = await Dialogs.ShowAsync<VoidCheckInDialog>("Anular entrada", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Entrada anulada.", Severity.Success);
+            await OnVoided.InvokeAsync();
+        }
+    }
+}
