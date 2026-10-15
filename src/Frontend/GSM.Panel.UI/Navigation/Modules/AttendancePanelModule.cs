@@ -11,7 +11,6 @@ public sealed class AttendancePanelModule : IPanelModule
     [
         new("Recepción", Icons.Material.Outlined.QrCodeScanner, "/attendance/checkin", PanelSections.Operation, 20,
             BottomBar: true, BottomOrder: 20),
-        new("Kiosco", Icons.Material.Outlined.QrCode2, "/kiosk", PanelSections.Operation, 30),
         new("Asistencia", Icons.Material.Outlined.FactCheck, "/attendance", PanelSections.Operation, 40, MatchAll: true),
     ];
 

@@ -148,6 +148,24 @@ public sealed class KioskDeviceTests(ApiFactory factory) : IClassFixture<ApiFact
     }
 
     [Fact]
+    public async Task Staff_and_owner_sessions_cannot_open_the_kiosk_endpoints()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+
+        // A3: el código del QR es solo de la cuenta de dispositivo; el panel lo muestra el kiosco, no la sesión de personas.
+        foreach (var email in new[] { w.StaffEmail, w.OwnerEmail })
+        {
+            var person = await LoggedInAsync(host, email);
+            var response = await person.GetAsync("/api/attendance/kiosk-code");
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        var kiosk = await PairedKioskAsync(host, w.OwnerEmail);
+        Assert.Equal(HttpStatusCode.OK, (await kiosk.GetAsync("/api/attendance/kiosk-code")).StatusCode);
+    }
+
+    [Fact]
     public async Task Revoking_the_kiosk_cuts_its_session()
     {
         var w = await SeedAsync();

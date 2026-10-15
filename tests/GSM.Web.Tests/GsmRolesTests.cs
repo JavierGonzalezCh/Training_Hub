@@ -9,6 +9,7 @@ public class GsmRolesTests
     [InlineData(GsmRoles.Staff, "/")]
     [InlineData(GsmRoles.SuperAdmin, "/admin")]
     [InlineData(GsmRoles.Member, "/app")]
+    [InlineData(GsmRoles.Kiosk, "/kiosk")]
     [InlineData(null, "/login")]
     [InlineData("unknown", "/login")]
     public void HomeFor_routes_each_role_to_its_area(string? role, string expected)

@@ -43,7 +43,7 @@ else
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
                 @(_saving ? "Guardando..." : "Guardar cambios")
             </MudButton>
-            <MudButton Variant="Variant.Outlined" Href="/kiosk" StartIcon="@Icons.Material.Outlined.QrCode2">Abrir kiosco</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="/settings" StartIcon="@Icons.Material.Outlined.QrCode2">Configurar kiosco</MudButton>
             @if (_savedMode == Static)
             {
                 <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="RegenerateAsync" Disabled="_regenerating"

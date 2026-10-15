@@ -1,0 +1,117 @@
+@page "/kiosk/emparejar"
+@layout KioskLayout
+@using GSM.Client.Http
+@* A3: emparejamiento del equipo de la entrada (Identity §8, Attendance §6). El Owner crea el kiosco en
+   Configuración → Kioscos y recibe un código de 8 caracteres que vence en 10 minutos; aquí se digita una vez y el
+   equipo queda con una sesión de dispositivo que se renueva sola hasta que el Owner la revoque.
+   Anónima a propósito: aún no hay sesión. Si el equipo ya tiene una sesión de personal NO se empareja (el
+   canje la pisaría en el almacén): se muestra el mensaje. *@
+@attribute [AllowAnonymous]
+@inject IAuthClient Auth
+@inject ITokenStore Tokens
+@inject GsmAuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Emparejar kiosco — GSM</PageTitle>
+
+@if (_staffSession)
+{
+    <section class="gsm-kiosk gsm-kiosk--centered" data-testid="kiosk-staff-message">
+        <MudIcon Icon="@Icons.Material.Outlined.QrCode2" Class="gsm-empty-icon" />
+        <h1 class="gsm-kiosk__title">Este equipo tiene una sesión de personal</h1>
+        <p class="gsm-kiosk__hint">
+            Para emparejar un kiosco usa el equipo de la entrada con el navegador sin sesión. El dueño agrega el kiosco
+            en Configuración → Kioscos y recibe el código.
+        </p>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/settings">Configurar kiosco</MudButton>
+    </section>
+}
+else if (_checked)
+{
+    <section class="gsm-kiosk gsm-kiosk--centered" data-testid="kiosk-pair">
+        <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="gsm-empty-icon" />
+        <h1 class="gsm-kiosk__title">Emparejar este kiosco</h1>
+        <p class="gsm-kiosk__hint">Digita el código de 8 caracteres que le dio el dueño en Configuración → Kioscos. Vence a los 10 minutos.</p>
+
+        @if (Revoked)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4" data-testid="kiosk-revoked">
+                Este kiosco fue desactivado. Pídele al dueño un código nuevo.
+            </MudAlert>
+        }
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="kiosk-pair-error">@_error</MudAlert>
+        }
+
+        <MudTextField T="string" @bind-Value="_code" Label="Código de emparejamiento" MaxLength="8" Immediate="true"
+                      Variant="Variant.Outlined" Class="gsm-mono mb-4" Style="max-width:320px"
+                      autocomplete="off" OnKeyDown="HandleKeyDownAsync" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PairAsync" Disabled="_busy" data-testid="kiosk-pair-submit">
+            @(_busy ? "Emparejando..." : "Emparejar")
+        </MudButton>
+    </section>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "revocado")]
+    public string? RevokedFlag { get; set; }
+
+    private bool Revoked => !string.IsNullOrEmpty(RevokedFlag);
+
+    private string _code = string.Empty;
+    private string? _error;
+    private bool _busy;
+    private bool _checked;
+    private bool _staffSession;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var payload = JwtPayload.TryRead((await Tokens.GetAsync())?.AccessToken);
+        if (payload?.Role == GsmRoles.Kiosk)
+        {
+            Navigation.NavigateTo("/kiosk", replace: true);
+            return;
+        }
+
+        _staffSession = payload is not null;
+        _checked = true;
+    }
+
+    private async Task HandleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await PairAsync();
+        }
+    }
+
+    private async Task PairAsync()
+    {
+        var code = _code.Trim().ToUpperInvariant();
+        if (code.Length != 8)
+        {
+            _error = "El código tiene 8 caracteres.";
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            var tokens = await Auth.PairAsync(new PairKioskRequest { PairingCode = code });
+            await Tokens.SetAsync(new AuthTokens(tokens.AccessToken, tokens.RefreshToken, tokens.ExpiresAtUtc));
+            AuthState.NotifyChanged();
+            Navigation.NavigateTo("/kiosk", replace: true);
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
