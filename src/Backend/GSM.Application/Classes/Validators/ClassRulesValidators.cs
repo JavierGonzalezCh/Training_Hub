@@ -14,6 +14,9 @@ public sealed class UpdateClassSettingsRequestValidator : AbstractValidator<Upda
         RuleFor(x => x.NoShowBlockDays).InclusiveBetween(1, ClassSettings.MaxNoShowBlockDays);
         RuleFor(x => x.BookingWindowDays).InclusiveBetween(1, ClassSettings.MaxBookingWindowDays);
         RuleFor(x => x.MaxActiveBookings).InclusiveBetween(1, ClassSettings.MaxActiveBookingsLimit);
+        RuleFor(x => x.WaitlistOfferMinutes)
+            .InclusiveBetween(ClassSettings.MinWaitlistOfferMinutes, ClassSettings.MaxWaitlistOfferMinutes)
+            .When(x => x.WaitlistOfferMinutes is not null);
     }
 }
 

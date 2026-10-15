@@ -40,6 +40,33 @@
                     </RowTemplate>
                 </MudTable>
             }
+
+            @* C4: la lista de espera en su orden. "Con oferta" = tiene un cupo apartado hasta la hora indicada. *@
+            @if (roster.Waitlist is { Count: > 0 } waitlist)
+            {
+                <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2" id="roster-waitlist-title">Lista de espera (@waitlist.Count)</MudText>
+                <MudTable Items="waitlist.OrderBy(w => w.Position)" Hover="true" Dense="true" Elevation="0" id="roster-waitlist">
+                    <HeaderContent>
+                        <MudTh>#</MudTh>
+                        <MudTh>Miembro</MudTh>
+                        <MudTh>Estado</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="#">@context.Position</MudTd>
+                        <MudTd DataLabel="Miembro">@context.MemberName</MudTd>
+                        <MudTd DataLabel="Estado">
+                            @if (context.Status == "Offered")
+                            {
+                                <span class="waitlist-offered">Con oferta@(context.OfferExpiresAt is { } until ? $" hasta las {GsmFormat.Time(until)}" : "")</span>
+                            }
+                            else
+                            {
+                                <span>Esperando</span>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
         }
     </DialogContent>
     <DialogActions>

@@ -75,6 +75,8 @@ public sealed class BookClassHandler(
     IClassBookingRepository bookings,
     IClassSettingsRepository classSettings,
     IBookingBlockRepository blocks,
+    IWaitlistRepository waitlist,
+    WaitlistService waitlistService,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<BookClassHandler> logger)
@@ -126,32 +128,53 @@ public sealed class BookClassHandler(
 
         // C3: penalización vigente, ventana de reserva y máximo de reservas activas (también antes de materializar).
         var rules = await ClassBookingRules.LoadAsync(classSettings, gymId, cancellationToken);
-        await ClassBookingRules.EnsureCanBookAsync(clock, blocks, bookings, rules, self.Id, date, cancellationToken);
+        await ClassBookingRules.EnsureCanBookAsync(clock, blocks, bookings, waitlist, rules, self.Id, date, cancellationToken);
 
         var session = existing
             ?? await ClassSessionMaterializer.GetOrCreateAsync(sessions, unitOfWork, gymClass, date, cancellationToken);
 
         ClassBookingSupport.EnsureNotStarted(clock, session);
 
-        var mine = await bookings.GetAsync(session.Id, self.Id, cancellationToken);
-
-        var active = await bookings.CountActiveAsync(session.Id, cancellationToken);
-        if (session.Capacity is { } cap && active >= cap)
+        // C4: quien está en la lista de espera confirma su oferta; no reserva por la puerta de al lado.
+        if (await waitlist.GetOpenAsync(session.Id, self.Id, cancellationToken) is not null)
         {
-            throw new ConflictException("La sesión está completa.");
+            throw new ConflictException(
+                "Estás en la lista de espera de esta sesión; confirma tu cupo cuando te lo ofrezcan o sal de la lista.");
         }
 
-        if (mine is null)
+        // El cupo se decide bajo el candado de la sesión: los cupos apartados para la lista de espera cuentan como
+        // ocupados, y las ofertas vencidas se liberan (o pasan al siguiente) antes de contar.
+        ClassBooking? mine = null;
+        List<IDomainEvent> raised = [];
+        await unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
-            mine = ClassBooking.Book(gymId, session.Id, self.Id, clock.UtcNow);
-            bookings.Add(mine);
-        }
-        else
-        {
-            mine.Rebook(clock.UtcNow);
-        }
+            await sessions.LockAsync(session.Id, ct);
+            raised = await waitlistService.ProcessCoreAsync(session, ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+            mine = await bookings.GetAsync(session.Id, self.Id, ct);
+
+            var active = await bookings.CountActiveAsync(session.Id, ct);
+            var offers = await waitlist.CountOffersAsync(session.Id, ct);
+            if (session.Capacity is { } cap && active + offers >= cap)
+            {
+                throw new ConflictException("La sesión está completa.");
+            }
+
+            if (mine is null)
+            {
+                mine = ClassBooking.Book(gymId, session.Id, self.Id, clock.UtcNow);
+                bookings.Add(mine);
+            }
+            else
+            {
+                mine.Rebook(clock.UtcNow);
+            }
+
+            await unitOfWork.SaveChangesAsync(ct);
+        }, cancellationToken);
+
+        await waitlistService.PublishAsync(raised, cancellationToken);
 
         logger.LogInformation(
             "Miembro {MemberId} reservó la sesión {SessionId} ({ClassId} {Date})", self.Id, session.Id, classId, date);
@@ -161,7 +184,7 @@ public sealed class BookClassHandler(
             new ClassBooked(gymId, self.Id, classId, session.SessionDate, session.StartTime, session.InstructorUserId),
             cancellationToken);
 
-        return await ResponseAsync(mine, session, classId, self.Id, cancellationToken);
+        return await ResponseAsync(mine!, session, classId, self.Id, cancellationToken);
     }
 
     private async Task<BookingResponse> ResponseAsync(
@@ -187,6 +210,7 @@ public sealed class CancelBookingHandler(
     IClassBookingRepository bookings,
     IClassSettingsRepository classSettings,
     BookingPenaltyService penalties,
+    WaitlistService waitlistService,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<CancelBookingHandler> logger)
@@ -223,6 +247,9 @@ public sealed class CancelBookingHandler(
         await events.PublishAsync(
             new ClassBookingCancelled(gymId, self.Id, classId, session.SessionDate), cancellationToken);
 
+        // C4: el cupo liberado se le ofrece al primero de la lista de espera.
+        await waitlistService.ProcessAsync(session.Id, cancellationToken);
+
         var block = late ? await penalties.EvaluateAsync(gymId, self.Id, cancellationToken) : null;
         return new CancelBookingResponse(late, block?.BlockedUntil);
     }
@@ -234,7 +261,9 @@ public sealed class GetRosterHandler(
     IMemberReader members,
     IClassRepository classes,
     IClassSessionRepository sessions,
-    IClassBookingRepository bookings)
+    IClassBookingRepository bookings,
+    IWaitlistRepository waitlist,
+    WaitlistService waitlistService)
 {
     public async Task<RosterResponse> HandleAsync(
         Guid classId, DateOnly date, CancellationToken cancellationToken)
@@ -250,6 +279,23 @@ public sealed class GetRosterHandler(
         var rows = session is null
             ? []
             : await bookings.ListForSessionAsync(session.Id, cancellationToken);
+
+        // C4: mirar la sesión pone al día su lista de espera (vence ofertas, pasa el cupo al siguiente).
+        var waitlistRows = new List<WaitlistRosterEntry>();
+        if (session is not null && (await waitlist.ListOpenForSessionAsync(session.Id, cancellationToken)).Count > 0)
+        {
+            await waitlistService.ProcessAsync(session.Id, cancellationToken);
+            var open = await waitlist.ListOpenForSessionAsync(session.Id, cancellationToken);
+            rows = await bookings.ListForSessionAsync(session.Id, cancellationToken);
+            foreach (var w in open)
+            {
+                var member = await members.GetAsync(w.MemberId, cancellationToken);
+                waitlistRows.Add(new WaitlistRosterEntry(
+                    w.Id, w.MemberId,
+                    member is null ? "(miembro eliminado)" : $"{member.FirstName} {member.LastName}",
+                    WaitlistService.Rank(open, w), w.Status.ToString(), w.OfferExpiresAt));
+            }
+        }
 
         var entries = new List<RosterEntry>();
         foreach (var b in rows.OrderBy(b => b.BookedAt))
@@ -267,7 +313,8 @@ public sealed class GetRosterHandler(
             session?.Capacity ?? gymClass.Capacity,
             (session?.Status ?? ClassSessionStatus.Scheduled).ToString(),
             rows.Count(b => b.Status == ClassBookingStatus.Booked),
-            entries);
+            entries,
+            waitlistRows);
     }
 }
 

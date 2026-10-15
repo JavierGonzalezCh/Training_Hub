@@ -24,6 +24,7 @@ internal static class ClassBookingRules
         IClock clock,
         IBookingBlockRepository blocks,
         IClassBookingRepository bookings,
+        IWaitlistRepository waitlist,
         ClassSettings rules,
         Guid memberId,
         DateOnly sessionDate,
@@ -45,7 +46,7 @@ internal static class ClassBookingRules
                 + $"podrás reservar desde el {CommercialStatusCalculator.ShortDate(sessionDate.AddDays(-rules.BookingWindowDays))}.");
         }
 
-        var active = await CountActiveAsync(clock, bookings, memberId, cancellationToken);
+        var active = await CountActiveAsync(clock, bookings, waitlist, memberId, cancellationToken);
         if (active >= rules.MaxActiveBookings)
         {
             throw new ConflictException(
@@ -53,12 +54,19 @@ internal static class ClassBookingRules
         }
     }
 
-    public static Task<int> CountActiveAsync(
-        IClock clock, IClassBookingRepository bookings, Guid memberId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Reservas futuras activas <b>más</b> las entradas abiertas de la lista de espera (C4: "reservas futuras +
+    /// lista de espera"). Confirmar una oferta no suma: la entrada ya contaba y pasa a ser la reserva.
+    /// </summary>
+    public static async Task<int> CountActiveAsync(
+        IClock clock, IClassBookingRepository bookings, IWaitlistRepository waitlist, Guid memberId,
+        CancellationToken cancellationToken)
     {
         var nowLocal = clock.ToBusinessLocal(clock.UtcNow);
-        return bookings.CountFutureActiveForMemberAsync(
-            memberId, DateOnly.FromDateTime(nowLocal), TimeOnly.FromDateTime(nowLocal), cancellationToken);
+        var today = DateOnly.FromDateTime(nowLocal);
+        var nowTime = TimeOnly.FromDateTime(nowLocal);
+        return await bookings.CountFutureActiveForMemberAsync(memberId, today, nowTime, cancellationToken)
+            + await waitlist.CountFutureOpenForMemberAsync(memberId, today, nowTime, cancellationToken);
     }
 
     /// <summary>Cancelar pasado el plazo (hora de inicio menos <c>CancelDeadlineHours</c>) cuenta como inasistencia.</summary>

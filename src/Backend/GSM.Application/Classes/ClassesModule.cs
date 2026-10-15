@@ -13,6 +13,7 @@ public static class ClassesModuleRegistration
 
         services.AddScoped<ClosedSessionCanceller>();
         services.AddScoped<BookingPenaltyService>();
+        services.AddScoped<WaitlistService>();
 
         return services;
     }

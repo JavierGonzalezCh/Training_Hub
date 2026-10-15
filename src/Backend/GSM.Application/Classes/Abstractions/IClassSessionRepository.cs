@@ -16,5 +16,14 @@ public interface IClassSessionRepository
     Task<IReadOnlyList<ClassSession>> ListFromAsync(
         Guid classId, DateOnly from, CancellationToken cancellationToken = default);
 
+    /// <summary>C4: sesión por id (la tarea periódica llega a ella desde la lista de espera).</summary>
+    Task<ClassSession?> GetByIdAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// C4: serializa los cambios de cupo de una sesión (reservar, confirmar una oferta, ofrecer). Toma un candado de
+    /// transacción de Postgres: debe llamarse dentro de <c>IUnitOfWork.ExecuteInTransactionAsync</c>.
+    /// </summary>
+    Task LockAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
     void Add(ClassSession session);
 }

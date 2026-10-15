@@ -20,6 +20,10 @@ else
                          HelperText="Reservas futuras que un miembro puede tener a la vez."
                          Class="mb-4" Style="max-width:420px" id="rule-max-active" />
 
+        <MudNumericField T="int" @bind-Value="_waitlistOfferMinutes" Label="Tiempo para confirmar un cupo (minutos)" Min="5" Max="720"
+                         HelperText="Cuando se libera un cupo de una clase llena, el primero de la lista de espera tiene este tiempo para confirmar (nunca más allá del inicio de la clase)."
+                         Class="mb-4" Style="max-width:420px" id="rule-waitlist-minutes" />
+
         <MudText Typo="Typo.subtitle1" Class="mb-2">Penalización por inasistencia</MudText>
         <MudNumericField T="int" @bind-Value="_noShowLimit" Label="Inasistencias para penalizar" Min="1" Max="20"
                          HelperText="Reservas marcadas como 'no vino' o canceladas fuera de plazo. Una reserva que nadie marcó no cuenta."
@@ -45,6 +49,7 @@ else
     private int _noShowBlockDays = 7;
     private int _bookingWindowDays = 7;
     private int _maxActiveBookings = 5;
+    private int _waitlistOfferMinutes = 60;
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,6 +76,7 @@ else
         _noShowBlockDays = (int?)r.NoShowBlockDays ?? _noShowBlockDays;
         _bookingWindowDays = (int?)r.BookingWindowDays ?? _bookingWindowDays;
         _maxActiveBookings = (int?)r.MaxActiveBookings ?? _maxActiveBookings;
+        _waitlistOfferMinutes = (int?)r.WaitlistOfferMinutes is > 0 and var minutes ? minutes : _waitlistOfferMinutes;
     }
 
     private async Task SaveAsync()
@@ -86,6 +92,7 @@ else
                 NoShowBlockDays = _noShowBlockDays,
                 BookingWindowDays = _bookingWindowDays,
                 MaxActiveBookings = _maxActiveBookings,
+                WaitlistOfferMinutes = _waitlistOfferMinutes,
             });
             Apply(saved);
             Snackbar.Add("Reglas de reserva guardadas.", Severity.Success);

@@ -20,7 +20,8 @@ public sealed record MemberNotice(
     string Title,
     string Body,
     string? Link,
-    DateTimeOffset? ScheduledFor = null);
+    DateTimeOffset? ScheduledFor = null,
+    NotificationPriority Priority = NotificationPriority.Normal);
 
 /// <summary>
 /// Crea avisos personales y, si se pide, su correo, de forma idempotente: si ya existe un aviso con la
@@ -121,7 +122,8 @@ public sealed class MemberNoticeWriter(
     {
         var notification = Notification.CreateForMember(
             notice.GymId, notice.MemberId, notice.Type, notice.Category, notice.ReferenceId,
-            notice.Title, Truncate(notice.Body, Notification.BodyMaxLength), notice.Link, notice.ScheduledFor ?? clock.UtcNow);
+            notice.Title, Truncate(notice.Body, Notification.BodyMaxLength), notice.Link, notice.ScheduledFor ?? clock.UtcNow,
+            notice.Priority);
         notifications.Add(notification);
         return notification;
     }

@@ -16,6 +16,7 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
     public const int DefaultNoShowBlockDays = 7;
     public const int DefaultBookingWindowDays = 7;
     public const int DefaultMaxActiveBookings = 5;
+    public const int DefaultWaitlistOfferMinutes = 60;
 
     public const int MaxCancelDeadlineHours = 72;
     public const int MaxNoShowLimit = 20;
@@ -23,6 +24,8 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
     public const int MaxNoShowBlockDays = 90;
     public const int MaxBookingWindowDays = 60;
     public const int MaxActiveBookingsLimit = 50;
+    public const int MinWaitlistOfferMinutes = 5;
+    public const int MaxWaitlistOfferMinutes = 720;
 
     private ClassSettings()
     {
@@ -47,6 +50,9 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
     /// <summary>Reservas futuras activas que un miembro puede tener a la vez.</summary>
     public int MaxActiveBookings { get; private set; }
 
+    /// <summary>C4: minutos que tiene un miembro para confirmar el cupo que se le ofrece (nunca más allá del inicio de la clase).</summary>
+    public int WaitlistOfferMinutes { get; private set; }
+
     public static ClassSettings Default(Guid gymId)
     {
         if (gymId == Guid.Empty)
@@ -63,12 +69,13 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
             NoShowBlockDays = DefaultNoShowBlockDays,
             BookingWindowDays = DefaultBookingWindowDays,
             MaxActiveBookings = DefaultMaxActiveBookings,
+            WaitlistOfferMinutes = DefaultWaitlistOfferMinutes,
         };
     }
 
     public void Update(
         int cancelDeadlineHours, int noShowLimit, int noShowWindowDays,
-        int noShowBlockDays, int bookingWindowDays, int maxActiveBookings)
+        int noShowBlockDays, int bookingWindowDays, int maxActiveBookings, int? waitlistOfferMinutes = null)
     {
         Check(cancelDeadlineHours, 0, MaxCancelDeadlineHours, "El plazo de cancelación");
         Check(noShowLimit, 1, MaxNoShowLimit, "El límite de inasistencias");
@@ -76,6 +83,8 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
         Check(noShowBlockDays, 1, MaxNoShowBlockDays, "Los días de bloqueo");
         Check(bookingWindowDays, 1, MaxBookingWindowDays, "La ventana de reserva");
         Check(maxActiveBookings, 1, MaxActiveBookingsLimit, "El máximo de reservas activas");
+        var offerMinutes = waitlistOfferMinutes ?? WaitlistOfferMinutes;
+        Check(offerMinutes, MinWaitlistOfferMinutes, MaxWaitlistOfferMinutes, "El tiempo para confirmar una oferta");
 
         CancelDeadlineHours = cancelDeadlineHours;
         NoShowLimit = noShowLimit;
@@ -83,6 +92,7 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
         NoShowBlockDays = noShowBlockDays;
         BookingWindowDays = bookingWindowDays;
         MaxActiveBookings = maxActiveBookings;
+        WaitlistOfferMinutes = offerMinutes;
     }
 
     private static void Check(int value, int min, int max, string what)

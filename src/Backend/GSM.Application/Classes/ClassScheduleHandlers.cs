@@ -101,7 +101,9 @@ public sealed class GetMyClassesHandler(
     IMemberReader members,
     IClassRepository classes,
     IClassSessionRepository sessions,
-    IClassBookingRepository bookings)
+    IClassBookingRepository bookings,
+    IWaitlistRepository waitlist,
+    WaitlistService waitlistService)
 {
     public async Task<ScheduleResponse> HandleAsync(
         DateOnly from, DateOnly to, CancellationToken cancellationToken)
@@ -122,10 +124,53 @@ public sealed class GetMyClassesHandler(
         var byOccurrence = myBookings.ToDictionary(
             b => (b.Class.Id, b.Session.SessionDate), b => b.Booking.Status.ToString());
 
+        // C4: mirar el horario pone al día las listas de espera donde el miembro espera (lazy, sin scheduler).
+        foreach (var sessionId in (await waitlist.ListOpenForMemberAsync(self.Id, from, to, cancellationToken))
+                     .Select(w => w.Session.Id).Distinct().ToList())
+        {
+            await waitlistService.ProcessAsync(sessionId, cancellationToken);
+        }
+
+        var myWaits = (await waitlist.ListOpenForMemberAsync(self.Id, from, to, cancellationToken))
+            .ToDictionary(w => (w.Class.Id, w.Session.SessionDate));
+
+        // Sesiones con cupo ya materializadas: llenas = reservas + cupos apartados >= cupo.
+        var capped = entries.Where(e => e.SessionId is not null && e.Capacity is not null).ToList();
+        var cappedIds = capped.Select(e => e.SessionId!.Value).ToList();
+        var bookedBySession = await bookings.CountActiveBySessionsAsync(cappedIds, cancellationToken);
+        var openBySession = (await waitlist.ListOpenForSessionsAsync(cappedIds, cancellationToken))
+            .GroupBy(w => w.SessionId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         var enriched = entries
-            .Select(e => byOccurrence.TryGetValue((e.ClassId, e.SessionDate), out var status)
-                ? e with { MyBookingStatus = status }
-                : e)
+            .Select(e =>
+            {
+                var result = e;
+                if (byOccurrence.TryGetValue((e.ClassId, e.SessionDate), out var status))
+                {
+                    result = result with { MyBookingStatus = status };
+                }
+
+                if (e.SessionId is { } sid && e.Capacity is { } cap)
+                {
+                    var open = openBySession.GetValueOrDefault(sid) ?? [];
+                    var booked = bookedBySession.GetValueOrDefault(sid);
+                    var offers = open.Count(w => w.Status == WaitlistEntryStatus.Offered);
+                    result = result with { IsFull = booked + offers >= cap };
+
+                    if (myWaits.TryGetValue((e.ClassId, e.SessionDate), out var mine))
+                    {
+                        result = result with
+                        {
+                            MyWaitlistStatus = mine.Entry.Status.ToString(),
+                            MyWaitlistPosition = WaitlistService.Rank(open, mine.Entry),
+                            MyOfferExpiresAt = mine.Entry.OfferExpiresAt,
+                        };
+                    }
+                }
+
+                return result;
+            })
             .ToList();
 
         return new ScheduleResponse(from, to, enriched);

@@ -30,7 +30,31 @@ public sealed record RosterResponse(
     int? Capacity,
     string SessionStatus,
     int BookedCount,
-    IReadOnlyList<RosterEntry> Entries);
+    IReadOnlyList<RosterEntry> Entries,
+    /// <summary>C4: la lista de espera en su orden (esperando y con oferta en curso); nula si la sesión no tiene.</summary>
+    IReadOnlyList<WaitlistRosterEntry>? Waitlist = null);
+
+/// <summary>Una persona de la lista de espera. <see cref="Position"/> es su lugar en la lista (1 = la primera).</summary>
+public sealed record WaitlistRosterEntry(
+    Guid EntryId,
+    Guid MemberId,
+    string MemberName,
+    int Position,
+    string Status,
+    DateTimeOffset? OfferExpiresAt);
+
+/// <summary>
+/// Estado del miembro en la lista de espera de una sesión (C4). <see cref="Status"/> es <c>Waiting</c> u <c>Offered</c>;
+/// con oferta, <see cref="OfferExpiresAt"/> es la hora límite para confirmar.
+/// </summary>
+public sealed record WaitlistResponse(
+    Guid EntryId,
+    Guid SessionId,
+    Guid ClassId,
+    DateOnly SessionDate,
+    string Status,
+    int Position,
+    DateTimeOffset? OfferExpiresAt);
 
 /// <summary>
 /// Marca de asistencia por el staff sobre una sesión. Los <see cref="Attended"/> pasan a
