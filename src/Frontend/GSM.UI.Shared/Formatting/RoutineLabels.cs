@@ -24,7 +24,7 @@ public static class RoutineLabels
 
     public static readonly (int Value, string Label)[] TrackingTypes =
     [
-        (0, "Repeticiones y peso"), (1, "Repeticiones"), (2, "Tiempo"), (3, "Distancia"), (4, "Tiempo y distancia"),
+        (0, "Repeticiones y peso"), (1, "Repeticiones"), (2, "Tiempo"), (3, "Distancia"), (4, "Tiempo y distancia"), (5, "Peso y distancia"),
     ];
 
     public static readonly (int Value, string Label)[] Difficulties =
@@ -88,7 +88,7 @@ public static class RoutineLabels
     private static readonly Dictionary<string, string> TrackingByName = new()
     {
         ["RepsWeight"] = "Repeticiones y peso", ["Reps"] = "Repeticiones", ["Time"] = "Tiempo",
-        ["Distance"] = "Distancia", ["TimeDistance"] = "Tiempo y distancia",
+        ["Distance"] = "Distancia", ["TimeDistance"] = "Tiempo y distancia", ["WeightDistance"] = "Peso y distancia",
     };
 
     private static readonly Dictionary<string, string> DifficultyByName = new()

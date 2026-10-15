@@ -229,6 +229,10 @@ public sealed class RoutineTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var both = Assert.Single(SetTargetRules.Normalize(TrackingType.TimeDistance, [full]));
         Assert.Equal((30, 400), (both.DurationSeconds, both.DistanceM));
 
+        // R3b: peso + distancia; el resto (repeticiones, tiempo) se descarta.
+        var carry = Assert.Single(SetTargetRules.Normalize(TrackingType.WeightDistance, [full]));
+        Assert.Equal((null, null, 40m, null, 400), (carry.RepsMin, carry.RepsMax, carry.WeightKg, carry.DurationSeconds, carry.DistanceM));
+
         Assert.Throws<ValidationDomainException>(() =>
             SetTargetRules.Normalize(TrackingType.RepsWeight, [full with { RepsMin = 12, RepsMax = 8 }]));
         Assert.Throws<ValidationDomainException>(() =>

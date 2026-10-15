@@ -21,6 +21,9 @@ public enum TrackingType
     Time,
     Distance,
     TimeDistance,
+
+    /// <summary>Peso y distancia (paseo del granjero). Va al final: el orden numérico del enum no se altera.</summary>
+    WeightDistance,
 }
 
 /// <summary>Nivel de dificultad del ejercicio.</summary>

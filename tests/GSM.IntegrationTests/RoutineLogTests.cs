@@ -140,6 +140,22 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     [Fact]
+    public async Task Weight_and_distance_per_set_round_trip()
+    {
+        var w = await SeedAsync(exercisesPerDay: 1);
+        var day = new DateOnly(2026, 6, 13);
+
+        using var scope = AsMember(w, day);
+        var log = await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>().HandleAsync(
+            w.ExerciseLineIds[0],
+            new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", null, 32m, null, 40, null)]),
+            default);
+
+        var set = Assert.Single(log.Sets!);
+        Assert.Equal((32m, 40), (set.WeightKg, set.DistanceM));
+    }
+
+    [Fact]
     public async Task Invalid_set_values_are_rejected()
     {
         var w = await SeedAsync(exercisesPerDay: 1);

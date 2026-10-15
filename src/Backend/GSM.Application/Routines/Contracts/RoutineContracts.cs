@@ -63,7 +63,7 @@ public sealed record SetTargetResponse(
     int? Rir);
 
 /// <summary>
-/// <c>TrackingType</c> (qué se mide: <c>RepsWeight</c>, <c>Reps</c>, <c>Time</c>, <c>Distance</c>, <c>TimeDistance</c>),
+/// <c>TrackingType</c> (qué se mide: <c>RepsWeight</c>, <c>Reps</c>, <c>Time</c>, <c>Distance</c>, <c>TimeDistance</c>, <c>WeightDistance</c>),
 /// <c>IsUnilateral</c> y <c>MuscleGroup</c> (<c>UpperBody</c>, <c>LowerBody</c>, <c>Core</c>, <c>FullBody</c>) los hereda
 /// la línea de su ejercicio. <c>SetTargets</c> trae solo los campos que corresponden al <c>TrackingType</c>.
 /// <c>Equipment</c>: disponibilidad y máquinas del ejercicio en el gym (foto, zona, instrucciones, estado);

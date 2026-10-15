@@ -6,13 +6,14 @@ namespace GSM.UI.Shared.Routines;
 /// <summary>Qué campos de una serie corresponden a lo que se mide en el ejercicio (<c>tracking_type</c>).</summary>
 public readonly record struct TrackingFields(bool Reps, bool Weight, bool Time, bool Distance)
 {
-    /// <summary>Nombre que viaja en las respuestas (<c>RepsWeight</c>, <c>Reps</c>, <c>Time</c>, <c>Distance</c>, <c>TimeDistance</c>). Lo desconocido se trata como repeticiones y peso.</summary>
+    /// <summary>Nombre que viaja en las respuestas (<c>RepsWeight</c>, <c>Reps</c>, <c>Time</c>, <c>Distance</c>, <c>TimeDistance</c>, <c>WeightDistance</c>). Lo desconocido se trata como repeticiones y peso.</summary>
     public static TrackingFields Of(string? tracking) => tracking switch
     {
         "Reps" => new(true, false, false, false),
         "Time" => new(false, false, true, false),
         "Distance" => new(false, false, false, true),
         "TimeDistance" => new(false, false, true, true),
+        "WeightDistance" => new(false, true, false, true),
         _ => new(true, true, false, false),
     };
 }
