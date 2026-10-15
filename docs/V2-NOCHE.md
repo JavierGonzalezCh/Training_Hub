@@ -208,6 +208,13 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **E3-3:** no hay pantalla de SuperAdmin para ligar ejercicios a modelos (solo API y siembra); va con S4.
 - **E3-5:** revisar los 16 pares ejercicio↔modelo sembrados en `V2_E3.sql` (propuesta del agente).
 
+- **N5-1:** si se reserva dentro de los 10 minutos previos al inicio, **no** hay recordatorio. ¿Uno inmediato?
+- **N5-2:** un recordatorio de vencimiento generado de madrugada sale a las 8:00 aunque el staff haya renovado entretanto. ¿Se revalida al enviar?
+- **N5-3:** el recordatorio del instructor se crea con la primera reserva; si todas se cancelan, lo recibe igual; una sesión sin reservas no lo genera. Confirmar.
+- **N5-4:** el recordatorio del instructor no se puede apagar (no está en las preferencias del staff). ¿Se agrega?
+- **N5-6 (hueco de Classes):** desactivar una clase no cancela sus reservas futuras ni sus recordatorios.
+- **N5-7:** `BookingPenaltyApplied` sigue sin aviso al miembro (ver C3-5).
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
