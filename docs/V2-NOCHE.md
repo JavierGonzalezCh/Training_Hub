@@ -142,6 +142,12 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **C5-3:** si se acorta la serie y ya hay reservas después del nuevo fin, esas sesiones siguen y **no se cancelan ni se avisa**. ¿Se cancelan y se notifica?
 - **C5-4:** la fecha de fin es independiente de dar de baja la clase. Confirmar.
 
+- **M4-1:** las mediciones (leer, añadir, borrar) exigen `ViewMemberHealth`; un entrenador o recepción sin ese permiso no ve pesos. ¿O basta ser staff?
+- **M4-2:** leer mediciones **no** se registra en `health_access_log`. ¿Debe registrarse?
+- **M4-3:** borrar una medición deja una fila de historial **sensible** (solo la ve quien tiene `ViewMemberHealth`). Confirmar.
+- **M4-4:** las mediciones del propio miembro y la gráfica de evolución quedan para M5. Confirmar.
+- **M4-6:** se permiten varias mediciones el mismo día; peso y altura se redondean (2 y 1 decimales) antes de validar. Confirmar.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
