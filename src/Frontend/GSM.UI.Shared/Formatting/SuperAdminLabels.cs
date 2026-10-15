@@ -24,6 +24,7 @@ public static class SuperAdminLabels
         "Trial" => "Prueba",
         "Active" => "Activo",
         "Overdue" => "Moroso",
+        "TrialEnded" => "Prueba terminada",
         "Disabled" => "Deshabilitado",
         "Suspended" => "Suspendido",
         _ => status,
@@ -35,7 +36,7 @@ public static class SuperAdminLabels
         // acción, así que se queda neutro en vez de competir con los estados que sí.
         "Active" => Color.Success,
         "Trial" => Color.Default,
-        "Overdue" => Color.Warning,
+        "Overdue" or "TrialEnded" => Color.Warning,
         "Disabled" or "Suspended" => Color.Error,
         _ => Color.Default,
     };

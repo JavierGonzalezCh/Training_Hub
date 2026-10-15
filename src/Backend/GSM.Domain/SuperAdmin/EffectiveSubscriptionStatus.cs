@@ -1,4 +1,4 @@
-namespace GSM.Domain.SuperAdmin;
+﻿namespace GSM.Domain.SuperAdmin;
 
 /// <summary>
 /// Estado comercial efectivo de un gym como cliente del SaaS. No se persiste: se deriva de
@@ -9,6 +9,12 @@ public enum EffectiveSubscriptionStatus
 {
     /// <summary>Periodo de prueba, hasta <c>trial_ends_on</c>. Acceso total.</summary>
     Trial,
+
+    /// <summary>
+    /// Derivado: los <c>TrialGraceDays</c> siguientes al fin de la prueba sin pago confirmado. Acceso total,
+    /// con el letrero "Tu prueba terminó". Pasados, <see cref="Disabled"/>.
+    /// </summary>
+    TrialEnded,
 
     /// <summary>Suscripción al día. Acceso total.</summary>
     Active,

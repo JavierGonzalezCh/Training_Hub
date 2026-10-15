@@ -49,9 +49,82 @@ public sealed class SubscriptionStatusDerivationTests
             EffectiveSubscriptionStatus.Trial,
             GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(-40), trialEndsOn: Today.AddDays(3)));
 
+        // Sin pago, el día siguiente al fin de la prueba abre la gracia (S1b), no la mora.
+        Assert.Equal(
+            EffectiveSubscriptionStatus.TrialEnded,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(-40), trialEndsOn: Today.AddDays(-1)));
+    }
+
+    [Fact]
+    public void Trial_ended_yesterday_without_payment_is_trial_ended_with_days_left()
+    {
+        var trialEnd = Today.AddDays(-1);
+        Assert.Equal(
+            EffectiveSubscriptionStatus.TrialEnded,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, paidThrough: trialEnd, trialEnd));
+        Assert.Equal(2, GymSubscription.DaysUntilDisabled(GymStatus.Trial, Today, trialEnd, trialEnd));
+    }
+
+    [Fact]
+    public void Trial_ended_stays_trial_ended_through_the_last_grace_day_then_disables()
+    {
+        var trialEnd = Today.AddDays(-3);
+        Assert.Equal(
+            EffectiveSubscriptionStatus.TrialEnded,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, trialEnd, trialEnd));
+        Assert.Equal(0, GymSubscription.DaysUntilDisabled(GymStatus.Trial, Today, trialEnd, trialEnd));
+
+        var older = Today.AddDays(-4);
         Assert.Equal(
             EffectiveSubscriptionStatus.Disabled,
-            GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(-40), trialEndsOn: Today.AddDays(-1)));
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, older, older));
+        Assert.Null(GymSubscription.DaysUntilDisabled(GymStatus.Trial, Today, older, older));
+    }
+
+    [Fact]
+    public void Trial_grace_days_are_respected()
+    {
+        var trialEnd = Today.AddDays(-5);
+        Assert.Equal(
+            EffectiveSubscriptionStatus.Disabled,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, trialEnd, trialEnd, trialGraceDays: 3));
+        Assert.Equal(
+            EffectiveSubscriptionStatus.TrialEnded,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, trialEnd, trialEnd, trialGraceDays: 7));
+        Assert.Equal(
+            EffectiveSubscriptionStatus.Disabled,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(-1), Today.AddDays(-1), trialGraceDays: 0));
+    }
+
+    [Fact]
+    public void A_confirmed_payment_after_the_trial_is_never_trial_ended()
+    {
+        var trialEnd = Today.AddDays(-1);
+        Assert.Equal(
+            EffectiveSubscriptionStatus.Active,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(29), trialEnd));
+
+        // Si el periodo pagado ya venció, el gym es un cliente que pagaba: mora, no fin de prueba.
+        Assert.Equal(
+            EffectiveSubscriptionStatus.Overdue,
+            GymSubscription.DeriveStatus(GymStatus.Trial, Today, Today.AddDays(-1), Today.AddDays(-20)));
+    }
+
+    [Fact]
+    public void Manual_suspension_wins_over_trial_ended()
+        => Assert.Equal(
+            EffectiveSubscriptionStatus.Suspended,
+            GymSubscription.DeriveStatus(GymStatus.Suspended, Today, Today.AddDays(-1), Today.AddDays(-1)));
+
+    [Fact]
+    public void Trial_grace_days_are_validated_on_the_entity()
+    {
+        var sub = GymSubscription.Create(Guid.NewGuid(), GymPlan.Basic, 0m, Today, Today.AddDays(30), Today.AddDays(30));
+        Assert.Equal(3, sub.TrialGraceDays);
+        sub.SetTrialGraceDays(0);
+        Assert.Equal(0, sub.TrialGraceDays);
+        Assert.ThrowsAny<Exception>(() => sub.SetTrialGraceDays(-1));
+        Assert.ThrowsAny<Exception>(() => sub.SetTrialGraceDays(GymSubscription.MaxTrialGraceDays + 1));
     }
 
     [Fact]

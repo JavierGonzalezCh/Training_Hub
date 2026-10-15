@@ -40,7 +40,8 @@ public sealed class ListGymPortfolioHandler(
 
         foreach (var row in rows)
         {
-            var effective = GymSubscription.DeriveStatus(row.ManualStatus, today, row.PaidThrough, row.TrialEndsOn);
+            var effective = GymSubscription.DeriveStatus(
+                row.ManualStatus, today, row.PaidThrough, row.TrialEndsOn, row.TrialGraceDays);
 
             var key = effective.ToString();
             countByStatus[key] = countByStatus.GetValueOrDefault(key) + 1;
@@ -64,7 +65,7 @@ public sealed class ListGymPortfolioHandler(
                 plan?.Name ?? row.Plan.ToString(),
                 row.MonthlyPrice,
                 row.PaidThrough,
-                GymSubscription.DaysUntilDisabled(row.ManualStatus, today, row.PaidThrough, row.TrialEndsOn),
+                GymSubscription.DaysUntilDisabled(row.ManualStatus, today, row.PaidThrough, row.TrialEndsOn, row.TrialGraceDays),
                 row.MemberLimitOverride ?? plan?.MemberLimit,
                 await memberships.GetCountedMemberCountAsync(row.GymId, cancellationToken)));
         }

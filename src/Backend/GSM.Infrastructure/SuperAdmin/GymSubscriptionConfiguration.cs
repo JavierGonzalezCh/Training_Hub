@@ -14,6 +14,12 @@ public sealed class GymSubscriptionConfiguration : IEntityTypeConfiguration<GymS
         builder.Property(s => s.MonthlyPrice).HasColumnType("decimal(12,2)");
         builder.Property(s => s.Notes).HasMaxLength(1000);
 
+        // S1b: 3 por defecto para las filas existentes; ValueGeneratedNever para que un 0 explícito
+        // ("sin gracia") no se confunda con "sin valor" y la base lo cambie a 3.
+        builder.Property(s => s.TrialGraceDays)
+            .HasDefaultValue(GymSubscription.DefaultTrialGraceDays)
+            .ValueGeneratedNever();
+
         // S2: mismo schema, así que sí hay FK. Un plan en uso no se borra (se desactiva).
         builder.HasOne<SaasPlan>()
             .WithMany()

@@ -18,6 +18,12 @@ public sealed class GymSubscription : BaseEntity
     /// <summary>Días de gracia tras el vencimiento antes de pasar a <c>disabled</c>. Constante (decisión abierta 1).</summary>
     public const int GraceDays = 15;
 
+    /// <summary>Días con acceso total y letrero tras el fin de la prueba sin pago (<c>trial_ended</c>). Editable por gym.</summary>
+    public const int DefaultTrialGraceDays = 3;
+
+    /// <summary>Tope de <see cref="TrialGraceDays"/>: evita una "prueba" eterna por un número descuidado.</summary>
+    public const int MaxTrialGraceDays = 60;
+
     private GymSubscription()
     {
     }
@@ -44,6 +50,9 @@ public sealed class GymSubscription : BaseEntity
     /// <see cref="Plan"/> heredado.
     /// </summary>
     public Guid? SaasPlanId { get; private set; }
+
+    /// <summary>Días de <c>trial_ended</c> después de <see cref="TrialEndsOn"/> (SuperAdmin §V2). 3 por defecto.</summary>
+    public int TrialGraceDays { get; private set; } = DefaultTrialGraceDays;
 
     /// <summary>Límite de miembros propio de este cliente. <c>null</c> = el del plan (SuperAdmin §V1).</summary>
     public int? MemberLimitOverride { get; private set; }
@@ -118,6 +127,17 @@ public sealed class GymSubscription : BaseEntity
         MemberLimitOverride = limit;
     }
 
+    /// <summary>Días de gracia tras el fin de la prueba para este cliente (0 = sin gracia).</summary>
+    public void SetTrialGraceDays(int days)
+    {
+        if (days is < 0 or > MaxTrialGraceDays)
+        {
+            throw new ValidationDomainException($"Los días de gracia de la prueba deben estar entre 0 y {MaxTrialGraceDays}.");
+        }
+
+        TrialGraceDays = days;
+    }
+
     public void SetNotes(string? notes) => Notes = Trim(notes);
 
     /// <summary>
@@ -151,18 +171,19 @@ public sealed class GymSubscription : BaseEntity
     /// (<see cref="GymStatus"/>, propiedad de Gyms) y el día de negocio de hoy.
     /// </summary>
     public EffectiveSubscriptionStatus DeriveStatus(GymStatus manualStatus, DateOnly today)
-        => DeriveStatus(manualStatus, today, PaidThrough, TrialEndsOn);
+        => DeriveStatus(manualStatus, today, PaidThrough, TrialEndsOn, TrialGraceDays);
 
     /// <summary>Días que faltan para pasar a <c>disabled</c>, o <c>null</c> si no está en mora.</summary>
     public int? DaysUntilDisabled(GymStatus manualStatus, DateOnly today)
-        => DaysUntilDisabled(manualStatus, today, PaidThrough, TrialEndsOn);
+        => DaysUntilDisabled(manualStatus, today, PaidThrough, TrialEndsOn, TrialGraceDays);
 
     /// <summary>
     /// Derivación pura sobre primitivas: sin entidad ni base de datos. Es la única definición de la
     /// regla; la sobrecarga de instancia delega aquí.
     /// </summary>
     public static EffectiveSubscriptionStatus DeriveStatus(
-        GymStatus manualStatus, DateOnly today, DateOnly paidThrough, DateOnly? trialEndsOn)
+        GymStatus manualStatus, DateOnly today, DateOnly paidThrough, DateOnly? trialEndsOn,
+        int trialGraceDays = DefaultTrialGraceDays)
     {
         if (manualStatus == GymStatus.Suspended)
         {
@@ -176,6 +197,17 @@ public sealed class GymSubscription : BaseEntity
         if (manualStatus == GymStatus.Trial && trialEndsOn is { } ends && today <= ends)
         {
             return EffectiveSubscriptionStatus.Trial;
+        }
+
+        // "Nunca pagó": una suscripción de prueba nace con paid_through = trial_ends_on y solo un pago (o una
+        // renovación del SuperAdmin) lo empuja más allá. Los N días siguientes al fin de la prueba el gym
+        // conserva el acceso total con letrero (`trial_ended`); pasados, queda `disabled` (solo consulta),
+        // sin pasar por `overdue`: nunca fue cliente que pagaba.
+        if (trialEndsOn is { } trialEnd && paidThrough <= trialEnd && today > trialEnd)
+        {
+            return today <= trialEnd.AddDays(trialGraceDays)
+                ? EffectiveSubscriptionStatus.TrialEnded
+                : EffectiveSubscriptionStatus.Disabled;
         }
 
         if (today <= paidThrough)
@@ -192,10 +224,15 @@ public sealed class GymSubscription : BaseEntity
     }
 
     public static int? DaysUntilDisabled(
-        GymStatus manualStatus, DateOnly today, DateOnly paidThrough, DateOnly? trialEndsOn)
-        => DeriveStatus(manualStatus, today, paidThrough, trialEndsOn) == EffectiveSubscriptionStatus.Overdue
-            ? paidThrough.AddDays(GraceDays).DayNumber - today.DayNumber
-            : null;
+        GymStatus manualStatus, DateOnly today, DateOnly paidThrough, DateOnly? trialEndsOn,
+        int trialGraceDays = DefaultTrialGraceDays)
+        => DeriveStatus(manualStatus, today, paidThrough, trialEndsOn, trialGraceDays) switch
+        {
+            EffectiveSubscriptionStatus.Overdue => paidThrough.AddDays(GraceDays).DayNumber - today.DayNumber,
+            // Hoy es el último día de gracia si faltan 0: mañana queda disabled.
+            EffectiveSubscriptionStatus.TrialEnded => trialEndsOn!.Value.AddDays(trialGraceDays).DayNumber - today.DayNumber,
+            _ => null,
+        };
 
     /// <summary>Día siguiente al fin de la cobertura vigente: arranque por defecto del próximo periodo.</summary>
     public DateOnly NextPeriodStart() => PaidThrough.AddDays(1);

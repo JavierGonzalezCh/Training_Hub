@@ -26,7 +26,8 @@ internal static class SubscriptionMapper
             EffectiveStatus: sub.DeriveStatus(manualStatus, today).ToString(),
             ManualStatus: manualStatus.ToString(),
             DaysUntilDisabled: sub.DaysUntilDisabled(manualStatus, today),
-            Notes: sub.Notes);
+            Notes: sub.Notes,
+            TrialGraceDays: sub.TrialGraceDays);
 
     public static SubscriptionPaymentItem ToItem(SubscriptionPayment p)
         => new(p.Id, p.GymId, p.Amount, p.Method.ToString(), p.CoversFrom, p.CoversThrough,

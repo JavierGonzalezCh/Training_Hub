@@ -29,4 +29,5 @@ public sealed record PortfolioRow(
     DateOnly? TrialEndsOn,
     DateOnly PaidThrough,
     Guid? SaasPlanId,
-    int? MemberLimitOverride);
+    int? MemberLimitOverride,
+    int TrialGraceDays);

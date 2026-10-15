@@ -25,6 +25,7 @@ public sealed class GymContext
     public SubscriptionState SubscriptionState => (Subscription?.Status ?? string.Empty).ToLowerInvariant() switch
     {
         "overdue" => SubscriptionState.Overdue,
+        "trialended" => SubscriptionState.TrialEnded,
         "disabled" => SubscriptionState.Disabled,
         "suspended" => SubscriptionState.Suspended,
         "" => SubscriptionState.None,
@@ -60,6 +61,9 @@ public enum SubscriptionState
     None,
     Active,
     Overdue,
+
+    /// <summary>La prueba terminó sin pago confirmado y corre la gracia: acceso total, con letrero (S1b).</summary>
+    TrialEnded,
     Disabled,
     Suspended,
 }

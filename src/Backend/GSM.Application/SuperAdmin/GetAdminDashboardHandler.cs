@@ -54,7 +54,7 @@ public sealed class GetAdminDashboardHandler(
         foreach (var row in rows)
         {
             var effective = GymSubscription.DeriveStatus(
-                row.ManualStatus, today, row.PaidThrough, row.TrialEndsOn);
+                row.ManualStatus, today, row.PaidThrough, row.TrialEndsOn, row.TrialGraceDays);
             var key = effective.ToString();
             countByStatus[key] = countByStatus.GetValueOrDefault(key) + 1;
 
