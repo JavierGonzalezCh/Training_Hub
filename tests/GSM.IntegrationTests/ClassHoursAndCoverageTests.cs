@@ -92,6 +92,32 @@ public sealed class ClassHoursAndCoverageTests(ApiFactory factory) : IClassFixtu
     }
 
     [Fact]
+    public async Task A_class_at_2am_is_valid_on_a_24_hour_day_and_422_on_a_normal_day()
+    {
+        var w = await SeedAsync(1);
+        using (var scope = Owner(w.GymId))
+        {
+            OpeningDayDto D(string day, bool all = false)
+                => all
+                    ? new OpeningDayDto(day, []) { Is24Hours = true }
+                    : new OpeningDayDto(day, [new TimeSlotDto("06:00", "20:00")]);
+
+            await scope.ServiceProvider.GetRequiredService<UpdateOpeningHoursHandler>().HandleAsync(
+                new UpdateOpeningHoursRequest(
+                [
+                    D("Monday"), D("Tuesday", all: true), D("Wednesday"), D("Thursday"),
+                    D("Friday"), D("Saturday"), D("Sunday"), D("Holiday"),
+                ]), default);
+        }
+
+        var ok = await CreateAsync(w, new TimeOnly(2, 0), 45, [ClassDayOfWeek.Tuesday]);
+        Assert.NotEqual(Guid.Empty, ok.Id);
+
+        await Assert.ThrowsAsync<ValidationDomainException>(
+            () => CreateAsync(w, new TimeOnly(2, 0), 45, [ClassDayOfWeek.Monday]));
+    }
+
+    [Fact]
     public async Task A_gym_without_a_schedule_accepts_any_class()
     {
         var w = await SeedAsync(1);

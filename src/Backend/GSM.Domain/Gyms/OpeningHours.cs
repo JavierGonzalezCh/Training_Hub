@@ -22,7 +22,19 @@ public enum OpeningDay
 /// <summary>Un tramo de apertura dentro de un mismo día: <c>[Opens, Closes)</c>. Cierra como máximo a las 23:59.</summary>
 public readonly record struct TimeSlot(TimeOnly Opens, TimeOnly Closes)
 {
-    public bool Contains(TimeOnly time) => time >= Opens && time < Closes;
+    /// <summary>
+    /// Abierto 24 horas: el tramo 00:00–23:59 es la marca del día completo y no se persiste con columna
+    /// propia. Un día que lo trae como único tramo es un día 24 h.
+    /// </summary>
+    public static TimeSlot AllDay { get; } = new(TimeOnly.MinValue, new TimeOnly(23, 59));
+
+    public bool IsAllDay => Opens == TimeOnly.MinValue && Closes == AllDay.Closes;
+
+    /// <summary>Un tramo 24 h no tiene hora de cierre: cubre hasta la medianoche, 23:59 incluido.</summary>
+    public bool Contains(TimeOnly time) => IsAllDay || (time >= Opens && time < Closes);
+
+    /// <summary>Minuto del día en que termina el tramo (1440 para un tramo 24 h).</summary>
+    public int ClosesMinutes => IsAllDay ? 1440 : Closes.Hour * 60 + Closes.Minute;
 }
 
 /// <summary>Reglas de los tramos de un día. Fail-fast: un tramo inválido es 422.</summary>
@@ -30,6 +42,26 @@ public static class OpeningSlots
 {
     /// <summary>Máximo de tramos por día (un horario partido real no necesita más).</summary>
     public const int MaxSlotsPerDay = 4;
+
+    /// <summary>
+    /// Tramos de un día según la casilla "Abierto 24 horas": con la casilla no puede haber tramos
+    /// (422) y el día queda con el tramo <see cref="TimeSlot.AllDay"/>; sin ella, aplica <see cref="Normalize"/>.
+    /// </summary>
+    public static IReadOnlyList<TimeSlot> NormalizeDay(IEnumerable<TimeSlot> slots, bool is24Hours, string dayLabel)
+    {
+        if (!is24Hours)
+        {
+            return Normalize(slots, dayLabel);
+        }
+
+        if (slots.Any())
+        {
+            throw new ValidationDomainException(
+                $"{dayLabel}: un día abierto 24 horas no lleva tramos. Quita los tramos o desmarca la casilla.");
+        }
+
+        return [TimeSlot.AllDay];
+    }
 
     /// <summary>
     /// Valida y ordena los tramos de un día: al menos uno, cada uno con apertura anterior al cierre, sin solaparse.

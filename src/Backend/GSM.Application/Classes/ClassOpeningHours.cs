@@ -36,9 +36,9 @@ public static class ClassOpeningHours
             var next = -1;
             foreach (var slot in slots)
             {
-                if (Minutes(slot.Opens) <= cursor && cursor < Minutes(slot.Closes))
+                if (Minutes(slot.Opens) <= cursor && cursor < slot.ClosesMinutes)
                 {
-                    next = Math.Max(next, Minutes(slot.Closes));
+                    next = Math.Max(next, slot.ClosesMinutes);
                 }
             }
 
@@ -79,6 +79,8 @@ public static class ClassOpeningHours
     public static string Describe(IReadOnlyList<TimeSlot> slots)
         => slots.Count == 0
             ? "no abre"
+            : slots.Any(s => s.IsAllDay)
+            ? "abre las 24 horas"
             : "abre " + string.Join(" y ", slots.OrderBy(s => s.Opens)
                 .Select(s => $"de {OpenStatusText.Hour(s.Opens)} a {OpenStatusText.Hour(s.Closes)}"));
 

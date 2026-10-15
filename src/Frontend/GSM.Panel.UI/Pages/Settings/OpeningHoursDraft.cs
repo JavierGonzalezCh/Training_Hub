@@ -29,6 +29,9 @@ public sealed class DayDraft(string day)
 
     public string Label => OpeningHoursLabels.Label(Day);
 
+    /// <summary>Casilla "Abierto 24 horas": el día no lleva tramos.</summary>
+    public bool Is24Hours { get; set; }
+
     public List<SlotDraft> Slots { get; } = [];
 }
 
@@ -65,7 +68,13 @@ public sealed class OpeningHoursDraft
         foreach (var dto in days)
         {
             var day = draft.Days.FirstOrDefault(d => string.Equals(d.Day, dto.Day, StringComparison.OrdinalIgnoreCase));
-            day?.Slots.AddRange(dto.Slots.Select(s => new SlotDraft(s.Opens, s.Closes)));
+            if (day is null)
+            {
+                continue;
+            }
+
+            day.Is24Hours = dto.Is24Hours;
+            day.Slots.AddRange(dto.Slots.Select(s => new SlotDraft(s.Opens, s.Closes)));
         }
 
         return draft;
@@ -77,7 +86,7 @@ public sealed class OpeningHoursDraft
         var errors = new Dictionary<string, string>();
         foreach (var day in Days)
         {
-            if (ValidateSlots(day.Slots) is { } error)
+            if (!day.Is24Hours && ValidateSlots(day.Slots) is { } error)
             {
                 errors[day.Day] = error;
             }
@@ -93,7 +102,8 @@ public sealed class OpeningHoursDraft
         Days = Days.Select(d => new OpeningDayDto
         {
             Day = d.Day,
-            Slots = d.Slots.Select(s => new TimeSlotDto { Opens = s.Opens, Closes = s.Closes }).ToList(),
+            Is24Hours = d.Is24Hours,
+            Slots = d.Is24Hours ? [] : d.Slots.Select(s => new TimeSlotDto { Opens = s.Opens, Closes = s.Closes }).ToList(),
         }).ToList(),
     };
 

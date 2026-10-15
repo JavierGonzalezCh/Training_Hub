@@ -28,10 +28,19 @@ public static class OpeningHoursLabels
             ? $"{t.Hour}:{t.Minute:00}"
             : time ?? string.Empty;
 
-    /// <summary>"5:00–12:00 · 15:00–22:00", o "Cerrado" si no hay tramos.</summary>
+    /// <summary>"24 horas" para un día abierto 24 h; si no, los tramos.</summary>
+    public static string Describe(OpeningDayDto day)
+        => day.Is24Hours ? "24 horas" : Describe(day.Slots);
+
+    /// <summary>"5:00–12:00 · 15:00–22:00", "24 horas" (tramo 00:00–23:59 de un festivo) o "Cerrado" si no hay tramos.</summary>
     public static string Describe(IEnumerable<TimeSlotDto>? slots)
     {
         var list = (slots ?? []).ToList();
+        if (list.Count == 1 && list[0].Opens == "00:00" && list[0].Closes == "23:59")
+        {
+            return "24 horas";
+        }
+
         return list.Count == 0
             ? "Cerrado"
             : string.Join(" · ", list.Select(s => $"{Hour(s.Opens)}–{Hour(s.Closes)}"));

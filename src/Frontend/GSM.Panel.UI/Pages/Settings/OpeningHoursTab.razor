@@ -33,7 +33,19 @@ else
             <div class="gsm-hours__day" id="@($"hours-{d.Day}")">
                 <div class="gsm-hours__label">@d.Label</div>
                 <div class="gsm-hours__slots">
-                    <SlotsEditor Slots="d.Slots" IdPrefix="@($"hours-{d.Day}-slots")" OnChanged="Revalidate" />
+                    @if (d.Day != "Holiday")
+                    {
+                        <MudCheckBox T="bool" Value="d.Is24Hours" ValueChanged="@((bool v) => Set24Hours(d, v))"
+                                     Label="Abierto 24 horas" Dense="true" id="@($"hours-{d.Day}-24h")" />
+                    }
+                    @if (d.Is24Hours)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" id="@($"hours-{d.Day}-24h-note")">Abierto las 24 horas</MudText>
+                    }
+                    else
+                    {
+                        <SlotsEditor Slots="d.Slots" IdPrefix="@($"hours-{d.Day}-slots")" OnChanged="Revalidate" />
+                    }
                     @if (error is not null)
                     {
                         <MudText Typo="Typo.caption" Color="Color.Error" id="@($"hours-{d.Day}-error")">@error</MudText>
@@ -179,6 +191,21 @@ else
     {
         _draft = OpeningHoursDraft.Template();
         _templateApplied = true;
+        Revalidate();
+    }
+
+    private void Set24Hours(DayDraft day, bool value)
+    {
+        day.Is24Hours = value;
+        if (value)
+        {
+            day.Slots.Clear();
+        }
+        else if (day.Slots.Count == 0)
+        {
+            day.Slots.Add(new SlotDraft("05:00", "22:00"));
+        }
+
         Revalidate();
     }
 
