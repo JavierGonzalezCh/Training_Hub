@@ -11,6 +11,7 @@ public sealed class CheckinSettingsConfiguration : IEntityTypeConfiguration<Chec
         builder.ToTable("checkin_settings", "attendance");
 
         builder.Property(s => s.Mode).HasColumnName("mode");
+        builder.Property(s => s.ByDocument).HasColumnName("by_document").HasDefaultValue(false);
         builder.HasIndex(s => s.GymId).IsUnique();
     }
 }

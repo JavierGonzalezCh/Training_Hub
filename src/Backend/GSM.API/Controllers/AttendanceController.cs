@@ -136,6 +136,37 @@ public sealed class AttendanceController : ControllerBase
         [FromServices] GetKioskCodeHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>
+    /// Entrada con el documento digitado en el kiosco (A4). Solo la cuenta de dispositivo (403 al staff) y solo si
+    /// el gym la encendió (403). Mismas reglas que el QR. Devuelve solo nombre de pila y foto. Todo rechazo es un
+    /// 409 idéntico (sin decir si el documento existe ni el motivo); cinco fallos seguidos bloquean el teclado
+    /// un minuto (429 con `Retry-After`).
+    /// </summary>
+    [HttpPost("kiosk/document-entry")]
+    [Authorize(Policy = AuthPolicies.RequireKiosk)]
+    [EndpointName("KioskDocumentEntry")]
+    [ProducesResponseType<KioskDocumentEntryResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<KioskDocumentEntryResponse>> KioskDocumentEntry(
+        KioskDocumentEntryRequest request, [FromServices] KioskDocumentEntryHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var outcome = await handler.HandleAsync(request, cancellationToken);
+        if (outcome.LockedUntil is { } until)
+        {
+            var seconds = Math.Max(1, (int)Math.Ceiling((until - DateTimeOffset.UtcNow).TotalSeconds));
+            Response.Headers.RetryAfter = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return Problem(
+                title: "Teclado bloqueado",
+                detail: "Demasiados intentos. Espera un minuto o acércate a recepción.",
+                statusCode: StatusCodes.Status429TooManyRequests);
+        }
+
+        return StatusCode(StatusCodes.Status201Created, outcome.Entry);
+    }
+
     /// <summary>Invalida el cartel impreso actual. Solo en modo fijo (409 en rotativo).</summary>
     [HttpPost("kiosk-code/regenerate")]
     [Authorize(Policy = AuthPolicies.RequireOwner)]

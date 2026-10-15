@@ -26,7 +26,7 @@ public sealed class ListAttendanceHandler(
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
         var (items, total) = await attendance.GetPageAsync(
-            new AttendancePageQuery(query.MemberId, query.From, query.To, page, pageSize, query.AuthorizedOnly, query.IncludeVoided),
+            new AttendancePageQuery(query.MemberId, query.From, query.To, page, pageSize, query.AuthorizedOnly, query.IncludeVoided, query.DocumentOnly),
             cancellationToken);
 
         var names = await ResolveNamesAsync(members, items.Select(a => a.MemberId), cancellationToken);

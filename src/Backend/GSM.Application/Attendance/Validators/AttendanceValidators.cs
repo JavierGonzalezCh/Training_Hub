@@ -38,3 +38,12 @@ public sealed class UpdateCheckinSettingsRequestValidator : AbstractValidator<Up
             .WithMessage("El modo debe ser Rotating o Static.");
     }
 }
+
+public sealed class KioskDocumentEntryRequestValidator : AbstractValidator<KioskDocumentEntryRequest>
+{
+    public KioskDocumentEntryRequestValidator()
+    {
+        RuleFor(x => x.Document).NotEmpty().Matches("^[0-9]{4,20}$")
+            .WithMessage("Digita tu documento, solo números.");
+    }
+}

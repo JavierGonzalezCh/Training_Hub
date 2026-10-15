@@ -20,6 +20,9 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
     /// <summary>Versión del código fijo. Regenerar la incrementa y el cartel anterior deja de servir.</summary>
     public int StaticCodeVersion { get; private set; }
 
+    /// <summary>Entrada con documento en el kiosco (A4). Apagada por defecto.</summary>
+    public bool ByDocument { get; private set; }
+
     public static CheckinSettings Default(Guid gymId)
     {
         if (gymId == Guid.Empty)
@@ -30,7 +33,7 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
         return new CheckinSettings { GymId = gymId, Mode = CheckinMode.Rotating, StaticCodeVersion = 1 };
     }
 
-    public void Update(CheckinMode mode)
+    public void Update(CheckinMode mode, bool? byDocument = null)
     {
         if (!Enum.IsDefined(mode))
         {
@@ -38,6 +41,10 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
         }
 
         Mode = mode;
+        if (byDocument is { } enabled)
+        {
+            ByDocument = enabled;
+        }
     }
 
     public void RegenerateStaticCode() => StaticCodeVersion++;

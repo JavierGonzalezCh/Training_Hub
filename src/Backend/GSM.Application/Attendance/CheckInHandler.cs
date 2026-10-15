@@ -42,14 +42,42 @@ public sealed class CheckInHandler(
     public async Task<(CheckInResponse Response, bool Created)> HandleAsync(
         CheckInRequest request, CancellationToken cancellationToken)
     {
-        var gymId = currentUser.RequireGymId();
         var isMember = currentUser.Role == UserRole.Member;
         var member = await ResolveMemberAsync(request, isMember, cancellationToken);
+        return await RunAsync(
+            request, member, isMember ? EntryChannel.Qr : EntryChannel.Staff, cancellationToken);
+    }
+
+    /// <summary>
+    /// Entrada con documento en el kiosco (A4): las mismas reglas que el QR (gym abierto, miembro activo, una
+    /// entrada por día, veredicto de Memberships), sin código y sin "Dejar pasar". Quien llama (el caso de uso
+    /// del kiosco) ya resolvió al miembro y comprobó que el gym lo tiene encendido. Un rechazo deja el intento
+    /// y lanza <see cref="ConflictException"/>.
+    /// </summary>
+    internal async Task<CheckInResponse> HandleDocumentAsync(MemberInfo member, CancellationToken cancellationToken)
+    {
+        var (response, _) = await RunAsync(
+            new CheckInRequest(member.Id, null), member, EntryChannel.Document, cancellationToken);
+        return response;
+    }
+
+    private enum EntryChannel
+    {
+        Qr,
+        Staff,
+        Document,
+    }
+
+    private async Task<(CheckInResponse Response, bool Created)> RunAsync(
+        CheckInRequest request, MemberInfo member, EntryChannel channel, CancellationToken cancellationToken)
+    {
+        var gymId = currentUser.RequireGymId();
+        var isMember = channel != EntryChannel.Staff;
 
         var settings = await settingsRepository.GetAsync(gymId, cancellationToken)
             ?? CheckinSettings.Default(gymId);
 
-        if (isMember)
+        if (channel == EntryChannel.Qr)
         {
             var flags = await gyms.GetFeatureFlagsAsync(gymId, cancellationToken);
             if (flags is null || !flags.CheckinQr)
@@ -62,7 +90,7 @@ public sealed class CheckInHandler(
         await EnsureGymOpenAsync(gymId, cancellationToken);
 
         // Un código inválido es un error de forma del QR, no un intento rechazado.
-        if (isMember
+        if (channel == EntryChannel.Qr
             && !signer.Validate(gymId, request.GymCode, settings.Mode, settings.StaticCodeVersion, clock.UtcNow))
         {
             throw new ValidationDomainException("El código QR no es válido o ya caducó. Escanea de nuevo.");
@@ -133,7 +161,12 @@ public sealed class CheckInHandler(
             authorizationReason = RequireAuthorizationReason(access, request.AuthorizationReason);
         }
 
-        var method = isMember ? AttendanceMethod.Qr : AttendanceMethod.Manual;
+        var method = channel switch
+        {
+            EntryChannel.Qr => AttendanceMethod.Qr,
+            EntryChannel.Document => AttendanceMethod.Document,
+            _ => AttendanceMethod.Manual,
+        };
         var record = AttendanceEntity.Create(
             gymId, member.Id, method, clock.UtcNow, today,
             authorizationReason is null ? null : currentUser.UserId,

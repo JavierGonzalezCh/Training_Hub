@@ -55,6 +55,25 @@ public class KioskDeviceUiTests : TestContext
 
         public int Calls { get; private set; }
 
+        /// <summary>A4: el gym tiene encendida la entrada con documento.</summary>
+        public bool ByDocument { get; set; }
+
+        /// <summary>A4: status con el que falla la entrada con documento (409 rechazo, 429 bloqueo); nulo = entra.</summary>
+        public int? DocumentFailWith { get; set; }
+
+        public List<string> Documents { get; } = [];
+
+        public Task<KioskDocumentEntryResponse> KioskDocumentEntryAsync(KioskDocumentEntryRequest body, CancellationToken cancellationToken = default)
+        {
+            Documents.Add(body.Document);
+            if (DocumentFailWith is { } status)
+            {
+                throw new GsmApiException(status.ToString(), status, "{}", new Dictionary<string, IEnumerable<string>>(), null);
+            }
+
+            return Task.FromResult(new KioskDocumentEntryResponse { FirstName = "Ana", PhotoUrl = null, ExpiringSoon = true });
+        }
+
         public Task<KioskCodeResponse> KioskCodeAsync(CancellationToken cancellationToken = default)
         {
             Calls++;
@@ -65,7 +84,7 @@ public class KioskDeviceUiTests : TestContext
 
             return Task.FromResult(new KioskCodeResponse
             {
-                Mode = "Rotating", Code = "abc123", ExpiresAtUtc = DateTimeOffset.UtcNow.AddSeconds(30),
+                Mode = "Rotating", Code = "abc123", ExpiresAtUtc = DateTimeOffset.UtcNow.AddSeconds(30), ByDocument = ByDocument,
             });
         }
 
@@ -207,5 +226,93 @@ public class KioskDeviceUiTests : TestContext
         RenderComponent<Kiosk>();
 
         Assert.EndsWith("/kiosk/emparejar?revocado=1", Services.GetRequiredService<FakeNavigationManager>().Uri);
+    }
+
+    private static void Type(IRenderedComponent<Kiosk> cut, string digits)
+    {
+        foreach (var d in digits)
+        {
+            cut.Find($"button[data-testid='kiosk-key-{d}']").Click();
+        }
+    }
+
+    [Fact]
+    public void The_keypad_only_shows_when_the_gym_turned_on_document_entry()
+    {
+        var (_, attendance, _) = Setup(GsmRoles.Kiosk);
+
+        Assert.Empty(RenderComponent<Kiosk>().FindAll("[data-testid='kiosk-doc']"));
+
+        attendance.ByDocument = true;
+        var cut = RenderComponent<Kiosk>();
+        Assert.NotNull(cut.Find("[data-testid='kiosk-doc']"));
+        Assert.Contains("Digita tu documento", cut.Markup);
+    }
+
+    [Fact]
+    public void The_typed_number_is_masked_and_enter_needs_at_least_four_digits()
+    {
+        var (_, attendance, _) = Setup(GsmRoles.Kiosk);
+        attendance.ByDocument = true;
+        var cut = RenderComponent<Kiosk>();
+
+        Type(cut, "123");
+        Assert.True(cut.Find("button[data-testid='kiosk-key-enter']").HasAttribute("disabled"));
+        Type(cut, "4");
+
+        var display = cut.Find("[data-testid='kiosk-doc-display']").TextContent;
+        Assert.Equal("••••", display);
+        Assert.DoesNotContain("1234", cut.Markup);
+        Assert.False(cut.Find("button[data-testid='kiosk-key-enter']").HasAttribute("disabled"));
+    }
+
+    [Fact]
+    public void A_valid_document_shows_only_the_first_name_and_the_expiring_notice_without_dates()
+    {
+        var (_, attendance, _) = Setup(GsmRoles.Kiosk);
+        attendance.ByDocument = true;
+        var cut = RenderComponent<Kiosk>();
+
+        Type(cut, "1234567");
+        cut.Find("button[data-testid='kiosk-key-enter']").Click();
+
+        Assert.Equal(["1234567"], attendance.Documents);
+        var welcome = cut.Find("[data-testid='kiosk-doc-welcome']").TextContent;
+        Assert.Contains("Ana", welcome);
+        Assert.Contains("Tu plan vence pronto, pasa por recepción", welcome);
+        Assert.DoesNotMatch(@"\d{2}/\d{2}", welcome);
+    }
+
+    [Fact]
+    public void Any_rejection_shows_the_same_generic_message()
+    {
+        var (_, attendance, _) = Setup(GsmRoles.Kiosk);
+        attendance.ByDocument = true;
+        attendance.DocumentFailWith = 409;
+        var cut = RenderComponent<Kiosk>();
+
+        Type(cut, "99999999");
+        cut.Find("button[data-testid='kiosk-key-enter']").Click();
+
+        Assert.Equal(
+            "No pudimos registrar tu entrada. Comunícate con un asesor.",
+            cut.Find("[data-testid='kiosk-doc-rejected']").TextContent);
+        Assert.Equal("", cut.Find("[data-testid='kiosk-doc-display']").TextContent);
+    }
+
+    [Fact]
+    public void A_429_locks_the_keypad()
+    {
+        var (_, attendance, _) = Setup(GsmRoles.Kiosk);
+        attendance.ByDocument = true;
+        attendance.DocumentFailWith = 429;
+        var cut = RenderComponent<Kiosk>();
+
+        Type(cut, "99999999");
+        cut.Find("button[data-testid='kiosk-key-enter']").Click();
+
+        Assert.NotNull(cut.Find("[data-testid='kiosk-doc-locked']"));
+        Assert.True(cut.Find("button[data-testid='kiosk-key-5']").HasAttribute("disabled"));
+        Assert.True(cut.Find("button[data-testid='kiosk-key-enter']").HasAttribute("disabled"));
     }
 }

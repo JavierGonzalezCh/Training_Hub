@@ -77,6 +77,60 @@ else
                 <h2 class="gsm-panel__title">Bienvenido</h2>
                 <p class="gsm-kiosk__hint">Escanea el código con la cámara de tu teléfono o con la app del gimnasio.</p>
                 <p class="gsm-kiosk__hint">¿Problemas para ingresar? Acércate a recepción.</p>
+
+                @if (_code?.ByDocument == true)
+                {
+                    @* A4: entrada con documento. La pantalla es pública: solo nombre de pila y foto al entrar, un mismo
+                       mensaje ante cualquier rechazo y el número digitado va enmascarado. *@
+                    <section class="gsm-kiosk-doc" data-testid="kiosk-doc">
+                        <h2 class="gsm-panel__title">¿No tienes la app? Digita tu documento</h2>
+
+                        @if (_welcome is not null)
+                        {
+                            <div class="gsm-kiosk-doc__welcome" role="status" data-testid="kiosk-doc-welcome">
+                                @if (!string.IsNullOrEmpty(_welcome.PhotoUrl))
+                                {
+                                    <img class="gsm-kiosk-doc__photo" src="@_welcome.PhotoUrl" alt="" />
+                                }
+                                <div class="gsm-kiosk-doc__name">Bienvenido/a, @_welcome.FirstName</div>
+                                @if (_welcome.ExpiringSoon)
+                                {
+                                    <div class="gsm-kiosk__hint" data-testid="kiosk-doc-expiring">Tu plan vence pronto, pasa por recepción.</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            var locked = IsLocked;
+                            <div class="gsm-kiosk-doc__display gsm-mono" aria-live="polite" data-testid="kiosk-doc-display">@(new string('•', _digits.Length))</div>
+                            @if (locked)
+                            {
+                                <p class="gsm-kiosk__denied" role="alert" data-testid="kiosk-doc-locked">
+                                    Demasiados intentos. Intenta de nuevo en @LockSecondsLeft s o acércate a recepción.
+                                </p>
+                            }
+                            else if (_rejected)
+                            {
+                                <p class="gsm-kiosk__denied" role="alert" data-testid="kiosk-doc-rejected">No pudimos registrar tu entrada. Comunícate con un asesor.</p>
+                            }
+
+                            <div class="gsm-kiosk-doc__keys">
+                                @foreach (var key in Keys)
+                                {
+                                    var k = key;
+                                    <button type="button" class="gsm-kiosk-doc__key" data-testid="@($"kiosk-key-{k}")"
+                                            disabled="@(locked || _busy)" @onclick="@(() => Press(k))">@k</button>
+                                }
+                                <button type="button" class="gsm-kiosk-doc__key" data-testid="kiosk-key-clear"
+                                        disabled="@(locked || _busy || _digits.Length == 0)" @onclick="Backspace" aria-label="Borrar">⌫</button>
+                                <button type="button" class="gsm-kiosk-doc__key" data-testid="kiosk-key-0"
+                                        disabled="@(locked || _busy)" @onclick="@(() => Press("0"))">0</button>
+                                <button type="button" class="gsm-kiosk-doc__key gsm-kiosk-doc__key--enter" data-testid="kiosk-key-enter"
+                                        disabled="@(locked || _busy || _digits.Length < MinDigits)" @onclick="SubmitAsync">Entrar</button>
+                            </div>
+                        }
+                    </section>
+                }
             </aside>
         </div>
 
@@ -112,6 +166,79 @@ else
     private bool _ready;
     private bool _revoked;
     private Task? _loop;
+
+    // A4: entrada con documento.
+    private static readonly string[] Keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    private const int MinDigits = 4;
+    private const int MaxDigits = 20;
+    private string _digits = string.Empty;
+    private bool _busy;
+    private bool _rejected;
+    private KioskDocumentEntryResponse? _welcome;
+    private DateTimeOffset _welcomeUntil;
+    private DateTimeOffset? _lockedUntil;
+
+    private bool IsLocked => _lockedUntil is { } until && until > _now;
+
+    private int LockSecondsLeft => _lockedUntil is { } until ? Math.Max(1, (int)Math.Ceiling((until - _now).TotalSeconds)) : 0;
+
+    private void Press(string digit)
+    {
+        if (_digits.Length < MaxDigits)
+        {
+            _digits += digit;
+            _rejected = false;
+        }
+    }
+
+    private void Backspace()
+    {
+        if (_digits.Length > 0)
+        {
+            _digits = _digits[..^1];
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_busy || IsLocked || _digits.Length < MinDigits)
+        {
+            return;
+        }
+
+        _busy = true;
+        _rejected = false;
+        var document = _digits;
+        _digits = string.Empty;
+        try
+        {
+            _welcome = await Attendance.KioskDocumentEntryAsync(new KioskDocumentEntryRequest { Document = document }, _cts.Token);
+            _welcomeUntil = DateTimeOffset.UtcNow.AddSeconds(4);
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 429)
+        {
+            _lockedUntil = DateTimeOffset.UtcNow.AddMinutes(1);
+            _now = DateTimeOffset.UtcNow;
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 401)
+        {
+            _revoked = true;
+            Navigation.NavigateTo("/kiosk/emparejar?revocado=1", replace: true);
+        }
+        catch (GsmApiException)
+        {
+            // Cualquier otro rechazo (409 incluido) se muestra igual: sin decir si el documento existe ni el motivo.
+            _rejected = true;
+        }
+        catch (HttpRequestException)
+        {
+            _rejected = true;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -162,6 +289,11 @@ else
             while (await timer.WaitForNextTickAsync(_cts.Token))
             {
                 _now = DateTimeOffset.UtcNow;
+                if (_welcome is not null && _now >= _welcomeUntil)
+                {
+                    _welcome = null;
+                }
+
 
                 // El código anterior sigue valiendo una ventana más: basta pedir el nuevo cuando caduca el actual.
                 if (_code?.ExpiresAtUtc is { } expires && _now >= expires && _now >= _nextCodeFetch)

@@ -82,6 +82,9 @@ public sealed record ListAttendanceQuery
     /// <summary>Solo las entradas que recepción dejó pasar fuera de la gracia ("Dejar pasar").</summary>
     public bool AuthorizedOnly { get; init; }
 
+    /// <summary>Solo las entradas por documento en el kiosco (A4).</summary>
+    public bool DocumentOnly { get; init; }
+
     /// <summary>Incluye también las entradas anuladas (con su motivo). Por defecto no salen.</summary>
     public bool IncludeVoided { get; init; }
 
@@ -90,12 +93,23 @@ public sealed record ListAttendanceQuery
 }
 
 /// <summary>La gracia ya no es de Attendance: vive en los ajustes de membresías (`/api/membership-settings`).</summary>
-public sealed record CheckinSettingsResponse(string Mode);
+/// <param name="ByDocument">La entrada con documento en el kiosco está encendida (A4; apagada por defecto).</param>
+public sealed record CheckinSettingsResponse(string Mode, bool ByDocument);
 
-public sealed record UpdateCheckinSettingsRequest(string Mode);
+/// <param name="ByDocument">Enciende o apaga la entrada con documento en el kiosco. Nulo = no cambia.</param>
+public sealed record UpdateCheckinSettingsRequest(string Mode, bool? ByDocument = null);
 
-/// <summary>Código vigente del gym. <c>ExpiresAtUtc</c> solo en modo rotativo.</summary>
-public sealed record KioskCodeResponse(string Mode, string Code, DateTimeOffset? ExpiresAtUtc);
+/// <summary>Código vigente del gym. <c>ExpiresAtUtc</c> solo en modo rotativo. <c>ByDocument</c>: el kiosco muestra el teclado del documento.</summary>
+public sealed record KioskCodeResponse(string Mode, string Code, DateTimeOffset? ExpiresAtUtc, bool ByDocument);
+
+/// <summary>Documento digitado en el teclado numérico del kiosco (solo dígitos, 4 a 20).</summary>
+public sealed record KioskDocumentEntryRequest(string Document);
+
+/// <summary>
+/// Lo único que el kiosco muestra al entrar: el nombre de pila y la foto, nada más (sin apellido, fechas ni
+/// montos). <c>ExpiringSoon</c>: por vencer o en gracia → "Tu plan vence pronto, pasa por recepción".
+/// </summary>
+public sealed record KioskDocumentEntryResponse(string FirstName, string? PhotoUrl, bool ExpiringSoon);
 
 /// <summary>
 /// Tarjeta de recepción (paso 1 de §4): lo que se ve del miembro antes de registrar nada. No cambia

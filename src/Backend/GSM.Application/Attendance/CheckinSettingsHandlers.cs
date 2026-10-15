@@ -15,7 +15,7 @@ public sealed class GetCheckinSettingsHandler(
     {
         var gymId = currentUser.RequireGymId();
         var current = await settings.GetAsync(gymId, cancellationToken) ?? CheckinSettings.Default(gymId);
-        return new CheckinSettingsResponse(current.Mode.ToString());
+        return new CheckinSettingsResponse(current.Mode.ToString(), current.ByDocument);
     }
 }
 
@@ -42,11 +42,12 @@ public sealed class UpdateCheckinSettingsHandler(
             settings.Add(current);
         }
 
-        current.Update(ParseMode(request.Mode));
+        current.Update(ParseMode(request.Mode), request.ByDocument);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Ajustes de check-in del gym {GymId}: modo {Mode}", gymId, current.Mode);
-        return new CheckinSettingsResponse(current.Mode.ToString());
+        logger.LogInformation(
+            "Ajustes de check-in del gym {GymId}: modo {Mode}, documento {ByDocument}", gymId, current.Mode, current.ByDocument);
+        return new CheckinSettingsResponse(current.Mode.ToString(), current.ByDocument);
     }
 }
 
@@ -121,6 +122,6 @@ internal static class KioskCode
             expires = DateTimeOffset.FromUnixTimeSeconds((window + 1) * CheckinCodeWindow.Seconds);
         }
 
-        return new KioskCodeResponse(s.Mode.ToString(), code, expires);
+        return new KioskCodeResponse(s.Mode.ToString(), code, expires, s.ByDocument);
     }
 }

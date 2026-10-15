@@ -7,6 +7,15 @@ public interface IMemberReader
 {
     Task<MemberInfo?> GetAsync(Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Miembros del gym en contexto cuyo número de documento coincide (sin puntos ni espacios; el tipo no
+    /// importa: el teclado del kiosco solo digita el número). Devuelve a lo sumo 2: si vienen 2 el número es
+    /// ambiguo (mismo número con otro tipo de documento) y quien llama no debe elegir uno. Para la entrada con
+    /// documento del kiosco (A4); no es una búsqueda para mostrar datos.
+    /// </summary>
+    Task<IReadOnlyList<MemberInfo>> FindByDocumentNumberAsync(
+        string documentNumber, CancellationToken cancellationToken = default);
+
     Task<bool> ExistsAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     /// <summary>Miembro vinculado a esa cuenta de Identity. <c>null</c> si el usuario no es un miembro.</summary>
