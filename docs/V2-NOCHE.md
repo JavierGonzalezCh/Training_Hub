@@ -83,6 +83,10 @@
 | R2b | **Unida** | `routine_days.added_on` (migración `V2_R2b_RoutineDayAddedOn` + `SqlScript("R2b")`); `IRoutineReader.GetCalendarStartAsync`. Ver preguntas R2b |
 | MS1b | **Unida** | Estado `scheduled` calculado; sin migración. Ver preguntas MS1b |
 | L1 | **Unida** | Reglas heredadas cubiertas por tests; otorgamiento retroactivo con vista previa (2 endpoints solo-Owner). Suite 691 + 334. Ver preguntas L1 |
+| R3b | **Unida** | `weight_distance`; Paseo del granjero la usa. Dos migraciones: el enum en `V2_R3b_N1b_S1b`, el `UPDATE` en `V2_R3b_LG2_Scripts` |
+| N1b | **Unida** | `notifications.required_permissions` (`text[]`); campana, contador y push filtrados por permiso. Ver pregunta N1b |
+| S1b | **Unida** | `trial_ended` derivado, `trial_grace_days` (3) por gym; tras la gracia, `disabled` (antes 15 días en `overdue`). Ver preguntas S1b |
+| LG2 | **Unida** | `business_rejections`, `security_events`, `slow_requests` (particionadas por mes). Suite 722 + 339. Ver preguntas LG2 |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -249,6 +253,18 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **L1-3:** el otorgamiento calcula racha, sesiones y clases miembro por miembro (solo las visitas van en bloque). Suficiente para un gym normal; confirmar.
 - **L1-4:** se pregunta por el otorgamiento solo al crear, al cambiar el tipo o al bajar el valor (subirlo no quita logros). Confirmar.
 
+**Preguntas de la tanda R3b/N1b/S1b/LG2 (2026-10-15):**
+
+- **R3b (observación):** el registro por serie (R4) no descarta los campos que no aplican a la medida; solo lo controla la UI.
+- **N1b-1:** quien solo tiene `ViewFinances` ve el aviso de anulación pero no puede cerrarlo a mano (403). Confirmar.
+- **S1b-1:** "nunca pagó" = `PaidThrough <= TrialEndsOn`, sin mirar los pagos: una renovación de cortesía cuenta como pago. ¿Se acepta?
+- **S1b-2:** tope de 60 días para la gracia tras la prueba (lo puso el agente; la spec no lo dice). ¿Se confirma o se quita?
+- **S1b-3:** `OverdueGraceDays` por gym (spec §V2) sigue fijo en 15; los avisos "Tu prueba terminó" quedan para S3.
+- **LG2-1:** las peticiones a `/internal/jobs/*` son lentas a propósito y llenarán `slow_requests`. ¿Se excluyen (ya tienen `job_runs`)?
+- **LG2-2:** un 403 por permiso queda en `business_rejections` y en `security_events`; un 403 de dominio solo en la primera. Confirmar.
+- **LG2-3:** `account_locked` solo sale en el intento que bloquea; los siguientes quedan como `login_failed`. Confirmar.
+- **LG2-4 (pendiente técnico):** `code_attempts_exceeded` no se registra. El agente creyó que el login con código (I5) no existía, pero **sí existe**: falta engancharlo. `document_entry_locked` espera a A4. Tampoco hay test de `permission_denied` ni de `account_locked`.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
@@ -281,6 +297,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: R3b, N1b, S1b y LG2 unidas sin conflictos. Migraciones `V2_R3b_N1b_S1b` (enum + 2 columnas + `SqlScript("N1b")`) y `V2_R3b_LG2_Scripts` (`R3b`, `LG2`). Al integrar: `OnRejected` devuelve `ValueTask` y el test de login ya no exige IP. **La primera corrida dio 10 fallos de LG2 que no se repitieron en dos corridas más** (probablemente la corrida que aplicó las migraciones nuevas); un bUnit de `CommercialStatusUiTests` falló una vez y pasó 3 de 3. **Suite: 722 integración + 339 bUnit, todo verde.**
 - 2026-10-15: MS1b, G3b, R2b y L1 unidas. Conflicto en `AchievementMetrics` (L1 extrajo `ComputeStreakAsync`, R2b cambió el inicio del calendario). Migración `V2_R2b_RoutineDayAddedOn`. Al integrar: `Is24Hours` sale `bool?` en el cliente (NSwag con propiedades `init`), test rotativo de R2b añadido y dos expectativas corregidas. **Suite: 691 integración + 334 bUnit, todo verde.**
 - 2026-10-15: suite de CO5 corrida en primer plano: **668 integración + 329 bUnit, todo verde. Ola 3 cerrada.** Quitados los 25 worktrees de tareas ya unidas (ramas conservadas; se deja el del primer intento de P2, con 2 archivos sin commitear). Lanzada la tanda: MS1b, G3b, R2b y L1 (solo escriben código).
 - 2026-10-15: CO5 unida; migración `V2_CO5_Cumpleanos`, cliente regenerado, todo compila (1 `using`). **La suite no se pudo correr**: Claude Code la detuvo por memoria baja del sistema. Pendiente correrla antes de dar por cerrada la Ola 3.
