@@ -14,6 +14,7 @@ public static class AttendanceInfrastructureRegistration
     {
         services.AddScoped<IAttendanceRepository, AttendanceRepository>();
         services.AddScoped<IAttendanceReader, AttendanceReader>();
+        services.AddScoped<IMemberEntryRuleRepository, MemberEntryRuleRepository>();
         services.AddScoped<ICheckinSettingsRepository, CheckinSettingsRepository>();
         services.AddScoped<ICheckinAttemptRepository, CheckinAttemptRepository>();
         services.AddSingleton<ICheckinCodeSigner, HmacCheckinCodeSigner>();

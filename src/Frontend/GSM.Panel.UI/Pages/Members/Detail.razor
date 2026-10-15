@@ -159,6 +159,7 @@ else if (_member is not null)
     <MudTabs Rounded="true" Color="Color.Primary">
         <MudTabPanel Text="Datos">
             <MemberTrainerPanel Member="_member" OnChanged="OnTrainerChanged" />
+            <MemberEntryRulePanel MemberId="_member.Id" />
             <MemberProfileView Member="_member" />
         </MudTabPanel>
         <MudTabPanel Text="Autorizaciones">

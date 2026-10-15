@@ -4,8 +4,9 @@ using GSM.Domain.Common.Exceptions;
 namespace GSM.Domain.Attendance;
 
 /// <summary>
-/// Un registro de entrada al gimnasio. Como mucho uno por miembro por día de negocio
-/// (<see cref="AttendanceDate"/> con índice único). Sin invariantes de negocio: la validación
+/// Un registro de entrada al gimnasio. Por regla general una por miembro por día de negocio
+/// (<see cref="AttendanceDate"/>); con una <see cref="MemberEntryRule"/> puede haber varias (la
+/// validación vive en el caso de uso, no en un índice único). Sin invariantes de negocio: la validación
 /// de membresía vigente vive en Application y no bloquea.
 /// </summary>
 public sealed class Attendance : BaseEntity, ITenantEntity
@@ -21,7 +22,7 @@ public sealed class Attendance : BaseEntity, ITenantEntity
     /// <summary>Instante exacto de la entrada (UTC).</summary>
     public DateTimeOffset CheckedInAt { get; private set; }
 
-    /// <summary>Día de negocio de la entrada (zona del gym). Clave de la unicidad "una por día".</summary>
+    /// <summary>Día de negocio de la entrada (zona del gym). Agrupa las entradas del día.</summary>
     public DateOnly AttendanceDate { get; private set; }
 
     public AttendanceMethod Method { get; private set; }

@@ -1,0 +1,163 @@
+@* Entradas por día de la ficha (Attendance A1b): habilitar entradas múltiples a un deportista, con máximo, motivo y vencimiento. *@
+@using System.Globalization
+@inject IAttendanceClient Attendance
+@inject ISnackbar Snackbar
+
+<div class="mt-4 mb-2">
+    <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)" id="entry-rule-panel">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">Entradas por día</MudText>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mt-2" />
+        }
+        else
+        {
+            @if (_rule is { Enabled: true } rule)
+            {
+                <MudText Typo="Typo.body2" Class="mt-1" id="entry-rule-summary">
+                    Entradas múltiples: @rule.MaxDailyEntries por día@(rule.ValidUntil is { } until ? $" · hasta el {until:dd/MM/yyyy}" : " · sin vencimiento")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" id="entry-rule-detail">
+                    Motivo: @rule.Reason@(string.IsNullOrEmpty(rule.GrantedByName) ? string.Empty : $" · habilitado por {rule.GrantedByName}")
+                </MudText>
+            }
+            else if (_rule is { Expired: true })
+            {
+                <MudText Typo="Typo.body2" Class="mt-1" id="entry-rule-summary">
+                    Las entradas múltiples vencieron. Rige una entrada por día.
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mt-1" id="entry-rule-summary">Una entrada por día (lo normal).</MudText>
+            }
+
+            @if (_editing)
+            {
+                <div class="d-flex flex-wrap align-center mt-3" style="gap:0.75rem">
+                    <label for="entry-rule-max" class="mud-typography mud-typography-body2">Entradas por día</label>
+                    <select id="entry-rule-max" class="gsm-native-select" value="@_max" @onchange="OnMaxChanged">
+                        @for (var n = 2; n <= 5; n++)
+                        {
+                            <option value="@n">@n</option>
+                        }
+                    </select>
+                    <label for="entry-rule-until" class="mud-typography mud-typography-body2">Vence (opcional)</label>
+                    <input id="entry-rule-until" type="date" class="gsm-native-select"
+                           value="@(_until?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))" @onchange="OnUntilChanged" />
+                </div>
+                <MudTextField T="string" @bind-Value="_reason" Immediate="true" Label="Motivo" Required="true" MaxLength="500"
+                              Class="mt-3" HelperText="Por ejemplo: deportista de alto rendimiento, entrena mañana y tarde. Mínimo 2 horas entre entradas." />
+                <div class="d-flex mt-3" style="gap:0.5rem">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving" id="entry-rule-save">Guardar</MudButton>
+                    <MudButton OnClick="@(() => _editing = false)" Disabled="_saving">Cancelar</MudButton>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap mt-3" style="gap:0.5rem">
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="StartEditing" id="entry-rule-edit">
+                        @(_rule is { Enabled: true } ? "Cambiar" : "Habilitar entradas múltiples")
+                    </MudButton>
+                    @if (_rule is { Enabled: true } or { Expired: true })
+                    {
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" OnClick="RemoveAsync" Disabled="_saving" id="entry-rule-remove">Quitar</MudButton>
+                    }
+                </div>
+            }
+        }
+    </MudPaper>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private EntryRuleResponse? _rule;
+    private bool _loading = true;
+    private bool _editing;
+    private bool _saving;
+    private int _max = 2;
+    private DateOnly? _until;
+    private string? _reason;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _rule = await Attendance.GetEntryRuleAsync(MemberId);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void StartEditing()
+    {
+        _max = _rule is { Enabled: true, MaxDailyEntries: { } current } ? current : 2;
+        _until = _rule is { Enabled: true } ? _rule.ValidUntil : null;
+        _reason = _rule is { Enabled: true } ? _rule.Reason : null;
+        _editing = true;
+    }
+
+    private void OnMaxChanged(ChangeEventArgs e)
+        => _max = int.TryParse(e.Value?.ToString(), out var n) ? Math.Clamp(n, 2, 5) : 2;
+
+    private void OnUntilChanged(ChangeEventArgs e)
+        => _until = DateOnly.TryParseExact(e.Value?.ToString(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)
+            ? d
+            : null;
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_reason) || _reason.Trim().Length < 3)
+        {
+            Snackbar.Add("Indica el motivo (mínimo 3 caracteres).", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            _rule = await Attendance.SetEntryRuleAsync(
+                MemberId, new SetEntryRuleRequest { MaxDailyEntries = _max, Reason = _reason.Trim(), ValidUntil = _until });
+            _editing = false;
+            Snackbar.Add("Entradas múltiples guardadas.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task RemoveAsync()
+    {
+        _saving = true;
+        try
+        {
+            await Attendance.RemoveEntryRuleAsync(MemberId);
+            Snackbar.Add("Vuelve a una entrada por día.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

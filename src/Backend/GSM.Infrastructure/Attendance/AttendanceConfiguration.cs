@@ -13,8 +13,9 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
         builder.Property(a => a.Method).HasColumnName("method");
         builder.Property(a => a.AuthorizationReason).HasMaxLength(500);
 
-        // Una asistencia por miembro por día de negocio.
-        builder.HasIndex(a => new { a.MemberId, a.AttendanceDate }).IsUnique();
+        // A1b: con entradas múltiples puede haber varias filas el mismo día; "una por día" y el máximo
+        // diario se validan en el caso de uso (antes era un índice único).
+        builder.HasIndex(a => new { a.MemberId, a.AttendanceDate });
         // Requerido por el plan.
         builder.HasIndex(a => new { a.GymId, a.CheckedInAt });
     }

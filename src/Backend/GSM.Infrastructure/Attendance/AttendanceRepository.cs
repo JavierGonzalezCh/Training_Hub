@@ -15,6 +15,14 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
         => Attendances.FirstOrDefaultAsync(
             a => a.MemberId == memberId && a.AttendanceDate == date, cancellationToken);
+    // Con entradas múltiples puede haber varias; esto solo responde "¿entró ya hoy?".
+
+    public async Task<IReadOnlyList<AttendanceEntity>> GetEntriesOnDateAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
+        => await Attendances
+            .Where(a => a.MemberId == memberId && a.AttendanceDate == date)
+            .OrderBy(a => a.CheckedInAt)
+            .ToListAsync(cancellationToken);
 
     public async Task<(IReadOnlyList<AttendanceEntity> Items, int Total)> GetPageAsync(
         AttendancePageQuery query, CancellationToken cancellationToken = default)
@@ -61,7 +69,7 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
             .ToListAsync(cancellationToken);
 
     public Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default)
-        => Attendances.CountAsync(a => a.MemberId == memberId, cancellationToken);
+        => Attendances.Where(a => a.MemberId == memberId).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
 
     public Task<int> GetTodayCountAsync(
         Guid gymId, DateOnly today, CancellationToken cancellationToken = default)

@@ -12,6 +12,15 @@ public sealed class CheckInRequestValidator : AbstractValidator<CheckInRequest>
     }
 }
 
+public sealed class SetEntryRuleRequestValidator : AbstractValidator<SetEntryRuleRequest>
+{
+    public SetEntryRuleRequestValidator()
+    {
+        RuleFor(x => x.MaxDailyEntries).InclusiveBetween(2, 5);
+        RuleFor(x => x.Reason).NotEmpty().MinimumLength(3).MaximumLength(500);
+    }
+}
+
 public sealed class UpdateCheckinSettingsRequestValidator : AbstractValidator<UpdateCheckinSettingsRequest>
 {
     public UpdateCheckinSettingsRequestValidator()

@@ -96,7 +96,11 @@ public sealed record KioskCodeResponse(string Mode, string Code, DateTimeOffset?
 /// <param name="RejectionReason"><c>gym_closed</c>, <c>member_inactive</c>, <c>already_checked_in</c>, <c>no_membership</c>, <c>membership_expired</c> o <c>membership_frozen</c>.</param>
 /// <param name="CanRegister">Se puede pulsar "Registrar entrada" (abierto, activo, no entró hoy y cubierto o en gracia).</param>
 /// <param name="CanLetThrough">Se puede "Dejar pasar" con motivo: bloqueado por la membresía, con el gym abierto y el miembro activo.</param>
-/// <param name="CheckedInAt">Instante de la entrada de hoy, si ya entró.</param>
+/// <param name="CheckedInAt">Instante de la última entrada de hoy, si ya entró.</param>
+/// <param name="EntriesToday">Entradas registradas hoy.</param>
+/// <param name="MaxDailyEntries">Entradas por día que rigen hoy: 1 por defecto; más si el staff le habilitó entradas múltiples.</param>
+/// <param name="MultipleEntries">Tiene entradas múltiples vigentes ("Entradas múltiples: 2 por día · lleva 1 hoy").</param>
+/// <param name="NextEntryAt">Si aún le quedan entradas pero no pasaron 2 horas desde la última: desde cuándo puede volver a entrar.</param>
 public sealed record ReceptionCardResponse(
     Guid MemberId,
     string MemberName,
@@ -116,4 +120,26 @@ public sealed record ReceptionCardResponse(
     string? GymClosedMessage,
     bool CanRegister,
     bool CanLetThrough,
-    string? RejectionReason);
+    string? RejectionReason,
+    int EntriesToday = 0,
+    int MaxDailyEntries = 1,
+    bool MultipleEntries = false,
+    DateTimeOffset? NextEntryAt = null);
+
+/// <summary>Habilita (o cambia) las entradas múltiples de un miembro. Máximo de 2 a 5; motivo obligatorio; vencimiento opcional.</summary>
+public sealed record SetEntryRuleRequest(int MaxDailyEntries, string Reason, DateOnly? ValidUntil);
+
+/// <summary>
+/// Regla de entradas múltiples de un miembro. <c>Enabled</c> es falso si no hay regla o ya venció
+/// (<c>Expired</c>); en ese caso rige una entrada por día.
+/// </summary>
+public sealed record EntryRuleResponse(
+    Guid MemberId,
+    bool Enabled,
+    bool Expired,
+    int? MaxDailyEntries,
+    string? Reason,
+    DateOnly? ValidUntil,
+    Guid? GrantedBy,
+    string? GrantedByName,
+    DateTimeOffset? GrantedAt);

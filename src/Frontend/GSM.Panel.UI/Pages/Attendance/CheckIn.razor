@@ -75,12 +75,24 @@
                     <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3" role="status" id="already-in">
                         Ya entró hoy a las @(card.CheckedInAt is { } at ? GsmFormat.Time(at) : "?")
                     </MudAlert>
+                    @if (card.NextEntryAt is { } next)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" role="status" id="next-entry">
+                            Puede volver a entrar a partir de las @GsmFormat.Time(next) (mínimo 2 horas entre entradas).
+                        </MudAlert>
+                    }
                 }
                 else if (card.CanLetThrough)
                 {
                     <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3" role="alert" id="block-message">
                         @(card.BlockMessage ?? "No puede entrar.")
                     </MudAlert>
+                }
+                @if (card.MultipleEntries == true)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-3" id="multiple-entries">
+                        Entradas múltiples: @card.MaxDailyEntries por día · lleva @(card.EntriesToday ?? 0) hoy
+                    </MudText>
                 }
                 @if (card.MissingWaiver)
                 {
