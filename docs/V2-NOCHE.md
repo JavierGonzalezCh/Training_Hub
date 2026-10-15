@@ -200,6 +200,11 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **C2-2:** "Mis clases" exige el permiso `Trainer` (403 sin él). ¿O cualquier staff con lista vacía?
 - **C2-3:** cualquier staff (no solo el instructor) puede marcar asistencia o cancelar cualquier sesión. Confirmar.
 
+- **E3-1:** las ligas propias del gym **reemplazan** a las de modelo en ese gym (no suman). Confirmar.
+- **E3-2:** un ejercicio ligado a un modelo que el gym no tiene cae a la regla de tipos de equipo. Confirmar.
+- **E3-3:** no hay pantalla de SuperAdmin para ligar ejercicios a modelos (solo API y siembra); va con S4.
+- **E3-5:** revisar los 16 pares ejercicio↔modelo sembrados en `V2_E3.sql` (propuesta del agente).
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
