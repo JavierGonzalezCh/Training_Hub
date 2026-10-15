@@ -29,6 +29,15 @@
                         </MudSelect>
                     </MudItem>
                 </MudGrid>
+                <MudGrid Spacing="2" Class="mt-1">
+                    <MudItem xs="6">
+                        <MudNumericField T="int" @bind-Value="_model.MaxFreezeDays" Label="Máx. días de congelamiento" Min="0" Max="365" id="plan-max-freeze"
+                                         HelperText="0 = no se congela." />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField T="int" @bind-Value="_model.MinFreezeDays" Label="Mínimo por congelamiento (días)" Min="1" Max="365" id="plan-min-freeze" />
+                    </MudItem>
+                </MudGrid>
                 @if (_model.DurationUnit == PlanDurationLabels.Months)
                 {
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
@@ -76,6 +85,8 @@
             _model.Price = (decimal)plan.Price;
             _model.DurationValue = plan.DurationValue;
             _model.DurationUnit = plan.DurationUnit;
+            _model.MaxFreezeDays = plan.MaxFreezeDays;
+            _model.MinFreezeDays = plan.MinFreezeDays;
         }
         catch (GsmApiException ex)
         {
@@ -108,6 +119,8 @@
                     Price = (double)_model.Price,
                     DurationValue = _model.DurationValue,
                     DurationUnit = _model.DurationUnit,
+                    MaxFreezeDays = _model.MaxFreezeDays,
+                    MinFreezeDays = _model.MinFreezeDays,
                 });
             }
             else
@@ -119,6 +132,8 @@
                     Price = (double)_model.Price,
                     DurationValue = _model.DurationValue,
                     DurationUnit = _model.DurationUnit,
+                    MaxFreezeDays = _model.MaxFreezeDays,
+                    MinFreezeDays = _model.MinFreezeDays,
                 });
             }
 
@@ -143,6 +158,8 @@
         public decimal Price { get; set; }
         public int DurationValue { get; set; } = 30;
         public string DurationUnit { get; set; } = PlanDurationLabels.Days;
+        public int MaxFreezeDays { get; set; }
+        public int MinFreezeDays { get; set; } = 1;
     }
 
     private int MaxValue => _model.DurationUnit == PlanDurationLabels.Months ? 120 : 3650;

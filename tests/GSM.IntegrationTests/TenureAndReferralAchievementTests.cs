@@ -1,4 +1,4 @@
-using GSM.Application.Achievements;
+﻿using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
 using GSM.Application.Achievements.Public;
 using GSM.Application.Memberships;
@@ -31,13 +31,13 @@ public sealed class TenureAndReferralAchievementTests(ApiFactory factory) : ICla
     {
         var gym = Guid.CreateVersion7();
         var finished = Membership.Create(gym, Guid.CreateVersion7(), Guid.CreateVersion7(), Today.AddDays(-100), 30);
-        Assert.Equal(30, finished.CoveredDaysThrough(Today));
+        Assert.Equal(30, finished.CoveredDaysThrough(Today, []));
 
         var running = Membership.Create(gym, Guid.CreateVersion7(), Guid.CreateVersion7(), Today.AddDays(-9), 365);
-        Assert.Equal(10, running.CoveredDaysThrough(Today));
+        Assert.Equal(10, running.CoveredDaysThrough(Today, []));
 
         var future = Membership.Create(gym, Guid.CreateVersion7(), Guid.CreateVersion7(), Today.AddDays(3), 30);
-        Assert.Equal(0, future.CoveredDaysThrough(Today));
+        Assert.Equal(0, future.CoveredDaysThrough(Today, []));
     }
 
     [Fact]
@@ -45,19 +45,18 @@ public sealed class TenureAndReferralAchievementTests(ApiFactory factory) : ICla
     {
         var gym = Guid.CreateVersion7();
         var paused = Membership.Create(gym, Guid.CreateVersion7(), Guid.CreateVersion7(), Today.AddDays(-50), 90);
-        paused.Pause(Today.AddDays(-20));
-        paused.Resume(Today.AddDays(-10));
-        Assert.Equal(10, paused.PausedDays);
-        Assert.Equal(51 - 10, paused.CoveredDaysThrough(Today));
+        // Un congelamiento cerrado de 10 días (del día -20 al -11).
+        MembershipFreeze[] closed = [MembershipFreeze.Create(gym, paused.Id, Today.AddDays(-20), Today.AddDays(-11), "Viaje", false, 10, null)];
+        Assert.Equal(51 - 10, paused.CoveredDaysThrough(Today, closed));
 
         // Congelada hoy: deja de sumar desde el día que se congeló.
         var frozenNow = Membership.Create(gym, Guid.CreateVersion7(), Guid.CreateVersion7(), Today.AddDays(-30), 90);
-        frozenNow.Pause(Today.AddDays(-5));
-        Assert.Equal(25, frozenNow.CoveredDaysThrough(Today));
+        MembershipFreeze[] open = [MembershipFreeze.Create(gym, frozenNow.Id, Today.AddDays(-5), null, "Lesión", false, 0, null)];
+        Assert.Equal(25, frozenNow.CoveredDaysThrough(Today, open));
 
         var cancelled = Membership.Create(gym, Guid.CreateVersion7(), Guid.CreateVersion7(), Today.AddDays(-30), 90);
         cancelled.Cancel("Se asignó por error", DateTimeOffset.UtcNow);
-        Assert.Equal(0, cancelled.CoveredDaysThrough(Today));
+        Assert.Equal(0, cancelled.CoveredDaysThrough(Today, []));
     }
 
     // ---- antigüedad ----

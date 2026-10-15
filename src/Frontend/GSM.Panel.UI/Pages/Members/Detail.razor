@@ -201,9 +201,17 @@ else if (_member is not null)
                             {
                                 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@cancelReason</MudText>
                             }
-                            else if (context.PausedOn is { } pausedOn)
+                            else if (context.ActiveFreeze is { } activeFreeze)
                             {
-                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Congelada desde @GsmFormat.Day(pausedOn)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block" data-testid="active-freeze">
+                                    Congelada desde @GsmFormat.Day(activeFreeze.StartsOn)@(activeFreeze.EndsOn is { } until ? $" hasta {GsmFormat.Day(until)}" : " hasta reanudar")
+                                </MudText>
+                            }
+                            else if (context.NextFreeze is { } nextFreeze)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block" data-testid="next-freeze">
+                                    Congelamiento programado: @GsmFormat.DayRange(nextFreeze.StartsOn, nextFreeze.EndsOn ?? nextFreeze.StartsOn)
+                                </MudText>
                             }
                         </MudTd>
                         <MudTd DataLabel="Estado"><StatusChip Status="@context.Status" /></MudTd>
@@ -216,7 +224,11 @@ else if (_member is not null)
                                          AriaLabel="@($"Acciones de la membresía {context.PlanName}")">
                                     @if (context.Status == "Active")
                                     {
-                                        <MudMenuItem OnClick="@(() => PauseMembershipAsync(context))">Congelar</MudMenuItem>
+                                        <MudMenuItem OnClick="@(() => FreezeMembershipAsync(context))">Congelar</MudMenuItem>
+                                    }
+                                    @if (context.NextFreeze is { } scheduled)
+                                    {
+                                        <MudMenuItem OnClick="@(() => UnfreezeMembershipAsync(context, scheduled))">Deshacer congelamiento programado</MudMenuItem>
                                     }
                                     @if (context.Status == "Paused")
                                     {
@@ -529,18 +541,36 @@ else if (_member is not null)
         }
     }
 
-    private async Task PauseMembershipAsync(MembershipResponse membership)
+    private async Task FreezeMembershipAsync(MembershipResponse membership)
+    {
+        var parameters = new DialogParameters<FreezeMembershipDialog>
+        {
+            { x => x.MemberId, Id },
+            { x => x.Membership, membership },
+            { x => x.IsOwner, _isOwner },
+        };
+        var dialog = await Dialogs.ShowAsync<FreezeMembershipDialog>("Congelar membresía", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Membresía congelada.", Severity.Success);
+            await RefreshMembershipsAsync();
+        }
+    }
+
+    private async Task UnfreezeMembershipAsync(MembershipResponse membership, MembershipFreezeResponse freeze)
     {
         var confirmed = await Dialogs.ShowMessageBox(
-            "Congelar membresía",
-            $"«{membership.PlanName}» deja de dar acceso desde hoy. Al reanudarla, su fin (y el de las renovaciones encadenadas) se corre los días que estuvo congelada.",
-            yesText: "Congelar", cancelText: "Volver");
+            "Deshacer congelamiento",
+            $"Se elimina el congelamiento programado del {GsmFormat.Day(freeze.StartsOn)} de «{membership.PlanName}» y el fin se devuelve los días que había corrido.",
+            yesText: "Deshacer", cancelText: "Volver");
         if (confirmed != true)
         {
             return;
         }
 
-        await RunMembershipActionAsync(() => MemberMemberships.PauseAsync(Id, membership.Id), "Membresía congelada.");
+        await RunMembershipActionAsync(
+            () => MemberMemberships.UnfreezeAsync(Id, membership.Id, freeze.Id), "Congelamiento programado deshecho.");
     }
 
     private Task ResumeMembershipAsync(MembershipResponse membership)

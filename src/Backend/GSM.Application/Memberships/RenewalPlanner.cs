@@ -25,7 +25,7 @@ public static class RenewalPlanner
         }
 
         var lastEnd = live.Max(s => s.EndDate);
-        if (lastEnd >= today || live.Any(s => s.Status == MembershipStatus.Paused))
+        if (lastEnd >= today || live.Any(s => s.IsFrozenOn(today)))
         {
             return new RenewalPlan(RenewalKind.Early, lastEnd.AddDays(1), lastEnd);
         }

@@ -24,7 +24,17 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
     /// <summary>Cuántos días o meses dura (según <see cref="DurationUnit"/>).</summary>
     public int DurationValue { get; private set; }
 
+    /// <summary>Total de días que se puede congelar una membresía de este plan (0 = no se congela). Memberships v2, §3.</summary>
+    public int MaxFreezeDays { get; private set; }
+
+    /// <summary>Mínimo de días por congelamiento (evita congelar de a un día).</summary>
+    public int MinFreezeDays { get; private set; } = DefaultMinFreezeDays;
+
     public bool IsActive { get; private set; } = true;
+
+    public const int DefaultMinFreezeDays = 1;
+
+    public const int MaxFreezeDaysLimit = 365;
 
     public const int MaxDays = 3650;
 
@@ -32,12 +42,14 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
 
     public static MembershipPlan Create(
         Guid gymId, string name, string? description, decimal price, int durationValue,
-        DurationUnit durationUnit = DurationUnit.Days)
+        DurationUnit durationUnit = DurationUnit.Days, int maxFreezeDays = 0, int minFreezeDays = DefaultMinFreezeDays)
     {
         if (gymId == Guid.Empty)
         {
             throw new ValidationDomainException("El plan necesita un gym.");
         }
+
+        var freeze = RequireFreezeRules(maxFreezeDays, minFreezeDays);
 
         return new MembershipPlan
         {
@@ -47,23 +59,41 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
             Price = RequireNonNegative(price),
             DurationUnit = durationUnit,
             DurationValue = RequireDuration(durationValue, durationUnit),
+            MaxFreezeDays = freeze.Max,
+            MinFreezeDays = freeze.Min,
         };
     }
 
     public void Update(
         string name, string? description, decimal price, int durationValue,
-        DurationUnit durationUnit = DurationUnit.Days)
+        DurationUnit durationUnit = DurationUnit.Days, int? maxFreezeDays = null, int? minFreezeDays = null)
     {
         Name = NormalizeName(name);
         Description = Clean(description);
         Price = RequireNonNegative(price);
         DurationUnit = durationUnit;
         DurationValue = RequireDuration(durationValue, durationUnit);
+        (MaxFreezeDays, MinFreezeDays) = RequireFreezeRules(maxFreezeDays ?? MaxFreezeDays, minFreezeDays ?? MinFreezeDays);
     }
 
     public void Deactivate() => IsActive = false;
 
     public void Activate() => IsActive = true;
+
+    private static (int Max, int Min) RequireFreezeRules(int max, int min)
+    {
+        if (max is < 0 or > MaxFreezeDaysLimit)
+        {
+            throw new ValidationDomainException($"Los días máximos de congelamiento deben estar entre 0 y {MaxFreezeDaysLimit}.");
+        }
+
+        if (min < 1 || (max > 0 && min > max))
+        {
+            throw new ValidationDomainException("El mínimo de días por congelamiento debe ser de al menos 1 y no superar el máximo.");
+        }
+
+        return (max, min);
+    }
 
     private static string NormalizeName(string name)
     {

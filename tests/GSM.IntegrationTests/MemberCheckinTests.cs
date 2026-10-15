@@ -223,7 +223,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         {
             var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
             var membership = await db.Set<Membership>().FirstAsync(m => m.MemberId == w.MemberId);
-            membership.Pause(Today);
+            db.Add(MembershipFreeze.Create(membership.GymId, membership.Id, Today, null, "Prueba", true, 0, null));
             await db.SaveChangesAsync();
         }
 

@@ -1,0 +1,130 @@
+@inject IMemberMembershipsClient MemberMemberships
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-3">
+            «@Membership.PlanName» (@GsmFormat.DayRange(Membership.StartDate, Membership.EndDate)) deja de dar acceso
+            mientras está congelada. Su fin (y el de las renovaciones encadenadas) se corre los días congelados.
+        </MudText>
+        @if (_rules is { } rules)
+        {
+            <MudAlert Severity="@(rules.MaxFreezeDays == 0 ? Severity.Warning : Severity.Info)" Dense="true" Class="mb-3" data-testid="freeze-rules">
+                @if (rules.MaxFreezeDays == 0)
+                {
+                    <span>Este plan no permite congelar.@(IsOwner ? " Como Owner puedes saltarte el límite con motivo." : "")</span>
+                }
+                else
+                {
+                    <span>
+                        Este plan permite congelar hasta @rules.MaxFreezeDays días en total (mínimo @rules.MinFreezeDays por vez).
+                        Se han usado @rules.DaysUsed; quedan @rules.DaysRemaining.
+                    </span>
+                }
+            </MudAlert>
+        }
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" data-testid="freeze-error">@_error</MudAlert>
+        }
+        <MudSwitch T="bool" @bind-Value="_scheduled" Color="Color.Primary" Label="Programar fechas" data-testid="freeze-scheduled" />
+        @if (_scheduled)
+        {
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Desde" @bind-Date="_startsOn" MinDate="DateTime.Today" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Hasta (inclusive)" @bind-Date="_endsOn" MinDate="_startsOn ?? DateTime.Today" />
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Desde hoy hasta que la reanudes.</MudText>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2" Immediate="true"
+                      HelperText="Por ejemplo: viaje, lesión, incapacidad." data-testid="freeze-reason" />
+        @if (IsOwner)
+        {
+            <MudCheckBox T="bool" @bind-Value="_override" Color="Color.Primary"
+                         Label="Saltarme el límite del plan (solo Owner)" data-testid="freeze-override" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Volver</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Congelando..." : "Congelar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    [Parameter, EditorRequired]
+    public MembershipResponse Membership { get; set; } = null!;
+
+    /// <summary>Solo el Owner (o un SuperAdmin impersonando) puede saltarse el límite del plan; el servidor decide.</summary>
+    [Parameter]
+    public bool IsOwner { get; set; }
+
+    private MembershipFreezesResponse? _rules;
+    private bool _scheduled;
+    private DateTime? _startsOn;
+    private DateTime? _endsOn;
+    private string _reason = string.Empty;
+    private bool _override;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _rules = await MemberMemberships.FreezesAsync(MemberId, Membership.Id);
+        }
+        catch (GsmApiException)
+        {
+            // Sin el resumen se puede congelar igual: el servidor valida las reglas.
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        var reason = _reason.Trim();
+        if (reason.Length < 3)
+        {
+            _error = "Escribe el motivo del congelamiento.";
+            return;
+        }
+
+        if (_scheduled && (_startsOn is null || _endsOn is null))
+        {
+            _error = "Elige desde y hasta qué día se congela.";
+            return;
+        }
+
+        _error = null;
+        _submitting = true;
+        try
+        {
+            await MemberMemberships.FreezeAsync(MemberId, Membership.Id, new CreateFreezeRequest
+            {
+                StartsOn = _scheduled && _startsOn is { } start ? DateOnly.FromDateTime(start) : null,
+                EndsOn = _scheduled && _endsOn is { } end ? DateOnly.FromDateTime(end) : null,
+                Reason = reason,
+                OverrideLimit = IsOwner && _override,
+            });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+        }
+    }
+}

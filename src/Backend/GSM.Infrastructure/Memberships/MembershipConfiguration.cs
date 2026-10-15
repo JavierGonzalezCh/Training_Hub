@@ -1,4 +1,4 @@
-using GSM.Domain.Memberships;
+﻿using GSM.Domain.Memberships;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -26,7 +26,6 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
         builder.Property(m => m.CycleDay).HasColumnName("cycle_day");
 
         // L2: días congelados en pausas ya cerradas; la antigüedad no los cuenta.
-        builder.Property(m => m.PausedDays).HasColumnName("paused_days");
 
         // Índice requerido por el plan para el dashboard y la renovación.
         builder.HasIndex(m => new { m.MemberId, m.EndDate });

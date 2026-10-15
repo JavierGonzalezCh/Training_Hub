@@ -42,6 +42,17 @@ public interface IMembershipRepository
 
     void Add(Membership membership);
 
+    // Congelamientos (MS4)
+    /// <summary>Congelamientos de esas membresías (historial completo), del más antiguo al más reciente.</summary>
+    Task<IReadOnlyList<MembershipFreeze>> GetFreezesAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default);
+
+    Task<MembershipFreeze?> GetFreezeByIdAsync(Guid freezeId, CancellationToken cancellationToken = default);
+
+    void Add(MembershipFreeze freeze);
+
+    void Remove(MembershipFreeze freeze);
+
     // Ajustes del gym (gracia y aviso de vencimiento)
     Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
 

@@ -12,6 +12,8 @@ public sealed class CreatePlanRequestValidator : AbstractValidator<CreatePlanReq
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
         RuleFor(x => x.DurationUnit).Must(PlanDuration.IsKnown).WithMessage("La unidad debe ser days o months.");
         RuleFor(x => x.DurationValue).InclusiveBetween(1, 3650);
+        RuleFor(x => x.MaxFreezeDays!.Value).InclusiveBetween(0, GSM.Domain.Memberships.MembershipPlan.MaxFreezeDaysLimit).When(x => x.MaxFreezeDays.HasValue);
+        RuleFor(x => x.MinFreezeDays!.Value).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxFreezeDaysLimit).When(x => x.MinFreezeDays.HasValue);
         RuleFor(x => x.DurationValue).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxMonths)
             .When(x => PlanDuration.IsKnown(x.DurationUnit) && PlanDuration.ParseUnit(x.DurationUnit) == GSM.Domain.Memberships.DurationUnit.Months);
     }
@@ -26,6 +28,8 @@ public sealed class UpdatePlanRequestValidator : AbstractValidator<UpdatePlanReq
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
         RuleFor(x => x.DurationUnit).Must(PlanDuration.IsKnown).WithMessage("La unidad debe ser days o months.");
         RuleFor(x => x.DurationValue).InclusiveBetween(1, 3650);
+        RuleFor(x => x.MaxFreezeDays!.Value).InclusiveBetween(0, GSM.Domain.Memberships.MembershipPlan.MaxFreezeDaysLimit).When(x => x.MaxFreezeDays.HasValue);
+        RuleFor(x => x.MinFreezeDays!.Value).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxFreezeDaysLimit).When(x => x.MinFreezeDays.HasValue);
         RuleFor(x => x.DurationValue).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxMonths)
             .When(x => PlanDuration.IsKnown(x.DurationUnit) && PlanDuration.ParseUnit(x.DurationUnit) == GSM.Domain.Memberships.DurationUnit.Months);
     }
