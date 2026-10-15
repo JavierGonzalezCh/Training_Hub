@@ -169,6 +169,12 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **A2-2:** el miembro nunca ve sus entradas anuladas; el staff solo con "Ver anuladas". Confirmar.
 - **A2-3:** anular una entrada **no avisa al miembro**. ¿Debe avisarse?
 
+- **S2-1:** el enum `GymPlan` (en `gyms.gyms.plan` y `GymCreated`) se conserva; manda `SaasPlanId`. ¿Se elimina el enum ya (toca Gyms)?
+- **S2-2:** dos altas simultáneas al borde del límite pueden pasarse por una (sin candado). ¿Aceptable?
+- **S2-3:** el recuento incluye miembros desactivados que tengan membresía vigente. ¿Se excluyen?
+- **S2-4:** bajar el límite por debajo del uso no expulsa a nadie, solo bloquea membresías nuevas. Confirmar.
+- **Observación S2:** la spec menciona `TrialGraceDays` en `GymSubscription` y S1 no lo trae.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
