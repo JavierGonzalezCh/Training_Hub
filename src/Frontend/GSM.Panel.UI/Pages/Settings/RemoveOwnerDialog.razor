@@ -41,7 +41,7 @@
         _saving = true;
         try
         {
-            await OwnersApi.OwnersDELETEAsync(Owner.UserId, _keepAsStaff, _keepAsStaff ? "reception" : null);
+            await OwnersApi.OwnersDELETE2Async(Owner.UserId, _keepAsStaff, _keepAsStaff ? "reception" : null);
             Snackbar.Add($"{Owner.FullName} ya no es Owner.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
 

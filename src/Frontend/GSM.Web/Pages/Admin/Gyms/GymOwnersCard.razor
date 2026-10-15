@@ -80,7 +80,7 @@ else
         try
         {
             _owners = (await Owners.OwnersAllAsync(GymId)).ToList();
-            var contact = await Owners.BillingContactAsync(GymId);
+            var contact = await Owners.BillingContactGETAsync(GymId);
             _contactName = contact.FullName;
             _contactEmail = contact.Email;
         }

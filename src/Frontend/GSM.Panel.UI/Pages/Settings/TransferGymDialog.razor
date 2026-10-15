@@ -46,10 +46,10 @@
         try
         {
             // 1) Agregar al nuevo dueño. Si falla (ya es Owner, email inválido...), nada cambió.
-            await OwnersApi.OwnersPOSTAsync(new InviteOwnerRequest { FullName = _fullName, Email = _email });
+            await OwnersApi.OwnersPOST2Async(new InviteOwnerRequest { FullName = _fullName, Email = _email });
 
             // 2) Quitarse uno mismo. Ya hay otro Owner, así que la regla del último no estorba.
-            await OwnersApi.OwnersDELETEAsync(me.Value, _keepAsStaff, _keepAsStaff ? "reception" : null);
+            await OwnersApi.OwnersDELETE2Async(me.Value, _keepAsStaff, _keepAsStaff ? "reception" : null);
 
             Snackbar.Add($"{_fullName} es ahora el dueño del gimnasio.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));

@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Bunit.TestDoubles;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Panel.UI.Pages.Attendance;
@@ -171,6 +172,7 @@ public class CommercialStatusUiTests : TestContext
         attendanceFake = a;
         membershipsFake = m;
 
+        this.AddTestAuthorization().SetAuthorized("staff");
         RenderComponent<MudPopoverProvider>();
         RenderComponent<MudDialogProvider>();
         return RenderComponent<CheckIn>();

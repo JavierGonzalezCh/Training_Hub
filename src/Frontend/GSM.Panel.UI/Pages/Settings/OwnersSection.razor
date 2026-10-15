@@ -85,8 +85,8 @@ else
         _loading = true;
         try
         {
-            _owners = (await OwnersApi.OwnersAllAsync()).ToList();
-            _contactId = (await GymApi.BillingContactGETAsync()).UserId;
+            _owners = (await OwnersApi.OwnersAll2Async()).ToList();
+            _contactId = (await GymApi.BillingContactGET2Async()).UserId;
         }
         catch (GsmApiException ex)
         {
@@ -109,7 +109,7 @@ else
         _inviting = true;
         try
         {
-            var owner = await OwnersApi.OwnersPOSTAsync(new InviteOwnerRequest { FullName = _fullName, Email = _email });
+            var owner = await OwnersApi.OwnersPOST2Async(new InviteOwnerRequest { FullName = _fullName, Email = _email });
             Snackbar.Add($"{owner.FullName} ahora es Owner. Le enviamos el enlace a {owner.Email}.", Severity.Success);
             _fullName = string.Empty;
             _email = string.Empty;

@@ -1,3 +1,4 @@
+﻿using Bunit.TestDoubles;
 using System.Reflection;
 using Bunit;
 using GSM.Client.Generated;
@@ -156,6 +157,7 @@ public class ReceptionCardUiTests : TestContext
         ((FakeClient)(object)whatsApp).Handlers["StatesAsync"] = _ => new List<WhatsAppMemberStateResponse>();
         Services.AddSingleton(whatsApp);
 
+        this.AddTestAuthorization().SetAuthorized("staff");
         RenderComponent<MudPopoverProvider>();
         RenderComponent<MudDialogProvider>();
         return RenderComponent<CheckIn>();

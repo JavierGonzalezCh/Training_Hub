@@ -40,7 +40,7 @@ public class MembershipPricingUiTests : TestContext
         {
             var request = (AssignMembershipRequest)args[1]!;
             var agreed = request.AgreedPrice ?? 80000;
-            var fee = request.WaiveEnrollment ? 0 : enrollmentFee;
+            var fee = request.WaiveEnrollment == true ? 0 : enrollmentFee;
             return new MembershipResponse
             {
                 Id = Guid.NewGuid(), MemberId = _memberId, PlanId = _plan.Id, PlanName = "Mensual", Status = "Active",

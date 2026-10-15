@@ -111,7 +111,7 @@ public sealed class GymOwnersTests(ApiFactory factory) : IClassFixture<ApiFactor
         Assert.NotNull(link.Code);
 
         var anon = host.CreateClient();
-        var activate = await anon.PostAsJsonAsync("/api/auth/activate", new ActivateAccountRequest(email, link.Code!, "SegundoPass_123"));
+        var activate = await anon.PostAsJsonAsync("/api/auth/activate", new ActivateAccountRequest(email, link.Code!, Password));
         Assert.Equal(HttpStatusCode.OK, activate.StatusCode);
 
         var (second, tokens) = await SignInClientAsync(host, email);
@@ -249,7 +249,7 @@ public sealed class GymOwnersTests(ApiFactory factory) : IClassFixture<ApiFactor
             (await oldOwner.PostAsJsonAsync("/api/gym/owners", new InviteOwnerRequest(email, "Nuevo Dueño"))).StatusCode);
         var code = EmailLinks.Parse(emails.LastTo(email)!).Code!;
         Assert.Equal(HttpStatusCode.OK,
-            (await host.CreateClient().PostAsJsonAsync("/api/auth/activate", new ActivateAccountRequest(email, code, "NuevoPass_12345"))).StatusCode);
+            (await host.CreateClient().PostAsJsonAsync("/api/auth/activate", new ActivateAccountRequest(email, code, Password))).StatusCode);
 
         // Paso 2: quitarse a sí mismo, quedando como staff.
         var leave = await oldOwner.DeleteAsync($"/api/gym/owners/{w.OwnerId}?keepAsStaff=true");

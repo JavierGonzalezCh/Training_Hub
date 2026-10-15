@@ -32,15 +32,15 @@ public class GymOwnersUiTests : TestContext
 
             switch (name)
             {
-                case "OwnersAllAsync":
+                case "OwnersAll2Async":
                     result = (ICollection<GymOwnerResponse>)Owners.ToList();
                     break;
-                case "OwnersPOSTAsync":
+                case "OwnersPOST2Async":
                     var request = (InviteOwnerRequest)args![0]!;
                     Invited.Add(request);
                     result = new GymOwnerResponse { UserId = Guid.NewGuid(), Email = request.Email, FullName = request.FullName, IsActive = true, IsActivated = false };
                     break;
-                case "OwnersDELETEAsync":
+                case "OwnersDELETE2Async":
                     Removed.Add(((Guid)args![0]!, (bool?)args[1], (string?)args[2]));
                     result = new GymOwnerResponse { UserId = (Guid)args[0]!, Email = "x@t.l", FullName = "X", IsActive = false, IsActivated = true };
                     break;
@@ -61,7 +61,7 @@ public class GymOwnersUiTests : TestContext
             object? result = null;
             switch (targetMethod!.Name)
             {
-                case "BillingContactGETAsync":
+                case "BillingContactGET2Async":
                     result = new BillingContactResponse { UserId = ContactId };
                     break;
                 case "BillingContactPUTAsync":
@@ -141,7 +141,7 @@ public class GymOwnersUiTests : TestContext
         Assert.Single(cut.FindAll("[data-testid='billing-contact']"));
         // Solo quien no es contacto ofrece "Marcar como contacto".
         Assert.Single(cut.FindAll("[data-testid='set-contact']"));
-        Assert.Contains("Ana", cut.Find("[data-testid='billing-contact']").ParentElement!.TextContent);
+        Assert.Contains("Ana", cut.Find("[data-testid='billing-contact']").Closest("td")!.TextContent);
         // Cada Owner activo se puede quitar.
         Assert.Equal(2, cut.FindAll("[data-testid='remove-owner']").Count);
     }
@@ -158,7 +158,7 @@ public class GymOwnersUiTests : TestContext
 
         Assert.Equal(luis.UserId, Assert.Single(gym.Set).UserId);
         cut.WaitForAssertion(() =>
-            Assert.Contains("Luis", cut.Find("[data-testid='billing-contact']").ParentElement!.TextContent));
+            Assert.Contains("Luis", cut.Find("[data-testid='billing-contact']").Closest("td")!.TextContent));
     }
 
     [Fact]
@@ -173,8 +173,8 @@ public class GymOwnersUiTests : TestContext
         cut.Find("[data-testid='add-owner']").Click();
         Assert.Empty(owners.Invited);
 
-        cut.Find("[data-testid='owner-name'] input").Input("Nuevo Dueño");
-        cut.Find("[data-testid='owner-email'] input").Input("nuevo@t.l");
+        cut.Find("input[data-testid='owner-name']").Change("Nuevo Dueño");
+        cut.Find("input[data-testid='owner-email']").Change("nuevo@t.l");
         cut.Find("[data-testid='add-owner']").Click();
 
         var sent = Assert.Single(owners.Invited);
@@ -189,13 +189,14 @@ public class GymOwnersUiTests : TestContext
         var luis = Owner(Guid.NewGuid(), "Luis");
         var (owners, _) = Setup(ana.UserId, ana, luis);
 
+        RenderComponent<MudPopoverProvider>();
         var provider = RenderComponent<MudDialogProvider>();
         var cut = RenderComponent<OwnersSection>();
 
         // El botón de Luis (el segundo); Ana es el usuario actual.
         await cut.InvokeAsync(() => cut.FindAll("[data-testid='remove-owner']")[1].Click());
         provider.WaitForAssertion(() => provider.Find("[data-testid='keep-as-staff']"));
-        provider.Find("[data-testid='keep-as-staff'] input").Change(true);
+        provider.Find("input[data-testid='keep-as-staff']").Change(true);
         provider.Find("[data-testid='confirm-remove-owner']").Click();
 
         var removed = Assert.Single(owners.Removed);
@@ -211,22 +212,23 @@ public class GymOwnersUiTests : TestContext
         var (owners, _) = Setup(ana.UserId, ana);
         var nav = Services.GetRequiredService<FakeNavigationManager>();
 
+        RenderComponent<MudPopoverProvider>();
         var provider = RenderComponent<MudDialogProvider>();
         var cut = RenderComponent<OwnersSection>();
 
         await cut.InvokeAsync(() => cut.Find("[data-testid='transfer-gym']").Click());
         provider.WaitForAssertion(() => provider.Find("[data-testid='confirm-transfer']"));
 
-        provider.Find("[data-testid='transfer-name'] input").Input("Nuevo Dueño");
-        provider.Find("[data-testid='transfer-email'] input").Input("nuevo@t.l");
-        provider.Find("[data-testid='transfer-keep'] input").Change(true);
+        provider.Find("input[data-testid='transfer-name']").Change("Nuevo Dueño");
+        provider.Find("input[data-testid='transfer-email']").Change("nuevo@t.l");
+        provider.Find("input[data-testid='transfer-keep']").Change(true);
         provider.Find("[data-testid='confirm-transfer']").Click();
 
         provider.WaitForAssertion(() => Assert.Single(owners.Removed));
 
         // Primero se agrega al nuevo (así el gym nunca se queda sin Owner) y después se quita uno mismo.
         Assert.Equal("nuevo@t.l", Assert.Single(owners.Invited).Email);
-        Assert.True(owners.Calls.IndexOf("OwnersPOSTAsync") < owners.Calls.IndexOf("OwnersDELETEAsync"));
+        Assert.True(owners.Calls.IndexOf("OwnersPOST2Async") < owners.Calls.IndexOf("OwnersDELETE2Async"));
         var removed = Assert.Single(owners.Removed);
         Assert.Equal(Me, removed.UserId);
         Assert.True(removed.KeepAsStaff);
@@ -264,6 +266,7 @@ public class GymOwnersUiTests : TestContext
         Services.AddSingleton<SessionService>();
         Services.AddSingleton<GSM.UI.Shared.IClipboard>(new NoClipboard());
 
+        RenderComponent<MudPopoverProvider>();
         var provider = RenderComponent<MudDialogProvider>();
         var cut = RenderComponent<StaffTab>();
 

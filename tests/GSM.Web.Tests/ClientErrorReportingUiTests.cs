@@ -62,7 +62,7 @@ public class ClientErrorReportingUiTests : TestContext
 
         var alert = cut.Find("[data-testid=error-boundary]");
         Assert.Contains("Algo salió mal · código ", alert.TextContent);
-        await cut.WaitForAssertionAsync(() => Assert.Single(logs.Reports));
+        cut.WaitForAssertion(() => Assert.Single(logs.Reports));
         var report = logs.Reports[0];
         Assert.Equal("System.InvalidOperationException", report.ExceptionType);
         Assert.Equal("web_panel", report.Platform);
