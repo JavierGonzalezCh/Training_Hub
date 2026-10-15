@@ -18,6 +18,8 @@ public static class SuperAdminInfrastructureRegistration
         services.AddSingleton<IImpersonationActionRecorder, ImpersonationActionRecorder>();
         services.AddScoped<ISubscriptionReader, SubscriptionReader>();
         services.AddScoped<IMonthlyMetricRepository, MonthlyMetricRepository>();
+        services.AddScoped<ISaasPlanRepository, SaasPlanRepository>();
+        services.AddScoped<GSM.Application.Memberships.Abstractions.IMemberLimitProvider, SubscriptionMemberLimitProvider>();
         services.AddScoped<GSM.Application.Identity.Abstractions.IGymLoginGate, SubscriptionLoginGate>();
 
         return services;

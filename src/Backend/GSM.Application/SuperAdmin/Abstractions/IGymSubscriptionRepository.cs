@@ -27,4 +27,6 @@ public sealed record PortfolioRow(
     decimal MonthlyPrice,
     DateOnly StartedOn,
     DateOnly? TrialEndsOn,
-    DateOnly PaidThrough);
+    DateOnly PaidThrough,
+    Guid? SaasPlanId,
+    int? MemberLimitOverride);

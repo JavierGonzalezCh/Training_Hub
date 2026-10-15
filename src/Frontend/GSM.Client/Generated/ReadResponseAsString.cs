@@ -20,6 +20,11 @@ public partial class AdminGymsClient
     partial void Initialize() => ReadResponseAsString = true;
 }
 
+public partial class AdminPlansClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
 public partial class AdminGymOwnersClient
 {
     partial void Initialize() => ReadResponseAsString = true;

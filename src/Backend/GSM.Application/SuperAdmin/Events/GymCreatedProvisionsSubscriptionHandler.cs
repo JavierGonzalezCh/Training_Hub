@@ -23,6 +23,7 @@ public sealed class GymCreatedProvisionsSubscriptionHandler(
     IClock clock,
     IGymSubscriptionRepository subscriptions,
     ISubscriptionPaymentRepository payments,
+    ISaasPlanRepository saasPlans,
     IUnitOfWork unitOfWork,
     ILogger<GymCreatedProvisionsSubscriptionHandler> logger) : IDomainEventHandler<GymCreated>
 {
@@ -40,19 +41,28 @@ public sealed class GymCreatedProvisionsSubscriptionHandler(
 
         var today = clock.Today;
 
+        // El plan del alta (enum de Gyms) se enlaza con su fila de superadmin.saas_plans por nombre (S2).
+        var saasPlan = await saasPlans.GetByNameAsync(domainEvent.Plan.ToString(), cancellationToken);
+
         if (domainEvent.FirstPayment is { } first)
         {
             var createdBy = domainEvent.CreatedBy
                 ?? throw new InvalidOperationException("El primer pago necesita el superadmin que dio de alta el gym.");
 
-            subscriptions.Add(GymSubscription.Create(
+            var paidSubscription = GymSubscription.Create(
                 domainEvent.GymId,
                 domainEvent.Plan,
                 domainEvent.MonthlyPrice,
                 startedOn: today,
                 paidThrough: first.CoversThrough,
                 trialEndsOn: null,
-                notes: null));
+                notes: null);
+            if (saasPlan is not null)
+            {
+                paidSubscription.AssignSaasPlan(saasPlan.Id);
+            }
+
+            subscriptions.Add(paidSubscription);
 
             // Pago del SaaS: no se mezcla con los pagos del gym.
             payments.Add(SubscriptionPayment.Create(
@@ -76,14 +86,20 @@ public sealed class GymCreatedProvisionsSubscriptionHandler(
         var trialEndsOn = today.AddDays(domainEvent.TrialDays ?? TrialDays);
 
         // El precio se negocia con el cliente: si no se indicó en el alta nace en 0 y el superadmin lo fija con el PUT.
-        subscriptions.Add(GymSubscription.Create(
+        var trialSubscription = GymSubscription.Create(
             domainEvent.GymId,
             domainEvent.Plan,
             monthlyPrice: domainEvent.MonthlyPrice,
             startedOn: today,
             paidThrough: trialEndsOn,
             trialEndsOn: trialEndsOn,
-            notes: null));
+            notes: null);
+        if (saasPlan is not null)
+        {
+            trialSubscription.AssignSaasPlan(saasPlan.Id);
+        }
+
+        subscriptions.Add(trialSubscription);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation(

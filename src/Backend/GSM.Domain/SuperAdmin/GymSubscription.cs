@@ -38,6 +38,16 @@ public sealed class GymSubscription : BaseEntity
 
     public string? Notes { get; private set; }
 
+    /// <summary>
+    /// Plan del SaaS (<c>superadmin.saas_plans</c>) que define el límite de miembros. Nulo en
+    /// suscripciones creadas sin elegirlo: entonces el límite se resuelve por el nombre del
+    /// <see cref="Plan"/> heredado.
+    /// </summary>
+    public Guid? SaasPlanId { get; private set; }
+
+    /// <summary>Límite de miembros propio de este cliente. <c>null</c> = el del plan (SuperAdmin §V1).</summary>
+    public int? MemberLimitOverride { get; private set; }
+
     public static GymSubscription Create(
         Guid gymId,
         GymPlan plan,
@@ -84,6 +94,28 @@ public sealed class GymSubscription : BaseEntity
 
         Plan = plan;
         MonthlyPrice = decimal.Round(monthlyPrice, 2);
+    }
+
+    /// <summary>Fija el plan del SaaS que define el límite (S2).</summary>
+    public void AssignSaasPlan(Guid saasPlanId)
+    {
+        if (saasPlanId == Guid.Empty)
+        {
+            throw new ValidationDomainException("El plan del SaaS no es válido.");
+        }
+
+        SaasPlanId = saasPlanId;
+    }
+
+    /// <summary>Límite propio de este cliente; <c>null</c> lo devuelve al del plan.</summary>
+    public void SetMemberLimitOverride(int? limit)
+    {
+        if (limit is < 1)
+        {
+            throw new ValidationDomainException("El límite de miembros debe ser de al menos 1 (o vacío para usar el del plan).");
+        }
+
+        MemberLimitOverride = limit;
     }
 
     public void SetNotes(string? notes) => Notes = Trim(notes);

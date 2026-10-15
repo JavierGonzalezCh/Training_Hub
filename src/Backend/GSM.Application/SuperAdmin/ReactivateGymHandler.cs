@@ -15,6 +15,7 @@ public sealed class ReactivateGymHandler(
     IGymReader gyms,
     IGymAdministration gymAdministration,
     IGymSubscriptionRepository subscriptions,
+    SubscriptionDetailBuilder detailBuilder,
     IUnitOfWork unitOfWork,
     ILogger<ReactivateGymHandler> logger)
 {
@@ -40,6 +41,6 @@ public sealed class ReactivateGymHandler(
 
         logger.LogInformation("Gym {GymId} reactivado", gymId);
 
-        return SubscriptionMapper.ToDetail(sub, GymStatus.Active, clock.Today);
+        return await detailBuilder.BuildAsync(sub, GymStatus.Active, cancellationToken);
     }
 }

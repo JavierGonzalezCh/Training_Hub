@@ -18,7 +18,9 @@ public sealed record PortfolioItem(
     string Plan,
     decimal MonthlyPrice,
     DateOnly PaidThrough,
-    int? DaysUntilDisabled);
+    int? DaysUntilDisabled,
+    int? MemberLimit,
+    int CountedMembers);
 
 public sealed record PortfolioResponse(
     IReadOnlyList<PortfolioItem> Items,
@@ -33,8 +35,16 @@ public sealed record GymDetailResponse(
     string? Email,
     SubscriptionDetail Subscription);
 
+/// <param name="Plan">Nombre del plan del SaaS.</param>
+/// <param name="MemberLimit">Límite efectivo (override del cliente o el del plan). Nulo = sin límite.</param>
+/// <param name="MemberLimitOverride">Límite propio del cliente. Nulo = usa el del plan.</param>
+/// <param name="CountedMembers">Miembros que cuentan hoy para el límite (uso: "142 / 150").</param>
 public sealed record SubscriptionDetail(
     string Plan,
+    Guid? SaasPlanId,
+    int? MemberLimit,
+    int? MemberLimitOverride,
+    int CountedMembers,
     decimal MonthlyPrice,
     DateOnly StartedOn,
     DateOnly? TrialEndsOn,
@@ -44,7 +54,29 @@ public sealed record SubscriptionDetail(
     int? DaysUntilDisabled,
     string? Notes);
 
-public sealed record UpdateSubscriptionRequest(GymPlan Plan, decimal MonthlyPrice);
+/// <param name="Plan">Enum heredado (<c>basic</c>/<c>pro</c>/<c>enterprise</c>). Si viene <paramref name="SaasPlanId"/> manda este.</param>
+/// <param name="SaasPlanId">Plan del SaaS (S2). Si se omite, se resuelve por el nombre de <paramref name="Plan"/>.</param>
+/// <param name="MemberLimitOverride">Límite propio del cliente; nulo = el del plan (el PUT reemplaza el valor anterior).</param>
+public sealed record UpdateSubscriptionRequest(
+    GymPlan Plan,
+    decimal MonthlyPrice,
+    Guid? SaasPlanId = null,
+    int? MemberLimitOverride = null);
+
+public sealed record SaasPlanItem(
+    Guid Id,
+    string Name,
+    int? MemberLimit,
+    decimal SuggestedPrice,
+    bool IsActive);
+
+/// <param name="MemberLimit">Nulo = sin límite.</param>
+public sealed record CreateSaasPlanRequest(string Name, int? MemberLimit, decimal SuggestedPrice);
+
+public sealed record UpdateSaasPlanRequest(string Name, int? MemberLimit, decimal SuggestedPrice, bool IsActive);
+
+/// <summary>Uso del límite de miembros de un gym ("142 / 150"). <c>Limit</c> nulo = sin límite.</summary>
+public sealed record MemberUsageResponse(int Counted, int? Limit, string PlanName);
 
 public sealed record RenewSubscriptionRequest(DateOnly PaidThrough, string Reason);
 

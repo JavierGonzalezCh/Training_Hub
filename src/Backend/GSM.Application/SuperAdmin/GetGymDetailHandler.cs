@@ -8,9 +8,9 @@ namespace GSM.Application.SuperAdmin;
 
 /// <summary>Ficha del cliente: datos del gym y su suscripción con el estado efectivo de hoy.</summary>
 public sealed class GetGymDetailHandler(
-    IClock clock,
     IGymReader gyms,
-    IGymSubscriptionRepository subscriptions)
+    IGymSubscriptionRepository subscriptions,
+    SubscriptionDetailBuilder detailBuilder)
 {
     public async Task<GymDetailResponse> HandleAsync(Guid gymId, CancellationToken cancellationToken)
     {
@@ -27,6 +27,6 @@ public sealed class GetGymDetailHandler(
             gym.Nit,
             gym.Phone,
             gym.Email,
-            SubscriptionMapper.ToDetail(sub, gym.ManualStatus, clock.Today));
+            await detailBuilder.BuildAsync(sub, gym.ManualStatus, cancellationToken));
     }
 }

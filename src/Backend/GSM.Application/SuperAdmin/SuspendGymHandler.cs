@@ -15,6 +15,7 @@ public sealed class SuspendGymHandler(
     IGymReader gyms,
     IGymAdministration gymAdministration,
     IGymSubscriptionRepository subscriptions,
+    SubscriptionDetailBuilder detailBuilder,
     IUnitOfWork unitOfWork,
     ILogger<SuspendGymHandler> logger)
 {
@@ -42,6 +43,6 @@ public sealed class SuspendGymHandler(
 
         logger.LogInformation("Gym {GymId} suspendido. Motivo: {Reason}", gymId, reason);
 
-        return SubscriptionMapper.ToDetail(sub, GymStatus.Suspended, clock.Today);
+        return await detailBuilder.BuildAsync(sub, GymStatus.Suspended, cancellationToken);
     }
 }

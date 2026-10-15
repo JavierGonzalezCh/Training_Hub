@@ -11,9 +11,14 @@ namespace GSM.Application.SuperAdmin;
 /// </summary>
 internal static class SubscriptionMapper
 {
-    public static SubscriptionDetail ToDetail(GymSubscription sub, GymStatus manualStatus, DateOnly today)
+    public static SubscriptionDetail ToDetail(
+        GymSubscription sub, GymStatus manualStatus, DateOnly today, GymMemberLimit? limit, int countedMembers)
         => new(
-            Plan: sub.Plan.ToString(),
+            Plan: limit?.PlanName ?? sub.Plan.ToString(),
+            SaasPlanId: limit?.PlanId,
+            MemberLimit: limit?.Effective,
+            MemberLimitOverride: limit?.Override,
+            CountedMembers: countedMembers,
             MonthlyPrice: sub.MonthlyPrice,
             StartedOn: sub.StartedOn,
             TrialEndsOn: sub.TrialEndsOn,

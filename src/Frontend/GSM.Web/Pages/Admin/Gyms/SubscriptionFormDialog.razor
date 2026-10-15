@@ -1,4 +1,5 @@
 @inject IAdminGymsClient AdminGyms
+@inject IAdminPlansClient AdminPlans
 
 <MudDialog>
     <DialogContent>
@@ -6,12 +7,14 @@
         {
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
         }
-        <MudSelect T="int" @bind-Value="_plan" Label="Plan" Class="mb-3">
-            @foreach (var (value, label) in SuperAdminLabels.Plans)
+        <MudSelect T="Guid?" @bind-Value="_planId" Label="Plan" Class="mb-3" data-testid="plan-select">
+            @foreach (var plan in _plans)
             {
-                <MudSelectItem Value="value">@label</MudSelectItem>
+                <MudSelectItem T="Guid?" Value="@plan.Id">@PlanLabel(plan)</MudSelectItem>
             }
         </MudSelect>
+        <MudNumericField T="int?" @bind-Value="_limitOverride" Label="Límite de miembros propio" Min="1" Class="mb-3"
+                         HelperText="@OverrideHelp()" data-testid="limit-override" />
         <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_price" Label="Precio mensual (COP)" Min="0" />
     </DialogContent>
     <DialogActions>
@@ -32,23 +35,57 @@
     [Parameter, EditorRequired]
     public SubscriptionDetail Current { get; set; } = null!;
 
-    private int _plan;
+    private List<SaasPlanItem> _plans = [];
+    private Guid? _planId;
+    private int? _limitOverride;
     private decimal _price;
     private bool _submitting;
     private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _plan = SuperAdminLabels.Plans.FirstOrDefault(p => p.Label == Current.Plan).Value;
         _price = (decimal)Current.MonthlyPrice;
+        _limitOverride = Current.MemberLimitOverride;
+        _planId = Current.SaasPlanId;
+
+        try
+        {
+            // Solo los activos, más el que el cliente ya tiene aunque se haya desactivado.
+            _plans = (await AdminPlans.PlansGETAsync())
+                .Where(p => p.IsActive == true || p.Id == Current.SaasPlanId)
+                .ToList();
+            _planId ??= _plans.FirstOrDefault(p => p.Name == Current.Plan)?.Id;
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+
+    public static string PlanLabel(SaasPlanItem plan)
+        => plan.MemberLimit is { } max ? $"{plan.Name} · {max} miembros" : $"{plan.Name} · sin límite";
+
+    private string OverrideHelp()
+    {
+        var planLimit = _plans.FirstOrDefault(p => p.Id == _planId)?.MemberLimit;
+        var planText = planLimit is { } max ? $"El plan permite {max}" : "El plan no tiene límite";
+        return $"Vacío = el del plan. {planText}.";
     }
 
     private async Task SubmitAsync()
     {
         _submitting = true;
+        _error = null;
         try
         {
-            await AdminGyms.SubscriptionAsync(GymId, new UpdateSubscriptionRequest { Plan = _plan, MonthlyPrice = (double)_price });
+            var planName = _plans.FirstOrDefault(p => p.Id == _planId)?.Name ?? Current.Plan;
+            await AdminGyms.SubscriptionAsync(GymId, new UpdateSubscriptionRequest
+            {
+                Plan = SuperAdminLabels.LegacyPlanValue(planName),
+                SaasPlanId = _planId,
+                MemberLimitOverride = _limitOverride,
+                MonthlyPrice = (double)_price,
+            });
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (GsmApiException ex)
