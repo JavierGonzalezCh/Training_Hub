@@ -17,6 +17,7 @@ public sealed class RecordPaymentHandler(
     IMemberReader members,
     IMembershipReader memberships,
     IPaymentRepository payments,
+    CashDrawerService drawer,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<RecordPaymentHandler> logger)
@@ -42,6 +43,11 @@ public sealed class RecordPaymentHandler(
             }
         }
 
+        // Cobrar en efectivo exige caja abierta (409). Todo pago queda ligado al turno abierto, sea cual sea el método.
+        var shiftId = request.Method.GoesToCashDrawer()
+            ? (await drawer.RequireOpenForCashAsync(cancellationToken)).Id
+            : (await drawer.GetOpenAsync(cancellationToken))?.Id;
+
         var payment = Payment.Create(
             gymId,
             request.MemberId,
@@ -51,7 +57,8 @@ public sealed class RecordPaymentHandler(
             request.Concept,
             request.Notes,
             registeredBy,
-            clock.UtcNow);
+            clock.UtcNow,
+            shiftId);
 
         payments.Add(payment);
         await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -1,5 +1,6 @@
 @inject IPaymentsClient Payments
 @inject ISnackbar Snackbar
+@inject IDialogService Dialogs
 
 @* Bandeja de solicitudes de anulación pendientes. Solo se monta para quien puede resolverlas (Owner o
    VoidPayments): la página la envuelve en un AuthorizeView, así no se consulta sin permiso. *@
@@ -68,8 +69,27 @@
         }
     }
 
-    private Task ApproveAsync(VoidRequestResponse request)
-        => ResolveAsync(async () => await Payments.ApproveAsync(request.Id), "Pago anulado.");
+    private async Task ApproveAsync(VoidRequestResponse request)
+    {
+        // Efectivo de un turno ya cerrado (Payments v2 §4.3): primero se decide si el dinero se devuelve ahora.
+        bool? refundNow = null;
+        if (request.RequiresRefundDecision == true)
+        {
+            refundNow = await Dialogs.ShowMessageBox(
+                "¿Se devuelve el dinero ahora?",
+                "Este pago en efectivo es de un turno ya cerrado. Si se devuelve ahora, sale de la caja abierta; si fue un error de registro y la plata nunca estuvo, no se toca la caja.",
+                yesText: "Sí, se devuelve ahora", noText: "No, nunca estuvo", cancelText: "Cancelar");
+            if (refundNow is null)
+            {
+                return;
+            }
+        }
+
+        await ResolveAsync(
+            async () => await Payments.ApproveAsync(
+                request.Id, refundNow is null ? null : new ApproveVoidRequestRequest { RefundNow = refundNow }),
+            "Pago anulado.");
+    }
 
     private Guid? _rejectingId;
     private string? _rejectNote;

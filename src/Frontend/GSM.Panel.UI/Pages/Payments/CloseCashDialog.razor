@@ -1,0 +1,85 @@
+@inject ICashShiftsClient CashShifts
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="close-cash-error">@_error</MudAlert>
+        }
+        <MudText Class="mb-3">Cuenta el efectivo que hay en la caja y escríbelo. El sistema lo compara con lo esperado.</MudText>
+        <MudSimpleTable Dense="true" Class="mb-3" Elevation="0">
+            <tbody>
+                <tr>
+                    <td>Efectivo esperado</td>
+                    <td class="gsm-mono" data-testid="expected-cash">@GsmFormat.Money(Expected)</td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" Immediate="true"
+                         @bind-Value="_counted" Label="Efectivo contado (COP)" Min="0" Class="mb-3" data-testid="counted-cash" />
+        <MudText Typo="Typo.body1" Class="mb-3" data-testid="cash-difference">
+            Diferencia:
+            <span class="gsm-mono" style="@(Difference == 0 ? string.Empty : "color:var(--mud-palette-error)")">
+                @GsmFormat.Money(Difference)
+            </span>
+            @(Difference == 0 ? "· la caja cuadra" : Difference < 0 ? "· faltante" : "· sobrante")
+        </MudText>
+        <MudTextField T="string" @bind-Value="_notes" Label="@(Difference == 0 ? "Notas (opcional)" : "Nota (obligatoria: la caja no cuadra)")"
+                      Required="@(Difference != 0)" Lines="2" MaxLength="500" data-testid="close-notes" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="confirm-close-cash">
+            @(_submitting ? "Cerrando..." : "Cerrar caja")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public CashShiftResponse Shift { get; set; } = null!;
+
+    private decimal _counted;
+    private string _notes = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private decimal Expected => (decimal)(Shift.ExpectedCash ?? 0);
+
+    private decimal Difference => _counted - Expected;
+
+    protected override void OnInitialized() => _counted = Expected;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (Difference != 0 && _notes.Trim().Length < 3)
+        {
+            _error = "La caja no cuadra: escribe una nota que explique la diferencia.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var report = await CashShifts.CloseAsync(new CloseCashShiftRequest
+            {
+                CountedCash = (double)_counted,
+                Notes = string.IsNullOrWhiteSpace(_notes) ? null : _notes.Trim(),
+            });
+            MudDialog.Close(DialogResult.Ok(report.Shift.Id));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

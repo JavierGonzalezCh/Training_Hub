@@ -32,7 +32,7 @@ public sealed class MonthlyRevenueTests(ApiFactory factory) : IClassFixture<ApiF
 
             await scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>()
                 .HandleAsync(
-                    new RecordPaymentRequest(999_000m, PaymentMethod.Cash, "Mensualidad de última hora", null, null, null),
+                    new RecordPaymentRequest(999_000m, PaymentMethod.Card, "Mensualidad de última hora", null, null, null),
                     default);
         }
 
@@ -43,7 +43,7 @@ public sealed class MonthlyRevenueTests(ApiFactory factory) : IClassFixture<ApiF
             scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(midSeptember);
             await scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>()
                 .HandleAsync(
-                    new RecordPaymentRequest(100_000m, PaymentMethod.Cash, "Mensualidad", null, null, null),
+                    new RecordPaymentRequest(100_000m, PaymentMethod.Card, "Mensualidad", null, null, null),
                     default);
         }
 

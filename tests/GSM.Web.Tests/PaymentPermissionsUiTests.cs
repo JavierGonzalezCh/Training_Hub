@@ -52,6 +52,8 @@ public class PaymentPermissionsUiTests : TestContext
         _payments = DispatchProxy.Create<IPaymentsClient, FakeClient>();
         _fake = (FakeClient)(object)_payments;
         Services.AddSingleton(_payments);
+        // P3: la página de pagos muestra la barra de la caja (sin respuesta del fake: "caja cerrada").
+        Services.AddSingleton(DispatchProxy.Create<ICashShiftsClient, FakeClient>());
         _auth = this.AddTestAuthorization();
         _auth.SetAuthorized("luis");
         _auth.SetRoles("staff");

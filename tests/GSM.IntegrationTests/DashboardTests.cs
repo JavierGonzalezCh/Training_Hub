@@ -32,7 +32,7 @@ public sealed class DashboardTests(ApiFactory factory) : IClassFixture<ApiFactor
         Assert.Equal(2, dash.ActiveMembers);          // 2 activos, 1 inactivo
         Assert.Equal(1, dash.CheckInsToday);
         Assert.Equal(120_000m, dash.RevenueThisMonth); // 80k + 40k en junio
-        Assert.Equal(50_000m, dash.RevenueLastMonth);  // 50k en mayo
+        Assert.Equal(50_000m, dash.RevenueLastMonth);  // 50k en mayo (del 1 al 15)
         Assert.Equal(1, dash.ExpiredMemberships);       // una venció hace días
         Assert.Equal(1, dash.ExpiringSoon);             // una vence en 3 días
         Assert.Single(dash.ExpiringMemberships);
@@ -77,7 +77,8 @@ public sealed class DashboardTests(ApiFactory factory) : IClassFixture<ApiFactor
         db.Add(Payment.Create(gym.Id, active1.Id, null, 80_000m, PaymentMethod.Cash, "Junio", null, staff.Id, utcNow));
         db.Add(Payment.Create(gym.Id, active2.Id, null, 40_000m, PaymentMethod.BankTransfer, "Junio", null, staff.Id, utcNow));
 
-        var may = clock.BusinessDayRange(new DateOnly(2026, 5, 20)).Start.AddHours(10);
+        // B2: el mes anterior se compara por los mismos días (hoy es el 15), así que el pago de mayo va antes del 15.
+        var may = clock.BusinessDayRange(new DateOnly(2026, 5, 10)).Start.AddHours(10);
         db.Add(Payment.Create(gym.Id, active1.Id, null, 50_000m, PaymentMethod.Cash, "Mayo", null, staff.Id, may));
 
         await db.SaveChangesAsync();

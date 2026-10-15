@@ -236,7 +236,7 @@ public sealed class ImpersonationWriteHttpTests(ApiFactory factory) : IClassFixt
     private static object PaymentBody(Guid memberId) => new
     {
         amount = 50000,
-        method = "cash",
+        method = "card", // P3: el efectivo exige caja abierta
         concept = "Cobro de soporte",
         memberId,
     };

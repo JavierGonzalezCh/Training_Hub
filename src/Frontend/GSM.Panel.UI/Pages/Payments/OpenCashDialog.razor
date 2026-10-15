@@ -1,0 +1,56 @@
+@inject ICashShiftsClient CashShifts
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="open-cash-error">@_error</MudAlert>
+        }
+        <MudText Class="mb-3">
+            Cuenta el efectivo que hay en la caja ahora. Se precarga con lo que dejó contado el turno anterior.
+        </MudText>
+        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat"
+                         @bind-Value="_openingCash" Label="Base en efectivo (COP)" Min="0" data-testid="opening-cash" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="confirm-open-cash">
+            @(_submitting ? "Abriendo..." : "Abrir caja")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Lo contado al cerrar el turno anterior.</summary>
+    [Parameter]
+    public decimal SuggestedBase { get; set; }
+
+    private decimal _openingCash;
+    private bool _submitting;
+    private string? _error;
+
+    protected override void OnInitialized() => _openingCash = SuggestedBase;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _submitting = true;
+        try
+        {
+            await CashShifts.OpenAsync(new OpenCashShiftRequest { OpeningCash = (double)_openingCash });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

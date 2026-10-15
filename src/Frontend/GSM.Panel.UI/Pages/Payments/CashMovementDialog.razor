@@ -1,0 +1,71 @@
+@inject ICashShiftsClient CashShifts
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudText Class="mb-3">
+            Para sacar plata de la caja (llevarla al banco, pagar un domicilio) o meter cambio. No cuenta como ingreso
+            ni gasto del gimnasio: solo mueve el efectivo de la caja.
+        </MudText>
+        <MudSelect T="string" @bind-Value="_type" Label="Tipo" Class="mb-3" data-testid="movement-type">
+            <MudSelectItem Value="@("withdrawal")">Retiro (sale efectivo)</MudSelectItem>
+            <MudSelectItem Value="@("deposit")">Ingreso (entra efectivo)</MudSelectItem>
+        </MudSelect>
+        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat"
+                         @bind-Value="_amount" Label="Monto (COP)" Min="1" Class="mb-3" data-testid="movement-amount" />
+        <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2" MaxLength="300"
+                      data-testid="movement-reason" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="confirm-movement">
+            @(_submitting ? "Guardando..." : "Registrar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _type = "withdrawal";
+    private decimal _amount;
+    private string _reason = string.Empty;
+    private bool _submitting;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (_amount <= 0)
+        {
+            _error = "Escribe el monto del movimiento.";
+            return;
+        }
+
+        if (_reason.Trim().Length < 3)
+        {
+            _error = "Escribe el motivo del movimiento.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await CashShifts.MovementsAsync(new CashMovementRequest { Type = _type, Amount = (double)_amount, Reason = _reason.Trim() });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

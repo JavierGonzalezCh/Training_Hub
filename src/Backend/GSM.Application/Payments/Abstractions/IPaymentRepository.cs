@@ -26,6 +26,17 @@ public interface IPaymentRepository
     Task<(IReadOnlyList<Payment> Items, int Total)> GetPageAsync(
         PaymentPageQuery query, CancellationToken cancellationToken = default);
 
+    /// <summary>Todos los asientos ligados a un turno (cualquier método), del más antiguo al más reciente.</summary>
+    Task<IReadOnlyList<Payment>> GetByShiftAsync(Guid shiftId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Efectivo del turno que mueve el cajón: <c>CashIn</c> suma los asientos en efectivo positivos y
+    /// <c>CashOut</c> la magnitud de los negativos (devoluciones y anulaciones). Solo los que
+    /// <see cref="Payment.AffectsCashDrawer"/>.
+    /// </summary>
+    Task<(decimal CashIn, decimal CashOut)> GetCashDrawerTotalsAsync(
+        Guid shiftId, CancellationToken cancellationToken = default);
+
     /// <summary>Todos los pagos del gym cuyo <c>paid_at</c> cae en <c>[fromUtc, toUtc)</c> (cierre de caja).</summary>
     Task<IReadOnlyList<Payment>> GetInRangeAsync(
         DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken = default);

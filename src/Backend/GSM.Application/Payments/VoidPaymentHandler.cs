@@ -18,6 +18,7 @@ public sealed class VoidPaymentHandler(
     IClock clock,
     IPaymentRepository payments,
     IVoidRequestRepository requests,
+    CashDrawerService drawer,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<VoidPaymentHandler> logger)
@@ -37,7 +38,8 @@ public sealed class VoidPaymentHandler(
             throw new ConflictException("Este pago ya está anulado.");
         }
 
-        var reversal = Payment.CreateReversal(original, request.Reason, registeredBy, clock.UtcNow);
+        var (shiftId, affectsDrawer) = await drawer.PlanReversalAsync(original, request.RefundNow, cancellationToken);
+        var reversal = Payment.CreateReversal(original, request.Reason, registeredBy, clock.UtcNow, shiftId, affectsDrawer);
 
         payments.Add(reversal);
 

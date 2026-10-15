@@ -21,6 +21,9 @@
     </MudButton>
 </div>
 
+@* Caja del turno (Payments v2 §4.4): la ve todo el staff, porque cobrar en efectivo exige caja abierta. *@
+<CashDrawerBar OnChanged="RefreshTableAsync" />
+
 <AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.VoidPayments)">
     <VoidRequestsInbox OnResolved="RefreshTableAsync" />
 </AuthorizeView>

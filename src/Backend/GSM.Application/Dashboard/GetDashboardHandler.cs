@@ -45,7 +45,13 @@ public sealed class GetDashboardHandler(
             ActiveMembers: await members.GetActiveCountAsync(gymId, cancellationToken),
             CheckInsToday: await attendance.GetTodayCountAsync(gymId, cancellationToken),
             RevenueThisMonth: !canViewFinances ? null : await payments.GetMonthlyRevenueAsync(gymId, today.Year, today.Month, cancellationToken),
-            RevenueLastMonth: !canViewFinances ? null : await payments.GetMonthlyRevenueAsync(gymId, lastMonth.Year, lastMonth.Month, cancellationToken),
+            // B2: el mes en curso va por el día de hoy, así que se compara con los mismos días del mes anterior
+            // (del 1 al mismo día; si el mes anterior es más corto, hasta su último día), no con el mes completo.
+            RevenueLastMonth: !canViewFinances ? null : await payments.GetRevenueBetweenDaysAsync(
+                gymId,
+                new DateOnly(lastMonth.Year, lastMonth.Month, 1),
+                new DateOnly(lastMonth.Year, lastMonth.Month, Math.Min(today.Day, DateTime.DaysInMonth(lastMonth.Year, lastMonth.Month))),
+                cancellationToken),
             ExpiredMemberships: await memberships.GetExpiredCountAsync(gymId, cancellationToken),
             ExpiringSoon: expiring.Count,
             ExpiringMemberships: rows,

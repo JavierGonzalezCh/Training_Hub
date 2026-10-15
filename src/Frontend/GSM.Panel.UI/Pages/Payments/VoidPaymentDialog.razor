@@ -1,4 +1,5 @@
 @inject IPaymentsClient Payments
+@inject ICashShiftsClient CashShifts
 
 <MudDialog>
     <DialogContent>
@@ -13,6 +14,15 @@
         }
         <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Required="true" Lines="2"
                       HelperText="Por ejemplo: monto mal digitado, cobro duplicado." />
+        @if (_needsRefundDecision)
+        {
+            @* Efectivo de un turno ya cerrado (Payments v2 §4.3): ¿el dinero sale de la caja de ahora? *@
+            <MudText Typo="Typo.subtitle2" Class="mt-4" data-testid="refund-question">¿Se devuelve el dinero ahora?</MudText>
+            <MudRadioGroup T="bool?" @bind-Value="_refundNow" data-testid="refund-choice">
+                <MudRadio T="bool?" Value="@((bool?)true)">Sí, se devuelve ahora (sale de la caja abierta)</MudRadio>
+                <MudRadio T="bool?" Value="@((bool?)false)">No, fue un error de registro y la plata nunca estuvo</MudRadio>
+            </MudRadioGroup>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
@@ -32,6 +42,28 @@
     private string _reason = string.Empty;
     private bool _submitting;
     private string? _error;
+    private bool _needsRefundDecision;
+    private bool? _refundNow;
+
+    // Un pago en efectivo que no es del turno abierto exige decidir si el dinero se devuelve ahora.
+    protected override async Task OnInitializedAsync()
+    {
+        if (Payment.Method != "Cash")
+        {
+            return;
+        }
+
+        try
+        {
+            var status = await CashShifts.CurrentAsync();
+            _needsRefundDecision = Payment.ShiftId is null || Payment.ShiftId != status?.Shift?.Id;
+        }
+        catch (GsmApiException)
+        {
+            // Sin saberlo, se pregunta: el servidor ignora la respuesta si no hacía falta.
+            _needsRefundDecision = true;
+        }
+    }
 
     private async Task SubmitAsync()
     {
@@ -41,10 +73,20 @@
             return;
         }
 
+        if (_needsRefundDecision && _refundNow is null)
+        {
+            _error = "Indica si el dinero se devuelve ahora.";
+            return;
+        }
+
         _submitting = true;
         try
         {
-            await Payments.VoidAsync(Payment.Id, new VoidPaymentRequest { Reason = _reason.Trim() });
+            await Payments.VoidAsync(Payment.Id, new VoidPaymentRequest
+            {
+                Reason = _reason.Trim(),
+                RefundNow = _needsRefundDecision ? _refundNow : null,
+            });
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (GsmApiException ex)
