@@ -77,7 +77,7 @@
 | E3 | **Unida** | Ligas ejercicio↔modelo (sistema) y ejercicio↔máquina (gym), nivel 1 "solo lo que se puede hacer", avisos en el editor y en la app. Ver preguntas E3 |
 | N5 | **Unida** | Avisos programados (recordatorio de clase 10 min antes, al instructor, cumpleaños listo para CO5); vencimientos de madrugada salen a las 8:00. Ver preguntas N5 |
 | CO2 | **Unida** | Audiencias por segmento (estado, plan, clase, etiqueta), destinatarios fijados al publicar, feed filtrado. Ver preguntas CO2 |
-| CO5 | **Unida, suite SIN CORRER** | Cumpleaños por la tarea diaria (`BirthdayGreetingDue`, 8:00, apagado por defecto), 29-feb → 28-feb, aviso en recepción y dashboard. Compila; la suite se cortó por falta de memoria. Ver preguntas CO5 |
+| CO5 | **Unida** | Cumpleaños por la tarea diaria (`BirthdayGreetingDue`, 8:00, apagado por defecto), 29-feb → 28-feb, aviso en recepción y dashboard. Suite 668 + 329. Ver preguntas CO5 |
 | G1+S1 | **Unida** | Owner invitado sin contraseña, reenviar acceso, prueba opcional o primer pago. Falta S1b (fin de la prueba) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -262,6 +262,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: suite de CO5 corrida en primer plano: **668 integración + 329 bUnit, todo verde. Ola 3 cerrada.** Quitados los 25 worktrees de tareas ya unidas (ramas conservadas; se deja el del primer intento de P2, con 2 archivos sin commitear). Lanzada la tanda: MS1b, G3b, R2b y L1 (solo escriben código).
 - 2026-10-15: CO5 unida; migración `V2_CO5_Cumpleanos`, cliente regenerado, todo compila (1 `using`). **La suite no se pudo correr**: Claude Code la detuvo por memoria baja del sistema. Pendiente correrla antes de dar por cerrada la Ola 3.
 - 2026-10-15: N5 y CO2 unidas sin conflictos. Migración `V2_N5_CO2` (valores nuevos del enum `notification_type` + audiencia de anuncios). Al integrar: 2 errores de UI (`MultiSelectionTextFunc` recibe textos, no Guid) y 2 bUnit (`data-testid` en `MudSwitch` queda en el `<input>`). **Suite: 655 integración + 326 bUnit, todo verde.** De la Ola 3 solo queda CO5.
 - 2026-10-15: lanzadas CO2 y N5. CO5 queda para después (mismo carril que CO2 y usa N5).
