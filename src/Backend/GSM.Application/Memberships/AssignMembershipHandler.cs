@@ -4,6 +4,7 @@ using GSM.Application.Members.Public;
 using GSM.Application.Memberships.Abstractions;
 using GSM.Application.Memberships.Contracts;
 using GSM.Application.Memberships.Events;
+using GSM.Application.Memberships.Public;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
@@ -22,10 +23,16 @@ public sealed class AssignMembershipHandler(
     IMemberReader members,
     IMembershipRepository memberships,
     RenewalResolver renewals,
+    IMemberLimitProvider memberLimits,
+    IMembershipReader membershipReader,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<AssignMembershipHandler> logger)
 {
+    /// <summary>Texto al staff cuando el gym llega al límite de su plan (SuperAdmin §V1).</summary>
+    public static string LimitMessage(int limit)
+        => $"Llegaste al límite de {limit} miembros activos de tu plan. Habla con GSM para ampliarlo.";
+
     public async Task<MembershipResponse> HandleAsync(
         Guid memberId, AssignMembershipRequest request, CancellationToken cancellationToken)
     {
@@ -45,6 +52,8 @@ public sealed class AssignMembershipHandler(
         {
             throw new ConflictException("El plan está inactivo.");
         }
+
+        await EnsureWithinMemberLimitAsync(gymId, memberId, cancellationToken);
 
         var resolved = await renewals.ResolveAsync(
             gymId, memberId, request.StartDate, request.StartDateReason, cancellationToken);
@@ -66,6 +75,34 @@ public sealed class AssignMembershipHandler(
             cancellationToken);
 
         return MembershipMapper.ToResponse(membership, plan.Name, today);
+    }
+
+    /// <summary>
+    /// Al llegar al límite del plan del SaaS se bloquea dar membresía a quien hoy no cuenta (miembro
+    /// nuevo o que vuelve). Renovar a quien ya cuenta nunca se bloquea: no se le niega la renovación
+    /// a un miembro actual.
+    /// </summary>
+    private async Task EnsureWithinMemberLimitAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken)
+    {
+        var limit = await memberLimits.GetLimitAsync(gymId, cancellationToken);
+        if (limit is not { } max)
+        {
+            return;
+        }
+
+        var access = await membershipReader.GetAccessStatusAsync(memberId, cancellationToken);
+        if (access.Commercial.CountsTowardMemberLimit())
+        {
+            return;
+        }
+
+        var counted = await membershipReader.GetCountedMemberCountAsync(gymId, cancellationToken);
+        if (counted >= max)
+        {
+            logger.LogWarning(
+                "Membresía bloqueada por el límite del plan en el gym {GymId}: {Counted}/{Limit}", gymId, counted, max);
+            throw new ConflictException(LimitMessage(max));
+        }
     }
 }
 

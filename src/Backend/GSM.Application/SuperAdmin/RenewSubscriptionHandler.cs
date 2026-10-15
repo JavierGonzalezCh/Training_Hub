@@ -16,6 +16,7 @@ public sealed class RenewSubscriptionHandler(
     ICurrentUserService currentUser,
     IGymReader gyms,
     IGymSubscriptionRepository subscriptions,
+    SubscriptionDetailBuilder detailBuilder,
     IUnitOfWork unitOfWork,
     ILogger<RenewSubscriptionHandler> logger)
 {
@@ -47,6 +48,6 @@ public sealed class RenewSubscriptionHandler(
             "Gym {GymId} renovado sin pago: {Previous} → {New}. Motivo: {Reason}",
             gymId, previous, request.PaidThrough, reason);
 
-        return SubscriptionMapper.ToDetail(sub, gym.ManualStatus, clock.Today);
+        return await detailBuilder.BuildAsync(sub, gym.ManualStatus, cancellationToken);
     }
 }

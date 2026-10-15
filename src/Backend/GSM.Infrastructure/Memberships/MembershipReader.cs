@@ -110,6 +110,17 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
         return counts;
     }
 
+    public async Task<int> GetCountedMemberCountAsync(Guid gymId, CancellationToken cancellationToken = default)
+    {
+        var rows = await Memberships
+            .Where(m => m.GymId == gymId && m.Status != MembershipStatus.Cancelled)
+            .Select(m => new SpanRow(m.GymId, m.MemberId, m.Status, m.StartDate, m.EndDate))
+            .ToListAsync(cancellationToken);
+
+        var computed = await ComputeAsync(rows, cancellationToken);
+        return computed.Count(kv => kv.Value.CountsTowardMemberLimit());
+    }
+
     private sealed record SpanRow(Guid GymId, Guid MemberId, MembershipStatus Status, DateOnly Start, DateOnly End);
 
     private async Task<Dictionary<Guid, CommercialStatus>> ComputeAsync(

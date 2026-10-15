@@ -9,6 +9,27 @@ public sealed class UpdateSubscriptionRequestValidator : AbstractValidator<Updat
     {
         RuleFor(x => x.Plan).IsInEnum();
         RuleFor(x => x.MonthlyPrice).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.MemberLimitOverride).GreaterThanOrEqualTo(1).When(x => x.MemberLimitOverride.HasValue);
+    }
+}
+
+public sealed class CreateSaasPlanRequestValidator : AbstractValidator<CreateSaasPlanRequest>
+{
+    public CreateSaasPlanRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(80);
+        RuleFor(x => x.MemberLimit).GreaterThanOrEqualTo(1).When(x => x.MemberLimit.HasValue);
+        RuleFor(x => x.SuggestedPrice).GreaterThanOrEqualTo(0);
+    }
+}
+
+public sealed class UpdateSaasPlanRequestValidator : AbstractValidator<UpdateSaasPlanRequest>
+{
+    public UpdateSaasPlanRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(80);
+        RuleFor(x => x.MemberLimit).GreaterThanOrEqualTo(1).When(x => x.MemberLimit.HasValue);
+        RuleFor(x => x.SuggestedPrice).GreaterThanOrEqualTo(0);
     }
 }
 

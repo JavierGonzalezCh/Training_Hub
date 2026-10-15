@@ -1,0 +1,47 @@
+@* Uso del límite de miembros del plan del SaaS ("142 / 150"). Sin límite o sin dato no se muestra nada:
+   un plan ilimitado no necesita un medidor. Al 90 % pide atención; al llegar al límite, alerta. *@
+@inject IGymClient Gym
+
+@if (_usage is { Limit: { } limit } usage)
+{
+    var counted = usage.Counted ?? 0;
+    <div data-testid="member-limit">
+        <StatCard Label="Miembros del plan" Value="@($"{counted} / {limit}")"
+                  Accent="@(State(counted, limit) switch { LimitState.Full => Color.Error, LimitState.Near => Color.Error, _ => Color.Default })"
+                  Meter="@(limit > 0 ? Math.Clamp((double)counted / limit, 0, 1) : null)"
+                  Hint="@Hint(counted, limit)" />
+    </div>
+}
+
+@code {
+    private MemberUsageResponse? _usage;
+
+    public enum LimitState { Ok, Near, Full }
+
+    /// <summary>Al 90 % del límite se avisa; al llegar a él, se bloquean las membresías nuevas.</summary>
+    public static LimitState State(int counted, int limit)
+        => counted >= limit ? LimitState.Full : counted * 10 >= limit * 9 ? LimitState.Near : LimitState.Ok;
+
+    public static string Hint(int counted, int limit)
+    {
+        var left = limit - counted;
+        return State(counted, limit) switch
+        {
+            LimitState.Full => "Llegaste al límite. Habla con GSM para ampliarlo.",
+            _ => left == 1 ? "Te queda 1 cupo" : $"Te quedan {left} cupos",
+        };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _usage = await Gym.MemberUsageAsync();
+        }
+        catch (GsmApiException)
+        {
+            // Sin el dato no se muestra el medidor; no es motivo para romper el resumen.
+            _usage = null;
+        }
+    }
+}

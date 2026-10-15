@@ -30,6 +30,13 @@ public sealed class GymController : ControllerBase
         return Ok(gym with { Subscription = view?.ToInfo() });
     }
 
+    /// <summary>Uso del límite de miembros del plan del SaaS ("142 / 150"). <c>limit</c> nulo = sin límite.</summary>
+    [HttpGet("member-usage")]
+    [ProducesResponseType<GSM.Application.SuperAdmin.Contracts.MemberUsageResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<GSM.Application.SuperAdmin.Contracts.MemberUsageResponse>> GetMemberUsage(
+        [FromServices] GSM.Application.SuperAdmin.GetMemberUsageHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     [HttpPut]
     [Authorize(Policy = AuthPolicies.RequireOwner)]
     [ProducesResponseType<GymResponse>(StatusCodes.Status200OK)]

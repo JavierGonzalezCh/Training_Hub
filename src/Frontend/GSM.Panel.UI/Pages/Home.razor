@@ -38,6 +38,7 @@ else if (_dashboard is { } dashboard)
             <StatCard Label="Ingresos del mes" Value="@GsmFormat.Money((decimal)revenue)"
                       Hint="@RevenueHint(dashboard)" />
         }
+        <MemberLimitCard />
         <StatCard Label="@($"Por vencer · {dashboard.ExpiringDays} días")" Value="@dashboard.ExpiringSoon.ToString()"
                   Accent="@(dashboard.ExpiringSoon > 0 ? Color.Error : Color.Default)"
                   Hint="@($"{dashboard.ExpiredMemberships} ya vencidas")" />

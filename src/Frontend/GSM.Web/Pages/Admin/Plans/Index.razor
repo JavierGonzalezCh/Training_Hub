@@ -1,0 +1,84 @@
+@page "/admin/plans"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+@inject IAdminPlansClient AdminPlans
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Planes — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Planes</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenAsync(null))">
+        Nuevo plan
+    </MudButton>
+</div>
+
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Todos los planes traen todos los módulos; solo cambia el límite de miembros que cuentan a la vez.
+    Un cliente puede tener un límite propio desde su ficha.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_plans is { } plans)
+{
+    <MudTable Items="plans" Hover="true" Dense="true" Elevation="0" data-testid="plans-table">
+        <HeaderContent>
+            <MudTh>Plan</MudTh>
+            <MudTh>Límite de miembros</MudTh>
+            <MudTh>Precio sugerido</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Plan">@context.Name</MudTd>
+            <MudTd DataLabel="Límite" Class="gsm-mono">@LimitLabel(context.MemberLimit)</MudTd>
+            <MudTd DataLabel="Precio sugerido" Class="gsm-mono">@GsmFormat.Money((decimal)(context.SuggestedPrice ?? 0))</MudTd>
+            <MudTd DataLabel="Estado">@((context.IsActive ?? false) ? "Activo" : "Inactivo")</MudTd>
+            <MudTd>
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => OpenAsync(context))">Editar</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<SaasPlanItem>? _plans;
+    private bool _loading = true;
+
+    public static string LimitLabel(int? limit) => limit is { } max ? $"{max} miembros" : "Sin límite";
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _plans = (await AdminPlans.PlansGETAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenAsync(SaasPlanItem? plan)
+    {
+        var parameters = new DialogParameters<PlanFormDialog> { { x => x.Current, plan } };
+        var dialog = await Dialogs.ShowAsync<PlanFormDialog>(plan is null ? "Nuevo plan" : "Editar plan", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+}

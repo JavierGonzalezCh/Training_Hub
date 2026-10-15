@@ -34,6 +34,7 @@ else if (_portfolio is { } portfolio)
         <HeaderContent>
             <MudTh>Gym</MudTh>
             <MudTh>Plan</MudTh>
+            <MudTh>Miembros</MudTh>
             <MudTh>Estado</MudTh>
             <MudTh>Vence</MudTh>
             <MudTh>Días</MudTh>
@@ -46,6 +47,9 @@ else if (_portfolio is { } portfolio)
                 <MudText Typo="Typo.caption" Class="gsm-mono" Color="Color.Secondary">@context.Slug</MudText>
             </MudTd>
             <MudTd DataLabel="Plan">@context.Plan</MudTd>
+            <MudTd DataLabel="Miembros" Class="gsm-mono" data-testid="member-usage">
+                @SuperAdminLabels.MemberUsage(context.CountedMembers ?? 0, context.MemberLimit)
+            </MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Color="@SuperAdminLabels.StatusColor(context.EffectiveStatus)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                     @SuperAdminLabels.StatusLabel(context.EffectiveStatus).ToUpperInvariant()

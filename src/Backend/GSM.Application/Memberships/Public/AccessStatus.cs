@@ -70,5 +70,17 @@ public sealed record AccessStatus(
     public bool CanEnter => Kind != AccessKind.Blocked;
 }
 
+public static class CommercialStatusExtensions
+{
+    /// <summary>
+    /// ¿Este estado cuenta para el límite de miembros del plan del SaaS? Cuentan quienes tienen una
+    /// membresía que los cubre: al día, por vencer, en gracia o congelados. Sin plan o vencido, no
+    /// (SuperAdmin §V1).
+    /// </summary>
+    public static bool CountsTowardMemberLimit(this CommercialStatus status)
+        => status is CommercialStatus.Current or CommercialStatus.Expiring
+            or CommercialStatus.Grace or CommercialStatus.Frozen;
+}
+
 /// <summary>Ajustes de membresías vigentes de un gym (con los valores por defecto si no hay fila).</summary>
 public sealed record MembershipSettingsView(int GraceDays, int ExpiringDays);

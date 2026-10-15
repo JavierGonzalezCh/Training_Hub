@@ -27,6 +27,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IAdminImpersonationClient, AdminImpersonationClient>(services, baseUri);
         AddApiClient<IAdminMetricsClient, AdminMetricsClient>(services, baseUri);
         AddApiClient<IAdminPaymentsClient, AdminPaymentsClient>(services, baseUri);
+        AddApiClient<IAdminPlansClient, AdminPlansClient>(services, baseUri);
         AddApiClient<IAttendanceClient, AttendanceClient>(services, baseUri);
         AddApiClient<IAnnouncementsClient, AnnouncementsClient>(services, baseUri);
         AddApiClient<IWhatsAppClient, WhatsAppClient>(services, baseUri);

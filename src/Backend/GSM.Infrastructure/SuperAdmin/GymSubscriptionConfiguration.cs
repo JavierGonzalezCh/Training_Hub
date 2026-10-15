@@ -14,7 +14,15 @@ public sealed class GymSubscriptionConfiguration : IEntityTypeConfiguration<GymS
         builder.Property(s => s.MonthlyPrice).HasColumnType("decimal(12,2)");
         builder.Property(s => s.Notes).HasMaxLength(1000);
 
+        // S2: mismo schema, así que sí hay FK. Un plan en uso no se borra (se desactiva).
+        builder.HasOne<SaasPlan>()
+            .WithMany()
+            .HasForeignKey(s => s.SaasPlanId)
+            .HasConstraintName("fk_gym_subscriptions_saas_plans")
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(s => s.GymId).IsUnique();
         builder.HasIndex(s => s.PaidThrough);
+        builder.HasIndex(s => s.SaasPlanId);
     }
 }

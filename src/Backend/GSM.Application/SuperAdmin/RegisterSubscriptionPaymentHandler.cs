@@ -18,6 +18,7 @@ public sealed class RegisterSubscriptionPaymentHandler(
     IGymReader gyms,
     IGymSubscriptionRepository subscriptions,
     ISubscriptionPaymentRepository payments,
+    SubscriptionDetailBuilder detailBuilder,
     IUnitOfWork unitOfWork,
     ILogger<RegisterSubscriptionPaymentHandler> logger)
 {
@@ -58,7 +59,7 @@ public sealed class RegisterSubscriptionPaymentHandler(
 
         return new RegisterSubscriptionPaymentResponse(
             SubscriptionMapper.ToItem(payment),
-            SubscriptionMapper.ToDetail(subscription, gym.ManualStatus, clock.Today));
+            await detailBuilder.BuildAsync(subscription, gym.ManualStatus, cancellationToken));
     }
 
     private static (DateOnly From, DateOnly Through) ResolvePeriod(

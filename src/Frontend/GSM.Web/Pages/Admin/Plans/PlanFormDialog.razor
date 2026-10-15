@@ -1,0 +1,92 @@
+@inject IAdminPlansClient AdminPlans
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_name" Label="Nombre" Class="mb-3" MaxLength="80" />
+        <MudNumericField T="int?" @bind-Value="_limit" Label="Límite de miembros" Min="1"
+                         HelperText="Vacío = sin límite" Class="mb-3" />
+        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_price"
+                         Label="Precio sugerido (COP)" Min="0" Class="mb-3" />
+        @if (Current is not null)
+        {
+            <MudSwitch T="bool" @bind-Value="_isActive" Label="Activo" Color="Color.Primary" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Plan a editar; nulo = crear uno nuevo.</summary>
+    [Parameter]
+    public SaasPlanItem? Current { get; set; }
+
+    private string _name = string.Empty;
+    private int? _limit;
+    private decimal _price;
+    private bool _isActive = true;
+    private bool _submitting;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (Current is null)
+        {
+            return;
+        }
+
+        _name = Current.Name ?? string.Empty;
+        _limit = Current.MemberLimit;
+        _price = (decimal)(Current.SuggestedPrice ?? 0);
+        _isActive = Current.IsActive ?? true;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _submitting = true;
+        _error = null;
+        try
+        {
+            if (Current?.Id is { } id)
+            {
+                await AdminPlans.PlansPUTAsync(id, new UpdateSaasPlanRequest
+                {
+                    Name = _name,
+                    MemberLimit = _limit,
+                    SuggestedPrice = (double)_price,
+                    IsActive = _isActive,
+                });
+            }
+            else
+            {
+                await AdminPlans.PlansPOSTAsync(new CreateSaasPlanRequest
+                {
+                    Name = _name,
+                    MemberLimit = _limit,
+                    SuggestedPrice = (double)_price,
+                });
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

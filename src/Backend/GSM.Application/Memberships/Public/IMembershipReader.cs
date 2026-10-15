@@ -52,6 +52,13 @@ public interface IMembershipReader
     Task<IReadOnlyDictionary<CommercialStatus, int>> GetStatusCountsAsync(
         Guid gymId, IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Miembros del gym que cuentan hoy para el límite de su plan del SaaS: los que tienen una membresía
+    /// que los cubre (al día, por vencer, en gracia o congelados; ver <see cref="CommercialStatusExtensions"/>).
+    /// Por gym explícito, para que SuperAdmin pueda preguntar por cualquiera.
+    /// </summary>
+    Task<int> GetCountedMemberCountAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     /// <summary>¿La membresía existe y pertenece a ese miembro? (validación al registrar un pago).</summary>
     Task<bool> BelongsToMemberAsync(
         Guid membershipId, Guid memberId, CancellationToken cancellationToken = default);
