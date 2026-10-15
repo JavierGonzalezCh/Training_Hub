@@ -145,6 +145,15 @@ public sealed class MembershipReminderDueCreatesNotice(
 {
     private static readonly CultureInfo Colombia = CultureInfo.GetCultureInfo("es-CO");
 
+    /// <summary>
+    /// El recordatorio de "N días antes" usa el id de la membresía como referencia (como siempre); los otros
+    /// dos, un id estable derivado de la membresía y el paso, así cada uno es único por
+    /// <c>(tipo, miembro, referencia)</c> sin tocar el enum de tipos.
+    /// </summary>
+    private static Guid ReferenceFor(Guid membershipId, string step)
+        => new(System.Security.Cryptography.MD5.HashData(
+            System.Text.Encoding.UTF8.GetBytes($"{membershipId:N}:{step}")));
+
     public async Task HandleAsync(MembershipReminderDue domainEvent, CancellationToken cancellationToken = default)
     {
         var contact = await members.GetContactAsync(domainEvent.MemberId, cancellationToken);
@@ -153,20 +162,27 @@ public sealed class MembershipReminderDueCreatesNotice(
             return;
         }
 
-        var when = domainEvent.DaysLeft switch
+        var renewBody = "Pasa por recepción para renovarlo y seguir entrenando sin interrupciones.";
+        var when = domainEvent.DaysLeft == 1
+            ? "mañana"
+            : $"el {domainEvent.EndDate.ToString("dddd d 'de' MMMM", Colombia)}";
+        var (title, body, referenceId) = domainEvent.Kind switch
         {
-            0 => "hoy",
-            1 => "mañana",
-            _ => $"el {domainEvent.EndDate.ToString("dddd d 'de' MMMM", Colombia)}",
+            MembershipReminderKind.ExpiresToday => (
+                $"Tu plan {domainEvent.PlanName} vence hoy", renewBody,
+                ReferenceFor(domainEvent.MembershipId, "expires_today")),
+            MembershipReminderKind.LastGraceDay => (
+                "Hoy es tu último día para renovar sin perder tu fecha",
+                $"Tu plan {domainEvent.PlanName} venció el {domainEvent.EndDate.ToString("d 'de' MMMM", Colombia)}. "
+                    + "Renueva hoy en recepción para conservar tu fecha de renovación.",
+                ReferenceFor(domainEvent.MembershipId, "last_grace_day")),
+            _ => ($"Tu plan {domainEvent.PlanName} vence {when}", renewBody, domainEvent.MembershipId),
         };
 
         if (await writer.NotifyAsync(
                 new MemberNotice(
                     domainEvent.GymId, domainEvent.MemberId, NotificationType.MembershipExpiring,
-                    NotificationCategory.Membership, domainEvent.MembershipId,
-                    $"Tu plan {domainEvent.PlanName} vence {when}",
-                    "Pasa por recepción para renovarlo y seguir entrenando sin interrupciones.",
-                    "/app"),
+                    NotificationCategory.Membership, referenceId, title, body, "/app"),
                 sendEmail: true, cancellationToken))
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);

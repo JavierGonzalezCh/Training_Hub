@@ -14,6 +14,14 @@ public interface IMembershipReader
     Task<IReadOnlyList<ExpiringMembershipView>> GetExpiringAsync(
         Guid gymId, int withinDays, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Membresías Active del gym dentro de la ventana de los recordatorios de vencimiento (CO7): su
+    /// <c>end_date</c> cae entre <c>hoy - GraceDays</c> y <c>hoy + daysBefore</c> (el último día de la
+    /// gracia es <c>end_date + GraceDays</c>). <c>DaysLeft</c> es negativo si ya venció.
+    /// </summary>
+    Task<IReadOnlyList<ReminderMembershipView>> GetReminderCandidatesAsync(
+        Guid gymId, int daysBefore, CancellationToken cancellationToken = default);
+
     /// <summary>Membresías Active cuyo <c>end_date</c> ya pasó (vencidas, no renovadas).</summary>
     Task<int> GetExpiredCountAsync(Guid gymId, CancellationToken cancellationToken = default);
 
@@ -83,3 +91,13 @@ public sealed record ExpiringMembershipView(
     string PlanName,
     DateOnly EndDate,
     int DaysLeft);
+
+/// <param name="DaysLeft">Dias hasta <c>EndDate</c> (0 = vence hoy; negativo = ya vencio, en gracia).</param>
+/// <param name="GraceDays">Dias de gracia vigentes del gym: el ultimo dia para renovar es <c>EndDate + GraceDays</c>.</param>
+public sealed record ReminderMembershipView(
+    Guid MembershipId,
+    Guid MemberId,
+    string PlanName,
+    DateOnly EndDate,
+    int DaysLeft,
+    int GraceDays);
