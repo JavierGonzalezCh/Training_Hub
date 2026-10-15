@@ -67,6 +67,7 @@ public sealed class PaymentVoidTests(ApiFactory factory) : IClassFixture<ApiFact
         var (gymId, staffId, _) = await SeedAsync();
 
         using var scope = Staff(gymId, staffId);
+        await scope.OpenCashAsync(); // P3: el efectivo exige caja abierta
         var original = await scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>()
             .HandleAsync(new RecordPaymentRequest(30_000m, PaymentMethod.Cash, "Producto", null, null, null), default);
         var handler = scope.ServiceProvider.GetRequiredService<VoidPaymentHandler>();

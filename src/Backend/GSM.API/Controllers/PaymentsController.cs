@@ -86,10 +86,12 @@ public sealed class PaymentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<PaymentResponse>> ApproveVoidRequest(
-        Guid requestId, [FromServices] ApproveVoidRequestHandler handler, CancellationToken cancellationToken)
+        Guid requestId, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ApproveVoidRequestRequest? body,
+        [FromServices] ApproveVoidRequestHandler handler, CancellationToken cancellationToken)
     {
-        var reversal = await handler.HandleAsync(requestId, cancellationToken);
+        var reversal = await handler.HandleAsync(requestId, body, cancellationToken);
         return CreatedAtAction(nameof(Get), new { id = reversal.Id }, reversal);
     }
 

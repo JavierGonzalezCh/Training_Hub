@@ -1,68 +1,168 @@
 @page "/cash-register"
 @using GSM.Panel.UI.Pages.Payments
-@* El cierre diario es financiero (Payments v2 §7): Owner o ViewFinances. *@
+@* El cierre diario es financiero (Payments v2 §7, §8): Owner o ViewFinances. *@
 @attribute [Authorize(Policy = "Permission:view_finances")]
 @inject ICashRegisterClient CashRegister
 @inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
-<PageTitle>Cierre de caja — GSM</PageTitle>
+<PageTitle>Cierre diario — GSM</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
-    <MudText Typo="Typo.h4">Cierre de caja</MudText>
-    <MudSpacer />
-    <MudDatePicker Label="Fecha" Date="_date" DateChanged="OnDateChangedAsync" Style="max-width:200px" />
-</div>
+<MudTabs Elevation="0" Rounded="false" PanelClass="pt-4" data-testid="cash-register-tabs">
+    <MudTabPanel Text="Cierre del día">
+        <div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
+            <MudText Typo="Typo.h4">Cierre diario</MudText>
+            <MudSpacer />
+            <MudDatePicker Label="Fecha" Date="_date" DateChanged="OnDateChangedAsync" Style="max-width:200px" />
+        </div>
 
-@if (_loading)
-{
-    <MudProgressCircular Indeterminate="true" />
-}
-else if (_daily is { } daily)
-{
-    <MudGrid Class="mb-6">
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Total del día</MudText>
-                <MudText Typo="Typo.h5" Class="gsm-mono" Color="Color.Secondary">@GsmFormat.Money((decimal)daily.Total)</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Transacciones</MudText>
-                <MudText Typo="Typo.h5" Class="gsm-mono">@daily.TransactionCount</MudText>
-            </MudPaper>
-        </MudItem>
-        @foreach (var (method, amount) in daily.TotalsByMethod)
+        @if (_loading)
         {
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-                    <MudText Typo="Typo.overline" Color="Color.Secondary">@PaymentMethodLabels.Label(method)</MudText>
-                    <MudText Typo="Typo.h5" Class="gsm-mono">@GsmFormat.Money((decimal)amount)</MudText>
-                </MudPaper>
-            </MudItem>
+            <MudProgressCircular Indeterminate="true" />
         }
-    </MudGrid>
+        else if (_daily is { } daily)
+        {
+            @foreach (var stale in Shifts(daily).Where(s => s.IsOpen && s.IsStale))
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-4" data-testid="stale-shift">
+                    La caja de @(stale.OpenedByName ?? "alguien del equipo") sigue abierta desde @GsmFormat.Instant(stale.OpenedAt)
+                    (más de 16 horas). Ciérrala desde Pagos o pídele que la cierre.
+                </MudAlert>
+            }
 
-    <MudTable Items="daily.Payments" Hover="true" Dense="true" Elevation="0">
-        <HeaderContent>
-            <MudTh>Hora</MudTh>
-            <MudTh>Concepto</MudTh>
-            <MudTh>Método</MudTh>
-            <MudTh>Monto</MudTh>
-            <MudTh></MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Hora">@GsmFormat.Instant(context.PaidAt)</MudTd>
-            <MudTd DataLabel="Concepto">@context.Concept</MudTd>
-            <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
-            <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
-            <MudTd><PaymentVoidAction Payment="context" OnVoided="LoadAsync" /></MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText Color="Color.Secondary">Sin pagos ese día.</MudText>
-        </NoRecordsContent>
-    </MudTable>
-}
+            <MudGrid Class="mb-6">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Total del día</MudText>
+                        <MudText Typo="Typo.h5" Class="gsm-mono" Color="Color.Secondary">@GsmFormat.Money((decimal)daily.Total)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Transacciones</MudText>
+                        <MudText Typo="Typo.h5" Class="gsm-mono">@daily.TransactionCount</MudText>
+                    </MudPaper>
+                </MudItem>
+                @* Por método, con la cantidad de pagos: el Owner los compara contra sus extractos (§5). *@
+                @foreach (var method in Methods(daily))
+                {
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)" data-testid="method-total">
+                            <MudText Typo="Typo.overline" Color="Color.Secondary">@PaymentMethodLabels.Label(method.Method) (@method.Count)</MudText>
+                            <MudText Typo="Typo.h5" Class="gsm-mono">@GsmFormat.Money((decimal)method.Total)</MudText>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mb-2">Turnos del día</MudText>
+            <MudTable Items="Shifts(daily)" Hover="true" Dense="true" Elevation="0" Class="mb-6">
+                <HeaderContent>
+                    <MudTh>Quién</MudTh>
+                    <MudTh>Abrió</MudTh>
+                    <MudTh>Cerró</MudTh>
+                    <MudTh>Esperado</MudTh>
+                    <MudTh>Contado</MudTh>
+                    <MudTh>Diferencia</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Quién">@context.OpenedByName</MudTd>
+                    <MudTd DataLabel="Abrió">@GsmFormat.Time(context.OpenedAt)</MudTd>
+                    <MudTd DataLabel="Cerró">@(context.ClosedAt is { } closed ? GsmFormat.Time(closed) : "Abierta")</MudTd>
+                    <MudTd DataLabel="Esperado" Class="gsm-mono">@(context.ExpectedCash is { } e ? GsmFormat.Money((decimal)e) : "—")</MudTd>
+                    <MudTd DataLabel="Contado" Class="gsm-mono">@(context.CountedCash is { } c ? GsmFormat.Money((decimal)c) : "—")</MudTd>
+                    <MudTd DataLabel="Diferencia" Class="gsm-mono"
+                           Style="@(context.Difference is { } d && d != 0 ? "color:var(--mud-palette-error)" : null)">
+                        @(context.Difference is { } diff ? GsmFormat.Money((decimal)diff) : "—")
+                    </MudTd>
+                    <MudTd>
+                        <MudButton Size="Size.Small" Variant="Variant.Text"
+                                   OnClick="@(() => Navigation.NavigateTo($"/cash-shifts/{context.Id}"))">Reporte</MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary">Sin turnos de caja ese día.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+            @if (Movements(daily).Any())
+            {
+                <MudText Typo="Typo.h6" Class="mb-2">Movimientos de caja</MudText>
+                <MudTable Items="Movements(daily)" Dense="true" Elevation="0" Class="mb-6">
+                    <HeaderContent>
+                        <MudTh>Hora</MudTh>
+                        <MudTh>Tipo</MudTh>
+                        <MudTh>Motivo</MudTh>
+                        <MudTh>Quién</MudTh>
+                        <MudTh>Monto</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Hora">@GsmFormat.Time(context.OccurredAt)</MudTd>
+                        <MudTd DataLabel="Tipo">@(context.Type == "withdrawal" ? "Retiro" : "Ingreso")</MudTd>
+                        <MudTd DataLabel="Motivo">@context.Reason</MudTd>
+                        <MudTd DataLabel="Quién">@context.CreatedByName</MudTd>
+                        <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
+            @if (Reversals(daily).Any())
+            {
+                <MudText Typo="Typo.h6" Class="mb-2">Anulaciones</MudText>
+                <MudTable Items="Reversals(daily)" Dense="true" Elevation="0" Class="mb-6" data-testid="daily-reversals">
+                    <HeaderContent>
+                        <MudTh>Hora</MudTh>
+                        <MudTh>Concepto</MudTh>
+                        <MudTh>Motivo</MudTh>
+                        <MudTh>Método</MudTh>
+                        <MudTh>Monto</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Hora">@GsmFormat.Time(context.PaidAt)</MudTd>
+                        <MudTd DataLabel="Concepto">@context.Concept</MudTd>
+                        <MudTd DataLabel="Motivo">
+                            @context.Notes
+                            @if (context.Method == "Cash" && context.AffectsCashDrawer != true)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">NO TOCA LA CAJA</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
+                        <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
+            <MudText Typo="Typo.h6" Class="mb-2">Pagos del día</MudText>
+            <MudTable Items="daily.Payments" Hover="true" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Hora</MudTh>
+                    <MudTh>Concepto</MudTh>
+                    <MudTh>Método</MudTh>
+                    <MudTh>Cobró</MudTh>
+                    <MudTh>Monto</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Hora">@GsmFormat.Instant(context.PaidAt)</MudTd>
+                    <MudTd DataLabel="Concepto">@context.Concept</MudTd>
+                    <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
+                    <MudTd DataLabel="Cobró">@context.RegisteredByName</MudTd>
+                    <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
+                    <MudTd><PaymentVoidAction Payment="context" OnVoided="LoadAsync" /></MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary">Sin pagos ese día.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        }
+    </MudTabPanel>
+    <MudTabPanel Text="Turnos">
+        <MudText Typo="Typo.h4" Class="mb-4">Turnos de caja</MudText>
+        <CashShiftsList />
+    </MudTabPanel>
+</MudTabs>
 
 @code {
     // Solo el valor inicial del selector: el "hoy" de negocio lo decide el backend (IClock),
@@ -72,6 +172,14 @@ else if (_daily is { } daily)
     private bool _loading = true;
 
     protected override Task OnInitializedAsync() => LoadAsync();
+
+    private static IReadOnlyList<CashMethodSummary> Methods(DailyCashRegisterResponse daily) => daily.Methods?.ToList() ?? [];
+
+    private static IReadOnlyList<CashShiftResponse> Shifts(DailyCashRegisterResponse daily) => daily.Shifts?.ToList() ?? [];
+
+    private static IReadOnlyList<CashMovementResponse> Movements(DailyCashRegisterResponse daily) => daily.Movements?.ToList() ?? [];
+
+    private static IReadOnlyList<PaymentResponse> Reversals(DailyCashRegisterResponse daily) => daily.Reversals?.ToList() ?? [];
 
     private async Task OnDateChangedAsync(DateTime? value)
     {

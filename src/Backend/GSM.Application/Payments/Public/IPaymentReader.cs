@@ -9,6 +9,13 @@ public interface IPaymentReader
     Task<decimal> GetMonthlyRevenueAsync(
         Guid gymId, int year, int month, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Suma de montos del gym entre dos días de negocio, ambos incluidos (B2: comparar el mes en curso contra los
+    /// mismos días del mes anterior). Agrupa con <c>IClock.BusinessDayRange</c>, no con un rango UTC.
+    /// </summary>
+    Task<decimal> GetRevenueBetweenDaysAsync(
+        Guid gymId, DateOnly firstDay, DateOnly lastDay, CancellationToken cancellationToken = default);
+
     /// <summary>Suma de montos por gym en un mes de negocio, en una sola consulta (panel de SuperAdmin).</summary>
     Task<IReadOnlyDictionary<Guid, decimal>> GetMonthlyRevenueByGymAsync(
         int year, int month, CancellationToken cancellationToken = default);

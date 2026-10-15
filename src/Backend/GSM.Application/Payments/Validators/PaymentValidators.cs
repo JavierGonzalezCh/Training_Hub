@@ -19,6 +19,34 @@ public sealed class RecordPaymentRequestValidator : AbstractValidator<RecordPaym
     }
 }
 
+public sealed class OpenCashShiftRequestValidator : AbstractValidator<OpenCashShiftRequest>
+{
+    public OpenCashShiftRequestValidator()
+    {
+        RuleFor(x => x.OpeningCash).GreaterThanOrEqualTo(0m).LessThan(100_000_000m);
+    }
+}
+
+public sealed class CloseCashShiftRequestValidator : AbstractValidator<CloseCashShiftRequest>
+{
+    public CloseCashShiftRequestValidator()
+    {
+        RuleFor(x => x.CountedCash).GreaterThanOrEqualTo(0m).LessThan(100_000_000m);
+        RuleFor(x => x.Notes).MaximumLength(500);
+    }
+}
+
+public sealed class CashMovementRequestValidator : AbstractValidator<CashMovementRequest>
+{
+    public CashMovementRequestValidator()
+    {
+        RuleFor(x => x.Type).Must(t => t is "withdrawal" or "deposit")
+            .WithMessage("El tipo debe ser withdrawal o deposit.");
+        RuleFor(x => x.Amount).GreaterThan(0m).LessThan(100_000_000m);
+        RuleFor(x => x.Reason).NotEmpty().MinimumLength(3).MaximumLength(300);
+    }
+}
+
 public sealed class VoidPaymentRequestValidator : AbstractValidator<VoidPaymentRequest>
 {
     public VoidPaymentRequestValidator()

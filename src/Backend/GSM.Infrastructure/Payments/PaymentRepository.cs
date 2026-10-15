@@ -69,6 +69,22 @@ public sealed class PaymentRepository(GsmDbContext dbContext) : IPaymentReposito
         return (items, total);
     }
 
+    public async Task<IReadOnlyList<Payment>> GetByShiftAsync(Guid shiftId, CancellationToken cancellationToken = default)
+        => await Payments
+            .Where(p => p.ShiftId == shiftId)
+            .OrderBy(p => p.PaidAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<(decimal CashIn, decimal CashOut)> GetCashDrawerTotalsAsync(
+        Guid shiftId, CancellationToken cancellationToken = default)
+    {
+        var amounts = await Payments.AsNoTracking()
+            .Where(p => p.ShiftId == shiftId && p.Method == PaymentMethod.Cash && p.AffectsCashDrawer)
+            .Select(p => p.Amount)
+            .ToListAsync(cancellationToken);
+        return (amounts.Where(a => a > 0).Sum(), -amounts.Where(a => a < 0).Sum());
+    }
+
     public async Task<IReadOnlyList<Payment>> GetInRangeAsync(
         DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken = default)
         => await Payments

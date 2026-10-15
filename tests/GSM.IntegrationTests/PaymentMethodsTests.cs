@@ -49,6 +49,7 @@ public sealed class PaymentMethodsTests(ApiFactory factory) : IClassFixture<ApiF
         using (var scope = Staff(gymId, staffId))
         {
             scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(day);
+            await scope.OpenCashAsync(); // P3: el efectivo exige caja abierta
             var record = scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>();
             var amount = 1_000m;
             foreach (var (method, _, json) in Expected)

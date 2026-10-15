@@ -32,6 +32,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IWhatsAppClient, WhatsAppClient>(services, baseUri);
         AddApiClient<IAuthClient, AuthClient>(services, baseUri);
         AddApiClient<ICashRegisterClient, CashRegisterClient>(services, baseUri);
+        AddApiClient<ICashShiftsClient, CashShiftsClient>(services, baseUri);
         AddApiClient<IClassesClient, ClassesClient>(services, baseUri);
         AddApiClient<IDashboardClient, DashboardClient>(services, baseUri);
         AddApiClient<IEquipmentClient, EquipmentClient>(services, baseUri);

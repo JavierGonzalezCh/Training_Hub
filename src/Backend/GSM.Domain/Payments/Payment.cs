@@ -42,6 +42,18 @@ public sealed class Payment : BaseEntity, ITenantEntity
     /// </summary>
     public Guid? ReversesPaymentId { get; private set; }
 
+    /// <summary>
+    /// Turno de caja abierto cuando se registró el asiento (cualquier método), o <c>null</c> si no había
+    /// ninguno (cobros no en efectivo sin caja abierta, y los anteriores a la caja por turno).
+    /// </summary>
+    public Guid? ShiftId { get; private set; }
+
+    /// <summary>
+    /// ¿Este asiento mueve el efectivo del cajón del turno? Solo el efectivo puede; una anulación en efectivo
+    /// de un turno cerrado cuyo dinero nunca estuvo queda en <c>false</c> (Payments v2 §4.3).
+    /// </summary>
+    public bool AffectsCashDrawer { get; private set; }
+
     public static Payment Create(
         Guid gymId,
         Guid? memberId,
@@ -51,7 +63,8 @@ public sealed class Payment : BaseEntity, ITenantEntity
         string concept,
         string? notes,
         Guid registeredBy,
-        DateTimeOffset paidAt)
+        DateTimeOffset paidAt,
+        Guid? shiftId = null)
     {
         if (gymId == Guid.Empty)
         {
@@ -90,6 +103,8 @@ public sealed class Payment : BaseEntity, ITenantEntity
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
             RegisteredBy = registeredBy,
             PaidAt = paidAt,
+            ShiftId = shiftId,
+            AffectsCashDrawer = method.GoesToCashDrawer(),
         };
     }
 
@@ -97,8 +112,14 @@ public sealed class Payment : BaseEntity, ITenantEntity
     /// Asiento inverso de <paramref name="original"/>: mismo método, miembro y membresía, monto
     /// opuesto. Así la caja del día de la anulación cuadra con lo que de verdad salió del cajón.
     /// </summary>
+    /// <param name="shiftId">Turno abierto al anular (puede ser <c>null</c> si no hay caja abierta).</param>
+    /// <param name="affectsCashDrawer">
+    /// <c>null</c> = como el original (solo el efectivo mueve el cajón); <c>false</c> = el dinero nunca estuvo
+    /// en la caja actual (§4.3).
+    /// </param>
     public static Payment CreateReversal(
-        Payment original, string reason, Guid registeredBy, DateTimeOffset paidAt)
+        Payment original, string reason, Guid registeredBy, DateTimeOffset paidAt,
+        Guid? shiftId = null, bool? affectsCashDrawer = null)
     {
         ArgumentNullException.ThrowIfNull(original);
 
@@ -128,7 +149,9 @@ public sealed class Payment : BaseEntity, ITenantEntity
             concept,
             trimmedReason,
             registeredBy,
-            paidAt);
+            paidAt,
+            shiftId);
+        reversal.AffectsCashDrawer = original.Method.GoesToCashDrawer() && (affectsCashDrawer ?? true);
         reversal.ReversesPaymentId = original.Id;
         return reversal;
     }

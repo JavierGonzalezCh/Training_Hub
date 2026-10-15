@@ -72,6 +72,7 @@ public sealed class ListVoidRequestsHandler(
     ICurrentUserService currentUser,
     IPaymentRepository payments,
     IVoidRequestRepository requests,
+    CashDrawerService drawer,
     IIdentityReader identity)
 {
     public async Task<PagedResult<VoidRequestResponse>> HandleAsync(
@@ -115,7 +116,12 @@ public sealed class ListVoidRequestsHandler(
             var payment = await payments.GetByIdAsync(request.PaymentId, cancellationToken);
             if (payment is not null)
             {
-                rows.Add(VoidRequestMapper.ToResponse(request, payment, names));
+                var requiresDecision = request.Status == VoidRequestStatus.Pending
+                    && await drawer.RequiresRefundDecisionAsync(payment, cancellationToken);
+                rows.Add(VoidRequestMapper.ToResponse(request, payment, names) with
+                {
+                    RequiresRefundDecision = requiresDecision,
+                });
             }
         }
 
@@ -132,11 +138,13 @@ public sealed class ApproveVoidRequestHandler(
     IClock clock,
     IPaymentRepository payments,
     IVoidRequestRepository requests,
+    CashDrawerService drawer,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<ApproveVoidRequestHandler> logger)
 {
-    public async Task<PaymentResponse> HandleAsync(Guid requestId, CancellationToken cancellationToken)
+    public async Task<PaymentResponse> HandleAsync(
+        Guid requestId, ApproveVoidRequestRequest? body, CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
         var approver = currentUser.UserId
@@ -148,14 +156,20 @@ public sealed class ApproveVoidRequestHandler(
             ?? throw new NotFoundException("Pago no encontrado.");
 
         var now = clock.UtcNow;
-        request.Approve(approver, now); // 409 si ya estaba resuelta
+        if (request.Status != VoidRequestStatus.Pending)
+        {
+            throw new ConflictException("Esta solicitud ya fue resuelta.");
+        }
 
         if (await payments.IsReversedAsync(original.Id, cancellationToken))
         {
             throw new ConflictException("Este pago ya está anulado.");
         }
 
-        var reversal = Payment.CreateReversal(original, request.Reason, approver, now);
+        // Antes de resolver la solicitud: si falta la decisión del efectivo (422) o la caja (409), sigue pendiente.
+        var (shiftId, affectsDrawer) = await drawer.PlanReversalAsync(original, body?.RefundNow, cancellationToken);
+        request.Approve(approver, now);
+        var reversal = Payment.CreateReversal(original, request.Reason, approver, now, shiftId, affectsDrawer);
         payments.Add(reversal);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

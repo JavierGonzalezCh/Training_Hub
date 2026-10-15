@@ -1,6 +1,9 @@
 namespace GSM.Application.Dashboard;
 
-/// <remarks>Los ingresos solo salen para el Owner o quien tiene <c>ViewFinances</c>; para el resto son nulos.</remarks>
+/// <remarks>
+/// Los ingresos solo salen para el Owner o quien tiene <c>ViewFinances</c>; para el resto son nulos.
+/// <c>RevenueLastMonth</c> son los <b>mismos días</b> del mes anterior (del 1 al día de hoy), no el mes completo (B2).
+/// </remarks>
 public sealed record DashboardResponse(
     int ActiveMembers,
     int CheckInsToday,

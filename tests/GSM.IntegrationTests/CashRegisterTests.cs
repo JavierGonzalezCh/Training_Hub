@@ -22,6 +22,7 @@ public sealed class CashRegisterTests(ApiFactory factory) : IClassFixture<ApiFac
         using (var scope = Staff(gymId, staffId))
         {
             scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(day);
+            await scope.OpenCashAsync(); // P3: el efectivo exige caja abierta
             var record = scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>();
 
             await record.HandleAsync(new RecordPaymentRequest(100_000m, PaymentMethod.Cash, "Mensualidad", null, memberId, null), default);

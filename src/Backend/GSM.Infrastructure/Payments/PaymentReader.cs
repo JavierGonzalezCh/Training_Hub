@@ -26,6 +26,17 @@ public sealed class PaymentReader(GsmDbContext dbContext, IClock clock) : IPayme
             .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
     }
 
+    public async Task<decimal> GetRevenueBetweenDaysAsync(
+        Guid gymId, DateOnly firstDay, DateOnly lastDay, CancellationToken cancellationToken = default)
+    {
+        var from = clock.BusinessDayRange(firstDay).Start;
+        var to = clock.BusinessDayRange(lastDay).End;
+
+        return await Payments
+            .Where(p => p.GymId == gymId && p.PaidAt >= from && p.PaidAt < to)
+            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
+    }
+
     public async Task<IReadOnlyDictionary<Guid, decimal>> GetMonthlyRevenueByGymAsync(
         int year, int month, CancellationToken cancellationToken = default)
     {

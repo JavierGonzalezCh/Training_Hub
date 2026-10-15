@@ -9,6 +9,7 @@ public static partial class PaymentMapper
 {
     [MapperIgnoreTarget(nameof(PaymentResponse.IsReversed))]
     [MapperIgnoreTarget(nameof(PaymentResponse.HasPendingVoidRequest))]
+    [MapperIgnoreTarget(nameof(PaymentResponse.RegisteredByName))]
     public static partial PaymentResponse ToResponse(Payment payment);
 
     public static PaymentResponse ToResponse(

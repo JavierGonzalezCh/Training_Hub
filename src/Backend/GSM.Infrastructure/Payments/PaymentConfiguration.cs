@@ -19,6 +19,11 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.HasIndex(p => p.MemberId);
         builder.HasIndex(p => p.MembershipId);
 
+        // P3: ligado al turno de caja (misma schema, sin FK dura: un pago antiguo no tiene turno).
+        builder.HasIndex(p => p.ShiftId);
+        // Sin HasDefaultValue(true): con un default en el modelo EF trata false como "sin valor" y lo reemplaza por
+        // true al insertar. Las filas existentes se corrigen en V2_P3.sql.
+
         // Un pago se anula una sola vez: dos anulaciones simultáneas chocan aquí y no en la caja.
         builder.HasIndex(p => p.ReversesPaymentId).IsUnique();
     }

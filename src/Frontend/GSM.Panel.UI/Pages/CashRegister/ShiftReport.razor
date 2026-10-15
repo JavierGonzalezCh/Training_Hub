@@ -1,0 +1,186 @@
+@page "/cash-shifts/{ShiftId:guid}"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject ICashShiftsClient CashShifts
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Reporte de turno — GSM</PageTitle>
+
+@* Reporte imprimible del turno (Payments v2 §4.4). El @media print oculta el menú y los botones. *@
+<style>
+    @@media print {
+        .mud-appbar, .mud-drawer, .gsm-no-print { display: none !important; }
+        .mud-main-content { padding: 0 !important; margin: 0 !important; }
+    }
+</style>
+
+<div class="d-flex align-center flex-wrap mb-4 gsm-no-print" style="gap:1rem">
+    <MudText Typo="Typo.h4">Reporte de turno</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" OnClick="@(() => Navigation.NavigateTo("/payments"))">Volver</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print"
+               data-testid="print-report" OnClick="PrintAsync">Imprimir</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_report is { } report)
+{
+    var shift = report.Shift;
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)" data-testid="shift-report">
+        <MudText Typo="Typo.h6">
+            Turno de @(shift.OpenedByName ?? "alguien del equipo")
+            @if (shift.IsOpen)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">ABIERTO</MudChip>
+            }
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Abierto @GsmFormat.Instant(shift.OpenedAt)
+            @if (shift.ClosedAt is { } closedAt)
+            {
+                <text> · cerrado @GsmFormat.Instant(closedAt) por @(shift.ClosedByName ?? "alguien del equipo")</text>
+            }
+        </MudText>
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">Arqueo de efectivo</MudText>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <tbody>
+                <tr><td>Base inicial</td><td class="gsm-mono">@GsmFormat.Money((decimal)shift.OpeningCash)</td></tr>
+                <tr><td>Cobros en efectivo</td><td class="gsm-mono">@GsmFormat.Money((decimal)report.CashIn)</td></tr>
+                <tr><td>Devoluciones y anulaciones en efectivo</td><td class="gsm-mono">@GsmFormat.Money(-(decimal)report.CashOut)</td></tr>
+                <tr><td>Ingresos de efectivo</td><td class="gsm-mono">@GsmFormat.Money((decimal)report.Deposits)</td></tr>
+                <tr><td>Retiros de efectivo</td><td class="gsm-mono">@GsmFormat.Money(-(decimal)report.Withdrawals)</td></tr>
+                <tr data-testid="report-expected"><td><b>Efectivo esperado</b></td><td class="gsm-mono"><b>@GsmFormat.Money((decimal)(shift.ExpectedCash ?? 0))</b></td></tr>
+                @if (shift.CountedCash is { } counted)
+                {
+                    <tr data-testid="report-counted"><td>Efectivo contado</td><td class="gsm-mono">@GsmFormat.Money((decimal)counted)</td></tr>
+                    <tr data-testid="report-difference">
+                        <td><b>Diferencia</b></td>
+                        <td class="gsm-mono"><b>@GsmFormat.Money((decimal)(shift.Difference ?? 0))</b></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+        @if (!string.IsNullOrWhiteSpace(shift.CloseNotes))
+        {
+            <MudText Typo="Typo.body2" Class="mt-2">Nota del cierre: @shift.CloseNotes</MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">Cobros por método</MudText>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <tbody>
+                @foreach (var method in report.Methods)
+                {
+                    <tr>
+                        <td>@PaymentMethodLabels.Label(method.Method) (@method.Count)</td>
+                        <td class="gsm-mono">@GsmFormat.Money((decimal)method.Total)</td>
+                    </tr>
+                }
+                @if (report.Methods.Count == 0)
+                {
+                    <tr><td colspan="2"><MudText Color="Color.Secondary">Sin cobros en este turno.</MudText></td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    @if (report.Movements.Count > 0)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Retiros e ingresos</MudText>
+            <MudSimpleTable Dense="true" Elevation="0">
+                <tbody>
+                    @foreach (var movement in report.Movements)
+                    {
+                        <tr>
+                            <td>@GsmFormat.Time(movement.OccurredAt)</td>
+                            <td>@(movement.Type == "withdrawal" ? "Retiro" : "Ingreso") · @movement.Reason</td>
+                            <td class="gsm-mono">@GsmFormat.Money(movement.Type == "withdrawal" ? -(decimal)movement.Amount : (decimal)movement.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+
+    @if (report.Reversals.Count > 0)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)" data-testid="report-reversals">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Anulaciones</MudText>
+            <MudSimpleTable Dense="true" Elevation="0">
+                <tbody>
+                    @foreach (var reversal in report.Reversals)
+                    {
+                        <tr>
+                            <td>@GsmFormat.Time(reversal.PaidAt)</td>
+                            <td>
+                                @reversal.Concept · @reversal.Notes
+                                @if (reversal.AffectsCashDrawer != true && reversal.Method == "Cash")
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">NO TOCA LA CAJA</MudChip>
+                                }
+                            </td>
+                            <td class="gsm-mono">@GsmFormat.Money((decimal)reversal.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+
+    <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">Todos los cobros del turno</MudText>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <thead>
+                <tr><th>Hora</th><th>Concepto</th><th>Método</th><th>Cobró</th><th>Monto</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var payment in report.Payments)
+                {
+                    <tr>
+                        <td>@GsmFormat.Time(payment.PaidAt)</td>
+                        <td>@payment.Concept</td>
+                        <td>@PaymentMethodLabels.Label(payment.Method)</td>
+                        <td>@payment.RegisteredByName</td>
+                        <td class="gsm-mono">@GsmFormat.Money((decimal)payment.Amount)</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public Guid ShiftId { get; set; }
+
+    private CashShiftReportResponse? _report;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        try
+        {
+            _report = await CashShifts.ReportAsync(ShiftId);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("print");
+}

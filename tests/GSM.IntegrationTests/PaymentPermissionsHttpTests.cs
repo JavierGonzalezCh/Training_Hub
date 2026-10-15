@@ -281,7 +281,7 @@ public sealed class PaymentPermissionsHttpTests(ApiFactory factory) : IClassFixt
     {
         var response = await client.PostAsJsonAsync(
             "/api/payments",
-            new RecordPaymentRequest(amount, PaymentMethod.Cash, "Venta de mostrador", null, null, null));
+            new RecordPaymentRequest(amount, PaymentMethod.Card, "Venta de mostrador", null, null, null));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<PaymentResponse>())!;
     }
