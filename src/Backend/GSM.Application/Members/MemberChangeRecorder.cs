@@ -22,14 +22,14 @@ public sealed class MemberChangeRecorder(
     {
         foreach (var change in changes)
         {
-            Add(member, change.Field, change.OldValue, change.NewValue);
+            Add(member, change.Field, change.OldValue, change.NewValue, change.IsSensitive);
         }
     }
 
     public void RecordStatus(Member member, MemberStatus from, MemberStatus to)
         => Add(member, MemberChange.StatusField, EnumText.Snake(from), EnumText.Snake(to));
 
-    private void Add(Member member, string field, string? oldValue, string? newValue)
+    private void Add(Member member, string field, string? oldValue, string? newValue, bool isSensitive = false)
     {
         var role = currentUser.Role switch
         {
@@ -49,6 +49,6 @@ public sealed class MemberChangeRecorder(
 
         members.Add(MemberChange.Record(
             member.GymId, member.Id, field, oldValue, newValue,
-            currentUser.UserId, role, source, clock.UtcNow));
+            currentUser.UserId, role, source, clock.UtcNow, isSensitive));
     }
 }

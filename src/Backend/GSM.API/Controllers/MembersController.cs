@@ -6,6 +6,7 @@ using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
 using GSM.Application.Memberships.Public;
 using GSM.Application.Payments.Public;
+using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -133,6 +134,50 @@ public sealed class MembersController : ControllerBase
         Guid id,
         [FromQuery] ListMemberChangesQuery query,
         [FromServices] ListMemberChangesHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, query, cancellationToken));
+
+    /// <summary>
+    /// Sección de salud de la ficha. Exige el permiso <c>ViewMemberHealth</c> (el Owner lo tiene siempre).
+    /// Sin la autorización de datos del miembro llega bloqueada (<c>consentRequired</c>). Cada consulta
+    /// queda registrada (una por usuario, miembro y día).
+    /// </summary>
+    [HttpGet("{id:guid}/health")]
+    [EndpointName("GetMemberHealth")]
+    [RequirePermission(StaffPermission.ViewMemberHealth)]
+    [ProducesResponseType<MemberHealthView>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MemberHealthView>> GetHealth(
+        Guid id, [FromServices] GetMemberHealthHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>Reemplaza los datos de salud. 409 si el miembro no tiene la autorización de datos.</summary>
+    [HttpPut("{id:guid}/health")]
+    [EndpointName("UpdateMemberHealth")]
+    [RequirePermission(StaffPermission.ViewMemberHealth)]
+    [ProducesResponseType<MemberHealth>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<MemberHealth>> UpdateHealth(
+        Guid id,
+        UpdateMemberHealthRequest request,
+        [FromServices] UpdateMemberHealthHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
+    /// <summary>Quién vio los datos de salud del miembro (solo el Owner), del más reciente al más antiguo.</summary>
+    [HttpGet("{id:guid}/health-access")]
+    [EndpointName("ListMemberHealthAccess")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<PagedResult<MemberHealthAccessItem>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<MemberHealthAccessItem>>> ListHealthAccess(
+        Guid id,
+        [FromQuery] ListMemberChangesQuery query,
+        [FromServices] ListMemberHealthAccessHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, query, cancellationToken));
 

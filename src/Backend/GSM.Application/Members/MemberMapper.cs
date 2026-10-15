@@ -45,6 +45,7 @@ public static class MemberMapper
         m.IsProfileIncomplete)
     {
         TrainerUserId = m.TrainerUserId,
+        HasHealthAlerts = m.HasHealthAlerts,
     };
 
     public static MemberListItem ToListItem(Member m) => new(
@@ -58,7 +59,8 @@ public static class MemberMapper
         m.JoinedAt,
         m.Tags,
         m.IsProfileIncomplete,
-        TrainerUserId: m.TrainerUserId);
+        TrainerUserId: m.TrainerUserId,
+        HasHealthAlerts: m.HasHealthAlerts);
 
     public static MemberProfile ToProfile(IMemberProfileInput r) => new(
         r.FirstName,

@@ -70,4 +70,5 @@ public sealed record MemberInfo(
     string FirstName,
     string LastName,
     MemberStatus Status,
-    string? PhotoUrl = null);
+    string? PhotoUrl = null,
+    bool HasHealthAlerts = false);

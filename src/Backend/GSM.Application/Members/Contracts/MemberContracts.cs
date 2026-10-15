@@ -114,6 +114,9 @@ public sealed record ListMembersQuery
 
     /// <summary>Solo los miembros sin entrenador asignado (la lista para reasignar).</summary>
     public bool WithoutTrainer { get; init; }
+
+    /// <summary>Solo los miembros con condiciones o restricciones de salud anotadas (el aviso, no el detalle).</summary>
+    public bool WithHealthAlerts { get; init; }
 }
 
 /// <summary>Asigna o cambia el entrenador; <c>null</c> lo quita.</summary>
@@ -159,7 +162,8 @@ public sealed record MemberListItem(
     bool IsProfileIncomplete,
     string CommercialStatus = "no_plan",
     Guid? TrainerUserId = null,
-    string? TrainerName = null);
+    string? TrainerName = null,
+    bool HasHealthAlerts = false);
 
 public sealed record MemberDetail(
     Guid Id,
@@ -194,6 +198,9 @@ public sealed record MemberDetail(
     bool IsMinor,
     bool IsProfileIncomplete)
 {
+    /// <summary>Hay condiciones o restricciones de salud anotadas. Es lo único de salud que sale aquí; el detalle va por <c>/health</c> (M3).</summary>
+    public bool HasHealthAlerts { get; init; }
+
     /// <summary>Entrenador asignado (nulo = sin entrenador). El miembro también lo ve.</summary>
     public Guid? TrainerUserId { get; init; }
 

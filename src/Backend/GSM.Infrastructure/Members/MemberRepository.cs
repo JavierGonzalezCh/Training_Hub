@@ -33,6 +33,11 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
                 : q.Where(m => ids.Contains(m.Id));
         }
 
+        if (query.WithHealthAlerts)
+        {
+            q = q.Where(m => m.MedicalConditions != null || m.TrainingRestrictions != null);
+        }
+
         if (query.WithoutTrainer)
         {
             q = q.Where(m => m.TrainerUserId == null);
@@ -87,12 +92,44 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
     public void Add(MemberChange change) => dbContext.Set<MemberChange>().Add(change);
 
     public async Task<(IReadOnlyList<MemberChange> Items, int Total)> GetChangesPageAsync(
-        Guid memberId, int page, int pageSize, CancellationToken cancellationToken = default)
+        Guid memberId, int page, int pageSize, bool includeSensitive, CancellationToken cancellationToken = default)
     {
         var q = dbContext.Set<MemberChange>().Where(c => c.MemberId == memberId);
+        if (!includeSensitive)
+        {
+            q = q.Where(c => !c.IsSensitive);
+        }
+
         var total = await q.CountAsync(cancellationToken);
         var items = await q
             .OrderByDescending(c => c.ChangedAt).ThenByDescending(c => c.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return (items, total);
+    }
+
+    // --- Consultas de salud ---
+
+    public async Task LogHealthAccessAsync(MemberHealthAccess access, CancellationToken cancellationToken = default)
+    {
+        // Una fila por usuario, miembro y día: el índice único lo resuelve sin carreras ni excepciones.
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $@"INSERT INTO members.health_access_log
+                   (id, gym_id, member_id, user_id, role, accessed_at, accessed_on, created_at, updated_at)
+               VALUES ({access.Id}, {access.GymId}, {access.MemberId}, {access.UserId}, {access.Role},
+                       {access.AccessedAt}, {access.AccessedOn}, {access.AccessedAt}, {access.AccessedAt})
+               ON CONFLICT (member_id, user_id, accessed_on) DO NOTHING",
+            cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<MemberHealthAccess> Items, int Total)> GetHealthAccessPageAsync(
+        Guid memberId, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var q = dbContext.Set<MemberHealthAccess>().Where(a => a.MemberId == memberId);
+        var total = await q.CountAsync(cancellationToken);
+        var items = await q
+            .OrderByDescending(a => a.AccessedAt).ThenByDescending(a => a.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

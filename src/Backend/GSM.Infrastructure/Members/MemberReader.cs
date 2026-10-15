@@ -106,5 +106,6 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
 
     private static IQueryable<MemberInfo> Project(IQueryable<Member> source)
         => source.Select(m => new MemberInfo(
-            m.Id, m.GymId, m.UserId, m.FirstName, m.LastName, m.Status, m.PhotoUrl));
+            m.Id, m.GymId, m.UserId, m.FirstName, m.LastName, m.Status, m.PhotoUrl,
+            m.MedicalConditions != null || m.TrainingRestrictions != null));
 }

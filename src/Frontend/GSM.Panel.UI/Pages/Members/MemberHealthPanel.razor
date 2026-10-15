@@ -1,0 +1,147 @@
+@* Sección de salud de la ficha (Members v2, M3). Datos sensibles: solo quien tiene el permiso la abre
+   (la pestaña no se pinta sin él) y cada consulta queda registrada. Sin la autorización de datos del
+   miembro está bloqueada. *@
+@inject IMembersClient Members
+@inject ISnackbar Snackbar
+
+<div class="mt-4 gsm-health">
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_forbidden)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="gsm-health__forbidden">
+            No tienes permiso para ver los datos de salud.
+        </MudAlert>
+    }
+    else if (_consentRequired)
+    {
+        <MudAlert Severity="Severity.Warning" Class="gsm-health__consent-required">
+            El miembro aún no ha aceptado la autorización de tratamiento de datos. Sin ella no se pueden
+            guardar ni ver sus datos de salud. Regístrala en la pestaña «Autorizaciones».
+        </MudAlert>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            Son datos sensibles. Cada vez que abres esta sección queda registrado quién la vio, y cada cambio
+            queda en el historial.
+        </MudAlert>
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_model.MedicalConditions" Label="Condiciones médicas"
+                              Lines="3" MaxLength="1000" Immediate="true" Disabled="_saving" Class="gsm-health__conditions" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_model.Medications" Label="Medicamentos"
+                              Lines="2" MaxLength="1000" Immediate="true" Disabled="_saving" Class="gsm-health__medications" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_model.TrainingRestrictions" Label="Restricciones de entrenamiento"
+                              Lines="3" MaxLength="1000" Immediate="true" Disabled="_saving" Class="gsm-health__restrictions" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                @* Campo de fecha nativo: no depende del popover de Mud y se prueba sin él. *@
+                <MudTextField T="DateTime?" InputType="InputType.Date" Format="yyyy-MM-dd" Label="Fecha del apto médico"
+                              Value="_clearance" ValueChanged="OnClearanceChanged" Disabled="_saving"
+                              Immediate="true" Class="gsm-health__clearance" InputAttributes="@(new Dictionary<string, object> { ["max"] = DateTime.Today.ToString("yyyy-MM-dd") })" />
+            </MudItem>
+        </MudGrid>
+
+        <div class="mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
+                       Class="gsm-health__save">
+                @(_saving ? "Guardando..." : "Guardar salud")
+            </MudButton>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    /// <summary>Se invoca con <c>true</c> si, tras guardar, quedan condiciones o restricciones (el aviso de la cabecera).</summary>
+    [Parameter]
+    public EventCallback<bool> OnSaved { get; set; }
+
+    private readonly HealthModel _model = new();
+    private DateTime? _clearance;
+    private bool _loading = true;
+    private bool _forbidden;
+    private bool _consentRequired;
+    private bool _saving;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        try
+        {
+            var view = await Members.GetMemberHealthAsync(MemberId);
+            _consentRequired = view.ConsentRequired;
+            if (view.Health is { } health)
+            {
+                Fill(health.MedicalConditions, health.Medications, health.TrainingRestrictions, health.MedicalClearanceDate);
+            }
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 403)
+        {
+            _forbidden = true;
+        }
+        catch (GsmApiException ex)
+        {
+            _forbidden = true;
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Fill(string? conditions, string? medications, string? restrictions, DateOnly? clearance)
+    {
+        _model.MedicalConditions = conditions;
+        _model.Medications = medications;
+        _model.TrainingRestrictions = restrictions;
+        _clearance = clearance is { } c ? c.ToDateTime(TimeOnly.MinValue) : null;
+    }
+
+    private void OnClearanceChanged(DateTime? date) => _clearance = date;
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var saved = await Members.UpdateMemberHealthAsync(MemberId, new UpdateMemberHealthRequest
+            {
+                MedicalConditions = _model.MedicalConditions,
+                Medications = _model.Medications,
+                TrainingRestrictions = _model.TrainingRestrictions,
+                MedicalClearanceDate = _clearance is { } d ? DateOnly.FromDateTime(d) : null,
+            });
+            Fill(saved.MedicalConditions, saved.Medications, saved.TrainingRestrictions, saved.MedicalClearanceDate);
+            Snackbar.Add("Datos de salud guardados.", Severity.Success);
+            await OnSaved.InvokeAsync(
+                !string.IsNullOrWhiteSpace(saved.MedicalConditions) || !string.IsNullOrWhiteSpace(saved.TrainingRestrictions));
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private sealed class HealthModel
+    {
+        public string? MedicalConditions { get; set; }
+        public string? Medications { get; set; }
+        public string? TrainingRestrictions { get; set; }
+    }
+}

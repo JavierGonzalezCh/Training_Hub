@@ -10,6 +10,7 @@
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthState
 
 <PageTitle>@(_member?.FirstName is null ? "Miembro" : $"{_member.FirstName} {_member.LastName}") — GSM</PageTitle>
 
@@ -55,6 +56,12 @@ else if (_member is not null)
                 else
                 {
                     <CommercialStatusChip Status="@_member.CommercialStatus" />
+                }
+                @* El aviso de salud lo ve todo el equipo; el detalle, solo quien tiene el permiso. *@
+                @if (_member.HasHealthAlerts)
+                {
+                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small"
+                             Icon="@Icons.Material.Filled.HealthAndSafety" Class="gsm-health-alert">Tiene restricciones</MudChip>
                 }
             </div>
             <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">
@@ -157,6 +164,12 @@ else if (_member is not null)
         <MudTabPanel Text="Autorizaciones">
             <MemberConsentsPanel MemberId="Id" IsMinor="_member.IsMinor" />
         </MudTabPanel>
+        @if (_canViewHealth)
+        {
+            <MudTabPanel Text="Salud">
+                <MemberHealthPanel MemberId="Id" OnSaved="OnHealthSaved" />
+            </MudTabPanel>
+        }
         <MudTabPanel Text="Membresías">
             @if (_memberships is null)
             {
@@ -331,6 +344,10 @@ else if (_member is not null)
         </MudTabPanel>
         <MudTabPanel Text="Historial">
             <MemberHistoryPanel MemberId="Id" />
+            @if (_isOwner && _canViewHealth)
+            {
+                <MemberHealthAccessPanel MemberId="Id" />
+            }
         </MudTabPanel>
     </MudTabs>
 }
@@ -365,7 +382,26 @@ else if (_member is not null)
         }
     }
 
+    // Salud (M3): la pestaña solo existe para quien tiene el permiso; las consultas las ve el Owner.
+    private bool _canViewHealth;
+    private bool _isOwner;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canViewHealth = user.HasPermission(GsmPermissions.ViewMemberHealth);
+        _isOwner = user.IsInRole(GsmRoles.Owner);
+    }
+
     protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private void OnHealthSaved(bool hasAlerts)
+    {
+        if (_member is not null)
+        {
+            _member.HasHealthAlerts = hasAlerts;
+        }
+    }
 
     // La respuesta de asignar no trae membresía ni pagos: solo se actualiza lo del entrenador.
     private void OnTrainerChanged(MemberDetail updated)

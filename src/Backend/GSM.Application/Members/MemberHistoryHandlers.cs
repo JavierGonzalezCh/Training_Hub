@@ -4,6 +4,7 @@ using GSM.Application.Identity.Public;
 using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
+using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using Microsoft.Extensions.Logging;
 
@@ -47,7 +48,8 @@ public sealed class ListMemberChangesHandler(
         var page = query.Page < 1 ? 1 : query.Page;
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
-        var (items, total) = await members.GetChangesPageAsync(memberId, page, pageSize, cancellationToken);
+        var (items, total) = await members.GetChangesPageAsync(
+            memberId, page, pageSize, currentUser.HasPermission(StaffPermission.ViewMemberHealth), cancellationToken);
         var names = await AuthorNames.ResolveAsync(identity, items.Select(c => c.ChangedByUserId), cancellationToken);
 
         return new PagedResult<MemberChangeItem>(

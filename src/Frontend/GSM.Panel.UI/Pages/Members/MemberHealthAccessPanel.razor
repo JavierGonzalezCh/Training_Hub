@@ -1,0 +1,33 @@
+@* Quién vio los datos de salud de la ficha (Members v2, §10). Solo el Owner. Una fila por usuario y día. *@
+@inject IMembersClient Members
+
+<div class="mt-6 gsm-health-access">
+    <MudText Typo="Typo.subtitle1">Consultas de datos de salud</MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+        Quién abrió la sección de salud y qué día. No incluye al propio miembro.
+    </MudText>
+    <ServerTable TItem="MemberHealthAccessItem" Load="LoadAsync" Class="mt-2">
+        <HeaderContent>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Quién</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.AccessedAt)</MudTd>
+            <MudTd DataLabel="Quién">
+                @(context.UserName ?? MemberLabels.ChangeRole(context.Role))
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@MemberLabels.ChangeRole(context.Role)</MudText>
+            </MudTd>
+        </RowTemplate>
+    </ServerTable>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private async Task<ServerTablePage<MemberHealthAccessItem>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var result = await Members.ListMemberHealthAccessAsync(MemberId, page, pageSize, cancellationToken);
+        return new ServerTablePage<MemberHealthAccessItem>(result.Items.ToList(), result.Total);
+    }
+}

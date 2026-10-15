@@ -101,3 +101,13 @@ public sealed class AcceptConsentRequestValidator : AbstractValidator<AcceptCons
         RuleFor(x => x.DocumentVersion).GreaterThanOrEqualTo(0).When(x => x.DocumentVersion is not null);
     }
 }
+
+public sealed class UpdateMemberHealthRequestValidator : AbstractValidator<UpdateMemberHealthRequest>
+{
+    public UpdateMemberHealthRequestValidator()
+    {
+        RuleFor(x => x.MedicalConditions).MaximumLength(Member.HealthTextMaxLength);
+        RuleFor(x => x.Medications).MaximumLength(Member.HealthTextMaxLength);
+        RuleFor(x => x.TrainingRestrictions).MaximumLength(Member.HealthTextMaxLength);
+    }
+}

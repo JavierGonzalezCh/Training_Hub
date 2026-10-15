@@ -44,6 +44,8 @@
             }
             <MudSelectItem Value="@TrainerFilterNone">Sin entrenador</MudSelectItem>
         </MudSelect>
+        <MudCheckBox T="bool" Value="_withHealthAlerts" ValueChanged="OnHealthAlertsChangedAsync"
+                     Label="Con alertas de salud" Class="mr-4 gsm-health-filter" />
         @* Tres opciones caben a la vista: un desplegable las escondía detrás de un clic. *@
         <div class="gsm-segmented" role="group" aria-label="Filtrar por estado">
             @foreach (var (value, label) in StatusFilters)
@@ -69,6 +71,10 @@
                 <span class="gsm-identity">
                     <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials($"{context.FirstName} {context.LastName}")</span>
                     <span>@context.FirstName @context.LastName</span>
+                    @if (context.HasHealthAlerts)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="gsm-health-alert">Restricciones</MudChip>
+                    }
                     @if (context.IsProfileIncomplete)
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">Ficha incompleta</MudChip>
@@ -126,6 +132,14 @@
         _myUserId = Guid.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
     }
 
+    private bool _withHealthAlerts;
+
+    private async Task OnHealthAlertsChangedAsync(bool value)
+    {
+        _withHealthAlerts = value;
+        await _table.RefreshAsync();
+    }
+
     private async Task OnTrainerFilterChangedAsync(string value)
     {
         _trainerFilter = value;
@@ -144,6 +158,7 @@
                 page, pageSize,
                 _trainerFilter == TrainerFilterMine ? _myUserId : null,
                 _trainerFilter == TrainerFilterNone ? true : null,
+                _withHealthAlerts ? true : null, // withHealthAlerts (M3)
                 cancellationToken);
             // La cabecera vive fuera de la tabla: hay que avisarla cuando cambia el total.
             if (_total != result.Total)
