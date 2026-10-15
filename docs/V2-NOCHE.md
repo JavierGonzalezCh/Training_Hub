@@ -118,6 +118,14 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **C1-6:** la cobertura de la asistencia se mide en la fecha de la sesión, no hoy. Confirmar.
 - **C1-7:** el roster no muestra "Gym cerrado" (solo el horario). ¿Hace falta?
 
+- **I5-1:** si la persona es staff y miembro, el código **solo abre sus accesos de miembro**. ¿O todos?
+- **I5-2:** solo puede pedir código quien tiene un acceso de miembro activo; los demás reciben la misma respuesta 202 sin correo. Confirmar.
+- **I5-3:** sin Resend, el código **no aparece en el log** (correo marcado sensible). ¿Se permite verlo solo en Development?
+- **I5-4:** el enlace de invitación `/app/registro?code=…` no lleva el slug del gym, así que la primera vez no sale la marca. ¿Se agrega `&gym=slug` al enlace?
+- **I5-5:** si el correo falla, la respuesta sigue siendo 202 sin aviso. Confirmar.
+- **I5-7:** el límite de 5 códigos por hora no se le avisa al miembro (solo no le llega). ¿Mensaje explícito?
+- Observación de I5: `RefreshTokenService.IssueAsync` usa `DateTimeOffset.UtcNow` en vez de `IClock` (candidato a `BUGS.md`).
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
