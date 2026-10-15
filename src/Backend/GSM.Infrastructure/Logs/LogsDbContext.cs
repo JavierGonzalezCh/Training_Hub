@@ -95,6 +95,19 @@ public sealed class ClientErrorRow : LogRowBase
     public string? DeviceInfo { get; set; }
 }
 
+/// <summary>Fila de <c>logs.error_groups</c>: estado y notas de un grupo de fallas (LG4). PK (kind, fingerprint).</summary>
+public sealed class ErrorGroupRow
+{
+    public string Kind { get; set; } = "";
+    public string Fingerprint { get; set; } = "";
+    public string Title { get; set; } = "";
+    public DateTimeOffset FirstSeenAt { get; set; }
+    public string Status { get; set; } = "new";
+    public string? Notes { get; set; }
+    public DateTimeOffset StatusChangedAt { get; set; }
+    public Guid? StatusChangedBy { get; set; }
+}
+
 /// <summary>Fila de <c>logs.heartbeats</c>.</summary>
 public sealed class HeartbeatRow
 {
@@ -133,6 +146,7 @@ public sealed class LogsDbContext(DbContextOptions<LogsDbContext> options) : DbC
     public DbSet<ExternalFailureRow> ExternalFailures => Set<ExternalFailureRow>();
     public DbSet<ClientErrorRow> ClientErrors => Set<ClientErrorRow>();
     public DbSet<HeartbeatRow> Heartbeats => Set<HeartbeatRow>();
+    public DbSet<ErrorGroupRow> ErrorGroups => Set<ErrorGroupRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -157,5 +171,7 @@ public sealed class LogsDbContext(DbContextOptions<LogsDbContext> options) : DbC
         modelBuilder.Entity<JobRunRow>().ToTable("job_runs").HasKey(e => e.Id);
 
         modelBuilder.Entity<HeartbeatRow>().ToTable("heartbeats").HasKey(e => e.Process);
+
+        modelBuilder.Entity<ErrorGroupRow>().ToTable("error_groups").HasKey(e => new { e.Kind, e.Fingerprint });
     }
 }

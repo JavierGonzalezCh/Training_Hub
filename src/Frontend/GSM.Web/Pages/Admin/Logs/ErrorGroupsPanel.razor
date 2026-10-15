@@ -1,0 +1,140 @@
+@inject IAdminLogsClient Logs
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<div class="d-flex flex-wrap gap-3 mb-4 align-end">
+    <label>
+        <span class="gsm-nav__label">Tipo</span><br />
+        <select data-testid="filter-kind" value="@_kind" @onchange="e => SetAsync(() => _kind = e.Value?.ToString() ?? string.Empty)">
+            <option value="">Todos</option>
+            <option value="error">Errores</option>
+            <option value="event_failure">Eventos fallidos</option>
+            <option value="external">Servicios externos</option>
+            <option value="client">Cliente (web y app)</option>
+        </select>
+    </label>
+    <label>
+        <span class="gsm-nav__label">Estado</span><br />
+        <select data-testid="filter-status" value="@_status" @onchange="e => SetAsync(() => _status = e.Value?.ToString() ?? string.Empty)">
+            <option value="">Todos</option>
+            <option value="new">Nuevo</option>
+            <option value="investigating">Investigando</option>
+            <option value="resolved">Resuelto</option>
+            <option value="ignored">Ignorado</option>
+        </select>
+    </label>
+    <label>
+        <span class="gsm-nav__label">Orden</span><br />
+        <select data-testid="filter-sort" value="@_sort" @onchange="e => SetAsync(() => _sort = e.Value?.ToString() ?? string.Empty)">
+            <option value="recent">Más recientes</option>
+            <option value="frequent">Más frecuentes</option>
+            <option value="new">Nuevos primero</option>
+        </select>
+    </label>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_groups.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="groups-empty">Sin fallas registradas con esos filtros.</MudText>
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0" data-testid="groups-table">
+        <thead>
+            <tr><th>Estado</th><th>Falla</th><th>Dónde</th><th>Veces</th><th>Gyms</th><th>Última vez</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var group in _groups)
+            {
+                <tr data-testid="group-row">
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@StatusColor(group.Status)">@StatusLabel(group.Status)</MudChip>
+                        @if (group.Reopened)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" data-testid="reopened">Reabierto</MudChip>
+                        }
+                    </td>
+                    <td>@KindLabel(group.Kind): @group.Title</td>
+                    <td>@group.Detail</td>
+                    <td>@group.Count</td>
+                    <td>@group.GymsAffected</td>
+                    <td>@GsmFormat.Instant(group.LastSeenAt)</td>
+                    <td>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => Open(group))" data-testid="open-group">Ver</MudButton>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<ErrorGroupItem> _groups = [];
+    private string _kind = string.Empty;
+    private string _status = string.Empty;
+    private string _sort = "recent";
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task SetAsync(Action change)
+    {
+        change();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var page = await Logs.ListErrorGroupsAsync(
+                Blank(_kind), Blank(_status), _sort, null, 1, 100);
+            _groups = page.Items.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string? Blank(string value) => string.IsNullOrEmpty(value) ? null : value;
+
+    private void Open(ErrorGroupItem group)
+        => Navigation.NavigateTo(
+            $"/admin/logs/group?kind={Uri.EscapeDataString(group.Kind)}&fingerprint={Uri.EscapeDataString(group.Fingerprint)}");
+
+    internal static string KindLabel(string kind) => kind switch
+    {
+        "error" => "Error",
+        "event_failure" => "Evento fallido",
+        "external" => "Servicio externo",
+        "client" => "Cliente",
+        _ => kind,
+    };
+
+    internal static string StatusLabel(string status) => status switch
+    {
+        "new" => "Nuevo",
+        "investigating" => "Investigando",
+        "resolved" => "Resuelto",
+        "ignored" => "Ignorado",
+        _ => status,
+    };
+
+    internal static Color StatusColor(string status) => status switch
+    {
+        "new" => Color.Error,
+        "investigating" => Color.Warning,
+        "resolved" => Color.Success,
+        _ => Color.Default,
+    };
+}

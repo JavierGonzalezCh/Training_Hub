@@ -1,0 +1,19 @@
+@page "/admin/logs"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+
+<PageTitle>Errores — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-6">Errores</MudText>
+
+<MudTabs Elevation="0" Rounded="false" PanelClass="pt-4">
+    <MudTabPanel Text="Fallas">
+        <ErrorGroupsPanel />
+    </MudTabPanel>
+    <MudTabPanel Text="Eventos fallidos">
+        <EventFailuresPanel />
+    </MudTabPanel>
+    <MudTabPanel Text="Buscar por código">
+        <TraceSearchPanel />
+    </MudTabPanel>
+</MudTabs>

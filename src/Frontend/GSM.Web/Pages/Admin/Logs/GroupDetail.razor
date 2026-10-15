@@ -1,0 +1,180 @@
+@page "/admin/logs/group"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+@inject IAdminLogsClient Logs
+@inject ISnackbar Snackbar
+
+<PageTitle>Detalle de falla — GSM</PageTitle>
+
+<MudButton Href="/admin/logs" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mb-4">Errores</MudButton>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_detail is null)
+{
+    <MudText Color="Color.Secondary">No se encontró el grupo.</MudText>
+}
+else
+{
+    var group = _detail.Group;
+    <MudText Typo="Typo.h5" data-testid="group-title">@ErrorGroupsPanel.KindLabel(group.Kind): @group.Title</MudText>
+    <MudText Color="Color.Secondary" Class="mb-4">
+        @group.Detail · @group.Count veces · @group.GymsAffected gyms ·
+        primera vez @GsmFormat.Instant(group.FirstSeenAt) · última @GsmFormat.Instant(group.LastSeenAt)
+    </MudText>
+
+    <div class="d-flex flex-wrap gap-2 mb-3 align-center">
+        <MudChip T="string" Color="@ErrorGroupsPanel.StatusColor(group.Status)" data-testid="current-status">
+            @ErrorGroupsPanel.StatusLabel(group.Status)
+        </MudChip>
+        @if (group.Reopened)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Warning">Estaba resuelto y volvió a ocurrir.</MudText>
+        }
+        <MudSpacer />
+        @foreach (var status in new[] { "new", "investigating", "resolved", "ignored" })
+        {
+            var target = status;
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" data-testid="@($"status-{target}")"
+                       Disabled="@(_saving || group.Status == target)" OnClick="@(() => SetStatusAsync(target))">
+                @ErrorGroupsPanel.StatusLabel(target)
+            </MudButton>
+        }
+    </div>
+
+    <MudTextField T="string" @bind-Value="_notes" Label="Notas" Lines="3" Variant="Variant.Outlined" data-testid="group-notes" Class="mb-6" />
+
+    @if (group.Kind == "event_failure" && group.PendingRetries > 0)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-4" OnClick="RetryGroupAsync"
+                   Disabled="_saving" data-testid="retry-group">
+            Reintentar los @group.PendingRetries pendientes
+        </MudButton>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-2">Ocurrencias recientes</MudText>
+    <MudSimpleTable Dense="true" Elevation="0" data-testid="occurrences-table">
+        <thead>
+            <tr><th>Código</th><th>Cuándo</th><th>Gym</th><th>Usuario</th><th>Petición</th><th>Mensaje</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var o in _detail.Occurrences)
+            {
+                <tr data-testid="occurrence-row">
+                    <td class="gsm-mono">@o.TraceCode</td>
+                    <td>@GsmFormat.Instant(o.OccurredAt)</td>
+                    <td class="gsm-mono">@Short(o.GymId)</td>
+                    <td class="gsm-mono">@Short(o.UserId) @o.Role</td>
+                    <td>@o.Method @o.Path</td>
+                    <td>
+                        @o.Message
+                        @if (!string.IsNullOrEmpty(o.StackTrace))
+                        {
+                            <details><summary>Traza</summary><pre>@o.StackTrace</pre></details>
+                        }
+                        @if (!string.IsNullOrEmpty(o.RequestSummary))
+                        {
+                            <details><summary>Petición</summary><pre>@o.RequestSummary</pre></details>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "kind")] public string? Kind { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "fingerprint")] public string? Fingerprint { get; set; }
+
+    private ErrorGroupDetail? _detail;
+    private string? _notes;
+    private bool _loading = true;
+    private bool _saving;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrEmpty(Kind) || string.IsNullOrEmpty(Fingerprint))
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            _detail = await Logs.GetErrorGroupAsync(Kind, Fingerprint);
+            _notes = _detail.Group.Notes;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SetStatusAsync(string status)
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var updated = await Logs.SetErrorGroupStatusAsync(new SetErrorGroupStatusRequest
+            {
+                Kind = _detail.Group.Kind,
+                Fingerprint = _detail.Group.Fingerprint,
+                Status = status,
+                Notes = _notes,
+            });
+            _detail = new ErrorGroupDetail { Group = updated, Occurrences = _detail.Occurrences };
+            Snackbar.Add("Estado actualizado.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task RetryGroupAsync()
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var parts = _detail.Group.Fingerprint.Split('|');
+            var result = await Logs.RetryEventFailureGroupAsync(
+                new RetryEventGroupRequest { EventType = parts[0], HandlerType = parts[1] });
+            Snackbar.Add(
+                $"{result.Succeeded} resueltos, {result.Failed} fallaron otra vez, {result.NotRetryable} no se pueden reintentar.",
+                result.Failed + result.NotRetryable == 0 ? Severity.Success : Severity.Warning);
+            _detail = await Logs.GetErrorGroupAsync(_detail.Group.Kind, _detail.Group.Fingerprint);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private static string Short(Guid? id) => id is { } g ? g.ToString("N")[..8] : "—";
+}
