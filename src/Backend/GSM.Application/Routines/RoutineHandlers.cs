@@ -90,10 +90,14 @@ internal static class RoutineDrafting
     }
 
     public static async Task<RoutineResponse> BuildResponseAsync(
-        IExerciseRepository exercises, Routine routine, CancellationToken cancellationToken)
+        IExerciseRepository exercises,
+        ExerciseEquipmentResolver equipment,
+        Routine routine,
+        CancellationToken cancellationToken)
     {
         var names = await exercises.GetVisibleSummariesAsync(RoutineMapper.ExerciseIds(routine), cancellationToken);
-        return RoutineMapper.ToResponse(routine, names);
+        var machines = await equipment.ResolveAsync(RoutineMapper.EquipmentNeeds(routine, names), cancellationToken);
+        return RoutineMapper.ToResponse(routine, names, machines);
     }
 }
 
@@ -102,6 +106,7 @@ public sealed class AssignRoutineHandler(
     IClock clock,
     IMemberReader members,
     IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
     IRoutineRepository routines,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
@@ -140,7 +145,7 @@ public sealed class AssignRoutineHandler(
         await events.PublishAsync(
             new RoutineAssigned(routine.Id, memberId, gymId, SelfAssigned: false), cancellationToken);
 
-        return await RoutineDrafting.BuildResponseAsync(exercises, routine, cancellationToken);
+        return await RoutineDrafting.BuildResponseAsync(exercises, equipment, routine, cancellationToken);
     }
 }
 
@@ -151,6 +156,7 @@ public sealed class SelfAssignRoutineHandler(
     IGymReader gyms,
     IMemberReader members,
     IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
     IRoutineRepository routines,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
@@ -185,7 +191,7 @@ public sealed class SelfAssignRoutineHandler(
         await events.PublishAsync(
             new RoutineAssigned(routine.Id, self.Id, gymId, SelfAssigned: true), cancellationToken);
 
-        return await RoutineDrafting.BuildResponseAsync(exercises, routine, cancellationToken);
+        return await RoutineDrafting.BuildResponseAsync(exercises, equipment, routine, cancellationToken);
     }
 }
 
@@ -199,6 +205,7 @@ public sealed class UpdateRoutineHandler(
     ICurrentUserService currentUser,
     IClock clock,
     IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
     IRoutineRepository routines,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
@@ -231,7 +238,7 @@ public sealed class UpdateRoutineHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Rutina {RoutineId} editada en el lugar ({Days} días)", routine.Id, routine.CycleLength);
-        return await RoutineDrafting.BuildResponseAsync(exercises, routine, cancellationToken);
+        return await RoutineDrafting.BuildResponseAsync(exercises, equipment, routine, cancellationToken);
     }
 
     private async Task<RoutineResponse> ChangeModeAsync(
@@ -266,7 +273,7 @@ public sealed class UpdateRoutineHandler(
         await events.PublishAsync(
             new RoutineAssigned(replacement.Id, previous.MemberId, gymId, previous.SelfAssigned), cancellationToken);
 
-        return await RoutineDrafting.BuildResponseAsync(exercises, replacement, cancellationToken);
+        return await RoutineDrafting.BuildResponseAsync(exercises, equipment, replacement, cancellationToken);
     }
 }
 
@@ -296,7 +303,10 @@ public sealed class DeactivateRoutineHandler(
 }
 
 public sealed class GetRoutineHandler(
-    ICurrentUserService currentUser, IExerciseRepository exercises, IRoutineRepository routines)
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
+    IRoutineRepository routines)
 {
     public async Task<RoutineResponse> HandleAsync(Guid routineId, CancellationToken cancellationToken)
     {
@@ -305,7 +315,7 @@ public sealed class GetRoutineHandler(
         var routine = await routines.GetWithDaysAsync(routineId, cancellationToken)
             ?? throw new NotFoundException("Rutina no encontrada.");
 
-        return await RoutineDrafting.BuildResponseAsync(exercises, routine, cancellationToken);
+        return await RoutineDrafting.BuildResponseAsync(exercises, equipment, routine, cancellationToken);
     }
 }
 
@@ -334,6 +344,7 @@ public sealed class GetMyRoutineHandler(
     IGymReader gyms,
     IMemberReader members,
     IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
     IRoutineRepository routines)
 {
     public async Task<MyRoutineResponse> HandleAsync(CancellationToken cancellationToken)
@@ -352,7 +363,8 @@ public sealed class GetMyRoutineHandler(
 
         var names = await exercises.GetVisibleSummariesAsync(
             RoutineMapper.ExerciseIds(routine), cancellationToken);
-        var response = RoutineMapper.ToResponse(routine, names);
+        var machines = await equipment.ResolveAsync(RoutineMapper.EquipmentNeeds(routine, names), cancellationToken);
+        var response = RoutineMapper.ToResponse(routine, names, machines);
 
         var today = clock.Today;
         var day = RoutineSchedule.DayOn(routine, today);
@@ -366,7 +378,7 @@ public sealed class GetMyRoutineHandler(
                 RoutineMapper.DayName(day),
                 day.IsRest,
                 day.Exercises.OrderBy(e => e.Order)
-                    .Select(e => RoutineMapper.ToExerciseResponse(e, names)).ToList(),
+                    .Select(e => RoutineMapper.ToExerciseResponse(e, names, machines)).ToList(),
                 IsoWeekDay.Of(today),
                 RoutineMapper.MuscleGroupsOf(day, names));
 

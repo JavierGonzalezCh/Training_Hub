@@ -72,6 +72,12 @@
             }
         </select>
     </label>
+    @* Nivel 1 (Equipment E3): con inventario, por defecto solo lo que el gym puede hacer hoy. Sin inventario no filtra nada. *@
+    <label class="d-flex align-center" style="gap:.5rem">
+        <input type="checkbox" data-testid="filter-here" checked="@_onlyHere"
+               @onchange="@(e => OnOnlyHereChangedAsync(e.Value is true))" />
+        <span>Solo lo que se puede hacer en mi gym</span>
+    </label>
     <label class="d-flex align-center" style="gap:.5rem">
         <input type="checkbox" data-testid="filter-hidden" checked="@_showHidden"
                @onchange="@(e => OnShowHiddenChangedAsync(e.Value is true))" />
@@ -110,6 +116,10 @@ else
                 {
                     <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono ml-2" Color="Color.Warning">OCULTO</MudChip>
                 }
+                @if (context.IsAvailableHere == false)
+                {
+                    <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono ml-2" Color="Color.Error" data-testid="not-available-chip">NO SE PUEDE HOY</MudChip>
+                }
             </MudTd>
             <MudTd DataLabel="Músculo">
                 @RoutineLabels.MuscleLabel(context.PrimaryMuscle)
@@ -122,7 +132,13 @@ else
                 <MudText Typo="Typo.caption" Color="Color.Secondary">@RoutineLabels.TrackingTypeLabel(context.TrackingType)</MudText>
             </MudTd>
             <MudTd DataLabel="Nivel">@RoutineLabels.DifficultyLabel(context.Difficulty)</MudTd>
-            <MudTd DataLabel="Equipo">@string.Join(", ", context.Equipment.Select(RoutineLabels.EquipmentLabel))</MudTd>
+            <MudTd DataLabel="Equipo">
+                @string.Join(", ", context.Equipment.Select(RoutineLabels.EquipmentLabel))
+                @if (context.Machines is { Count: > 0 } machines)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="machines">@string.Join(", ", machines.Select(m => m.Name))</MudText>
+                }
+            </MudTd>
             <MudTd DataLabel="Origen">
                 <MudChip T="string" Color="@(context.IsSystem ? Color.Default : Color.Info)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                     @(context.IsSystem ? "SISTEMA" : "GYM")
@@ -133,6 +149,7 @@ else
                 {
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" title="Editar" />
                 }
+                <MudIconButton Icon="@Icons.Material.Filled.PrecisionManufacturing" Size="Size.Small" OnClick="@(() => OpenEquipmentAsync(context))" title="Máquinas" data-testid="@($"machines-{context.Id}")" />
                 <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" OnClick="@(() => OpenDuplicateAsync(context))" title="Duplicar" />
                 @if (context.IsSystem)
                 {
@@ -160,6 +177,7 @@ else
     private string _difficulty = FilterValues.All;
     private string _equipment = FilterValues.All;
     private bool _showHidden;
+    private bool _onlyHere = true;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -178,7 +196,8 @@ else
                 ToFilter(_group),
                 ToFilter(_type),
                 ToFilter(_difficulty),
-                _showHidden);
+                _showHidden,
+                _onlyHere);
             _exercises = result.ToList();
         }
         catch (GsmApiException ex)
@@ -232,6 +251,28 @@ else
     {
         _showHidden = value;
         await LoadAsync();
+    }
+
+    private async Task OnOnlyHereChangedAsync(bool value)
+    {
+        _onlyHere = value;
+        await LoadAsync();
+    }
+
+    private async Task OpenEquipmentAsync(ExerciseResponse exercise)
+    {
+        var parameters = new DialogParameters<ExerciseEquipmentDialog>
+        {
+            { x => x.ExerciseId, exercise.Id },
+            { x => x.ExerciseName, exercise.Name },
+        };
+        var dialog = await Dialogs.ShowAsync<ExerciseEquipmentDialog>("Máquinas del ejercicio", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Máquinas actualizadas.", Severity.Success);
+            await LoadAsync();
+        }
     }
 
     private async Task OpenCreateAsync()

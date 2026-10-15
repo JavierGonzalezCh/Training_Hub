@@ -10,6 +10,8 @@ public static class RoutinesModuleRegistration
         // Los casos de uso (*Handler), validators y handlers de eventos se registran por assembly scanning.
         // Añade aquí solo lo que el scanning no cubra.
 
+        services.AddScoped<ExerciseEquipmentResolver>();
+
         return services;
     }
 }

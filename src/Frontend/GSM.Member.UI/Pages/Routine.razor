@@ -86,6 +86,10 @@ else
                             <span class="gsm-m-ex__target">
                                 Meta: @SetPlan.Summary(targets, exercise.IsUnilateral == true)@(exercise.RestSeconds is { } rest ? (inGroup ? $" · descanso por vuelta {rest} s" : $" · descanso {rest} s") : "")
                             </span>
+                            @if (EquipmentNotice.Warning(exercise.Equipment) is { } headWarning)
+                            {
+                                <span class="gsm-m-ex__target" style="color:var(--mud-palette-warning)" data-testid="@($"unavailable-{exercise.Id}")">@headWarning</span>
+                            }
                             @if (state.Done)
                             {
                                 <span class="gsm-m-ex__target" data-testid="@($"progress-{exercise.Id}")">@SetPlan.ProgressText(outcomes)</span>
@@ -97,6 +101,40 @@ else
                     @if (state.Open)
                     {
                         <div class="gsm-m-ex__body">
+                            @if (exercise.Equipment is { } equipment)
+                            {
+                                var machine = EquipmentNotice.Primary(equipment);
+                                <div class="gsm-m-equip" data-testid="@($"equipment-{exercise.Id}")">
+                                    @if (machine is not null)
+                                    {
+                                        <div class="gsm-m-equip__row">
+                                            @if (machine.PhotoUrl is { Length: > 0 } photo)
+                                            {
+                                                <img class="gsm-m-equip__photo" src="@photo" alt="@machine.Name" loading="lazy" />
+                                            }
+                                            else
+                                            {
+                                                <span class="gsm-m-equip__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Filled.FitnessCenter" /></span>
+                                            }
+                                            <div class="gsm-m-equip__text">
+                                                <strong data-testid="equipment-name">@machine.Name</strong>
+                                                @if (EquipmentNotice.Location(machine) is { } zone)
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block" data-testid="equipment-zone">@zone</MudText>
+                                                }
+                                                @if (machine.Instructions is { Length: > 0 } instructions)
+                                                {
+                                                    <p data-testid="equipment-instructions">@instructions</p>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (EquipmentNotice.Warning(equipment) is { } warning)
+                                    {
+                                        <MudAlert Severity="Severity.Warning" Dense="true" data-testid="equipment-warning">@warning</MudAlert>
+                                    }
+                                </div>
+                            }
                             @for (var n = 0; n < state.Rows.Count; n++)
                             {
                                 var row = state.Rows[n];

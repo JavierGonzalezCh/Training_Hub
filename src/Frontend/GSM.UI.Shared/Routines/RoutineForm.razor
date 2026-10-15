@@ -107,6 +107,13 @@
                         </MudItem>
                     </MudGrid>
 
+                    @if (exercise.EquipmentWarning is { } warning)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2" data-testid="@($"equipment-warning-{index}-{lineIndex}")">
+                            @warning
+                        </MudAlert>
+                    }
+
                     @if (exercise.Exercise is not null)
                     {
                         @for (var setIndex = 0; setIndex < exercise.Sets.Count; setIndex++)

@@ -30,11 +30,12 @@ public sealed class ExercisesController : ControllerBase
         [FromQuery] MuscleGroup? muscleGroup = null,
         [FromQuery] ExerciseType? exerciseType = null,
         [FromQuery] Difficulty? difficulty = null,
-        [FromQuery] bool includeHidden = false)
+        [FromQuery] bool includeHidden = false,
+        [FromQuery] bool onlyAvailableHere = false)
         => Ok(await handler.HandleAsync(
             new ExerciseFilter(
                 search, primaryMuscle, equipment, includeInactive,
-                muscleGroup, exerciseType, difficulty, includeHidden),
+                muscleGroup, exerciseType, difficulty, includeHidden, onlyAvailableHere),
             cancellationToken));
 
     [HttpGet("{id:guid}")]
@@ -115,6 +116,46 @@ public sealed class ExercisesController : ControllerBase
         Guid id, [FromServices] ShowExerciseHandler handler, CancellationToken cancellationToken)
     {
         await handler.HandleAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Cómo está ligado el ejercicio a máquinas: modelos del sistema, ligas del gym y máquinas resultantes.</summary>
+    [HttpGet("{id:guid}/equipment")]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
+    [ProducesResponseType<ExerciseEquipmentLinksResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ExerciseEquipmentLinksResponse>> GetExerciseEquipment(
+        Guid id, [FromServices] GetExerciseEquipmentHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>SuperAdmin: liga un ejercicio del sistema a modelos del catálogo de máquinas (reemplaza las ligas).</summary>
+    [HttpPut("{id:guid}/equipment-models")]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> SetExerciseEquipmentModels(
+        Guid id,
+        SetExerciseEquipmentModelsRequest request,
+        [FromServices] SetExerciseEquipmentModelsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, request, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Staff: liga un ejercicio a máquinas del gym (reemplaza las ligas del gym; vacío = ligado por modelo).</summary>
+    [HttpPut("{id:guid}/equipment-items")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> SetExerciseEquipmentItems(
+        Guid id,
+        SetExerciseEquipmentItemsRequest request,
+        [FromServices] SetExerciseEquipmentItemsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, request, cancellationToken);
         return NoContent();
     }
 }

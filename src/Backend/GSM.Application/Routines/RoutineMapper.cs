@@ -10,7 +10,10 @@ namespace GSM.Application.Routines;
 /// </summary>
 public static class RoutineMapper
 {
-    public static RoutineResponse ToResponse(Routine routine, IReadOnlyDictionary<Guid, ExerciseSummary> exercises)
+    public static RoutineResponse ToResponse(
+        Routine routine,
+        IReadOnlyDictionary<Guid, ExerciseSummary> exercises,
+        IReadOnlyDictionary<Guid, ExerciseEquipmentInfo>? equipment = null)
         => new(
             routine.Id,
             routine.MemberId,
@@ -22,17 +25,19 @@ public static class RoutineMapper
             routine.IsActive,
             routine.DeactivatedOn,
             routine.CycleLength,
-            routine.Days.OrderBy(d => d.Position).Select(d => ToDayResponse(d, exercises)).ToList(),
+            routine.Days.OrderBy(d => d.Position).Select(d => ToDayResponse(d, exercises, equipment)).ToList(),
             RoutineSchedule.ModeToText(routine.ScheduleMode));
 
     public static RoutineDayResponse ToDayResponse(
-        RoutineDay day, IReadOnlyDictionary<Guid, ExerciseSummary> exercises)
+        RoutineDay day,
+        IReadOnlyDictionary<Guid, ExerciseSummary> exercises,
+        IReadOnlyDictionary<Guid, ExerciseEquipmentInfo>? equipment = null)
         => new(
             day.Id,
             day.Position,
             DayName(day),
             day.IsRest,
-            day.Exercises.OrderBy(e => e.Order).Select(e => ToExerciseResponse(e, exercises)).ToList(),
+            day.Exercises.OrderBy(e => e.Order).Select(e => ToExerciseResponse(e, exercises, equipment)).ToList(),
             day.DayOfWeek,
             MuscleGroupsOf(day, exercises));
 
@@ -47,7 +52,9 @@ public static class RoutineMapper
             .ToList();
 
     public static RoutineExerciseResponse ToExerciseResponse(
-        RoutineExercise exercise, IReadOnlyDictionary<Guid, ExerciseSummary> exercises)
+        RoutineExercise exercise,
+        IReadOnlyDictionary<Guid, ExerciseSummary> exercises,
+        IReadOnlyDictionary<Guid, ExerciseEquipmentInfo>? equipment = null)
     {
         exercises.TryGetValue(exercise.ExerciseId, out var info);
         return new(
@@ -61,7 +68,8 @@ public static class RoutineMapper
             exercise.Notes,
             (info?.TrackingType ?? TrackingType.RepsWeight).ToString(),
             info?.IsUnilateral ?? false,
-            (info is null ? MuscleGroup.FullBody : MuscleGroups.Of(info.PrimaryMuscle)).ToString());
+            (info is null ? MuscleGroup.FullBody : MuscleGroups.Of(info.PrimaryMuscle)).ToString(),
+            equipment is not null && equipment.TryGetValue(exercise.ExerciseId, out var machines) ? machines : null);
     }
 
     public static SetTargetResponse ToSetTargetResponse(SetTarget t)
@@ -83,6 +91,14 @@ public static class RoutineMapper
     public static RoutineListItem ToListItem(Routine routine)
         => new(routine.Id, routine.Name, routine.StartsOn, routine.IsActive, routine.DeactivatedOn, routine.CycleLength,
             RoutineSchedule.ModeToText(routine.ScheduleMode));
+
+    /// <summary>Lo que Equipment necesita saber de cada ejercicio de la rutina (los tipos de equipo que pide).</summary>
+    public static IReadOnlyList<ExerciseNeed> EquipmentNeeds(
+        Routine routine, IReadOnlyDictionary<Guid, ExerciseSummary> exercises)
+        => ExerciseIds(routine)
+            .Select(id => new ExerciseNeed(
+                id, exercises.TryGetValue(id, out var x) && x.Equipment is { } types ? types : []))
+            .ToList();
 
     public static IReadOnlyList<Guid> ExerciseIds(Routine routine)
         => routine.Days.SelectMany(d => d.Exercises.Select(e => e.ExerciseId)).Distinct().ToList();

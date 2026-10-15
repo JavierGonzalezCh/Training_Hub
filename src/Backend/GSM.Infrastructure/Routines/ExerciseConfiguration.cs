@@ -66,3 +66,39 @@ public sealed class GymHiddenExerciseConfiguration : IEntityTypeConfiguration<Gy
         builder.HasIndex(h => new { h.GymId, h.ExerciseId }).IsUnique();
     }
 }
+
+public sealed class ExerciseEquipmentModelConfiguration : IEntityTypeConfiguration<ExerciseEquipmentModel>
+{
+    public void Configure(EntityTypeBuilder<ExerciseEquipmentModel> builder)
+    {
+        builder.ToTable("exercise_equipment_models", "routines");
+
+        // ModelId apunta a equipment.equipment_models: sin FK entre schemas de módulos distintos.
+        builder.HasOne<Exercise>()
+            .WithMany()
+            .HasForeignKey(l => l.ExerciseId)
+            .HasConstraintName("fk_exercise_equipment_models_exercises")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(l => new { l.ExerciseId, l.ModelId }).IsUnique();
+        builder.HasIndex(l => l.ModelId);
+    }
+}
+
+public sealed class ExerciseEquipmentItemConfiguration : IEntityTypeConfiguration<ExerciseEquipmentItem>
+{
+    public void Configure(EntityTypeBuilder<ExerciseEquipmentItem> builder)
+    {
+        builder.ToTable("exercise_equipment_items", "routines");
+
+        // EquipmentItemId apunta a equipment.equipment_items: sin FK entre schemas de módulos distintos.
+        builder.HasOne<Exercise>()
+            .WithMany()
+            .HasForeignKey(l => l.ExerciseId)
+            .HasConstraintName("fk_exercise_equipment_items_exercises")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(l => new { l.GymId, l.ExerciseId, l.EquipmentItemId }).IsUnique();
+        builder.HasIndex(l => new { l.GymId, l.EquipmentItemId });
+    }
+}

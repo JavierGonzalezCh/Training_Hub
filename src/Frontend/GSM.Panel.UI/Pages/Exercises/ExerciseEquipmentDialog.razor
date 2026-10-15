@@ -1,0 +1,161 @@
+@using GSM.Panel.UI.Pages.Equipment
+@using GSM.UI.Shared.Routines
+@inject IExercisesClient Exercises
+@inject IEquipmentClient Equipment
+
+@* Ligas de un ejercicio con las máquinas del gym (Equipment E3 §5). Las del sistema (por modelo) son de solo
+   lectura; las del gym corrigen el ligado automático: si hay alguna, solo esas cuentan. *@
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudText Class="mb-3">
+                Máquinas con las que se hace <strong>@ExerciseName</strong> en tu gimnasio.
+            </MudText>
+
+            @if (_models.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2">Ligado por el sistema</MudText>
+                <div class="mb-3" data-testid="linked-models">
+                    @foreach (var model in _models)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@model.Name</MudChip>
+                    }
+                </div>
+            }
+
+            <MudText Typo="Typo.subtitle2">Tus máquinas</MudText>
+            @if (_inventory.Count == 0)
+            {
+                <MudText Color="Color.Secondary" Class="mb-3" data-testid="no-inventory">
+                    Aún no hay máquinas en el inventario. Agrégalas en Equipos para poder ligarlas.
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
+                    Si eliges alguna, solo esas cuentan para este ejercicio en tu gimnasio; sin ninguna, vale el ligado por modelo.
+                </MudText>
+                <div class="d-flex flex-column mb-3" style="max-height:320px;overflow:auto">
+                    @foreach (var item in _inventory)
+                    {
+                        <label class="d-flex align-center" style="gap:.5rem">
+                            <input type="checkbox" data-testid="@($"link-{item.Id}")" checked="@_selected.Contains(item.Id)"
+                                   @onchange="@(e => Toggle(item.Id, e.Value is true))" />
+                            <span>@item.Name</span>
+                            @if (!string.IsNullOrWhiteSpace(item.Zone))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@item.Zone</MudText>
+                            }
+                            @if (item.Status != EquipmentNotice.Available)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@EquipmentDisplay.StatusColor(item.Status)">
+                                    @EquipmentDisplay.StatusLabel(item.Status)
+                                </MudChip>
+                            }
+                        </label>
+                    }
+                </div>
+            }
+
+            @if (!_isAvailableHere)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" data-testid="not-available">
+                    Hoy no se puede hacer este ejercicio en tu gimnasio.
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting" data-testid="save-links">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid ExerciseId { get; set; }
+
+    [Parameter]
+    public string ExerciseName { get; set; } = string.Empty;
+
+    private bool _loading = true;
+    private bool _submitting;
+    private bool _isAvailableHere = true;
+    private string? _error;
+    private List<ExerciseLinkedModel> _models = [];
+    private List<EquipmentItemResponse> _inventory = [];
+    private readonly HashSet<Guid> _selected = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var links = await Exercises.GetExerciseEquipmentAsync(ExerciseId);
+            _models = (links.Models ?? []).ToList();
+            _isAvailableHere = links.IsAvailableHere;
+            foreach (var id in links.ItemIds ?? [])
+            {
+                _selected.Add(id);
+            }
+
+            _inventory = (await Equipment.ListEquipmentAsync()).OrderBy(i => i.Name).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Toggle(Guid id, bool on)
+    {
+        if (on)
+        {
+            _selected.Add(id);
+        }
+        else
+        {
+            _selected.Remove(id);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _submitting = true;
+        try
+        {
+            await Exercises.SetExerciseEquipmentItemsAsync(
+                ExerciseId, new SetExerciseEquipmentItemsRequest { ItemIds = _selected.ToList() });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
