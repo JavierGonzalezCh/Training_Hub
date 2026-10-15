@@ -137,6 +137,11 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **P3-6 (técnico, sin decidir):** dos aperturas simultáneas las rechaza el índice único, pero esa carrera da 500 en vez de 409. Arreglo pendiente pequeño.
 - **Observación de C1:** reservar una sesión que ya empezó puede dejar la sesión materializada sin reserva (inofensivo; preexistente).
 
+- **C5-1:** la fecha de fin de la serie es **inclusiva** (ese día aún hay clase). Confirmar.
+- **C5-2:** se permite poner una fecha de fin ya pasada (siempre que no sea anterior al inicio). Confirmar.
+- **C5-3:** si se acorta la serie y ya hay reservas después del nuevo fin, esas sesiones siguen y **no se cancelan ni se avisa**. ¿Se cancelan y se notifica?
+- **C5-4:** la fecha de fin es independiente de dar de baja la clase. Confirmar.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
