@@ -91,6 +91,10 @@
 | MS2 | **Unida** | Precio acordado con motivo, matrícula por gym (primera membresía), un solo cobro por el total desde el diálogo. Ver preguntas MS2 |
 | LG3 | **Unida** | `external_failures` y `client_errors`; `POST /api/logs/client` anónimo (20/min, 40 KB); borde de errores en los layouts. Android sin compilar. Ver preguntas LG3 |
 | I4+G4 | **Unida** | Varios Owners, ascender, quitar (nunca el último, candado), traspaso en dos llamadas, contacto de facturación. Suite 756 + 367. Ver preguntas I4 |
+| MS3 | **Unida** | Planes en días o meses del calendario (`duration_unit`, `duration_value` renombrada), `cycle_day` para no perder días en cadena. Ver preguntas MS3 |
+| A4 | **Unida** | Entrada con documento en el kiosco (ajuste `by_document`, apagado), rechazo genérico, bloqueo de 5 fallos / 1 min con `document_entry_locked`. Ver preguntas A4 |
+| R5 | **Unida** | Alternativas recomendadas (tabla + ~31 pares sembrados) y sugeridas; "Cambiar por…" y "Hacer otro ejercicio hoy". Ver preguntas R5 |
+| LG4 | **Unida** | `/admin/logs`: grupos con estado, búsqueda por código (prefijo ≥ 4), reintento de eventos (sin refrescadores aún). Suite 800 + 390. Ver preguntas LG4 |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -286,6 +290,25 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **I4-3:** el cambio de contacto de facturación no se audita. ¿Se audita?
 - **I4-4:** el traspaso son dos llamadas desde la UI (primero agregar, luego quitarse). Si el nuevo no activó su cuenta, el gym queda con un Owner pendiente. "Copiar enlace" para el Owner quedó fuera.
 
+**Preguntas de la tanda MS3/A4/R5/LG4 (2026-10-15):**
+
+- **MS3-1:** al reanudar un congelamiento se corre el fin pero no el día del ciclo; la siguiente renovación arranca un ciclo nuevo si no coincide. ¿Esperado? (ligado a MS4)
+- **MS3-2:** la membresía no guarda la unidad ni la duración del plan; si MS5/MS6 las necesitan, habrá que guardarlas.
+- **A4-1:** "Bienvenido/a, Ana" (no hay dato de género). ¿Se queda así?
+- **A4-2:** con el QR apagado, el kiosco muestra "desactivado" aunque el documento esté encendido. ¿Debe funcionar el documento sin QR?
+- **A4-3:** el bloqueo por intentos vive en memoria (un reinicio lo limpia; no sirve con varias instancias).
+- **A4-4:** el documento se compara sin tipo: dos miembros con el mismo número y distinto tipo son rechazados los dos.
+- **A4-5:** el ajuste se llama `ByDocument` y vive en `attendance.checkin_settings`, no en `GymFeatureFlags` (la spec dice `CheckinByDocument`). ¿Se acepta?
+- **R5-1:** se agregaron PUT/DELETE de alternativas por gym sin pantalla en el panel (la del SuperAdmin es S4). ¿Hace falta pantalla para el staff?
+- **R5-2:** un gym no puede ocultar una alternativa del sistema (422). ¿Debería?
+- **R5-3:** si salen menos de 3 sugeridas se completa con el mismo grupo muscular; las recomendadas salen aunque el gym no tenga la máquina (marcadas). Confirmar.
+- **R5-4:** "hizo X en lugar de Y" se guarda, pero el staff no tiene pantalla de historial del miembro donde verlo.
+- **LG4-1:** huellas propias para `external` (`proveedor|operación|estado`) y `client` (`plataforma|tipo`). Confirmar.
+- **LG4-2:** `logs.error_groups` solo guarda estado y notas; conteos y gyms se calculan al leer. LG5 puede necesitar contadores escritos.
+- **LG4-3:** `MemberInvited` no es reintentable (el código se limpia): falta el refrescador de Members (decisión del 2026-10-11). ¿Se construye o basta reinvitar?
+- **LG4-4 (riesgo):** el reintento corre el manejador como SuperAdmin (sin gym, filtro apagado). No se auditaron los ~20 manejadores; los que usen `RequireGymId()` fallarían. ¿Contexto de gym para el reintento?
+- **LG4-5:** las vistas de rechazos, seguridad, lentitud y procesos del §7 no se construyeron (la fila LG4 no las pide). ¿Tarea aparte?
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
@@ -319,6 +342,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: MS3, A4, R5 y LG4 unidas sin conflictos (se cortaron una vez por el límite de uso y se reanudaron). Migraciones `V2_MS3_A4_R5` (EF detectó el renombrado de `duration_days`; `SqlScript` MS3, A4, R5) y `V2_LG4_PanelErrores`. Al integrar: 1 `using` (R5), `AlternativesAllAsync`, el parámetro `documentOnly` en medio de `AttendanceGETAsync`, 5 bUnit y 1 test de A4 con planes duplicados. **Suite: 800 integración + 390 bUnit, todo verde.** Lanzada la tanda MS4, A5, C4 y L2.
 - 2026-10-15: A3, MS2, LG3 e I4+G4 unidas (MS2 y A3 combinadas solas en `CheckinTab`). Migraciones `V2_MS2_I4` (`SqlScript("MS2")`, `SqlScript("I4")`) y `V2_LG3_Logs`. Al integrar: 1 `using` (LG3), métodos del panel con sufijo `2` (I4), 18 bUnit (autorización de prueba en recepción por el `RequireRole` de A3, selectores, popover, `Change`) y 2 tests de I4 con contraseñas distintas. **Suite: 756 integración + 367 bUnit, todo verde.**
 - 2026-10-15: lanzada la tanda I4+G4, A3, MS2 y LG3 (solo escriben código).
 - 2026-10-15: R3b, N1b, S1b y LG2 unidas sin conflictos. Migraciones `V2_R3b_N1b_S1b` (enum + 2 columnas + `SqlScript("N1b")`) y `V2_R3b_LG2_Scripts` (`R3b`, `LG2`). Al integrar: `OnRejected` devuelve `ValueTask` y el test de login ya no exige IP. **La primera corrida dio 10 fallos de LG2 que no se repitieron en dos corridas más** (probablemente la corrida que aplicó las migraciones nuevas); un bUnit de `CommercialStatusUiTests` falló una vez y pasó 3 de 3. **Suite: 722 integración + 339 bUnit, todo verde.**
