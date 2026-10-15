@@ -147,6 +147,24 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
             .OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.Id)
             .ToListAsync(cancellationToken);
 
+    // --- Mediciones de peso y altura ---
+
+    public void Add(MemberMeasurement measurement) => dbContext.Set<MemberMeasurement>().Add(measurement);
+
+    public void Remove(MemberMeasurement measurement) => dbContext.Set<MemberMeasurement>().Remove(measurement);
+
+    public async Task<IReadOnlyList<MemberMeasurement>> GetMeasurementsAsync(
+        Guid memberId, CancellationToken cancellationToken = default)
+        => await dbContext.Set<MemberMeasurement>()
+            .Where(m => m.MemberId == memberId)
+            .OrderByDescending(m => m.MeasuredOn).ThenByDescending(m => m.CreatedAt).ThenByDescending(m => m.Id)
+            .ToListAsync(cancellationToken);
+
+    public Task<MemberMeasurement?> GetMeasurementAsync(
+        Guid memberId, Guid measurementId, CancellationToken cancellationToken = default)
+        => dbContext.Set<MemberMeasurement>()
+            .FirstOrDefaultAsync(m => m.MemberId == memberId && m.Id == measurementId, cancellationToken);
+
     // --- Invitaciones ---
 
     private DbSet<MemberInvitation> Invitations => dbContext.Set<MemberInvitation>();

@@ -14,6 +14,9 @@ public sealed class MemberChange : BaseEntity, ITenantEntity
 
     public const string StatusField = "status";
 
+    /// <summary>Una medición de peso/altura borrada (las añadidas no generan fila).</summary>
+    public const string MeasurementField = "measurement";
+
     private MemberChange()
     {
     }

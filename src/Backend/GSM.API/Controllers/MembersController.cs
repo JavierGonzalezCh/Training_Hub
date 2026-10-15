@@ -168,6 +168,50 @@ public sealed class MembersController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, request, cancellationToken));
 
+    /// <summary>
+    /// Mediciones de peso y altura (con IMC calculado). Son datos de salud: exige <c>ViewMemberHealth</c> y,
+    /// sin la autorización de datos del miembro, llegan bloqueadas (<c>consentRequired</c>).
+    /// </summary>
+    [HttpGet("{id:guid}/measurements")]
+    [EndpointName("ListMemberMeasurements")]
+    [RequirePermission(StaffPermission.ViewMemberHealth)]
+    [ProducesResponseType<MemberMeasurementsView>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MemberMeasurementsView>> ListMeasurements(
+        Guid id, [FromServices] ListMemberMeasurementsHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>Añade una medición. 409 sin la autorización de datos; 422 si el peso, la altura o la fecha no valen.</summary>
+    [HttpPost("{id:guid}/measurements")]
+    [EndpointName("AddMemberMeasurement")]
+    [RequirePermission(StaffPermission.ViewMemberHealth)]
+    [ProducesResponseType<MemberMeasurementItem>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<MemberMeasurementItem>> AddMeasurement(
+        Guid id,
+        AddMemberMeasurementRequest request,
+        [FromServices] AddMemberMeasurementHandler handler,
+        CancellationToken cancellationToken)
+        => StatusCode(StatusCodes.Status201Created, await handler.HandleAsync(id, request, cancellationToken));
+
+    /// <summary>Borra una medición mal digitada; el borrado queda en el historial de cambios.</summary>
+    [HttpDelete("{id:guid}/measurements/{measurementId:guid}")]
+    [EndpointName("DeleteMemberMeasurement")]
+    [RequirePermission(StaffPermission.ViewMemberHealth)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteMeasurement(
+        Guid id, Guid measurementId, [FromServices] DeleteMemberMeasurementHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, measurementId, cancellationToken);
+        return NoContent();
+    }
+
     /// <summary>Quién vio los datos de salud del miembro (solo el Owner), del más reciente al más antiguo.</summary>
     [HttpGet("{id:guid}/health-access")]
     [EndpointName("ListMemberHealthAccess")]

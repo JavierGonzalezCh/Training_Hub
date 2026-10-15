@@ -112,3 +112,27 @@ public sealed class MemberNoteConfiguration: IEntityTypeConfiguration<MemberNote
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public sealed class MemberMeasurementConfiguration : IEntityTypeConfiguration<MemberMeasurement>
+{
+    public void Configure(EntityTypeBuilder<MemberMeasurement> builder)
+    {
+        builder.ToTable("member_measurements", "members", t =>
+        {
+            t.HasCheckConstraint("ck_member_measurements_weight_kg", "weight_kg >= 20 AND weight_kg <= 400");
+            t.HasCheckConstraint("ck_member_measurements_height_cm", "height_cm IS NULL OR (height_cm >= 50 AND height_cm <= 250)");
+        });
+
+        builder.Property(m => m.WeightKg).HasPrecision(5, 2);
+        builder.Property(m => m.HeightCm).HasPrecision(5, 1);
+        builder.Property(m => m.RecordedByRole).HasMaxLength(20).IsRequired();
+
+        builder.HasIndex(m => new { m.MemberId, m.MeasuredOn });
+        builder.HasIndex(m => m.GymId);
+
+        builder.HasOne<Member>()
+            .WithMany()
+            .HasForeignKey(m => m.MemberId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
