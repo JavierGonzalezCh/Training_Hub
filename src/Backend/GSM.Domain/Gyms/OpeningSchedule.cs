@@ -40,6 +40,10 @@ public sealed class OpeningSchedule(
         return weekly.TryGetValue(day, out var slots) ? slots : [];
     }
 
+    /// <summary>Tramos del horario semanal de un día de la semana, sin festivos ni excepciones. Vacío si ese día no abre.</summary>
+    public IReadOnlyList<TimeSlot> SlotsForWeekday(OpeningDay day)
+        => weekly.TryGetValue(day, out var slots) ? slots : [];
+
     public GymOpenStatus Evaluate(DateOnly date, TimeOnly time)
     {
         if (!HasSchedule)

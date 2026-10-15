@@ -1,13 +1,18 @@
 namespace GSM.Application.Classes.Contracts;
 
-/// <summary>Resultado de reservar (o reactivar) una plaza. <see cref="MembershipExpired"/> no bloquea: recepción cobra.</summary>
+/// <summary>
+/// Resultado de reservar (o reactivar) una plaza. Desde C1 reservar exige estar al día el día de la sesión:
+/// <see cref="MembershipExpired"/> solo es <c>true</c> si ese día el miembro está en gracia, y
+/// <see cref="AccessNotice"/> trae el letrero (por vencer o gracia) para mostrarlo.
+/// </summary>
 public sealed record BookingResponse(
     Guid BookingId,
     Guid SessionId,
     Guid ClassId,
     DateOnly SessionDate,
     string Status,
-    bool MembershipExpired);
+    bool MembershipExpired,
+    string? AccessNotice = null);
 
 public sealed record RosterEntry(
     Guid BookingId,

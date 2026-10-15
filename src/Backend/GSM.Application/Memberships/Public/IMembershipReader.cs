@@ -29,6 +29,13 @@ public interface IMembershipReader
     /// </summary>
     Task<AccessStatus> GetAccessStatusAsync(Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Igual que <see cref="GetAccessStatusAsync"/> pero a una fecha de negocio dada (por ejemplo, el día de una
+    /// clase que se quiere reservar): ¿tendrá cobertura, estará por vencer o en gracia ese día?
+    /// </summary>
+    Task<AccessStatus> GetAccessStatusOnAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default);
+
     /// <summary>Estado comercial hoy de varios miembros (lista de miembros). Un miembro sin membresías es <see cref="CommercialStatus.NoPlan"/>.</summary>
     Task<IReadOnlyDictionary<Guid, CommercialStatus>> GetCommercialStatusesAsync(
         IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);

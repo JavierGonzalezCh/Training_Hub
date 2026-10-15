@@ -1,3 +1,4 @@
+using GSM.Application.Classes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GSM.Application;
@@ -9,6 +10,8 @@ public static class ClassesModuleRegistration
     {
         // Los casos de uso (*Handler), validators y handlers de eventos se registran por assembly scanning.
         // Añade aquí solo lo que el scanning no cubra.
+
+        services.AddScoped<ClosedSessionCanceller>();
 
         return services;
     }

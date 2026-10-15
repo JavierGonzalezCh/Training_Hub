@@ -63,6 +63,21 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
         return OpeningHoursSupport.BuildSchedule(weekly, specials).Evaluate(localDate, localTime);
     }
 
+    public async Task<OpeningSchedule> GetOpeningScheduleAsync(
+        Guid gymId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+    {
+        var weekly = await dbContext.Set<GymOpeningSlot>().IgnoreQueryFilters()
+            .Where(s => s.GymId == gymId)
+            .ToListAsync(cancellationToken);
+
+        var specials = await dbContext.Set<GymSpecialDay>().IgnoreQueryFilters()
+            .Include(d => d.Slots)
+            .Where(d => d.GymId == gymId && d.Date >= from && d.Date <= to)
+            .ToListAsync(cancellationToken);
+
+        return OpeningHoursSupport.BuildSchedule(weekly, specials);
+    }
+
     public async Task<bool> IsOpenAtAsync(Guid gymId, DateTimeOffset instant, CancellationToken cancellationToken = default)
         => (await GetOpenStatusAsync(gymId, instant, cancellationToken)).IsOpen;
 }

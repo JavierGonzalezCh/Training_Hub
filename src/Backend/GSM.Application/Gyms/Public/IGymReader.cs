@@ -23,6 +23,14 @@ public interface IGymReader
     Task<GSM.Domain.Gyms.GymOpenStatus> GetOpenStatusAtLocalAsync(
         Guid gymId, DateOnly localDate, TimeOnly localTime, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Horario del gym (semana, festivos y excepciones del rango <c>[from, to]</c>) para que otro módulo
+    /// evalúe tramos completos, no solo un instante. Solo lectura. Sin horario cargado,
+    /// <see cref="GSM.Domain.Gyms.OpeningSchedule.HasSchedule"/> es <c>false</c> (nada se rechaza).
+    /// </summary>
+    Task<GSM.Domain.Gyms.OpeningSchedule> GetOpeningScheduleAsync(
+        Guid gymId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
+
     /// <summary>¿Está abierto el gym en ese instante? Sin horario cargado, siempre <c>true</c>.</summary>
     Task<bool> IsOpenAtAsync(Guid gymId, DateTimeOffset instant, CancellationToken cancellationToken = default);
 }
