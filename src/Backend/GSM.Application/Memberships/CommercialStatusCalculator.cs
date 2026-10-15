@@ -38,10 +38,11 @@ public static class CommercialStatusCalculator
         }
 
         var started = live.Where(s => s.StartDate <= today).ToList();
+        var nextStart = live.Where(s => s.StartDate > today).Select(s => (DateOnly?)s.StartDate).Min();
         if (started.Count == 0)
         {
-            // Solo tiene una que empieza más adelante: hoy no está cubierto.
-            return Blocked(CommercialStatus.NoPlan, AccessBlockReason.NoMembership, null, "No tiene una membresía vigente.");
+            // Solo tiene una que empieza más adelante: hoy no está cubierto, pero tampoco "sin plan".
+            return Scheduled(nextStart!.Value);
         }
 
         // Con renovaciones encadenadas, lo que cuenta es el fin de la última: quien ya renovó no está "por vencer".
@@ -71,10 +72,21 @@ public static class CommercialStatusCalculator
                 null);
         }
 
+        // Pasada la gracia, una membresía que empieza más adelante manda sobre "vencido" (§10).
+        if (nextStart is { } next)
+        {
+            return Scheduled(next);
+        }
+
         return Blocked(
             CommercialStatus.Expired, AccessBlockReason.Expired, end,
             $"Membresía vencida el {ShortDate(end)}, fuera de la gracia.");
     }
+
+    private static AccessStatus Scheduled(DateOnly startsOn)
+        => new(
+            CommercialStatus.Scheduled, AccessKind.Blocked, AccessBlockReason.Scheduled, null, null, null, null,
+            null, $"Programada: empieza el {ShortDate(startsOn)}.", startsOn);
 
     private static string ExpiringNotice(DateOnly end, int daysLeft)
         => daysLeft <= 0

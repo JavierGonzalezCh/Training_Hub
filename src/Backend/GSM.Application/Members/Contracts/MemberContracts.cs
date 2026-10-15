@@ -101,7 +101,7 @@ public sealed record ListMembersQuery
     public string? Tag { get; init; }
 
     /// <summary>
-    /// Estado comercial (`no_plan`, `current`, `expiring`, `grace`, `expired`, `frozen`). Lo calcula
+    /// Estado comercial (`no_plan`, `current`, `expiring`, `grace`, `expired`, `frozen`, `scheduled`). Lo calcula
     /// Memberships; el filtro solo se aplica si el valor es uno de esos.
     /// </summary>
     public string? CommercialStatus { get; init; }
@@ -210,11 +210,14 @@ public sealed record MemberDetail(
     /// <summary>Membresía vigente hoy. La rellena el controller vía IMembershipReader; <c>null</c> si no hay.</summary>
     public MemberCurrentMembership? CurrentMembership { get; init; }
 
-    /// <summary>Estado comercial hoy (`no_plan`, `current`, `expiring`, `grace`, `expired`, `frozen`). Lo rellena el controller vía IMembershipReader.</summary>
+    /// <summary>Estado comercial hoy (`no_plan`, `current`, `expiring`, `grace`, `expired`, `frozen`, `scheduled`). Lo rellena el controller vía IMembershipReader.</summary>
     public string CommercialStatus { get; init; } = "no_plan";
 
     /// <summary>Letrero de renovación (por vencer o en gracia), para que recepción lo diga en persona. Nulo si no hay.</summary>
     public string? AccessNotice { get; init; }
+
+    /// <summary>Día en que empieza su próxima membresía; solo si el estado comercial es <c>scheduled</c>.</summary>
+    public DateOnly? AccessStartsOn { get; init; }
 
     /// <summary>Últimos pagos del miembro. Los rellena el controller vía IPaymentReader.</summary>
     public IReadOnlyList<MemberRecentPayment> RecentPayments { get; init; } = [];

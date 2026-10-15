@@ -49,6 +49,13 @@
                 <span class="gsm-m-plan__until">Vigente hasta el @GsmFormat.Day(membership.EndDate)</span>
             </div>
         }
+        else if (member.CommercialStatus == "scheduled" && member.AccessStartsOn is { } startsOn)
+        {
+            <div class="gsm-m-plan" id="plan-scheduled">
+                <span class="gsm-m-plan__name">Tu plan empieza el @GsmFormat.Day(startsOn)</span>
+                <span class="gsm-m-plan__until">Aún no está vigente: desde ese día podrás entrar.</span>
+            </div>
+        }
         else
         {
             <div class="gsm-m-plan">

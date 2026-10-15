@@ -69,7 +69,8 @@ public sealed class MembersController : ControllerBase
         return Ok(member with
         {
             CommercialStatus = GSM.Domain.Members.EnumText.Snake(access.Commercial)!,
-            AccessNotice = access.Notice,
+            AccessNotice = access.Notice ?? (access.StartsOn is null ? null : access.BlockMessage),
+            AccessStartsOn = access.StartsOn,
             CurrentMembership = active is null
                 ? null
                 : new MemberCurrentMembership(

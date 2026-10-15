@@ -4,7 +4,7 @@ namespace GSM.UI.Shared.Formatting;
 
 /// <summary>
 /// Estado comercial del miembro (Memberships v2, §10). Llega de la API en snake_case:
-/// <c>no_plan</c>, <c>current</c>, <c>expiring</c>, <c>grace</c>, <c>expired</c>, <c>frozen</c>.
+/// <c>no_plan</c>, <c>current</c>, <c>expiring</c>, <c>grace</c>, <c>expired</c>, <c>frozen</c>, <c>scheduled</c>.
 /// </summary>
 public static class CommercialStatusLabels
 {
@@ -16,6 +16,7 @@ public static class CommercialStatusLabels
         ("grace", "En gracia"),
         ("expired", "Vencido"),
         ("frozen", "Congelado"),
+        ("scheduled", "Programada"),
         ("no_plan", "Sin plan"),
     ];
 
@@ -26,6 +27,7 @@ public static class CommercialStatusLabels
         "grace" => "En gracia",
         "expired" => "Vencido",
         "frozen" => "Congelado",
+        "scheduled" => "Programada",
         "no_plan" => "Sin plan",
         _ => status ?? "—",
     };
@@ -35,6 +37,7 @@ public static class CommercialStatusLabels
         "current" => MudBlazor.Color.Info,
         "expiring" or "grace" => MudBlazor.Color.Warning,
         "expired" => MudBlazor.Color.Error,
+        "scheduled" => MudBlazor.Color.Info,
         _ => MudBlazor.Color.Default,
     };
 }

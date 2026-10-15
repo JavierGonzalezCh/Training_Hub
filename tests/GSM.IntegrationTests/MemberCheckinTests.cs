@@ -262,6 +262,28 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
+    public async Task Scheduled_membership_is_rejected_by_qr_and_reception_can_let_it_through_with_a_reason()
+    {
+        // Empieza mañana (Today + 1): hoy no cubre nada.
+        var w = await SeedAsync(endedDaysAgo: -30);
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(
+            () => CheckInAsMember(w, CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today))));
+        Assert.Contains("empieza el", ex.Message);
+
+        var card = await CardOf(w);
+        Assert.Equal("scheduled", card.Commercial);
+        Assert.False(card.CanRegister);
+        Assert.True(card.CanLetThrough);
+        Assert.Equal("membership_scheduled", card.RejectionReason);
+        Assert.Equal("Programada: empieza el 6 oct.", card.BlockMessage);
+
+        await Assert.ThrowsAsync<ValidationDomainException>(() => CheckInAsStaff(w));
+        var (res, _) = await CheckInAsStaff(w, "Paga mañana, el dueño lo autorizó");
+        Assert.True(res.Authorized);
+    }
+
+    [Fact]
     public async Task Unknown_reason_filter_is_a_422()
     {
         var w = await SeedAsync(endedDaysAgo: -10);

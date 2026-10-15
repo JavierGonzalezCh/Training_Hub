@@ -198,6 +198,10 @@ public sealed class CheckInHandler(
         {
             AccessBlockReason.Frozen => (
                 CheckinRejectionReason.MembershipFrozen, null, "Tu membresía está congelada. Pasa por recepción."),
+            AccessBlockReason.Scheduled when access.StartsOn is { } starts => (
+                // Sin valor propio en el enum de Postgres (evita migrar): se guarda como "sin membresía".
+                CheckinRejectionReason.NoMembership, null,
+                $"Tu plan empieza el {starts:dd/MM/yyyy}. Pasa por recepción."),
             AccessBlockReason.Expired when access.EndsOn is { } ended => (
                 CheckinRejectionReason.MembershipExpired, ended,
                 $"Tu membresía venció el {ended:dd/MM/yyyy}. Pasa por recepción para renovarla."),

@@ -61,11 +61,12 @@ public sealed class GetReceptionCardHandler(
             {
                 AccessBlockReason.Frozen => "membership_frozen",
                 AccessBlockReason.Expired => "membership_expired",
+                AccessBlockReason.Scheduled => "membership_scheduled",
                 _ => "no_membership",
             };
         }
 
-        var blockedByMembership = rejection is "membership_frozen" or "membership_expired" or "no_membership";
+        var blockedByMembership = rejection is "membership_frozen" or "membership_expired" or "membership_scheduled" or "no_membership";
 
         return new ReceptionCardResponse(
             member.Id,

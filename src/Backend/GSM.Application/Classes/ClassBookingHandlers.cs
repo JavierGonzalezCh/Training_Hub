@@ -55,6 +55,8 @@ internal static class ClassAccess
         => access.BlockReason switch
         {
             AccessBlockReason.Frozen => $"Tu membresía está congelada; reanúdala para {action}.",
+            AccessBlockReason.Scheduled when access.StartsOn is { } starts =>
+                $"Tu plan empieza el {CommercialStatusCalculator.ShortDate(starts)}; no cubre el {CommercialStatusCalculator.ShortDate(sessionDate)} para {action}.",
             AccessBlockReason.Expired when access.EndsOn is { } ends =>
                 $"Tu plan vence el {CommercialStatusCalculator.ShortDate(ends)}; renueva para {action}.",
             _ => $"No tienes una membresía vigente el {CommercialStatusCalculator.ShortDate(sessionDate)}; renueva para {action}.",
