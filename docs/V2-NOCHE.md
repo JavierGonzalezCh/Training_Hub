@@ -165,6 +165,10 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **I6-4:** el formulario quedó en las pantallas de cuenta actuales (`/cuenta/contrasena`, `/app/cuenta/contrasena`); "Mi perfil" va en M5. Confirmar.
 - **I6-5:** se manda un aviso al correo viejo (no lo pedía la spec); no se cierran las otras sesiones. Confirmar.
 
+- **A2-1:** la ventana para anular es por día de negocio, `fecha >= hoy - 7` (8 días de calendario contando hoy). ¿Correcto?
+- **A2-2:** el miembro nunca ve sus entradas anuladas; el staff solo con "Ver anuladas". Confirmar.
+- **A2-3:** anular una entrada **no avisa al miembro**. ¿Debe avisarse?
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
