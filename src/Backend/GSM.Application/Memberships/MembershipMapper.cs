@@ -37,5 +37,6 @@ public static partial class MembershipMapper
             access.GraceEndsOn,
             access.GraceDaysLeft,
             access.Notice,
-            access.BlockMessage);
+            access.BlockMessage,
+            access.StartsOn);
 }

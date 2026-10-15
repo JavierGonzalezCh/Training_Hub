@@ -51,9 +51,9 @@ public sealed record MembershipSettingsResponse(int GraceDays, int ExpiringDays)
 public sealed record UpdateMembershipSettingsRequest(int GraceDays, int ExpiringDays);
 
 /// <summary>Estado comercial y veredicto de acceso de un miembro hoy (recepción, ficha).</summary>
-/// <param name="Commercial"><c>no_plan</c>, <c>current</c>, <c>expiring</c>, <c>grace</c>, <c>expired</c> o <c>frozen</c>.</param>
+/// <param name="Commercial"><c>no_plan</c>, <c>current</c>, <c>expiring</c>, <c>grace</c>, <c>expired</c>, <c>frozen</c> o <c>scheduled</c>.</param>
 /// <param name="Kind"><c>covered</c>, <c>expiring</c>, <c>grace</c> o <c>blocked</c>.</param>
-/// <param name="BlockReason"><c>no_membership</c>, <c>expired</c> o <c>frozen</c>. Solo si está bloqueado.</param>
+/// <param name="BlockReason"><c>no_membership</c>, <c>expired</c>, <c>frozen</c> o <c>scheduled</c> (su membresía empieza el <c>StartsOn</c>). Solo si está bloqueado.</param>
 public sealed record AccessStatusResponse(
     string Commercial,
     string Kind,
@@ -64,7 +64,8 @@ public sealed record AccessStatusResponse(
     DateOnly? GraceEndsOn,
     int? GraceDaysLeft,
     string? Notice,
-    string? BlockMessage);
+    string? BlockMessage,
+    DateOnly? StartsOn);
 
 public sealed record CancelMembershipRequest(string Reason);
 

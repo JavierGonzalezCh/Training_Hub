@@ -24,7 +24,7 @@ public sealed record BirthdayTodayRow(Guid MemberId, string MemberName);
 /// El mismo `expiring_days` del gym define "por vencer" aquí, en el letrero y en la lista.
 /// </summary>
 public sealed record CommercialStatusCounts(
-    int Current, int Expiring, int Grace, int Expired, int Frozen, int NoPlan);
+    int Current, int Expiring, int Grace, int Expired, int Frozen, int NoPlan, int Scheduled);
 
 public sealed record ExpiringMemberRow(
     Guid MembershipId,

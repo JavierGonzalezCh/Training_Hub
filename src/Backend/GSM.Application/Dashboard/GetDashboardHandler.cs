@@ -61,7 +61,8 @@ public sealed class GetDashboardHandler(
                 counts[CommercialStatus.Grace],
                 counts[CommercialStatus.Expired],
                 counts[CommercialStatus.Frozen],
-                counts[CommercialStatus.NoPlan]),
+                counts[CommercialStatus.NoPlan],
+                counts[CommercialStatus.Scheduled]),
             ExpiringDays: settings.ExpiringDays,
             BirthdaysToday: (await members.GetBirthdaysOnAsync(gymId, today, cancellationToken))
                 .Select(b => new BirthdayTodayRow(b.Id, b.FullName))

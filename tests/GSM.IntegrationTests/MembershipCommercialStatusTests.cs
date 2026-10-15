@@ -98,7 +98,66 @@ public sealed class MembershipCommercialStatusTests(ApiFactory factory) : IClass
         Assert.Equal(AccessBlockReason.Frozen, frozenAccess.BlockReason);
 
         var future = Active(Today.AddDays(3), Today.AddDays(33));
-        Assert.Equal(CommercialStatus.NoPlan, CommercialStatusCalculator.Compute([future], Today, 3, 7).Commercial);
+        var scheduled = CommercialStatusCalculator.Compute([future], Today, 3, 7);
+        Assert.Equal(CommercialStatus.Scheduled, scheduled.Commercial);
+        Assert.Equal(Today.AddDays(3), scheduled.StartsOn);
+    }
+
+    [Fact]
+    public void A_single_membership_that_starts_tomorrow_is_scheduled_with_its_start_date()
+    {
+        var access = CommercialStatusCalculator.Compute([Active(Today.AddDays(1), Today.AddDays(30))], Today, 3, 7);
+
+        Assert.Equal(CommercialStatus.Scheduled, access.Commercial);
+        Assert.Equal(AccessKind.Blocked, access.Kind);
+        Assert.Equal(AccessBlockReason.Scheduled, access.BlockReason);
+        Assert.Equal(Today.AddDays(1), access.StartsOn);
+        Assert.False(access.CanEnter);
+        Assert.Equal("Programada: empieza el 11 oct.", access.BlockMessage);
+        Assert.False(access.Commercial.CountsTowardMemberLimit());
+    }
+
+    [Fact]
+    public void An_expired_membership_in_grace_plus_a_future_one_is_grace_and_past_the_grace_is_scheduled()
+    {
+        var future = Active(Today.AddDays(5), Today.AddDays(34));
+
+        var inGrace = CommercialStatusCalculator.Compute([Active(Today.AddDays(-31), Today.AddDays(-1)), future], Today, 3, 7);
+        Assert.Equal(CommercialStatus.Grace, inGrace.Commercial);
+        Assert.Null(inGrace.StartsOn);
+
+        var pastGrace = CommercialStatusCalculator.Compute([Active(Today.AddDays(-40), Today.AddDays(-10)), future], Today, 3, 7);
+        Assert.Equal(CommercialStatus.Scheduled, pastGrace.Commercial);
+        Assert.Equal(Today.AddDays(5), pastGrace.StartsOn);
+    }
+
+    [Fact]
+    public async Task Scheduled_is_not_counted_as_no_plan_in_the_list_or_the_dashboard_and_can_be_filtered()
+    {
+        var w = await SeedAsync();
+        await AddMembershipAsync(w, w.Members[0], Today.AddDays(1), 30);    // empieza mañana
+        // Members[1..4]: sin plan.
+
+        using var s = Scope(w, UserRole.Staff);
+        var list = s.ServiceProvider.GetRequiredService<ListMembersHandler>();
+
+        var scheduled = await list.HandleAsync(new ListMembersQuery { CommercialStatus = "scheduled", PageSize = 50 }, default);
+        var item = Assert.Single(scheduled.Items);
+        Assert.Equal(w.Members[0], item.Id);
+        Assert.Equal("scheduled", item.CommercialStatus);
+
+        var noPlan = await list.HandleAsync(new ListMembersQuery { CommercialStatus = "no_plan", PageSize = 50 }, default);
+        Assert.Equal(4, noPlan.Total);
+        Assert.DoesNotContain(noPlan.Items, i => i.Id == w.Members[0]);
+
+        var dashboard = await s.ServiceProvider.GetRequiredService<GetDashboardHandler>().HandleAsync(default);
+        Assert.Equal(1, dashboard.CommercialStatus.Scheduled);
+        Assert.Equal(4, dashboard.CommercialStatus.NoPlan);
+
+        var reader = s.ServiceProvider.GetRequiredService<IMembershipReader>();
+        var access = await reader.GetAccessStatusAsync(w.Members[0]);
+        Assert.Equal(CommercialStatus.Scheduled, access.Commercial);
+        Assert.Equal(Today.AddDays(1), access.StartsOn);
     }
 
     [Fact]
@@ -302,7 +361,7 @@ public sealed class MembershipCommercialStatusTests(ApiFactory factory) : IClass
         }
 
         var dashboard = await s.ServiceProvider.GetRequiredService<GetDashboardHandler>().HandleAsync(default);
-        Assert.Equal(new CommercialStatusCounts(1, 1, 1, 1, 0, 1), dashboard.CommercialStatus);
+        Assert.Equal(new CommercialStatusCounts(1, 1, 1, 1, 0, 1, 0), dashboard.CommercialStatus);
         Assert.Equal(7, dashboard.ExpiringDays);
     }
 

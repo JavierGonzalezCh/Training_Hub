@@ -47,7 +47,7 @@ else if (_dashboard is { } dashboard)
     @* Estado comercial de los miembros activos (Memberships v2, §10): "32 al día · 5 por vencer · 2 en gracia · 7 vencidos". *@
     <section class="gsm-kpi-grid" aria-label="Estado comercial de los miembros" id="commercial-status">
         <StatCard Label="Al día" Value="@dashboard.CommercialStatus.Current.ToString()" Accent="Color.Info"
-                  Hint="@($"{dashboard.CommercialStatus.NoPlan} sin plan · {dashboard.CommercialStatus.Frozen} congelados")" />
+                  Hint="@($"{dashboard.CommercialStatus.NoPlan} sin plan · {dashboard.CommercialStatus.Frozen} congelados · {dashboard.CommercialStatus.Scheduled} programados")" />
         <StatCard Label="Por vencer" Value="@dashboard.CommercialStatus.Expiring.ToString()"
                   Accent="@(dashboard.CommercialStatus.Expiring > 0 ? Color.Warning : Color.Default)"
                   Hint="@($"{dashboard.ExpiringDays} días o menos")" />

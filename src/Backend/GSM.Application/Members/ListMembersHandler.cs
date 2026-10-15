@@ -18,7 +18,7 @@ public sealed class ListMembersHandler(
 {
     private static readonly CommercialStatus[] WithPlan =
         [CommercialStatus.Current, CommercialStatus.Expiring, CommercialStatus.Grace,
-         CommercialStatus.Expired, CommercialStatus.Frozen];
+         CommercialStatus.Expired, CommercialStatus.Frozen, CommercialStatus.Scheduled];
 
     public async Task<PagedResult<MemberListItem>> HandleAsync(
         ListMembersQuery query, CancellationToken cancellationToken)

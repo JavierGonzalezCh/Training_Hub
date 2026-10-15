@@ -23,6 +23,9 @@ public enum CommercialStatus
 
     /// <summary>Su membresía está congelada.</summary>
     Frozen,
+
+    /// <summary>Hoy no lo cubre ninguna membresía, pero hay una que empieza más adelante (y no está en gracia).</summary>
+    Scheduled,
 }
 
 /// <summary>Lo que Attendance necesita saber para dejar entrar (o no) a un miembro.</summary>
@@ -46,6 +49,7 @@ public enum AccessBlockReason
     NoMembership,
     Expired,
     Frozen,
+    Scheduled,
 }
 
 /// <summary>
@@ -56,6 +60,7 @@ public enum AccessBlockReason
 /// <param name="DaysLeft">Días que le quedan cubiertos (0 = vence hoy). Solo si cubre hoy.</param>
 /// <param name="GraceEndsOn">Último día de la gracia. Solo en gracia.</param>
 /// <param name="GraceDaysLeft">Días que le quedan de gracia (0 = hoy es el último). Solo en gracia.</param>
+/// <param name="StartsOn">Día en que empieza su próxima membresía. Solo si está programada (<see cref="CommercialStatus.Scheduled"/>).</param>
 public sealed record AccessStatus(
     CommercialStatus Commercial,
     AccessKind Kind,
@@ -65,7 +70,8 @@ public sealed record AccessStatus(
     DateOnly? GraceEndsOn,
     int? GraceDaysLeft,
     string? Notice,
-    string? BlockMessage)
+    string? BlockMessage,
+    DateOnly? StartsOn = null)
 {
     public bool CanEnter => Kind != AccessKind.Blocked;
 }
