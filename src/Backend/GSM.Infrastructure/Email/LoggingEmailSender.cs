@@ -10,7 +10,8 @@ public sealed class LoggingEmailSender(ILogger<LoggingEmailSender> logger) : IEm
     {
         logger.LogInformation(
             "EMAIL (no enviado) → {To} | {Subject}\n{Body}",
-            message.To, message.Subject, message.TextBody ?? message.HtmlBody);
+            message.To, message.Subject,
+            message.Sensitive ? "(contenido omitido: lleva un código)" : message.TextBody ?? message.HtmlBody);
         return Task.CompletedTask;
     }
 }

@@ -4,10 +4,11 @@
 @inject IMembersClient Members
 @inject SessionService Session
 @inject NavigationManager Navigation
+@inject MemberLoginBranding Branding
 
 <PageTitle>Crear cuenta — GSM</PageTitle>
 
-<div class="gsm-wordmark mb-6" style="font-size:1.6rem">GS<span class="accent">M</span></div>
+<MemberAuthBrand />
 
 @if (_done)
 {
@@ -39,7 +40,7 @@ else
 }
 
 <div class="d-flex justify-center mt-4">
-    <MudLink Href="/login" Typo="Typo.body2" Color="Color.Secondary">Ya tengo cuenta</MudLink>
+    <MudLink Href="/app/entrar" Typo="Typo.body2" Color="Color.Secondary">Ya tengo cuenta</MudLink>
 </div>
 
 @code {
@@ -54,7 +55,14 @@ else
     private bool _done;
     private string? _error;
 
-    protected override void OnInitialized() => _code = CodeFromQuery ?? string.Empty;
+    [SupplyParameterFromQuery(Name = "gym")]
+    public string? GymSlug { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _code = CodeFromQuery ?? string.Empty;
+        await Branding.LoadAsync(GymSlug);
+    }
 
     private async Task SubmitAsync()
     {
@@ -78,7 +86,8 @@ else
             });
 
             // Queda con la sesión iniciada.
-            await Session.StartSessionAsync(response.Session);
+            var me = await Session.StartSessionAsync(response.Session);
+            await Branding.RememberAsync(me.Gym);
             _done = true;
         }
         catch (GsmApiException ex)

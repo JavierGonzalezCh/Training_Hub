@@ -27,7 +27,12 @@ public sealed class SessionIssuer(
     /// SuperAdmin entra directo; con un solo acceso se emite la sesión; con varios, devuelve el boleto y la
     /// lista para elegir gym.
     /// </summary>
-    public async Task<LoginResponse> IssueLoginAsync(AccountIdentity account, CancellationToken cancellationToken)
+    /// <param name="onlyRole">
+    /// Si se indica, solo entran en cuenta los accesos con ese rol (el código por correo del miembro solo abre
+    /// accesos de miembro, no los de equipo de la misma persona).
+    /// </param>
+    public async Task<LoginResponse> IssueLoginAsync(
+        AccountIdentity account, CancellationToken cancellationToken, UserRole? onlyRole = null)
     {
         if (account.IsSuperAdmin)
         {
@@ -36,6 +41,10 @@ public sealed class SessionIssuer(
         }
 
         var active = await accesses.ListActiveAsync(account.Id, cancellationToken);
+        if (onlyRole is { } role)
+        {
+            active = active.Where(a => a.Role == role).ToList();
+        }
 
         // Sin ningún acceso activo (p. ej. staff desactivado) la cuenta no entra a ningún gym.
         if (active.Count == 0)

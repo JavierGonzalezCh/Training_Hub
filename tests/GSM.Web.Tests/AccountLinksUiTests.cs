@@ -51,6 +51,8 @@ public class AccountLinksUiTests : TestContext
         }
 
         public Task<LoginResponse> LoginAsync(LoginRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task RequestLoginCodeAsync(RequestLoginCodeRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<LoginResponse> VerifyLoginCodeAsync(VerifyLoginCodeRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<AuthTokensResponse> SelectGymAsync(SelectGymRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<AuthTokensResponse> PairAsync(PairKioskRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<AuthTokensResponse> Refresh2Async(KioskRefreshRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();

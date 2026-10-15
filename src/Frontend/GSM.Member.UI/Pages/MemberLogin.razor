@@ -1,0 +1,282 @@
+@page "/app/entrar"
+@layout MemberAuthLayout
+@attribute [AllowAnonymous]
+@implements IDisposable
+@inject SessionService Session
+@inject MemberLoginBranding Branding
+@inject NavigationManager Navigation
+
+<PageTitle>Entrar — @(Branding.Gym?.Name ?? "GSM")</PageTitle>
+
+<MemberAuthBrand />
+
+@if (_selection is not null)
+{
+    <MudText Typo="Typo.h6" Class="mb-2">¿A qué gimnasio quieres entrar?</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Tu cuenta tiene acceso a varios.</MudText>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+    }
+
+    <GymAccessPicker Accesses="_selection.Accesses" Busy="_busy" OnSelect="SelectAsync" />
+    <MudButton Variant="Variant.Text" Class="mt-4" OnClick="Restart">Usar otra cuenta</MudButton>
+}
+else
+{
+    <MudText Typo="Typo.h6" Class="mb-4">Entrar</MudText>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="login-error">@_error</MudAlert>
+    }
+
+    <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Class="mb-3"
+                  Immediate="true" autocomplete="username" Disabled="_codeSent" data-testid="login-email" />
+
+    @if (!_useCode)
+    {
+        <MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password" Class="mb-2"
+                      Immediate="true" autocomplete="current-password" OnKeyDown="PasswordKeyDownAsync"
+                      data-testid="login-password" />
+
+        <div class="d-flex justify-end mb-4">
+            <MudLink Href="/forgot-password" Typo="Typo.body2" Color="Color.Secondary">¿Olvidaste tu contraseña?</MudLink>
+        </div>
+
+        <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="PasswordSignInAsync"
+                   Disabled="_busy" data-testid="login-submit">
+            @(_busy ? "Entrando..." : "Entrar")
+        </MudButton>
+
+        <MudButton FullWidth="true" Variant="Variant.Text" Class="mt-3" OnClick="UseCode" Disabled="_busy"
+                   data-testid="use-code">
+            Enviarme un código
+        </MudButton>
+    }
+    else if (!_codeSent)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            Te mandamos un código de 6 dígitos a tu correo. Vence en 10 minutos.
+        </MudText>
+
+        <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SendCodeAsync"
+                   Disabled="_busy" data-testid="send-code">
+            @(_busy ? "Enviando..." : "Enviarme el código")
+        </MudButton>
+
+        <MudButton FullWidth="true" Variant="Variant.Text" Class="mt-3" OnClick="UsePassword" Disabled="_busy">
+            Entrar con contraseña
+        </MudButton>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" data-testid="code-sent">
+            Si el correo tiene una cuenta de miembro, ya te llegó el código. Revisa también el spam.
+        </MudAlert>
+
+        <MudTextField T="string" @bind-Value="_code" Label="Código de 6 dígitos" Class="mb-4 gsm-mono"
+                      Immediate="true" autocomplete="one-time-code" inputmode="numeric" MaxLength="6"
+                      OnKeyDown="CodeKeyDownAsync" data-testid="login-code" />
+
+        <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="VerifyCodeAsync"
+                   Disabled="_busy" data-testid="verify-code">
+            @(_busy ? "Entrando..." : "Entrar")
+        </MudButton>
+
+        <MudButton FullWidth="true" Variant="Variant.Text" Class="mt-3" OnClick="SendCodeAsync"
+                   Disabled="@(_busy || _cooldown > 0)" data-testid="resend-code">
+            @(_cooldown > 0 ? $"Reenviar el código en {_cooldown} s" : "Reenviar el código")
+        </MudButton>
+
+        <MudButton FullWidth="true" Variant="Variant.Text" OnClick="UsePassword" Disabled="_busy">
+            Entrar con contraseña
+        </MudButton>
+    }
+
+    <div class="d-flex justify-center mt-4">
+        <MudLink Href="/app/registro" Typo="Typo.body2" Color="Color.Secondary">Tengo un código de invitación</MudLink>
+    </div>
+}
+
+@code {
+    /// <summary>Slug del gym (<c>/app/entrar?gym=mi-gym</c>): pone su logo y colores.</summary>
+    [SupplyParameterFromQuery(Name = "gym")]
+    public string? GymSlug { get; set; }
+
+    // Ruta local a la que volver tras entrar (p. ej. el enlace del QR del gym). Cualquier otra cosa se ignora.
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "email")]
+    public string? EmailFromQuery { get; set; }
+
+    private const int ResendSeconds = 60;
+
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private string _code = string.Empty;
+    private bool _useCode;
+    private bool _codeSent;
+    private bool _busy;
+    private int _cooldown;
+    private string? _error;
+    private GymSelection? _selection;
+    private System.Threading.Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(EmailFromQuery))
+        {
+            _email = EmailFromQuery;
+        }
+
+        await Branding.LoadAsync(GymSlug);
+    }
+
+    private async Task PasswordKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or "NumpadEnter" && !_busy)
+        {
+            await PasswordSignInAsync();
+        }
+    }
+
+    private async Task CodeKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or "NumpadEnter" && !_busy)
+        {
+            await VerifyCodeAsync();
+        }
+    }
+
+    private async Task PasswordSignInAsync()
+    {
+        if (!HasEmail() || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Escribe tu email y tu contraseña.";
+            return;
+        }
+
+        await RunAsync(async () => Finish(await Session.LoginAsync(_email.Trim(), _password)));
+    }
+
+    private async Task SendCodeAsync()
+    {
+        if (!HasEmail())
+        {
+            _error = "Escribe tu email.";
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            await Session.RequestLoginCodeAsync(_email.Trim(), Branding.Slug);
+            _codeSent = true;
+            _code = string.Empty;
+            StartCooldown();
+        });
+    }
+
+    private async Task VerifyCodeAsync()
+    {
+        if (_code.Trim().Length != 6)
+        {
+            _error = "El código tiene 6 dígitos.";
+            return;
+        }
+
+        await RunAsync(async () => Finish(await Session.VerifyLoginCodeAsync(_email.Trim(), _code.Trim())));
+    }
+
+    private async Task SelectAsync(GymAccessOption access)
+        => await RunAsync(async () => Enter(await Session.SelectGymAsync(_selection!, access.AccessId)));
+
+    private void Finish(LoginOutcome outcome)
+    {
+        if (outcome.Selection is { } selection)
+        {
+            // Varios gyms: la persona elige a cuál entrar (el último usado, primero).
+            _selection = selection;
+            return;
+        }
+
+        Enter(outcome.Me!);
+    }
+
+    private void Enter(MeResponse me)
+    {
+        _ = Branding.RememberAsync(me.Gym);
+        Navigation.NavigateTo(
+            GSM.UI.Shared.Auth.ReturnUrl.Sanitize(ReturnUrl) ?? GsmRoles.HomeFor(me.Role), replace: true);
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (ApiErrorException ex)
+        {
+            _error = Describe(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string Describe(ApiErrorException ex) => ex.Error switch
+    {
+        { IsUnauthorized: true } => "Los datos no son correctos. Revisa e inténtalo de nuevo.",
+        _ => ex.Error.DisplayMessage,
+    };
+
+    private bool HasEmail() => !string.IsNullOrWhiteSpace(_email);
+
+    private void UseCode()
+    {
+        _error = null;
+        _useCode = true;
+    }
+
+    private void UsePassword()
+    {
+        _error = null;
+        _useCode = false;
+        _codeSent = false;
+        _code = string.Empty;
+    }
+
+    private void Restart()
+    {
+        _selection = null;
+        _error = null;
+        _password = string.Empty;
+        _code = string.Empty;
+        _codeSent = false;
+    }
+
+    // Cuenta atrás de "Reenviar": el servidor igual limita a un código por minuto y cinco por hora.
+    private void StartCooldown()
+    {
+        _cooldown = ResendSeconds;
+        _timer?.Dispose();
+        _timer = new System.Threading.Timer(_ =>
+        {
+            _cooldown = Math.Max(0, _cooldown - 1);
+            if (_cooldown == 0)
+            {
+                _timer?.Dispose();
+            }
+
+            InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

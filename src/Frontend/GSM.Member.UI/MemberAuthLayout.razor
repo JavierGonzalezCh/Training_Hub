@@ -1,8 +1,11 @@
-@* Cáscara para las pantallas públicas de la app del miembro (registro). Espejo ligero del
-   AuthLayout del panel — vive aquí porque GSM.Member.UI no depende de GSM.Web. *@
+@* Cáscara para las pantallas públicas de la app del miembro (entrar, registro). Espejo ligero del
+   AuthLayout del panel — vive aquí porque GSM.Member.UI no depende de GSM.Web. Aplica la marca del gym
+   que MemberLoginBranding conozca (por ?gym=slug o el último al que entró este teléfono). *@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject MemberLoginBranding Branding
 
-<GsmThemeProvider />
+<GsmThemeProvider Gym="@Branding.Gym" />
 <MudPopoverProvider />
 <MudSnackbarProvider />
 
@@ -11,3 +14,11 @@
         @Body
     </MudPaper>
 </div>
+
+@code {
+    protected override void OnInitialized() => Branding.Changed += OnBrandingChanged;
+
+    private void OnBrandingChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Branding.Changed -= OnBrandingChanged;
+}

@@ -17,4 +17,6 @@ public partial class GsmDbContext
     public DbSet<StaffAccessAudit> StaffAccessAudits => Set<StaffAccessAudit>();
 
     public DbSet<KioskDevice> KioskDevices => Set<KioskDevice>();
+
+    public DbSet<LoginCode> LoginCodes => Set<LoginCode>();
 }
