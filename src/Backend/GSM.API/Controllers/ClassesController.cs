@@ -1,6 +1,7 @@
 using GSM.API.Auth;
 using GSM.Application.Classes;
 using GSM.Application.Classes.Contracts;
+using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,6 +33,29 @@ public sealed class ClassesController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ClassOutsideHoursItem>>> OutsideHours(
         [FromServices] ListClassesOutsideHoursHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Entrenadores del gym (Owner y staff con permiso <c>Trainer</c>) para elegir el instructor; "Otro" es texto libre.</summary>
+    [HttpGet("trainers")]
+    [ProducesResponseType<IReadOnlyList<ClassInstructorOption>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ClassInstructorOption>>> Trainers(
+        [FromServices] ListClassInstructorsHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>
+    /// "Mis clases" del entrenador: sus ocurrencias del rango (donde es el instructor de la lista). Desde ahí
+    /// se abre el roster y se marca la asistencia con los endpoints de siempre.
+    /// </summary>
+    [HttpGet("mine")]
+    [RequirePermission(StaffPermission.Trainer)]
+    [ProducesResponseType<ScheduleResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<ScheduleResponse>> Mine(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromServices] GetMyInstructorClassesHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(from, to, cancellationToken));
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<ClassResponse>(StatusCodes.Status200OK)]

@@ -14,4 +14,5 @@ public sealed record GymClassDraft(
     bool IsRecurring,
     IReadOnlyList<ClassDayOfWeek> DaysOfWeek,
     DateOnly? ScheduledDate,
-    DateOnly? EndsOn = null);
+    DateOnly? EndsOn = null,
+    Guid? InstructorUserId = null);

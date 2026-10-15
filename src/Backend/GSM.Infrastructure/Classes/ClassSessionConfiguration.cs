@@ -13,6 +13,8 @@ public sealed class ClassSessionConfiguration : IEntityTypeConfiguration<ClassSe
         builder.Property(s => s.SessionDate).HasColumnType("date");
         builder.Property(s => s.StartTime).HasColumnType("time without time zone");
         builder.Property(s => s.InstructorName).HasMaxLength(120);
+        builder.Property(s => s.InstructorUserId).HasColumnName("instructor_user_id");
+        builder.HasIndex(s => new { s.GymId, s.InstructorUserId, s.SessionDate });
         builder.Property(s => s.CancellationReason).HasMaxLength(200);
 
         builder.Property(s => s.Status)

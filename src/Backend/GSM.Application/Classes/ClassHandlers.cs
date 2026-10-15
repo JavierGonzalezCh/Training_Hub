@@ -2,34 +2,97 @@ using GSM.Application.Classes.Abstractions;
 using GSM.Application.Classes.Contracts;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Gyms.Public;
+using GSM.Application.Identity.Public;
 using GSM.Domain.Classes;
 using GSM.Domain.Common.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace GSM.Application.Classes;
 
-public sealed class ListClassesHandler(ICurrentUserService currentUser, IClassRepository classes)
+/// <summary>
+/// C2: resuelve el instructor de una clase. Un entrenador de la lista se valida contra Identity (Owner o
+/// permiso <c>Trainer</c>) y su nombre se copia de la cuenta; "Otro" deja <c>InstructorUserId</c> nulo y
+/// conserva el texto libre.
+/// </summary>
+internal static class ClassInstructor
+{
+    public static async Task<SaveClassRequest> ResolveAsync(
+        IIdentityReader identity,
+        Guid gymId,
+        SaveClassRequest request,
+        Guid? currentInstructorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (request.InstructorUserId is not { } userId)
+        {
+            return request;
+        }
+
+        // Quien ya era el instructor no se revalida: si perdió el permiso, la clase se queda como estaba
+        // (aparece en "sin entrenador activo") hasta que el staff la reasigne.
+        if (userId != currentInstructorUserId
+            && !await identity.CanBeTrainerAsync(userId, gymId, cancellationToken))
+        {
+            throw new ValidationDomainException(
+                "Esa persona no puede ser instructor: debe ser el Owner o tener el permiso de entrenador en este gimnasio.");
+        }
+
+        var user = await identity.GetUserAsync(userId, cancellationToken)
+            ?? throw new ValidationDomainException("El entrenador elegido no existe.");
+        var name = user.FullName.Length > 120 ? user.FullName[..120] : user.FullName;
+        return request with { InstructorName = name };
+    }
+
+    /// <summary>Ids de las cuentas que hoy pueden ser entrenador en el gym.</summary>
+    public static async Task<HashSet<Guid>> ActiveTrainerIdsAsync(
+        IIdentityReader identity, Guid gymId, CancellationToken cancellationToken)
+        => (await identity.ListTrainersAsync(gymId, cancellationToken)).Select(t => t.UserId).ToHashSet();
+
+    public static bool HasNoActiveInstructor(GymClass c, HashSet<Guid> activeTrainers)
+        => c.IsActive && c.InstructorUserId is { } id && !activeTrainers.Contains(id);
+}
+
+public sealed class ListClassesHandler(
+    ICurrentUserService currentUser, IClassRepository classes, IIdentityReader identity)
 {
     public async Task<IReadOnlyList<ClassListItem>> HandleAsync(
         bool includeInactive, CancellationToken cancellationToken)
     {
-        _ = currentUser.RequireGymId();
+        var gymId = currentUser.RequireGymId();
 
         var list = await classes.ListAsync(new ClassFilter(includeInactive), cancellationToken);
-        return list.Select(ClassMapper.ToListItem).ToList();
+        var trainers = list.Any(c => c.InstructorUserId is not null)
+            ? await ClassInstructor.ActiveTrainerIdsAsync(identity, gymId, cancellationToken)
+            : [];
+        return list.Select(c => ClassMapper.ToListItem(c, ClassInstructor.HasNoActiveInstructor(c, trainers))).ToList();
     }
 }
 
-public sealed class GetClassHandler(ICurrentUserService currentUser, IClassRepository classes)
+public sealed class GetClassHandler(
+    ICurrentUserService currentUser, IClassRepository classes, IIdentityReader identity)
 {
     public async Task<ClassResponse> HandleAsync(Guid classId, CancellationToken cancellationToken)
     {
-        _ = currentUser.RequireGymId();
+        var gymId = currentUser.RequireGymId();
 
         var gymClass = await classes.GetAsync(classId, cancellationToken)
             ?? throw new NotFoundException("Clase no encontrada.");
 
-        return ClassMapper.ToResponse(gymClass);
+        var trainers = gymClass.InstructorUserId is not null
+            ? await ClassInstructor.ActiveTrainerIdsAsync(identity, gymId, cancellationToken)
+            : [];
+        return ClassMapper.ToResponse(gymClass, ClassInstructor.HasNoActiveInstructor(gymClass, trainers));
+    }
+}
+
+/// <summary>C2: la lista de entrenadores del gym para el selector de instructor (cualquier staff la ve).</summary>
+public sealed class ListClassInstructorsHandler(ICurrentUserService currentUser, IIdentityReader identity)
+{
+    public async Task<IReadOnlyList<ClassInstructorOption>> HandleAsync(CancellationToken cancellationToken)
+    {
+        var gymId = currentUser.RequireGymId();
+        var trainers = await identity.ListTrainersAsync(gymId, cancellationToken);
+        return trainers.Select(t => new ClassInstructorOption(t.UserId, t.FullName, t.IsOwner)).ToList();
     }
 }
 
@@ -37,6 +100,7 @@ public sealed class CreateClassHandler(
     ICurrentUserService currentUser,
     IClock clock,
     IGymReader gyms,
+    IIdentityReader identity,
     IClassRepository classes,
     IUnitOfWork unitOfWork,
     ILogger<CreateClassHandler> logger)
@@ -45,6 +109,7 @@ public sealed class CreateClassHandler(
     {
         var gymId = currentUser.RequireGymId();
 
+        request = await ClassInstructor.ResolveAsync(identity, gymId, request, null, cancellationToken);
         var gymClass = GymClass.Create(gymId, clock.Today, ClassMapper.ToDraft(request));
 
         // C1: la clase solo se agenda dentro del horario del gym.
@@ -65,7 +130,9 @@ public sealed class UpdateClassHandler(
     ICurrentUserService currentUser,
     IClock clock,
     IGymReader gyms,
+    IIdentityReader identity,
     IClassRepository classes,
+    IClassSessionRepository sessions,
     IUnitOfWork unitOfWork,
     ILogger<UpdateClassHandler> logger)
 {
@@ -77,10 +144,27 @@ public sealed class UpdateClassHandler(
         var gymClass = await classes.GetAsync(classId, cancellationToken)
             ?? throw new NotFoundException("Clase no encontrada.");
 
+        var previousUserId = gymClass.InstructorUserId;
+        var previousName = gymClass.InstructorName;
+        request = await ClassInstructor.ResolveAsync(identity, gymId, request, previousUserId, cancellationToken);
         gymClass.Update(ClassMapper.ToDraft(request));
 
         // C1: editar también exige que la clase quepa en el horario del gym.
         await ClassOpeningHours.EnsureDefinitionFitsAsync(gyms, clock, gymId, request, cancellationToken);
+
+        // C2: reasignar el instructor alcanza también a las sesiones futuras ya materializadas (el roster y
+        // "Mis clases" salen de ellas); las pasadas conservan quién la dio.
+        if (previousUserId != gymClass.InstructorUserId || previousName != gymClass.InstructorName)
+        {
+            foreach (var session in await sessions.ListFromAsync(classId, clock.Today, cancellationToken))
+            {
+                if (!session.IsCancelled)
+                {
+                    session.ReassignInstructor(gymClass.InstructorUserId, gymClass.InstructorName);
+                }
+            }
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Clase {ClassId} actualizada", gymClass.Id);

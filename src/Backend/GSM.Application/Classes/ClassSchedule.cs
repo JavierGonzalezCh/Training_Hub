@@ -37,7 +37,8 @@ public static class ClassSchedule
                 entries.Add(new ScheduleEntry(
                     c.Id, c.Name, c.Description, c.InstructorName, c.Capacity,
                     date, c.StartTime, c.DurationMinutes,
-                    ClassSessionStatus.Scheduled.ToString(), null, IsMaterialized: false, SessionId: null));
+                    ClassSessionStatus.Scheduled.ToString(), null, IsMaterialized: false, SessionId: null,
+                    InstructorUserId: c.InstructorUserId));
             }
         }
 
@@ -50,7 +51,8 @@ public static class ClassSchedule
             entries.Add(new ScheduleEntry(
                 s.ClassId, name, description, s.InstructorName, s.Capacity,
                 s.SessionDate, s.StartTime, s.DurationMinutes,
-                s.Status.ToString(), s.CancellationReason, IsMaterialized: true, s.Id));
+                s.Status.ToString(), s.CancellationReason, IsMaterialized: true, s.Id,
+                InstructorUserId: s.InstructorUserId));
         }
 
         return entries

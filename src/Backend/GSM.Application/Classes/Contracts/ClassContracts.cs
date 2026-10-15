@@ -17,7 +17,12 @@ public sealed record SaveClassRequest(
     bool IsRecurring,
     IReadOnlyList<ClassDayOfWeek>? DaysOfWeek,
     DateOnly? ScheduledDate,
-    DateOnly? EndsOn = null);
+    DateOnly? EndsOn = null,
+    /// <summary>
+    /// C2: el entrenador elegido de la lista del gym (<c>GET api/classes/trainers</c>). Con valor, el nombre del
+    /// instructor se copia de su cuenta y <c>InstructorName</c> se ignora. Nulo = "Otro" (texto libre) o sin instructor.
+    /// </summary>
+    Guid? InstructorUserId = null);
 
 public sealed record ClassResponse(
     Guid Id,
@@ -33,7 +38,9 @@ public sealed record ClassResponse(
     DateOnly StartsOn,
     bool IsActive,
     DateOnly? DeactivatedOn,
-    DateOnly? EndsOn);
+    DateOnly? EndsOn,
+    Guid? InstructorUserId,
+    bool NoActiveInstructor);
 
 public sealed record ClassListItem(
     Guid Id,
@@ -46,4 +53,9 @@ public sealed record ClassListItem(
     IReadOnlyList<ClassDayOfWeek> DaysOfWeek,
     DateOnly? ScheduledDate,
     bool IsActive,
-    DateOnly? EndsOn);
+    DateOnly? EndsOn,
+    Guid? InstructorUserId,
+    bool NoActiveInstructor);
+
+/// <summary>Un entrenador elegible como instructor (Owner o staff con <c>Trainer</c>). "Otro" lo añade la UI.</summary>
+public sealed record ClassInstructorOption(Guid UserId, string FullName, bool IsOwner);

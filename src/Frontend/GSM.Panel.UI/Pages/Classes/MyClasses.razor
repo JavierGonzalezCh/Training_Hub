@@ -1,0 +1,108 @@
+@page "/classes/mine"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IClassesClient Classes
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Mis clases — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
+    <MudText Typo="Typo.h4">Mis clases</MudText>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" />
+    <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" />
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_entries.Count == 0)
+{
+    <MudText Color="Color.Secondary" Class="my-classes-empty">No tienes clases esta semana.</MudText>
+}
+else
+{
+    @for (var i = 0; i < 7; i++)
+    {
+        var day = _weekStart.AddDays(i);
+        var entries = _entries.Where(e => e.SessionDate == day).OrderBy(e => e.StartTime).ToList();
+        if (entries.Count == 0)
+        {
+            continue;
+        }
+
+        <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-2 d-block">
+            @(day == _today ? "HOY · " : "")@ClassLabels.DayLabel(((int)day.DayOfWeek + 6) % 7).ToUpperInvariant() · @GsmFormat.Day(day)
+        </MudText>
+        @foreach (var entry in entries)
+        {
+            <MudPaper Class="pa-3 mb-2 d-flex align-center flex-wrap my-class-row"
+                      style="gap:1rem; cursor:pointer; border:1px solid var(--gsm-border)"
+                      Elevation="0" @onclick="@(() => OpenRosterAsync(entry))">
+                <MudText Class="gsm-mono" Style="min-width:60px">@entry.StartTime.ToString("HH:mm")</MudText>
+                <MudText Style="flex:1">@entry.ClassName</MudText>
+                @if (entry.OutsideOpeningHours == true)
+                {
+                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">GYM CERRADO</MudChip>
+                }
+                <MudChip T="string" Color="@(entry.Status == "Cancelled" ? Color.Error : Color.Info)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @ClassLabels.SessionStatusLabel(entry.Status).ToUpperInvariant()
+                </MudChip>
+            </MudPaper>
+        }
+    }
+}
+
+@code {
+    private readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _weekStart = StartOfWeek(DateOnly.FromDateTime(DateTime.Today));
+    private List<ScheduleEntry> _entries = [];
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private static DateOnly StartOfWeek(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
+
+    private async Task ShiftWeekAsync(int days)
+    {
+        _weekStart = _weekStart.AddDays(days);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Classes.MineAsync(_weekStart, _weekStart.AddDays(6));
+            _entries = result.Entries.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // Misma ventana del horario del staff: ahí se ve el roster y se marca la asistencia (también desde el celular).
+    private async Task OpenRosterAsync(ScheduleEntry entry)
+    {
+        var parameters = new DialogParameters<ClassRosterDialog>
+        {
+            { x => x.ClassId, entry.ClassId },
+            { x => x.SessionDate, entry.SessionDate },
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await Dialogs.ShowAsync<ClassRosterDialog>(entry.ClassName, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+}

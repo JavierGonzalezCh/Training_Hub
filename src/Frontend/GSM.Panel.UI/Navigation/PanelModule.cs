@@ -29,11 +29,15 @@ public sealed record PanelMenuEntry(
     bool BottomBar = false,
     int BottomOrder = 0,
     string? BottomTitle = null,
-    string? Roles = null)
+    string? Roles = null,
+    string? Permission = null)
 {
     public string ShortTitle => BottomTitle ?? Title;
 
-    public bool IsVisibleTo(ClaimsPrincipal user) => PanelRoles.Allows(Roles, user);
+    /// <summary><see cref="Permission"/> (un <c>GsmPermissions</c>) limita la entrada a quien lo tiene; el Owner los tiene todos.</summary>
+    public bool IsVisibleTo(ClaimsPrincipal user)
+        => PanelRoles.Allows(Roles, user)
+           && (Permission is null || GSM.UI.Shared.Auth.GsmClaimsPrincipalExtensions.HasPermission(user, Permission));
 }
 
 /// <summary>Una pestaña de <c>/settings</c>: el componente se muestra dentro de la pestaña.</summary>

@@ -6,7 +6,7 @@ namespace GSM.Application.Classes;
 /// <summary>Mapeo manual entidad → DTO, en línea con <c>RoutineMapper</c>.</summary>
 public static class ClassMapper
 {
-    public static ClassResponse ToResponse(GymClass c)
+    public static ClassResponse ToResponse(GymClass c, bool noActiveInstructor = false)
         => new(
             c.Id,
             c.Name,
@@ -21,9 +21,11 @@ public static class ClassMapper
             c.StartsOn,
             c.IsActive,
             c.DeactivatedOn,
-            c.EndsOn);
+            c.EndsOn,
+            c.InstructorUserId,
+            noActiveInstructor);
 
-    public static ClassListItem ToListItem(GymClass c)
+    public static ClassListItem ToListItem(GymClass c, bool noActiveInstructor = false)
         => new(
             c.Id,
             c.Name,
@@ -35,7 +37,9 @@ public static class ClassMapper
             c.DaysOfWeek.ToList(),
             c.ScheduledDate,
             c.IsActive,
-            c.EndsOn);
+            c.EndsOn,
+            c.InstructorUserId,
+            noActiveInstructor);
 
     public static GymClassDraft ToDraft(SaveClassRequest r)
         => new(
@@ -48,5 +52,6 @@ public static class ClassMapper
             r.IsRecurring,
             r.DaysOfWeek ?? [],
             r.ScheduledDate,
-            r.EndsOn);
+            r.EndsOn,
+            r.InstructorUserId);
 }

@@ -21,5 +21,11 @@ public sealed class ClassSessionRepository(GsmDbContext dbContext) : IClassSessi
             .Where(s => s.SessionDate >= from && s.SessionDate <= to)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<ClassSession>> ListFromAsync(
+        Guid classId, DateOnly from, CancellationToken cancellationToken = default)
+        => await Sessions
+            .Where(s => s.ClassId == classId && s.SessionDate >= from)
+            .ToListAsync(cancellationToken);
+
     public void Add(ClassSession session) => Sessions.Add(session);
 }

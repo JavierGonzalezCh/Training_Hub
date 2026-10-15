@@ -26,7 +26,7 @@ internal static class ClassSessionMaterializer
 
         var session = ClassSession.Materialize(
             gymClass.GymId, gymClass.Id, date,
-            gymClass.StartTime, gymClass.DurationMinutes, gymClass.InstructorName, gymClass.Capacity);
+            gymClass.StartTime, gymClass.DurationMinutes, gymClass.InstructorName, gymClass.Capacity, gymClass.InstructorUserId);
 
         sessions.Add(session);
         await unitOfWork.SaveChangesAsync(cancellationToken);

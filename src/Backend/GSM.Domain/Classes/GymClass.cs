@@ -24,6 +24,12 @@ public sealed class GymClass : BaseEntity, ITenantEntity
     /// <summary>Texto libre; sin entidad ni cuenta.</summary>
     public string? InstructorName { get; private set; }
 
+    /// <summary>
+    /// C2: el entrenador de la lista del gym que da la clase. <c>null</c> = instructor "Otro" (texto libre en
+    /// <see cref="InstructorName"/>) o sin instructor. Con valor, <see cref="InstructorName"/> es la copia del nombre.
+    /// </summary>
+    public Guid? InstructorUserId { get; private set; }
+
     /// <summary><c>null</c> = sin reserva, entrada libre por orden de llegada. Con valor, ≥ 1.</summary>
     public int? Capacity { get; private set; }
 
@@ -150,6 +156,7 @@ public sealed class GymClass : BaseEntity, ITenantEntity
         Name = NormalizeName(draft.Name);
         Description = Clean(draft.Description, 1000);
         InstructorName = Clean(draft.InstructorName, 120);
+        InstructorUserId = draft.InstructorUserId;
         Capacity = draft.Capacity;
         StartTime = draft.StartTime;
         DurationMinutes = draft.DurationMinutes;
