@@ -197,6 +197,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-14: lanzada la tercera tanda: C3, A2, R4 y S2.
 - 2026-10-14: C5, A1b, M4 e I6 unidas sin conflictos. Migración `V2_C5_A1b_M4_I6`, cliente regenerado. Al integrar: cuarto defecto de NSwag (defaults `int` en `ReceptionCardResponse` salían como texto; se quitaron los defaults), 1 error de UI y un test de C5 que no sembraba membresía (exigida desde C1). **Suite: 574 integración + 279 bUnit, todo verde.**
 - 2026-10-14: lanzada la segunda tanda de la noche: C5, A1b, M4 e I6 (solo escriben código).
 - 2026-10-14: C1, M3, I5 y P3 unidas. Migración única `V2_P3_M3_I5` (con `SqlScript("P3")`), cliente regenerado. Al integrar: 1 `using` en Payments, 8 errores de UI (parámetro nuevo `withHealthAlerts`, `bool?` del cliente, `InputMode`), 7 tests bUnit (parámetro de query, popover, `Change` en vez de `Input`, semana actual) y 15 de C1 (helpers que liberaban el scope sin esperar la tarea). **Suite: 528 integración + 260 bUnit, todo verde.**
