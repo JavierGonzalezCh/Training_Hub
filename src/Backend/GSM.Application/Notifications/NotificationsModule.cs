@@ -13,6 +13,7 @@ public static class NotificationsModuleRegistration
     public static IServiceCollection AddNotificationsModule(this IServiceCollection services)
     {
         services.AddScoped<MemberNoticeWriter>();
+        services.AddScoped<ScheduledNoticeService>();
         services.AddScoped<PushDeliveryPlanner>();
         services.AddScoped<NotificationDispatchRunner>();
         services.AddScoped<INotificationReader, NotificationReader>();

@@ -140,6 +140,7 @@ public sealed class AnnouncementPublishedCreatesNotices(
 /// <summary>Recordatorio de que la membresía vence pronto: bandeja y correo.</summary>
 public sealed class MembershipReminderDueCreatesNotice(
     MemberNoticeWriter writer,
+    ScheduledNoticeService scheduler,
     IMemberReader members,
     IUnitOfWork unitOfWork) : IDomainEventHandler<MembershipReminderDue>
 {
@@ -182,7 +183,10 @@ public sealed class MembershipReminderDueCreatesNotice(
         if (await writer.NotifyAsync(
                 new MemberNotice(
                     domainEvent.GymId, domainEvent.MemberId, NotificationType.MembershipExpiring,
-                    NotificationCategory.Membership, referenceId, title, body, "/app"),
+                    NotificationCategory.Membership, referenceId, title, body, "/app",
+                    // N5: el horario de envío de los vencimientos son las 8:00 del gym (spec §9). La tarea de
+                    // Comunicaciones sigue generándolos cuando toca; aquí solo se difiere su salida.
+                    scheduler.NextDailySend()),
                 sendEmail: true, cancellationToken))
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -193,6 +193,24 @@ public sealed class Notification : BaseEntity, ITenantEntity
 
     public void MarkFailed() => Status = NotificationStatus.Failed;
 
+    /// <summary>
+    /// N5: mueve un aviso programado a otra hora. Vale para uno pendiente, retenido o cancelado (una reserva
+    /// cancelada y vuelta a hacer reactiva el mismo aviso); uno ya enviado, fallido u omitido no se toca.
+    /// </summary>
+    /// <returns><c>true</c> si quedó programado a <paramref name="scheduledFor"/> (también si ya lo estaba).</returns>
+    public bool Reschedule(DateTimeOffset scheduledFor)
+    {
+        if (Status is not (NotificationStatus.Pending or NotificationStatus.Held or NotificationStatus.Cancelled))
+        {
+            return false;
+        }
+
+        Status = NotificationStatus.Pending;
+        ScheduledFor = scheduledFor;
+        ReleaseAt = null;
+        return true;
+    }
+
     public void Cancel()
     {
         if (Status is NotificationStatus.Pending or NotificationStatus.Held)

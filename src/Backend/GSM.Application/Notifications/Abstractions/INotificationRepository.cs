@@ -27,6 +27,13 @@ public interface INotificationRepository
     Task<IReadOnlySet<Guid>> GetNotifiedMemberIdsAsync(
         NotificationType type, Guid referenceId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// N5: los avisos aún sin salir (<c>pending</c> o <c>held</c>) de esos tipos y esa referencia, de cualquier
+    /// destinatario. Con seguimiento, para cancelarlos.
+    /// </summary>
+    Task<IReadOnlyList<Notification>> ListUnsentByReferenceAsync(
+        IReadOnlyCollection<NotificationType> types, Guid referenceId, CancellationToken cancellationToken = default);
+
     // ---- bandeja del miembro ----
 
     /// <summary>Del miembro, sin los anuncios (viven en el feed): no leídos primero, luego los más recientes.</summary>

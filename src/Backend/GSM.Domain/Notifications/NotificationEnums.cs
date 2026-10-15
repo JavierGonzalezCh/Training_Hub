@@ -21,6 +21,18 @@ public enum NotificationType
 
     /// <summary>A quien pidió anular un pago: su solicitud fue rechazada, con la nota si la hay (P2).</summary>
     VoidRequestRejected,
+
+    /// <summary>
+    /// N5: recordatorio de la clase reservada, 10 minutos antes de empezar. Programado al confirmar la reserva
+    /// (<c>ScheduledFor</c> en el futuro) y cancelable. Referencia: la ocurrencia (clase + día).
+    /// </summary>
+    ClassReminder,
+
+    /// <summary>N5: recordatorio al instructor de la sesión que va a dar, 10 minutos antes. Informativo.</summary>
+    InstructorClassReminder,
+
+    /// <summary>N5: felicitación de cumpleaños, programada para las 8:00 por Comunicaciones (CO5).</summary>
+    Birthday,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>
