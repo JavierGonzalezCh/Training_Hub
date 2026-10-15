@@ -104,6 +104,7 @@ public static partial class MemberLabels
         "medications" => "Medicamentos",
         "training_restrictions" => "Restricciones de entrenamiento",
         "medical_clearance_date" => "Fecha del apto médico",
+        "measurement" => "Medición borrada",
         "consent_data_processing" => "Autorización de datos",
         "consent_liability_waiver" => "Exoneración de responsabilidad",
         _ => field,

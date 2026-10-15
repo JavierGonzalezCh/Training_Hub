@@ -84,6 +84,16 @@ public sealed class AddMemberNoteRequestValidator : AbstractValidator<AddMemberN
     }
 }
 
+public sealed class AddMemberMeasurementRequestValidator : AbstractValidator<AddMemberMeasurementRequest>
+{
+    // Solo la forma: los rangos y la fecha futura son invariantes de dominio (422).
+    public AddMemberMeasurementRequestValidator()
+    {
+        RuleFor(x => x.WeightKg).GreaterThan(0m);
+        RuleFor(x => x.HeightCm).GreaterThan(0m).When(x => x.HeightCm.HasValue);
+    }
+}
+
 public sealed class PublishConsentDocumentRequestValidator : AbstractValidator<PublishConsentDocumentRequest>
 {
     public PublishConsentDocumentRequestValidator()

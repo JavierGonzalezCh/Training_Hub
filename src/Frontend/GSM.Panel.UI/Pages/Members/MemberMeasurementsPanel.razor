@@ -1,0 +1,221 @@
+@* Mediciones de peso y altura (Members v2, M4). Son datos de salud: la pestaña solo se pinta con el permiso
+   ViewMemberHealth y, sin la autorización de datos del miembro, está bloqueada. Una medición mal digitada se
+   borra (no se edita) y el borrado queda en el historial. El IMC lo calcula el servidor. *@
+@using System.Globalization
+@inject IMembersClient Members
+@inject ISnackbar Snackbar
+
+<div class="mt-4 gsm-measurements">
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_forbidden)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="gsm-measurements__forbidden">
+            No tienes permiso para ver las mediciones.
+        </MudAlert>
+    }
+    else if (_consentRequired)
+    {
+        <MudAlert Severity="Severity.Warning" Class="gsm-measurements__consent-required">
+            El miembro aún no ha aceptado la autorización de tratamiento de datos. Sin ella no se pueden
+            guardar ni ver sus mediciones. Regístrala en la pestaña «Autorizaciones».
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid Class="mb-2">
+            <MudItem xs="12" sm="3">
+                <MudTextField T="string" @bind-Value="_weight" Label="Peso (kg)" Immediate="true"
+                              Disabled="_saving" Class="gsm-measurements__weight" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField T="string" @bind-Value="_height" Label="Altura (cm), opcional" Immediate="true"
+                              Disabled="_saving" Class="gsm-measurements__height" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField T="DateTime?" InputType="InputType.Date" Format="yyyy-MM-dd" Label="Fecha"
+                              Value="_date" ValueChanged="OnDateChanged" Immediate="true" Disabled="_saving"
+                              Class="gsm-measurements__date"
+                              InputAttributes="@(new Dictionary<string, object> { ["max"] = DateTime.Today.ToString("yyyy-MM-dd") })" />
+            </MudItem>
+            <MudItem xs="12" sm="3" Class="d-flex align-center">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync"
+                           Disabled="_saving || string.IsNullOrWhiteSpace(_weight)" Class="gsm-measurements__add">
+                    @(_saving ? "Guardando..." : "Añadir medición")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Si no indicas la altura se usa la última registrada. Sin fecha, la medición es de hoy.
+        </MudText>
+
+        @if (_items.Count == 0)
+        {
+            <MudText Class="mt-3 gsm-measurements__empty" Color="Color.Secondary">Sin mediciones todavía.</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Class="mt-3 gsm-measurements__table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Peso</th>
+                        <th>Altura</th>
+                        <th>IMC</th>
+                        <th>Registró</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in _items)
+                    {
+                        <tr class="gsm-measurements__row">
+                            <td>@GsmFormat.Day(m.MeasuredOn)</td>
+                            <td>@m.WeightKg.ToString("0.##", CultureInfo.CurrentCulture) kg</td>
+                            <td>@(m.EffectiveHeightCm is { } h ? $"{h.ToString("0.#", CultureInfo.CurrentCulture)} cm" : "—")</td>
+                            <td>@(m.Bmi is { } b ? b.ToString("0.0", CultureInfo.CurrentCulture) : "—")</td>
+                            <td>@RecordedBy(m)</td>
+                            <td>
+                                @if (_confirmingId == m.Id)
+                                {
+                                    <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Filled"
+                                               OnClick="() => DeleteAsync(m.Id)" Class="gsm-measurements__confirm-delete">Confirmar</MudButton>
+                                    <MudButton Size="Size.Small" OnClick="() => _confirmingId = null">Cancelar</MudButton>
+                                }
+                                else
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   aria-label="Borrar medición" OnClick="() => _confirmingId = m.Id"
+                                                   Class="gsm-measurements__delete" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private List<MemberMeasurementItem> _items = [];
+    private string? _weight;
+    private string? _height;
+    private DateTime? _date;
+    private Guid? _confirmingId;
+    private bool _loading = true;
+    private bool _forbidden;
+    private bool _consentRequired;
+    private bool _saving;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        try
+        {
+            var view = await Members.ListMemberMeasurementsAsync(MemberId);
+            _consentRequired = view.ConsentRequired == true;
+            _items = (view.Items ?? []).ToList();
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 403)
+        {
+            _forbidden = true;
+        }
+        catch (GsmApiException ex)
+        {
+            _forbidden = true;
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnDateChanged(DateTime? date) => _date = date;
+
+    private static string RecordedBy(MemberMeasurementItem m)
+    {
+        var role = m.RecordedByRole switch
+        {
+            "member" => "Miembro",
+            "owner" => "Owner",
+            "superadmin" => "GSM",
+            _ => "Staff",
+        };
+        return string.IsNullOrWhiteSpace(m.RecordedByName) ? role : $"{m.RecordedByName} ({role})";
+    }
+
+    // Acepta coma o punto decimal (teclado en español).
+    private static bool TryParse(string? text, out double value)
+        => double.TryParse((text ?? string.Empty).Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+
+    private async Task AddAsync()
+    {
+        if (!TryParse(_weight, out var weight))
+        {
+            Snackbar.Add("El peso no es un número válido.", Severity.Warning);
+            return;
+        }
+
+        double? height = null;
+        if (!string.IsNullOrWhiteSpace(_height))
+        {
+            if (!TryParse(_height, out var parsed))
+            {
+                Snackbar.Add("La altura no es un número válido.", Severity.Warning);
+                return;
+            }
+
+            height = parsed;
+        }
+
+        _saving = true;
+        try
+        {
+            var added = await Members.AddMemberMeasurementAsync(MemberId, new AddMemberMeasurementRequest
+            {
+                WeightKg = weight,
+                HeightCm = height,
+                MeasuredOn = _date is { } d ? DateOnly.FromDateTime(d) : null,
+            });
+
+            // El IMC y la altura vigente dependen de las demás filas: se recarga la lista.
+            var view = await Members.ListMemberMeasurementsAsync(MemberId);
+            _items = (view.Items ?? []).ToList();
+            _weight = null;
+            _height = null;
+            _date = null;
+            Snackbar.Add("Medición añadida.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        try
+        {
+            await Members.DeleteMemberMeasurementAsync(MemberId, id);
+            _confirmingId = null;
+            var view = await Members.ListMemberMeasurementsAsync(MemberId);
+            _items = (view.Items ?? []).ToList();
+            Snackbar.Add("Medición borrada.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

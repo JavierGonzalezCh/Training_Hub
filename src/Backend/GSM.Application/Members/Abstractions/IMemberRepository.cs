@@ -55,6 +55,18 @@ public interface IMemberRepository
     /// <summary>Las notas del miembro, de la más reciente a la más antigua.</summary>
     Task<IReadOnlyList<MemberNote>> GetNotesAsync(Guid memberId, CancellationToken cancellationToken = default);
 
+    // --- Mediciones de peso y altura ---
+
+    void Add(MemberMeasurement measurement);
+
+    void Remove(MemberMeasurement measurement);
+
+    /// <summary>Todas las mediciones del miembro, de la fecha más reciente a la más antigua.</summary>
+    Task<IReadOnlyList<MemberMeasurement>> GetMeasurementsAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    Task<MemberMeasurement?> GetMeasurementAsync(
+        Guid memberId, Guid measurementId, CancellationToken cancellationToken = default);
+
     // --- Invitaciones ---
 
     void Add(MemberInvitation invitation);

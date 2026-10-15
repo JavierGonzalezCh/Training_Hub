@@ -29,7 +29,14 @@ public sealed class MemberChangeRecorder(
     public void RecordStatus(Member member, MemberStatus from, MemberStatus to)
         => Add(member, MemberChange.StatusField, EnumText.Snake(from), EnumText.Snake(to));
 
+    /// <summary>Una medición borrada deja su resumen en el historial (sensible: son datos de salud).</summary>
+    public void RecordMeasurementDeleted(Guid gymId, Guid memberId, string summary)
+        => Add(gymId, memberId, MemberChange.MeasurementField, summary, newValue: null, isSensitive: true);
+
     private void Add(Member member, string field, string? oldValue, string? newValue, bool isSensitive = false)
+        => Add(member.GymId, member.Id, field, oldValue, newValue, isSensitive);
+
+    private void Add(Guid gymId, Guid memberId, string field, string? oldValue, string? newValue, bool isSensitive = false)
     {
         var role = currentUser.Role switch
         {
@@ -48,7 +55,7 @@ public sealed class MemberChangeRecorder(
         };
 
         members.Add(MemberChange.Record(
-            member.GymId, member.Id, field, oldValue, newValue,
+            gymId, memberId, field, oldValue, newValue,
             currentUser.UserId, role, source, clock.UtcNow, isSensitive));
     }
 }

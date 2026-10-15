@@ -170,6 +170,9 @@ else if (_member is not null)
             <MudTabPanel Text="Salud">
                 <MemberHealthPanel MemberId="Id" OnSaved="OnHealthSaved" />
             </MudTabPanel>
+            <MudTabPanel Text="Medidas">
+                <MemberMeasurementsPanel MemberId="Id" />
+            </MudTabPanel>
         }
         <MudTabPanel Text="Membresías">
             @if (_memberships is null)
