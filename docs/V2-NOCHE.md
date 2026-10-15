@@ -148,6 +148,13 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **M4-4:** las mediciones del propio miembro y la gráfica de evolución quedan para M5. Confirmar.
 - **M4-6:** se permiten varias mediciones el mismo día; peso y altura se redondean (2 y 1 decimales) antes de validar. Confirmar.
 
+- **A1b-1:** el rechazo por las 2 horas usa el motivo `already_checked_in` (con la hora en que puede volver). ¿Motivo propio `too_soon`?
+- **A1b-2:** las 2 horas aplican también a la recepción del staff (todas las vías). Confirmar.
+- **A1b-3:** `valid_until` de la regla es inclusivo. Confirmar.
+- **A1b-5:** asistir a una clase no crea una segunda entrada si ya hubo una ese día, aunque el miembro tenga entradas múltiples. Confirmar.
+- **A1b-6:** "Check-ins hoy" del dashboard y los conteos de SuperAdmin cuentan **entradas**, no personas. ¿Se cambian a personas distintas? (lo aclara A5)
+- **Riesgo A1b:** sin el índice único por miembro y día, dos escaneos simultáneos pueden registrar dos entradas. ¿Se cierra con un candado por miembro?
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
