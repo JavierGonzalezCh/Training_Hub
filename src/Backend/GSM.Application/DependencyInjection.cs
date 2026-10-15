@@ -64,6 +64,7 @@ public static class DependencyInjection
             .AddEquipmentModule()
             .AddSuperAdminModule()
             .AddCommunicationsModule()
-            .AddNotificationsModule();
+            .AddNotificationsModule()
+            .AddLogsModule();
     }
 }

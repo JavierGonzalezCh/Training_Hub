@@ -1,0 +1,85 @@
+@inject IAdminLogsClient Logs
+@inject ISnackbar Snackbar
+
+<MudText Class="mb-3" Color="Color.Secondary">
+    El código que ve el usuario son los 6 primeros caracteres del código de rastreo. Puede coincidir con más de una petición:
+    se distinguen por fecha y gym.
+</MudText>
+
+<div class="d-flex gap-3 align-end mb-4">
+    <MudTextField T="string" @bind-Value="_code" Label="Código (por ejemplo 7F3A2C)" Variant="Variant.Outlined"
+                  Immediate="true" data-testid="trace-code" OnKeyDown="OnKey" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync" Disabled="_loading" data-testid="trace-search">Buscar</MudButton>
+</div>
+
+@if (_response is not null)
+{
+    @if (_response.Records.Count == 0)
+    {
+        <MudText Color="Color.Secondary" data-testid="trace-empty">No hay registros con el código @_response.Query.</MudText>
+    }
+    else
+    {
+        @foreach (var request in _response.Records.GroupBy(r => r.TraceId))
+        {
+            var first = request.First();
+            <MudPaper Outlined="true" Class="pa-3 mb-3" data-testid="trace-request">
+                <MudText Typo="Typo.subtitle2">
+                    <span class="gsm-mono">@first.TraceId</span> · @GsmFormat.Instant(request.Min(r => r.OccurredAt)) · gym <span class="gsm-mono">@(first.GymId?.ToString("N")[..8] ?? "—")</span>
+                </MudText>
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead><tr><th>Tabla</th><th>Qué</th><th>Detalle</th><th>Estado</th></tr></thead>
+                    <tbody>
+                        @foreach (var record in request.OrderBy(r => r.OccurredAt))
+                        {
+                            <tr data-testid="trace-record">
+                                <td>@record.Source</td>
+                                <td>@record.Summary</td>
+                                <td>@record.Detail</td>
+                                <td>@record.StatusCode</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        }
+    }
+}
+
+@code {
+    private string _code = string.Empty;
+    private TraceSearchResponse? _response;
+    private bool _loading;
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchAsync();
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        var code = _code.Trim();
+        if (code.Length == 0)
+        {
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            _response = await Logs.SearchLogsByTraceAsync(code);
+        }
+        catch (GsmApiException ex)
+        {
+            _response = null;
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

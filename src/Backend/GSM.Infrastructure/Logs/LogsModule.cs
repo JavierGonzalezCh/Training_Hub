@@ -26,6 +26,8 @@ public static class LogsInfrastructureRegistration
         services.AddSingleton<ILogStore>(sp => sp.GetRequiredService<LogStore>());
         services.AddHostedService(sp => sp.GetRequiredService<LogStore>());
 
+        services.AddSingleton<GSM.Application.Logs.ILogAdminStore, LogAdminStore>();
+
         services.AddSingleton<LogMaintenance>();
         services.AddSingleton<ILogMaintenance>(sp => sp.GetRequiredService<LogMaintenance>());
 

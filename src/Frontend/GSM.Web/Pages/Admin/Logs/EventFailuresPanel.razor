@@ -1,0 +1,168 @@
+@inject IAdminLogsClient Logs
+@inject ISnackbar Snackbar
+
+<div class="d-flex flex-wrap gap-3 mb-4 align-end">
+    <label>
+        <span class="gsm-nav__label">Reintento</span><br />
+        <select data-testid="event-filter-status" value="@_status" @onchange="e => SetStatusAsync(e.Value?.ToString() ?? string.Empty)">
+            <option value="">Todos</option>
+            <option value="pending">Pendientes</option>
+            <option value="retried_failed">Fallaron otra vez</option>
+            <option value="retried_ok">Resueltos</option>
+            <option value="ignored">Ignorados</option>
+        </select>
+    </label>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="events-empty">Sin eventos fallidos.</MudText>
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0" data-testid="events-table">
+        <thead>
+            <tr><th>Cuándo</th><th>Evento → manejador</th><th>Error</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _items)
+            {
+                <tr data-testid="event-row">
+                    <td>@GsmFormat.Instant(item.OccurredAt)<br /><span class="gsm-mono">@item.TraceCode</span></td>
+                    <td>@Short(item.EventType) → @Short(item.HandlerType)</td>
+                    <td>@item.Message</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@RetryColor(item.RetryStatus)">@RetryLabel(item.RetryStatus)</MudChip>
+                        @if (_notes.TryGetValue(item.Id, out var note))
+                        {
+                            <br /><MudText Typo="Typo.caption" data-testid="retry-note">@note</MudText>
+                        }
+                    </td>
+                    <td>
+                        @if (item.RetryStatus is "pending" or "retried_failed")
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_busy"
+                                       OnClick="@(() => RetryAsync(item))" data-testid="retry-one">Reintentar</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_busy"
+                                       OnClick="@(() => IgnoreAsync(item))" data-testid="ignore-one">Ignorar</MudButton>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<EventFailureItem> _items = [];
+    private readonly Dictionary<Guid, string> _notes = [];
+    private string _status = "pending";
+    private bool _loading = true;
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task SetStatusAsync(string status)
+    {
+        _status = status;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var page = await Logs.ListEventFailuresAsync(string.IsNullOrEmpty(_status) ? null : _status, null, null, 1, 100);
+            _items = page.Items.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task RetryAsync(EventFailureItem item)
+    {
+        _busy = true;
+        try
+        {
+            var result = await Logs.RetryEventFailureAsync(item.Id);
+            switch (result.Outcome)
+            {
+                case "succeeded":
+                    Snackbar.Add("El evento se procesó bien.", Severity.Success);
+                    break;
+                case "already_resolved":
+                    Snackbar.Add("Ese evento ya estaba resuelto.", Severity.Info);
+                    break;
+                case "failed":
+                    Snackbar.Add("Volvió a fallar: " + result.Message, Severity.Warning);
+                    break;
+                default:
+                    Snackbar.Add("No se puede reintentar: " + result.Message, Severity.Warning);
+                    _notes[item.Id] = result.Message ?? "No se puede reintentar.";
+                    break;
+            }
+
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task IgnoreAsync(EventFailureItem item)
+    {
+        _busy = true;
+        try
+        {
+            await Logs.IgnoreEventFailureAsync(item.Id);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string Short(string typeName)
+    {
+        var dot = typeName.LastIndexOf('.');
+        return dot < 0 ? typeName : typeName[(dot + 1)..];
+    }
+
+    internal static string RetryLabel(string status) => status switch
+    {
+        "pending" => "Pendiente",
+        "retried_ok" => "Resuelto",
+        "retried_failed" => "Falló otra vez",
+        "ignored" => "Ignorado",
+        _ => status,
+    };
+
+    private static Color RetryColor(string status) => status switch
+    {
+        "pending" => Color.Error,
+        "retried_failed" => Color.Warning,
+        "retried_ok" => Color.Success,
+        _ => Color.Default,
+    };
+}
