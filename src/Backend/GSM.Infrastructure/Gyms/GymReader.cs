@@ -32,6 +32,12 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public Task<int?> GetCapacityAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<Gym>().IgnoreQueryFilters()
+            .Where(g => g.Id == gymId)
+            .Select(g => g.Capacity)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<GymFeatureFlagsView?> GetFeatureFlagsAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<GymFeatureFlags>().IgnoreQueryFilters()
             .Where(f => f.GymId == gymId)

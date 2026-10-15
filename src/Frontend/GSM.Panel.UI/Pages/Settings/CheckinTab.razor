@@ -1,4 +1,4 @@
-﻿@* Pestaña "Check-in" de la configuración: tipo de QR del gym, días de gracia y regeneración del
+@* Pestaña "Check-in" de la configuración: tipo de QR del gym, días de gracia y regeneración del
    cartel impreso. Solo Owner. Ver docs/CHECKIN-QR-BUILD-PLAN.md. *@
 @inject IAttendanceClient Attendance
 @inject IMembershipSettingsClient MembershipSettings
@@ -43,6 +43,9 @@ else
         <MudNumericField T="int" @bind-Value="_graceDays" Label="Días de gracia" Min="0" Max="30"
                          HelperText="Días después de vencer la membresía en que el miembro aún entra, con letrero. Pasado ese plazo se rechaza y el gym recibe la alerta; recepción puede dejarlo pasar con motivo."
                          Class="mb-4" Style="max-width:420px" />
+        <MudNumericField T="int" @bind-Value="_stayMinutes" Label="Permanencia asumida (minutos)" Min="15" Max="480"
+                         HelperText="Para saber cuánta gente hay en el gimnasio se asume que cada persona se queda este tiempo tras entrar, porque no se registra la salida. Es una estimación; se compara con el aforo del gimnasio."
+                         Class="mb-4" Style="max-width:420px" data-testid="assumed-stay" />
         <MudNumericField T="int" @bind-Value="_expiringDays" Label="Días para 'por vencer'" Min="1" Max="60"
                          HelperText="Con estos días o menos para vencer, el miembro figura 'por vencer' y ve un letrero al entrar."
                          Class="mb-4" Style="max-width:420px" />
@@ -77,6 +80,7 @@ else
     private string _mode = Rotating;
     private string _savedMode = Rotating;
     private bool _byDocument;
+    private int _stayMinutes = 120;
     private int _graceDays = 3;
     private int _expiringDays = 7;
     private decimal _enrollmentFee;
@@ -88,6 +92,7 @@ else
             var settings = await Attendance.SettingsGETAsync();
             _mode = _savedMode = settings.Mode;
             _byDocument = settings.ByDocument;
+            _stayMinutes = settings.AssumedStayMinutes;
             var membership = await MembershipSettings.MembershipSettingsGETAsync();
             _graceDays = membership.GraceDays;
             _expiringDays = membership.ExpiringDays;
@@ -109,11 +114,12 @@ else
         try
         {
             // La gracia ya no es de Attendance: vive en los ajustes de membresías (dos llamadas, cada una a su módulo).
-            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode, ByDocument = _byDocument });
+            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode, ByDocument = _byDocument, AssumedStayMinutes = _stayMinutes });
             var membership = await MembershipSettings.MembershipSettingsPUTAsync(
                 new UpdateMembershipSettingsRequest { GraceDays = _graceDays, ExpiringDays = _expiringDays, EnrollmentFee = (double)_enrollmentFee });
             _mode = _savedMode = saved.Mode;
             _byDocument = saved.ByDocument;
+            _stayMinutes = saved.AssumedStayMinutes;
             _graceDays = membership.GraceDays;
             _expiringDays = membership.ExpiringDays;
             _enrollmentFee = (decimal)membership.EnrollmentFee;

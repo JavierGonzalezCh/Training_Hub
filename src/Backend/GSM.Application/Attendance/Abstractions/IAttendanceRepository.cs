@@ -34,4 +34,11 @@ public interface IAttendanceRepository
     /// <summary>Asistencias del gym con <c>checked_in_at</c> en <c>[fromUtc, toUtc)</c> (horas pico).</summary>
     Task<IReadOnlyList<DateTimeOffset>> GetCheckInInstantsAsync(
         DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Personas distintas del gym con una entrada no anulada en <c>(sinceUtc, untilUtc]</c> (ocupación, A5).
+    /// Una persona con dos entradas cuenta una vez.
+    /// </summary>
+    Task<int> CountDistinctMembersInWindowAsync(
+        Guid gymId, DateTimeOffset sinceUtc, DateTimeOffset untilUtc, CancellationToken cancellationToken = default);
 }

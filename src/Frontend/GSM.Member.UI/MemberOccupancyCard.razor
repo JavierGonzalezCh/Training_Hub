@@ -1,0 +1,38 @@
+@* "¿Qué tan lleno está?" en tres niveles, sin número exacto (A5). Si el gym no tiene aforo no se muestra nada. *@
+@inject IMeClient Me
+
+@if (_level is { } level)
+{
+    <section class="gsm-m-card" data-testid="member-occupancy" role="status">
+        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Groups" /></span>
+        <div class="gsm-m-card__body">
+            <h2 class="gsm-m-card__title">¿Qué tan lleno está?</h2>
+            <p class="gsm-m-card__text"><strong>@Label(level)</strong> · estimación según las entradas recientes</p>
+        </div>
+    </section>
+}
+
+@code {
+    private string? _level;
+
+    public static string Label(string level) => level switch
+    {
+        "calm" => "Tranquilo",
+        "moderate" => "Moderado",
+        "full" => "Lleno",
+        _ => string.Empty,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _level = (await Me.GetMyOccupancyAsync())?.Level;
+        }
+        catch (GsmApiException)
+        {
+            // Es un extra de la pantalla de inicio: sin el dato no se muestra.
+            _level = null;
+        }
+    }
+}

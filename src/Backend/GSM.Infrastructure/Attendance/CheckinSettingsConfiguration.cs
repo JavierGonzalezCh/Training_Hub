@@ -12,6 +12,8 @@ public sealed class CheckinSettingsConfiguration : IEntityTypeConfiguration<Chec
 
         builder.Property(s => s.Mode).HasColumnName("mode");
         builder.Property(s => s.ByDocument).HasColumnName("by_document").HasDefaultValue(false);
+        builder.Property(s => s.AssumedStayMinutes).HasColumnName("assumed_stay_minutes")
+            .HasDefaultValue(CheckinSettings.DefaultAssumedStayMinutes);
         builder.HasIndex(s => s.GymId).IsUnique();
     }
 }

@@ -94,10 +94,22 @@ public sealed record ListAttendanceQuery
 
 /// <summary>La gracia ya no es de Attendance: vive en los ajustes de membresías (`/api/membership-settings`).</summary>
 /// <param name="ByDocument">La entrada con documento en el kiosco está encendida (A4; apagada por defecto).</param>
-public sealed record CheckinSettingsResponse(string Mode, bool ByDocument);
+/// <param name="AssumedStayMinutes">Permanencia asumida para estimar la ocupación (A5; 120 por defecto).</param>
+public sealed record CheckinSettingsResponse(string Mode, bool ByDocument, int AssumedStayMinutes);
 
 /// <param name="ByDocument">Enciende o apaga la entrada con documento en el kiosco. Nulo = no cambia.</param>
-public sealed record UpdateCheckinSettingsRequest(string Mode, bool? ByDocument = null);
+/// <param name="AssumedStayMinutes">Permanencia asumida en minutos (15 a 480). Nulo = no cambia.</param>
+public sealed record UpdateCheckinSettingsRequest(string Mode, bool? ByDocument = null, int? AssumedStayMinutes = null);
+
+/// <summary>
+/// Cuánta gente hay en el gym ahora (estimación: entradas no anuladas de las últimas <c>AssumedStayMinutes</c>,
+/// una vez por persona). <c>Capacity</c>, <c>Percent</c> y <c>Level</c> son nulos si el gym no configuró aforo.
+/// <c>Level</c>: <c>calm</c> (&lt; 40 %), <c>moderate</c> (40-75 %) o <c>full</c> (&gt; 75 %).
+/// </summary>
+public sealed record OccupancyResponse(int PeopleInside, int? Capacity, int? Percent, string? Level, int AssumedStayMinutes);
+
+/// <summary>Lo que ve el miembro: solo el nivel (<c>calm</c>, <c>moderate</c>, <c>full</c>), sin número. Nulo si el gym no tiene aforo.</summary>
+public sealed record MemberOccupancyResponse(string? Level);
 
 /// <summary>Código vigente del gym. <c>ExpiresAtUtc</c> solo en modo rotativo. <c>ByDocument</c>: el kiosco muestra el teclado del documento.</summary>
 public sealed record KioskCodeResponse(string Mode, string Code, DateTimeOffset? ExpiresAtUtc, bool ByDocument);

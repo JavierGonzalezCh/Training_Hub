@@ -112,6 +112,18 @@ public sealed class AttendanceController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
 
+    /// <summary>
+    /// Cuánta gente hay en el gym ahora (estimación: entradas no anuladas de las últimas 2 horas, por persona) y
+    /// qué porcentaje del aforo es. Sin aforo configurado solo trae el número de personas.
+    /// </summary>
+    [HttpGet("occupancy")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [EndpointName("GetOccupancy")]
+    [ProducesResponseType<OccupancyResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<OccupancyResponse>> Occupancy(
+        [FromServices] GetOccupancyHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     [HttpGet("settings")]
     [Authorize(Policy = AuthPolicies.RequireStaff)]
     [ProducesResponseType<CheckinSettingsResponse>(StatusCodes.Status200OK)]
