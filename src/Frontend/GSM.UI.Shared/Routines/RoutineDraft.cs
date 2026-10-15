@@ -354,12 +354,12 @@ public sealed class DraftSet
     public static List<DraftSet> DefaultsFor(string? tracking)
     {
         var fields = TrackingFields.Of(tracking);
-        return Enumerable.Range(0, fields.Reps ? 3 : 1).Select(_ => new DraftSet
+        return Enumerable.Range(0, fields.Reps || fields.Weight ? 3 : 1).Select(_ => new DraftSet
         {
             RepsMin = fields.Reps ? 8 : null,
             RepsMax = fields.Reps ? 12 : null,
             DurationSeconds = fields.Time ? (fields.Distance ? 600 : 30) : null,
-            DistanceM = fields.Distance ? 1000 : null,
+            DistanceM = fields.Distance ? (fields.Weight ? 40 : 1000) : null,
         }).ToList();
     }
 }

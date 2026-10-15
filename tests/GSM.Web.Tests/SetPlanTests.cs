@@ -24,6 +24,24 @@ public sealed class SetPlanTests
     }
 
     [Fact]
+    public void R3b_weight_distance_shows_weight_and_distance_fields_and_compares_the_worst_measure()
+    {
+        var fields = TrackingFields.Of("WeightDistance");
+        Assert.Equal(new TrackingFields(false, true, false, true), fields);
+        Assert.Equal("Peso y distancia", GSM.UI.Shared.Formatting.RoutineLabels.TrackingTypeLabel("WeightDistance"));
+        Assert.Equal(5, GSM.UI.Shared.Formatting.RoutineLabels.TrackingTypeValue("WeightDistance"));
+
+        var target = Target(min: null, max: null, kg: 32, meters: 40);
+        Assert.Equal("32 kg · 40 m", SetPlan.Describe(target));
+        Assert.Equal(SetOutcome.Met, SetPlan.Compare(target, new DoneSet(null, 32, null, 40)));
+        Assert.Equal(SetOutcome.Exceeded, SetPlan.Compare(target, new DoneSet(null, 32, null, 50)));
+        // Gana la peor medida: más distancia no compensa menos peso.
+        Assert.Equal(SetOutcome.Below, SetPlan.Compare(target, new DoneSet(null, 28, null, 60)));
+        Assert.Equal(SetOutcome.Below, SetPlan.Compare(target, new DoneSet(null, 40, null, 30)));
+        Assert.Equal(SetOutcome.NotDone, SetPlan.Compare(target, new DoneSet(null, null, null, null)));
+    }
+
+    [Fact]
     public void Summary_groups_consecutive_identical_series()
     {
         var targets = new[]

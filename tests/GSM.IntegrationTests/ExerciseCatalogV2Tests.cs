@@ -53,6 +53,38 @@ public sealed class ExerciseCatalogV2Tests(ApiFactory factory) : IClassFixture<A
         Assert.Equal(Difficulty.Beginner, system.Single(e => e.Name == "Flexiones de pecho").Difficulty);
     }
 
+    [Fact]
+    public async Task R3b_farmers_walk_of_the_system_catalog_measures_weight_and_distance()
+    {
+        using var scope = System();
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+
+        var walk = await db.Set<Exercise>().SingleAsync(e => e.GymId == null && e.Name == "Paseo del granjero");
+        Assert.Equal(TrackingType.WeightDistance, walk.TrackingType);
+    }
+
+    [Fact]
+    public async Task R3b_gym_exercise_can_be_created_with_weight_distance()
+    {
+        var world = await SeedAsync();
+        var created = new List<Guid>();
+        try
+        {
+            using var scope = Staff(world.GymA, world.StaffA);
+            var create = scope.ServiceProvider.GetRequiredService<CreateExerciseHandler>();
+
+            var carry = await create.HandleAsync(
+                Request(world, "Acarreo de maleta", ExerciseType.Strength) with { TrackingType = TrackingType.WeightDistance }, default);
+            created.Add(carry.Id);
+
+            Assert.Equal("WeightDistance", carry.TrackingType);
+        }
+        finally
+        {
+            await DeleteAsync(created);
+        }
+    }
+
     // --- Tipo, qué se mide, unilateral, nivel ---
 
     [Fact]

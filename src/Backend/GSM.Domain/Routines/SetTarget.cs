@@ -37,9 +37,9 @@ public static class SetTargetRules
         }
 
         var usesReps = tracking is TrackingType.RepsWeight or TrackingType.Reps;
-        var usesWeight = tracking is TrackingType.RepsWeight;
+        var usesWeight = tracking is TrackingType.RepsWeight or TrackingType.WeightDistance;
         var usesTime = tracking is TrackingType.Time or TrackingType.TimeDistance;
-        var usesDistance = tracking is TrackingType.Distance or TrackingType.TimeDistance;
+        var usesDistance = tracking is TrackingType.Distance or TrackingType.TimeDistance or TrackingType.WeightDistance;
 
         var result = new List<SetTarget>(targets.Count);
         foreach (var t in targets)
