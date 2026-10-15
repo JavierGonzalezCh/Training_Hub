@@ -65,6 +65,35 @@ public sealed class GetScheduleHandler(
     }
 }
 
+/// <summary>
+/// C2: "Mis clases" del entrenador: sus ocurrencias (las de las clases donde es el instructor de la lista) en
+/// el rango, con el mismo formato del horario del staff. Un instructor "Otro" no tiene cuenta y no aparece.
+/// </summary>
+public sealed class GetMyInstructorClassesHandler(
+    ICurrentUserService currentUser,
+    IGymReader gyms,
+    IClassRepository classes,
+    IClassSessionRepository sessions)
+{
+    public async Task<ScheduleResponse> HandleAsync(
+        DateOnly from, DateOnly to, CancellationToken cancellationToken)
+    {
+        var gymId = currentUser.RequireGymId();
+        var userId = currentUser.UserId ?? throw new ForbiddenDomainException("Sesión sin usuario.");
+        ScheduleWindow.Validate(from, to);
+
+        var defs = await classes.ListAsync(new ClassFilter(IncludeInactive: true), cancellationToken);
+        var mat = await sessions.ListInRangeAsync(from, to, cancellationToken);
+        var schedule = await gyms.GetOpeningScheduleAsync(gymId, from, to, cancellationToken);
+
+        var mine = ClassSchedule.Project(defs, mat, from, to)
+            .Where(e => e.InstructorUserId == userId)
+            .ToList();
+
+        return new ScheduleResponse(from, to, ClassOpeningHours.Annotate(mine, schedule));
+    }
+}
+
 /// <summary>Horario del gym para la app del miembro. 403 si <c>show_classes = false</c>.</summary>
 public sealed class GetMyClassesHandler(
     ICurrentUserService currentUser,
@@ -164,7 +193,8 @@ public sealed class CancelSessionHandler(
         return new ScheduleEntry(
             gymClass.Id, gymClass.Name, gymClass.Description, session.InstructorName, session.Capacity,
             session.SessionDate, session.StartTime, session.DurationMinutes,
-            session.Status.ToString(), session.CancellationReason, IsMaterialized: true, session.Id);
+            session.Status.ToString(), session.CancellationReason, IsMaterialized: true, session.Id,
+            InstructorUserId: session.InstructorUserId);
     }
 }
 

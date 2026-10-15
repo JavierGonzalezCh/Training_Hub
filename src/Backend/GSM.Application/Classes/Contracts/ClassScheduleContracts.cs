@@ -23,7 +23,9 @@ public sealed record ScheduleEntry(
     /// C1: la ocurrencia cae fuera del horario de atención del gym ese día (festivo con horario corto,
     /// cierre por excepción o cambio de horario). No se puede reservar ni marcar asistencia; la UI dice "Gym cerrado".
     /// </summary>
-    bool OutsideOpeningHours = false);
+    bool OutsideOpeningHours = false,
+    /// <summary>C2: el entrenador de la lista que da la clase; nulo = "Otro" o sin instructor.</summary>
+    Guid? InstructorUserId = null);
 
 public sealed record ScheduleResponse(
     DateOnly From,

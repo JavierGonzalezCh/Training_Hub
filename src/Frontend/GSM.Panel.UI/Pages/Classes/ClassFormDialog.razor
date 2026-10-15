@@ -15,7 +15,20 @@
             <MudForm @ref="_form" Model="_model">
                 <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
                 <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Class="mb-3" />
-                <MudTextField T="string" @bind-Value="_model.InstructorName" Label="Instructor" Class="mb-3" />
+                <MudSelect T="string" Value="_instructorChoice" ValueChanged="v => _instructorChoice = v"
+                           Label="Instructor" Class="mb-3" id="class-instructor">
+                    <MudSelectItem Value="@NoInstructor">Sin instructor</MudSelectItem>
+                    @foreach (var trainer in _trainers)
+                    {
+                        <MudSelectItem Value="@trainer.UserId.ToString()">@trainer.FullName@(trainer.IsOwner ? " (Owner)" : "")</MudSelectItem>
+                    }
+                    <MudSelectItem Value="@OtherInstructor">Otro...</MudSelectItem>
+                </MudSelect>
+                @if (_instructorChoice == OtherInstructor)
+                {
+                    <MudTextField T="string" @bind-Value="_model.InstructorName" Label="Nombre del instructor"
+                                  Class="mb-3" id="class-instructor-other" MaxLength="120" />
+                }
                 <MudNumericField T="int?" @bind-Value="_model.Capacity" Label="Cupo (vacío = entrada libre)" Min="1" Class="mb-3" />
 
                 <MudGrid Class="mb-3">
@@ -63,7 +76,12 @@
     [Parameter]
     public Guid? ClassId { get; set; }
 
+    private const string NoInstructor = "none";
+    private const string OtherInstructor = "other";
+
     private readonly FormModel _model = new();
+    private List<ClassInstructorOption> _trainers = [];
+    private string _instructorChoice = NoInstructor;
     private IEnumerable<int> _daysOfWeek = [];
     private DateTime? _scheduledDate;
     private DateTime? _endsOn;
@@ -75,6 +93,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            _trainers = (await Classes.TrainersAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+
         if (ClassId is not { } id)
         {
             return;
@@ -87,6 +114,25 @@
             _model.Name = gymClass.Name;
             _model.Description = gymClass.Description;
             _model.InstructorName = gymClass.InstructorName;
+            if (gymClass.InstructorUserId is { } instructorId)
+            {
+                // Si ya no es entrenador activo no está en la lista: se agrega para no perder la selección.
+                if (_trainers.All(t => t.UserId != instructorId))
+                {
+                    _trainers.Add(new ClassInstructorOption
+                    {
+                        UserId = instructorId,
+                        FullName = $"{gymClass.InstructorName} (sin entrenador activo)",
+                    });
+                }
+
+                _instructorChoice = instructorId.ToString();
+            }
+            else
+            {
+                _instructorChoice = string.IsNullOrWhiteSpace(gymClass.InstructorName) ? NoInstructor : OtherInstructor;
+            }
+
             _model.Capacity = gymClass.Capacity;
             _model.DurationMinutes = gymClass.DurationMinutes;
             _model.IsRecurring = gymClass.IsRecurring;
@@ -130,7 +176,8 @@
         {
             Name = _model.Name,
             Description = _model.Description,
-            InstructorName = _model.InstructorName,
+            InstructorName = _instructorChoice == OtherInstructor ? _model.InstructorName : null,
+            InstructorUserId = Guid.TryParse(_instructorChoice, out var instructorUserId) ? instructorUserId : null,
             Capacity = _model.Capacity,
             StartTime = TimeOnly.FromTimeSpan(_startTime.Value),
             DurationMinutes = _model.DurationMinutes,

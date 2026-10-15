@@ -11,6 +11,9 @@ public sealed class ClassesPanelModule : IPanelModule
     [
         new("Clases", Icons.Material.Outlined.CalendarMonth, "/classes", PanelSections.Training, 10,
             BottomBar: true, BottomOrder: 40),
+        // C2: el entrenador (permiso Trainer) ve sus clases; el Owner también, porque los cumple todos.
+        new("Mis clases", Icons.Material.Outlined.Sports, "/classes/mine", PanelSections.Training, 11,
+            Permission: GSM.Client.GsmPermissions.Trainer),
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>

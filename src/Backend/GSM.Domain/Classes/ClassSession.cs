@@ -28,6 +28,9 @@ public sealed class ClassSession : BaseEntity, ITenantEntity
 
     public string? InstructorName { get; private set; }
 
+    /// <summary>C2: copia del entrenador de la definición al materializar (nulo = "Otro" o sin instructor).</summary>
+    public Guid? InstructorUserId { get; private set; }
+
     public int? Capacity { get; private set; }
 
     public ClassSessionStatus Status { get; private set; } = ClassSessionStatus.Scheduled;
@@ -41,7 +44,8 @@ public sealed class ClassSession : BaseEntity, ITenantEntity
         TimeOnly startTime,
         int durationMinutes,
         string? instructorName,
-        int? capacity)
+        int? capacity,
+        Guid? instructorUserId = null)
     {
         if (gymId == Guid.Empty || classId == Guid.Empty)
         {
@@ -57,7 +61,18 @@ public sealed class ClassSession : BaseEntity, ITenantEntity
             DurationMinutes = durationMinutes,
             InstructorName = instructorName,
             Capacity = capacity,
+            InstructorUserId = instructorUserId,
         };
+    }
+
+    /// <summary>
+    /// C2: reasigna el instructor de una sesión futura cuando el staff cambia el de la clase. Las sesiones
+    /// pasadas conservan lo que pasó; solo se llama para las que aún no ocurren.
+    /// </summary>
+    public void ReassignInstructor(Guid? instructorUserId, string? instructorName)
+    {
+        InstructorUserId = instructorUserId;
+        InstructorName = instructorName;
     }
 
     public void Cancel(string? reason)

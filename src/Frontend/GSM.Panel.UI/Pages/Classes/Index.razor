@@ -65,7 +65,13 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Nombre">@context.Name</MudTd>
-            <MudTd DataLabel="Instructor">@(context.InstructorName ?? "—")</MudTd>
+            <MudTd DataLabel="Instructor">
+                @(context.InstructorName ?? "—")
+                @if (context.NoActiveInstructor)
+                {
+                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono no-active-instructor-chip">SIN ENTRENADOR ACTIVO</MudChip>
+                }
+            </MudTd>
             <MudTd DataLabel="Cuándo">
                 @(context.IsRecurring
                     ? string.Join(", ", context.DaysOfWeek.Select(ClassLabels.DayLabel))

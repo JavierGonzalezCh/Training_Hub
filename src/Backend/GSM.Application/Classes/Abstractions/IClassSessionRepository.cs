@@ -12,5 +12,9 @@ public interface IClassSessionRepository
     Task<IReadOnlyList<ClassSession>> ListInRangeAsync(
         DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 
+    /// <summary>C2: sesiones materializadas de una clase desde <paramref name="from"/> (inclusive) en adelante.</summary>
+    Task<IReadOnlyList<ClassSession>> ListFromAsync(
+        Guid classId, DateOnly from, CancellationToken cancellationToken = default);
+
     void Add(ClassSession session);
 }

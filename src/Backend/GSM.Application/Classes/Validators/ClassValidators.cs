@@ -14,6 +14,7 @@ public sealed class SaveClassRequestValidator : AbstractValidator<SaveClassReque
         RuleFor(x => x.Name).NotEmpty().Length(2, 120);
         RuleFor(x => x.Description).MaximumLength(1000);
         RuleFor(x => x.InstructorName).MaximumLength(120);
+        RuleFor(x => x.InstructorUserId).NotEqual(Guid.Empty).When(x => x.InstructorUserId.HasValue);
         RuleFor(x => x.Capacity).GreaterThanOrEqualTo(1).When(x => x.Capacity.HasValue);
         RuleFor(x => x.DurationMinutes).InclusiveBetween(5, 480);
     }

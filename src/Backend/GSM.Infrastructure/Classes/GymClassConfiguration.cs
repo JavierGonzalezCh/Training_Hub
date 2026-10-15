@@ -13,6 +13,8 @@ public sealed class GymClassConfiguration : IEntityTypeConfiguration<GymClass>
         builder.Property(c => c.Name).HasMaxLength(120).IsRequired();
         builder.Property(c => c.Description).HasMaxLength(1000);
         builder.Property(c => c.InstructorName).HasMaxLength(120);
+        builder.Property(c => c.InstructorUserId).HasColumnName("instructor_user_id");
+        builder.HasIndex(c => new { c.GymId, c.InstructorUserId });
 
         builder.Property(c => c.StartTime).HasColumnType("time without time zone");
 
