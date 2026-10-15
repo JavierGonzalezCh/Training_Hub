@@ -132,6 +132,36 @@ public sealed class SessionService(
         }
     }
 
+    /// <summary>
+    /// Primer paso del cambio de email: el servidor manda un código al correo NUEVO. 409 si el email ya lo usa
+    /// otra cuenta o se pidieron demasiados códigos; 422 si es el mismo email.
+    /// </summary>
+    public async Task RequestEmailChangeAsync(string newEmail, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await auth.RequestEmailChangeAsync(new RequestEmailChangeRequest { NewEmail = newEmail }, cancellationToken);
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
+    }
+
+    /// <summary>Segundo paso: confirma el código y devuelve el email que quedó en la cuenta. 422 si el código no vale.</summary>
+    public async Task<string> ConfirmEmailChangeAsync(string code, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await auth.ConfirmEmailChangeAsync(new ConfirmEmailChangeRequest { Code = code }, cancellationToken);
+            return response.Email;
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
+    }
+
     /// <summary>Segundo paso del login con varios gyms: con el boleto y el acceso elegido abre la sesión.</summary>
     public async Task<MeResponse> SelectGymAsync(
         GymSelection selection, Guid accessId, CancellationToken cancellationToken = default)

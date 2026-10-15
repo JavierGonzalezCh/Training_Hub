@@ -194,6 +194,44 @@ public sealed class AuthController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Pide cambiar el email de la cuenta (cualquier rol): manda un código de 6 dígitos al correo NUEVO (vence en
+    /// 10 minutos, un solo uso, 5 intentos; uno por minuto y 5 por hora). El email no cambia hasta confirmarlo.
+    /// 409 si el email ya lo usa otra cuenta o se pidieron demasiados códigos; 422 si es el mismo email.
+    /// </summary>
+    [HttpPost("~/api/me/request-email-change")]
+    [Authorize]
+    [SubscriptionGateExempt]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RequestEmailChange(
+        RequestEmailChangeRequest request,
+        [FromServices] RequestEmailChangeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(request, cancellationToken);
+        return Accepted();
+    }
+
+    /// <summary>
+    /// Confirma el cambio de email con el código del correo nuevo. Actualiza el email de la cuenta y de todas las
+    /// fichas de miembro vinculadas a ella, en todos sus gyms. 422 si el código no es válido, venció o se agotó.
+    /// </summary>
+    [HttpPost("~/api/me/confirm-email-change")]
+    [Authorize]
+    [SubscriptionGateExempt]
+    [ProducesResponseType<EmailChangedResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<EmailChangedResponse>> ConfirmEmailChange(
+        ConfirmEmailChangeRequest request,
+        [FromServices] ConfirmEmailChangeHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType<MeResponse>(StatusCodes.Status200OK)]

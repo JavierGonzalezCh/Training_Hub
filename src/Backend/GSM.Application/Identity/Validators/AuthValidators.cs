@@ -30,7 +30,19 @@ public sealed class VerifyLoginCodeRequestValidator : AbstractValidator<VerifyLo
     }
 }
 
-public sealed class RefreshRequestValidator : AbstractValidator<RefreshRequest>
+public sealed class RequestEmailChangeRequestValidator : AbstractValidator<RequestEmailChangeRequest>
+{
+    public RequestEmailChangeRequestValidator()
+        => RuleFor(x => x.NewEmail).NotEmpty().EmailAddress().MaximumLength(256);
+}
+
+public sealed class ConfirmEmailChangeRequestValidator : AbstractValidator<ConfirmEmailChangeRequest>
+{
+    public ConfirmEmailChangeRequestValidator()
+        => RuleFor(x => x.Code).NotEmpty().Matches("^[0-9]{6}$").WithMessage("El código tiene 6 dígitos.");
+}
+
+public sealed class RefreshRequestValidator: AbstractValidator<RefreshRequest>
 {
     public RefreshRequestValidator()
         => RuleFor(x => x.RefreshToken).NotEmpty().MaximumLength(512);

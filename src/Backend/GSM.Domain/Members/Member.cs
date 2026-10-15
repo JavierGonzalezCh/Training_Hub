@@ -315,6 +315,23 @@ public sealed class Member : BaseEntity, ITenantEntity
         UserId = userId;
     }
 
+    /// <summary>
+    /// Pone el email de la ficha (lo usa el cambio de email de la cuenta, Identity §3.4). Devuelve el cambio para el
+    /// historial, o <c>null</c> si el email ya era ese (comparación sin distinguir mayúsculas): así es idempotente.
+    /// </summary>
+    public MemberFieldChange? ChangeEmail(string newEmail)
+    {
+        var email = OptionalText(newEmail, "El email", 256);
+        if (string.Equals(Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var change = new MemberFieldChange("email", Email, email);
+        Email = email;
+        return change;
+    }
+
     /// <summary>Valores actuales de los campos de la ficha, en texto y con nombre estable (historial).</summary>
     public IReadOnlyDictionary<string, string?> Snapshot() => new Dictionary<string, string?>
     {

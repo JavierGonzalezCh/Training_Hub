@@ -1,0 +1,112 @@
+@* Cambiar el email de la cuenta con la sesión iniciada (Identity §3.4). Dos pasos: el email nuevo (el servidor manda
+   un código a ESE correo) y el código. Lo comparten el panel y la app del miembro. *@
+@inject SessionService Session
+
+@if (_done is not null)
+{
+    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-4" data-testid="change-email-done">
+        Listo: tu correo ahora es @_done. Lo usarás para entrar y para tus avisos.
+    </MudAlert>
+}
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="change-email-error">@_error</MudAlert>
+}
+
+@if (_sentTo is null)
+{
+    <MudTextField T="string" @bind-Value="_newEmail" Label="Correo nuevo" InputType="InputType.Email"
+                  Immediate="true" Class="mb-4" autocomplete="email"
+                  HelperText="Te mandaremos un código a ese correo para confirmarlo." />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="RequestAsync"
+               Disabled="_submitting" data-testid="change-email-request">
+        @(_submitting ? "Enviando..." : "Enviar código")
+    </MudButton>
+}
+else
+{
+    <MudText Typo="Typo.body2" Class="mb-3" data-testid="change-email-sent">
+        Mandamos un código de 6 dígitos a <strong>@_sentTo</strong>. Vence en 10 minutos.
+    </MudText>
+    <MudTextField T="string" @bind-Value="_code" Label="Código" Immediate="true" Class="mb-4"
+                  MaxLength="6" autocomplete="one-time-code" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="ConfirmAsync"
+               Disabled="_submitting" Class="mb-2" data-testid="change-email-confirm">
+        @(_submitting ? "Confirmando..." : "Confirmar correo")
+    </MudButton>
+    <MudButton Variant="Variant.Text" FullWidth="true" OnClick="Cancel" Disabled="_submitting">Usar otro correo</MudButton>
+}
+
+@code {
+    private string _newEmail = string.Empty;
+    private string _code = string.Empty;
+    private string? _sentTo;
+    private string? _done;
+    private string? _error;
+    private bool _submitting;
+
+    private async Task RequestAsync()
+    {
+        _error = null;
+        _done = null;
+
+        var email = _newEmail.Trim();
+        if (email.Length == 0 || !email.Contains('@'))
+        {
+            _error = "Escribe un correo válido.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Session.RequestEmailChangeAsync(email);
+            _sentTo = email;
+            _code = string.Empty;
+        }
+        catch (ApiErrorException ex)
+        {
+            _error = ex.Error.DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _error = null;
+
+        var code = _code.Trim();
+        if (code.Length != 6 || !code.All(char.IsDigit))
+        {
+            _error = "El código tiene 6 dígitos.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            _done = await Session.ConfirmEmailChangeAsync(code);
+            _sentTo = null;
+            _newEmail = _code = string.Empty;
+        }
+        catch (ApiErrorException ex)
+        {
+            _error = ex.Error.DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        _sentTo = null;
+        _code = string.Empty;
+        _error = null;
+    }
+}
