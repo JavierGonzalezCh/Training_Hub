@@ -31,6 +31,9 @@ public sealed class AssignMembershipRequestValidator : AbstractValidator<AssignM
     {
         RuleFor(x => x.PlanId).NotEmpty();
         RuleFor(x => x.StartDateReason).MaximumLength(500);
+        RuleFor(x => x.AgreedPrice).GreaterThanOrEqualTo(0).When(x => x.AgreedPrice.HasValue);
+        RuleFor(x => x.DiscountReason).MaximumLength(500);
+        RuleFor(x => x.EnrollmentWaivedReason).MaximumLength(500);
     }
 }
 
@@ -40,6 +43,7 @@ public sealed class UpdateMembershipSettingsRequestValidator : AbstractValidator
     {
         RuleFor(x => x.GraceDays).InclusiveBetween(0, GSM.Domain.Memberships.MembershipSettings.MaxGraceDays);
         RuleFor(x => x.ExpiringDays).InclusiveBetween(1, GSM.Domain.Memberships.MembershipSettings.MaxExpiringDays);
+        RuleFor(x => x.EnrollmentFee).InclusiveBetween(0, GSM.Domain.Memberships.MembershipSettings.MaxEnrollmentFee);
     }
 }
 

@@ -24,7 +24,12 @@ public static partial class MembershipMapper
             membership.PausedOn,
             membership.CancellationReason,
             EnumText.Snake(membership.RenewalKind)!,
-            membership.StartOverrideReason);
+            membership.StartOverrideReason,
+            membership.AgreedPrice,
+            membership.DiscountReason,
+            membership.EnrollmentFee,
+            membership.EnrollmentWaivedReason,
+            membership.TotalToCharge);
 
     public static AccessStatusResponse ToResponse(AccessStatus access)
         => new(

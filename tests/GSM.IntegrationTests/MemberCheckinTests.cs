@@ -142,7 +142,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         using (var s = Scope(w, UserRole.Owner))
         {
             await s.ServiceProvider.GetRequiredService<UpdateMembershipSettingsHandler>()
-                .HandleAsync(new UpdateMembershipSettingsRequest(0, 7), default);
+                .HandleAsync(new UpdateMembershipSettingsRequest(0, 7, 0m), default);
         }
 
         await Assert.ThrowsAsync<ConflictException>(
@@ -203,7 +203,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         using (var s = Scope(w, UserRole.Owner))
         {
             await s.ServiceProvider.GetRequiredService<UpdateMembershipSettingsHandler>()
-                .HandleAsync(new UpdateMembershipSettingsRequest(0, 7), default);
+                .HandleAsync(new UpdateMembershipSettingsRequest(0, 7, 0m), default);
         }
 
         await Assert.ThrowsAsync<ConflictException>(

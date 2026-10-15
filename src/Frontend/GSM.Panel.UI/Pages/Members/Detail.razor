@@ -504,13 +504,13 @@ else if (_member is not null)
         var result = await dialog.Result;
         if (result is { Canceled: false, Data: AssignMembershipDialog.AssignMembershipResult outcome })
         {
-            if (outcome.ChargeError is { } chargeError)
+            if (outcome.Cancelled)
             {
-                Snackbar.Add($"Membresía asignada, pero el cobro no se registró: {chargeError}", Severity.Warning);
+                Snackbar.Add("Membresía cancelada: el cobro no se registró.", Severity.Warning);
             }
             else
             {
-                Snackbar.Add(outcome.Charged ? "Membresía asignada y cobrada." : "Membresía asignada sin cobro.", Severity.Success);
+                Snackbar.Add(outcome.Charged ? "Membresía asignada y cobrada." : "Membresía asignada sin cobro (total en cero).", Severity.Success);
             }
 
             await LoadAsync();

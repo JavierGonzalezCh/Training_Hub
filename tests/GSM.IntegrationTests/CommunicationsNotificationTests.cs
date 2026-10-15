@@ -446,7 +446,7 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         using var scope = System();
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
         var settings = MembershipSettings.Default(gymId);
-        settings.Update(graceDays, MembershipSettings.DefaultExpiringDays);
+        settings.Update(graceDays, MembershipSettings.DefaultExpiringDays, 0m);
         db.Add(settings);
         await db.SaveChangesAsync();
     }

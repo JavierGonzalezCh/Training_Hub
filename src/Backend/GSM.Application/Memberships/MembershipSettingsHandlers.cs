@@ -17,11 +17,11 @@ public sealed class GetMembershipSettingsHandler(
         var gymId = currentUser.RequireGymId();
         var current = await memberships.GetSettingsAsync(gymId, cancellationToken)
             ?? MembershipSettings.Default(gymId);
-        return new MembershipSettingsResponse(current.GraceDays, current.ExpiringDays);
+        return new MembershipSettingsResponse(current.GraceDays, current.ExpiringDays, current.EnrollmentFee);
     }
 }
 
-/// <summary>Gracia y ventana de "por vencer" del gym. Sin fila valen los valores por defecto; la primera edición la crea.</summary>
+/// <summary>Gracia, ventana de "por vencer" del gym. Sin fila valen los valores por defecto; la primera edición la crea.</summary>
 public sealed class UpdateMembershipSettingsHandler(
     ICurrentUserService currentUser,
     IMembershipRepository memberships,
@@ -39,13 +39,13 @@ public sealed class UpdateMembershipSettingsHandler(
             memberships.Add(current);
         }
 
-        current.Update(request.GraceDays, request.ExpiringDays);
+        current.Update(request.GraceDays, request.ExpiringDays, request.EnrollmentFee);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Ajustes de membresías del gym {GymId}: gracia {GraceDays} días, aviso {ExpiringDays} días",
-            gymId, current.GraceDays, current.ExpiringDays);
-        return new MembershipSettingsResponse(current.GraceDays, current.ExpiringDays);
+            "Ajustes de membresías del gym {GymId}: gracia {GraceDays} días, aviso {ExpiringDays} días, matrícula {EnrollmentFee}",
+            gymId, current.GraceDays, current.ExpiringDays, current.EnrollmentFee);
+        return new MembershipSettingsResponse(current.GraceDays, current.ExpiringDays, current.EnrollmentFee);
     }
 }
 

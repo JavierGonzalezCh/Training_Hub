@@ -40,9 +40,25 @@ public sealed class Membership : BaseEntity, ITenantEntity
     /// <summary>Motivo cuando el staff cambió a mano la fecha de inicio que calculó el sistema.</summary>
     public string? StartOverrideReason { get; private set; }
 
+    /// <summary>Precio acordado para esta membresía (el del plan, o menos con descuento). No cambia si el plan cambia de precio.</summary>
+    public decimal AgreedPrice { get; private set; }
+
+    /// <summary>Motivo del descuento. Obligatorio si <see cref="AgreedPrice"/> es menor que el precio del plan.</summary>
+    public string? DiscountReason { get; private set; }
+
+    /// <summary>Matrícula cobrada con esta membresía (0 si no aplica o se exoneró).</summary>
+    public decimal EnrollmentFee { get; private set; }
+
+    /// <summary>Por qué se exoneró la matrícula. Solo si aplicaba y no se cobró.</summary>
+    public string? EnrollmentWaivedReason { get; private set; }
+
+    /// <summary>Total que se cobra al asignarla: precio acordado + matrícula (el crédito de un cambio de plan llega en MS6).</summary>
+    public decimal TotalToCharge => AgreedPrice + EnrollmentFee;
+
     public static Membership Create(
         Guid gymId, Guid memberId, Guid planId, DateOnly startDate, int durationDays,
-        RenewalKind renewalKind = RenewalKind.New, string? startOverrideReason = null)
+        RenewalKind renewalKind = RenewalKind.New, string? startOverrideReason = null,
+        MembershipPricing? pricing = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty || planId == Guid.Empty)
         {
@@ -64,6 +80,10 @@ public sealed class Membership : BaseEntity, ITenantEntity
             Status = MembershipStatus.Active,
             RenewalKind = renewalKind,
             StartOverrideReason = string.IsNullOrWhiteSpace(startOverrideReason) ? null : startOverrideReason.Trim(),
+            AgreedPrice = pricing?.AgreedPrice ?? 0m,
+            DiscountReason = pricing?.DiscountReason,
+            EnrollmentFee = pricing?.EnrollmentFee ?? 0m,
+            EnrollmentWaivedReason = pricing?.EnrollmentWaivedReason,
         };
     }
 

@@ -58,15 +58,21 @@ public sealed class AssignMembershipHandler(
         var resolved = await renewals.ResolveAsync(
             gymId, memberId, request.StartDate, request.StartDateReason, cancellationToken);
 
+        // Precio acordado (descuento con motivo) y matrícula: las reglas viven en el dominio.
+        var pricing = MembershipPricing.Resolve(
+            plan.Price, request.AgreedPrice, request.DiscountReason,
+            resolved.GymEnrollmentFee, resolved.IsFirstMembership,
+            request.WaiveEnrollment, request.EnrollmentWaivedReason);
+
         var membership = Membership.Create(
             gymId, memberId, plan.Id, resolved.StartDate, plan.DurationDays,
-            resolved.Plan.Kind, resolved.StartOverrideReason);
+            resolved.Plan.Kind, resolved.StartOverrideReason, pricing);
         memberships.Add(membership);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Membresía {MembershipId} {Kind} para miembro {MemberId} ({Start}..{End})",
-            membership.Id, resolved.Plan.Kind, memberId, membership.StartDate, membership.EndDate);
+            "Membresía {MembershipId} {Kind} para miembro {MemberId} ({Start}..{End}), total a cobrar {Total}",
+            membership.Id, resolved.Plan.Kind, memberId, membership.StartDate, membership.EndDate, membership.TotalToCharge);
 
         await events.PublishAsync(
             resolved.PreviousMembershipId is { } previousId
@@ -136,6 +142,8 @@ public sealed class PreviewMembershipHandler(
             resolved.StartDate,
             resolved.StartDate.AddDays(plan.DurationDays - 1),
             resolved.Plan.PreviousEndDate,
-            resolved.StartDate != resolved.Plan.StartDate);
+            resolved.StartDate != resolved.Plan.StartDate,
+            resolved.IsFirstMembership ? resolved.GymEnrollmentFee : 0m,
+            plan.Price);
     }
 }

@@ -10,6 +10,8 @@ public sealed class MembershipSettingsConfiguration : IEntityTypeConfiguration<M
     {
         builder.ToTable("membership_settings", "memberships");
 
+        builder.Property(s => s.EnrollmentFee).HasColumnType("decimal(12,2)");
+
         builder.HasIndex(s => s.GymId).IsUnique();
     }
 }
