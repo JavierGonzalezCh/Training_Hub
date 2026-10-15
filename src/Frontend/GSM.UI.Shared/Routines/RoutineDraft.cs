@@ -311,6 +311,13 @@ public sealed class DraftExercise
     public void Select(ExerciseResponse? exercise)
     {
         var before = Exercise?.TrackingType;
+
+        // Otro ejercicio no es la misma línea: la anterior se retira (su historial queda con ella) y esta es nueva.
+        if (Exercise is not null && exercise?.Id != Exercise.Id)
+        {
+            Id = null;
+        }
+
         Exercise = exercise;
         Equipment = exercise is null
             ? null
@@ -324,6 +331,26 @@ public sealed class DraftExercise
             Sets = DraftSet.DefaultsFor(exercise.TrackingType);
         }
     }
+
+    /// <summary>
+    /// "Cambiar por…" (R5): pone la alternativa en el lugar del ejercicio, conservando descanso, notas y superserie. Las
+    /// series se conservan si el ejercicio nuevo mide lo mismo; si no, arrancan de partida (ver <see cref="Select"/>).
+    /// </summary>
+    public void ReplaceWith(ExerciseAlternativeResponse alternative)
+        => Select(new ExerciseResponse
+        {
+            Id = alternative.Id,
+            Name = alternative.Name,
+            PrimaryMuscle = alternative.PrimaryMuscle,
+            MuscleGroup = alternative.MuscleGroup,
+            ExerciseType = alternative.ExerciseType,
+            TrackingType = alternative.TrackingType,
+            IsUnilateral = alternative.IsUnilateral,
+            Difficulty = alternative.Difficulty,
+            ImageUrl = alternative.ImageUrl,
+            IsAvailableHere = alternative.IsAvailableHere,
+            Machines = alternative.Machines,
+        });
 
     /// <summary>Añade una serie copiando la última (o una de partida si no hay).</summary>
     public DraftSet AddSet()

@@ -13,7 +13,9 @@ public sealed record RoutineHistoryRow(
     string ExerciseName,
     string? Notes,
     DateTimeOffset CompletedAt,
-    IReadOnlyList<RoutineSetEntry>? Sets = null);
+    IReadOnlyList<RoutineSetEntry>? Sets = null,
+    Guid PlannedExerciseId = default,
+    string PlannedExerciseName = "?");
 
 public interface IRoutineLogRepository
 {

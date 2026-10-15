@@ -33,6 +33,8 @@ public sealed class LogRoutineExerciseHandler(
     IGymReader gyms,
     IMemberReader members,
     IRoutineLogRepository logs,
+    IExerciseRepository exercises,
+    ExerciseAlternativesResolver alternatives,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<LogRoutineExerciseHandler> logger)
@@ -55,6 +57,22 @@ public sealed class LogRoutineExerciseHandler(
             throw new ConflictException("Ese ejercicio ya no forma parte de la rutina.");
         }
 
+        // "Hacer otro ejercicio hoy": solo de la lista de alternativas del planeado, y solo ese día.
+        var performedExerciseId = reference.ExerciseId;
+        if (request.ReplacementExerciseId is { } replacement && replacement != reference.ExerciseId)
+        {
+            var planned = await exercises.GetVisibleByIdAsync(reference.ExerciseId, cancellationToken)
+                ?? throw new NotFoundException("Ejercicio no encontrado.");
+            var allowed = await alternatives.ResolveAsync(planned, cancellationToken);
+            if (allowed.All(a => a.Exercise.Id != replacement))
+            {
+                throw new ValidationDomainException(
+                    "Solo puedes hacer en su lugar una de las alternativas de ese ejercicio.");
+            }
+
+            performedExerciseId = replacement;
+        }
+
         var today = clock.Today;
         var now = clock.UtcNow;
         var sets = request.Sets?.Select(s => new RoutineSetEntry(
@@ -73,13 +91,13 @@ public sealed class LogRoutineExerciseHandler(
         RoutineExerciseLog log;
         if (existing is not null)
         {
-            existing.Update(now, request.Notes, sets);
+            existing.Update(now, request.Notes, sets, performedExerciseId);
             log = existing;
         }
         else
         {
             log = RoutineExerciseLog.Record(
-                reference.GymId, memberId, routineExerciseId, reference.ExerciseId, today, now,
+                reference.GymId, memberId, routineExerciseId, performedExerciseId, today, now,
                 request.Notes, sets);
             logs.Add(log);
         }
@@ -98,7 +116,8 @@ public sealed class LogRoutineExerciseHandler(
         return new RoutineLogResponse(
             log.Id, log.RoutineExerciseId, log.PerformedOn,
             log.Notes, log.CompletedAt,
-            log.Sets.Select(RoutineMapper.ToSetResponse).ToList());
+            log.Sets.Select(RoutineMapper.ToSetResponse).ToList(),
+            log.ExerciseId);
     }
 }
 
@@ -154,7 +173,9 @@ public sealed class GetMyRoutineHistoryHandler(
             .Select(r => new RoutineHistoryItem(
                 r.PerformedOn, r.RoutineExerciseId, r.ExerciseId, r.ExerciseName,
                 r.Notes, r.CompletedAt,
-                r.Sets?.Select(RoutineMapper.ToSetResponse).ToList()))
+                r.Sets?.Select(RoutineMapper.ToSetResponse).ToList(),
+                r.PlannedExerciseId != r.ExerciseId ? r.PlannedExerciseId : null,
+                r.PlannedExerciseId != r.ExerciseId ? r.PlannedExerciseName : null))
             .ToList();
     }
 }

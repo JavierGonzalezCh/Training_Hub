@@ -72,9 +72,23 @@ public sealed class RoutineExerciseLog : BaseEntity, ITenantEntity
         return log;
     }
 
-    /// <summary>Segunda marca del mismo día: se reemplazan el detalle y el instante.</summary>
-    public void Update(DateTimeOffset completedAt, string? notes, IReadOnlyList<RoutineSetEntry>? sets = null)
+    /// <summary>
+    /// Segunda marca del mismo día: se reemplazan el detalle y el instante. <paramref name="exerciseId"/>, si viene,
+    /// es el ejercicio que de verdad se hizo (distinto del planeado = reemplazo solo ese día, R5).
+    /// </summary>
+    public void Update(
+        DateTimeOffset completedAt, string? notes, IReadOnlyList<RoutineSetEntry>? sets = null, Guid? exerciseId = null)
     {
+        if (exerciseId is { } performed)
+        {
+            if (performed == Guid.Empty)
+            {
+                throw new ValidationDomainException("Datos de registro incompletos.");
+            }
+
+            ExerciseId = performed;
+        }
+
         CompletedAt = completedAt;
         SetLoad(notes, sets);
     }

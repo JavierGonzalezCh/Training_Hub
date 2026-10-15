@@ -67,7 +67,35 @@ public sealed class GymHiddenExerciseConfiguration : IEntityTypeConfiguration<Gy
     }
 }
 
-public sealed class ExerciseEquipmentModelConfiguration : IEntityTypeConfiguration<ExerciseEquipmentModel>
+public sealed class ExerciseAlternativeConfiguration : IEntityTypeConfiguration<ExerciseAlternative>
+{
+    public void Configure(EntityTypeBuilder<ExerciseAlternative> builder)
+    {
+        builder.ToTable("exercise_alternatives", "routines", t =>
+            t.HasCheckConstraint("ck_exercise_alternatives_distinct", "exercise_id <> alternative_id"));
+
+        builder.HasOne<Exercise>()
+            .WithMany()
+            .HasForeignKey(a => a.ExerciseId)
+            .HasConstraintName("fk_exercise_alternatives_exercise")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Exercise>()
+            .WithMany()
+            .HasForeignKey(a => a.AlternativeId)
+            .HasConstraintName("fk_exercise_alternatives_alternative")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // El par se guarda una sola vez y ordenado. Con gym_id nulo (alternativa del sistema) el índice debe
+        // tratar los nulos como iguales; si no, el sistema podría repetir un par.
+        builder.HasIndex(a => new { a.GymId, a.ExerciseId, a.AlternativeId })
+            .IsUnique()
+            .AreNullsDistinct(false);
+        builder.HasIndex(a => a.AlternativeId);
+    }
+}
+
+public sealed class ExerciseEquipmentModelConfiguration: IEntityTypeConfiguration<ExerciseEquipmentModel>
 {
     public void Configure(EntityTypeBuilder<ExerciseEquipmentModel> builder)
     {

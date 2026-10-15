@@ -41,17 +41,23 @@ public sealed class RoutineLogRepository(GsmDbContext dbContext) : IRoutineLogRe
         => await (from log in Logs.AsNoTracking() // las series son una colección JSON propia: proyectarla exige no rastrear
                   where log.MemberId == memberId && log.PerformedOn >= fromDate && log.PerformedOn <= toDate
                   join ex in dbContext.Set<RoutineExercise>() on log.RoutineExerciseId equals ex.Id
-                  join catalog in dbContext.Set<Exercise>() on ex.ExerciseId equals catalog.Id into c
+                  // El ejercicio que se hizo es el del registro (puede ser un reemplazo del día o un ejercicio
+                  // que la línea ya no tiene); el planeado es el de la línea.
+                  join catalog in dbContext.Set<Exercise>() on log.ExerciseId equals catalog.Id into c
                   from catalog in c.DefaultIfEmpty()
+                  join plannedCatalog in dbContext.Set<Exercise>() on ex.ExerciseId equals plannedCatalog.Id into p
+                  from plannedCatalog in p.DefaultIfEmpty()
                   orderby log.PerformedOn descending, ex.Order
                   select new RoutineHistoryRow(
                       log.PerformedOn,
                       log.RoutineExerciseId,
-                      ex.ExerciseId,
+                      log.ExerciseId,
                       catalog != null ? catalog.Name : "?",
                       log.Notes,
                       log.CompletedAt,
-                      log.Sets))
+                      log.Sets,
+                      ex.ExerciseId,
+                      plannedCatalog != null ? plannedCatalog.Name : "?"))
             .ToListAsync(cancellationToken);
 
     public void Add(RoutineExerciseLog log) => Logs.Add(log);
