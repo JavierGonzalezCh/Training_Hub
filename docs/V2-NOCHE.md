@@ -79,6 +79,10 @@
 | CO2 | **Unida** | Audiencias por segmento (estado, plan, clase, etiqueta), destinatarios fijados al publicar, feed filtrado. Ver preguntas CO2 |
 | CO5 | **Unida** | Cumpleaños por la tarea diaria (`BirthdayGreetingDue`, 8:00, apagado por defecto), 29-feb → 28-feb, aviso en recepción y dashboard. Suite 668 + 329. Ver preguntas CO5 |
 | G1+S1 | **Unida** | Owner invitado sin contraseña, reenviar acceso, prueba opcional o primer pago. Falta S1b (fin de la prueba) |
+| G3b | **Unida** | Día 24 h = tramo 00:00–23:59 guardado, sin migración. Ver preguntas G3b |
+| R2b | **Unida** | `routine_days.added_on` (migración `V2_R2b_RoutineDayAddedOn` + `SqlScript("R2b")`); `IRoutineReader.GetCalendarStartAsync`. Ver preguntas R2b |
+| MS1b | **Unida** | Estado `scheduled` calculado; sin migración. Ver preguntas MS1b |
+| L1 | **Unida** | Reglas heredadas cubiertas por tests; otorgamiento retroactivo con vista previa (2 endpoints solo-Owner). Suite 691 + 334. Ver preguntas L1 |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -230,6 +234,21 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **CO5-4:** el texto de la felicitación automática y la plantilla de WhatsApp de cumpleaños (CO3) son independientes. ¿Se unifican?
 - **CO5:** la felicitación viene **apagada por defecto** por gym. Confirmar.
 
+**Preguntas de la tanda MS1b/G3b/R2b/L1 (2026-10-15):**
+
+- **G3b-1:** un tramo 00:00–23:59 escrito a mano se lee de vuelta como "24 horas" (no hay columna propia). ¿Aceptable, o columna `is_24h`?
+- **G3b-2:** una clase de 23:30 a 00:30 no cabe ni en un día 24 h (no se cruza la medianoche). Sigue la spec; confirmar.
+- **G3b-3:** la casilla 24 h no existe para el horario de festivos ni para las excepciones por fecha. Confirmar.
+- **R2b-1:** un día retirado deja de contar desde el mismo día del cambio (ese día ya usa la rutina nueva). Confirmar.
+- **R2b-2:** en el modo rotativo no se guarda la historia exacta del ciclo; cada fecha se reconstruye con los días vigentes ordenados por posición. Si se agregan o quitan días a mitad de un ciclo, puede no coincidir con lo que el miembro vio. ¿Se acepta?
+- **MS1b-1:** el rechazo por membresía programada se guarda como `no_membership` (solo lo distingue el mensaje). ¿Motivo propio `membership_scheduled` (exige `ALTER TYPE`)?
+- **MS1b-2:** una membresía programada no cuenta para el límite de miembros del plan SaaS. Confirmar.
+- **MS1b-3:** los recordatorios de vencimiento (CO7) no tienen en cuenta el estado programado. ¿Hace falta algo?
+- **L1-1:** la regla "QR fijo sin ubicación no cuenta para logros ni racha" queda para A6 (filtrar en `AttendanceReader.Attendances`).
+- **L1-2:** crear/editar y otorgar son dos llamadas desde la UI (no atómicas; otorgar es idempotente y se puede repetir). ¿Aceptable?
+- **L1-3:** el otorgamiento calcula racha, sesiones y clases miembro por miembro (solo las visitas van en bloque). Suficiente para un gym normal; confirmar.
+- **L1-4:** se pregunta por el otorgamiento solo al crear, al cambiar el tipo o al bajar el valor (subirlo no quita logros). Confirmar.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
@@ -262,6 +281,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: MS1b, G3b, R2b y L1 unidas. Conflicto en `AchievementMetrics` (L1 extrajo `ComputeStreakAsync`, R2b cambió el inicio del calendario). Migración `V2_R2b_RoutineDayAddedOn`. Al integrar: `Is24Hours` sale `bool?` en el cliente (NSwag con propiedades `init`), test rotativo de R2b añadido y dos expectativas corregidas. **Suite: 691 integración + 334 bUnit, todo verde.**
 - 2026-10-15: suite de CO5 corrida en primer plano: **668 integración + 329 bUnit, todo verde. Ola 3 cerrada.** Quitados los 25 worktrees de tareas ya unidas (ramas conservadas; se deja el del primer intento de P2, con 2 archivos sin commitear). Lanzada la tanda: MS1b, G3b, R2b y L1 (solo escriben código).
 - 2026-10-15: CO5 unida; migración `V2_CO5_Cumpleanos`, cliente regenerado, todo compila (1 `using`). **La suite no se pudo correr**: Claude Code la detuvo por memoria baja del sistema. Pendiente correrla antes de dar por cerrada la Ola 3.
 - 2026-10-15: N5 y CO2 unidas sin conflictos. Migración `V2_N5_CO2` (valores nuevos del enum `notification_type` + audiencia de anuncios). Al integrar: 2 errores de UI (`MultiSelectionTextFunc` recibe textos, no Guid) y 2 bUnit (`data-testid` en `MudSwitch` queda en el `<input>`). **Suite: 655 integración + 326 bUnit, todo verde.** De la Ola 3 solo queda CO5.
