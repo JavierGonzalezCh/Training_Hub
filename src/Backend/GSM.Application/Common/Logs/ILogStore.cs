@@ -18,6 +18,15 @@ public interface ILogStore
     /// <summary>Una ejecución de una tarea periódica.</summary>
     void RecordJobRun(JobRunLogEntry entry);
 
+    /// <summary>Un rechazo de negocio (400, 403, 404, 409 o 422): las reglas funcionando, no fallas del sistema.</summary>
+    void RecordBusinessRejection(BusinessRejectionLogEntry entry);
+
+    /// <summary>Un evento de seguridad (login fallido, bloqueo, token inválido, acceso denegado...).</summary>
+    void RecordSecurityEvent(SecurityEventLogEntry entry);
+
+    /// <summary>Una petición que tardó más que <c>Logs:SlowRequestMs</c>.</summary>
+    void RecordSlowRequest(SlowRequestLogEntry entry);
+
     /// <summary>Marca que un proceso sigue vivo (upsert por nombre de proceso).</summary>
     void RecordHeartbeat(string process, DateTimeOffset at);
 
@@ -65,4 +74,43 @@ public enum JobRunStatus
     Ok,
     Partial,
     Failed,
+}
+
+/// <param name="ExceptionType">Tipo de la excepción de dominio, o "validation" (400 de formulario) / "http_status".</param>
+/// <param name="FieldErrors">Solo en 400: JSON con los nombres de los campos que fallaron (nunca los valores).</param>
+public sealed record BusinessRejectionLogEntry(
+    string? Method,
+    string? Endpoint,
+    int StatusCode,
+    string ExceptionType,
+    string? Title,
+    string? Detail,
+    string? FieldErrors = null);
+
+/// <param name="Ip">Si es <c>null</c> la implementación usa la de la petición en curso.</param>
+/// <param name="UserAgent">Si es <c>null</c> la implementación usa el de la petición en curso.</param>
+/// <param name="Detail">Texto libre sin contraseñas, tokens ni códigos (p. ej. el email intentado).</param>
+public sealed record SecurityEventLogEntry(
+    string EventType,
+    string? Detail = null,
+    string? Ip = null,
+    string? UserAgent = null);
+
+public sealed record SlowRequestLogEntry(
+    string? Method,
+    string? Endpoint,
+    int DurationMs,
+    int StatusCode);
+
+/// <summary>Nombres de los eventos de <c>logs.security_events</c> (docs/GSM-logs.md §4.7).</summary>
+public static class SecurityEventTypes
+{
+    public const string LoginFailed = "login_failed";
+    public const string AccountLocked = "account_locked";
+    public const string InvalidToken = "invalid_token";
+    public const string PermissionDenied = "permission_denied";
+    public const string RateLimited = "rate_limited";
+    public const string KioskPairingFailed = "kiosk_pairing_failed";
+    public const string DocumentEntryLocked = "document_entry_locked";
+    public const string CodeAttemptsExceeded = "code_attempts_exceeded";
 }

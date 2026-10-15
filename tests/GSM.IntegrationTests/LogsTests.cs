@@ -306,6 +306,46 @@ public sealed class LogsTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.True(await check.Errors.AnyAsync(e => e.TraceId == marker && e.OccurredAt > now.AddDays(-30)));
     }
 
+    [Fact]
+    public async Task Lg2_tables_are_partitioned_by_month_and_purged_like_errors()
+    {
+        await using var host = TestHost();
+        var maintenance = host.Services.GetRequiredService<LogMaintenance>();
+        var now = DateTimeOffset.UtcNow;
+        var old = now.AddDays(-800);
+        var recent = now.AddDays(-2);
+        var marker = $"lg2-{Guid.NewGuid():N}";
+
+        foreach (var table in new[] { "business_rejections", "security_events", "slow_requests" })
+        {
+            await maintenance.EnsurePartitionAsync(table, old);
+        }
+
+        await using (var db = OpenLogs(host))
+        {
+            db.BusinessRejections.AddRange(
+                new BusinessRejectionRow { Id = Guid.CreateVersion7(), OccurredAt = old, TraceId = marker, StatusCode = 409, ExceptionType = "T" },
+                new BusinessRejectionRow { Id = Guid.CreateVersion7(), OccurredAt = recent, TraceId = marker, StatusCode = 409, ExceptionType = "T" });
+            db.SecurityEvents.AddRange(
+                new SecurityEventRow { Id = Guid.CreateVersion7(), OccurredAt = old, TraceId = marker, EventType = "login_failed" },
+                new SecurityEventRow { Id = Guid.CreateVersion7(), OccurredAt = recent, TraceId = marker, EventType = "login_failed" });
+            db.SlowRequests.AddRange(
+                new SlowRequestRow { Id = Guid.CreateVersion7(), OccurredAt = old, TraceId = marker, DurationMs = 3000, StatusCode = 200 },
+                new SlowRequestRow { Id = Guid.CreateVersion7(), OccurredAt = recent, TraceId = marker, DurationMs = 3000, StatusCode = 200 });
+            await db.SaveChangesAsync();
+            await db.Heartbeats.Where(h => h.Process == LogMaintenance.PurgeHeartbeat).ExecuteDeleteAsync();
+        }
+
+        var result = await maintenance.RunDailyIfDueAsync();
+
+        Assert.NotNull(result);
+        Assert.True(result!.PartitionsDropped >= 3);               // una partición vieja por cada tabla nueva
+        await using var check = OpenLogs(host);
+        Assert.Equal(1, await check.BusinessRejections.CountAsync(e => e.TraceId == marker));
+        Assert.Equal(1, await check.SecurityEvents.CountAsync(e => e.TraceId == marker));
+        Assert.Equal(1, await check.SlowRequests.CountAsync(e => e.TraceId == marker));
+    }
+
     // ------------------------------------------------------------------ utilidades puras
 
     [Fact]

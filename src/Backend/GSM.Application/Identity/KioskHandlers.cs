@@ -1,4 +1,5 @@
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Logs;
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Contracts;
 using GSM.Domain.Common.Exceptions;
@@ -52,11 +53,19 @@ public sealed class PairKioskHandler(
     IKioskDeviceService kiosks,
     IJwtTokenService jwtTokens,
     IGymLoginGate loginGate,
+    ILogStore logStore,
     ILogger<PairKioskHandler> logger)
 {
     public async Task<AuthTokensResponse> HandleAsync(PairKioskRequest request, CancellationToken cancellationToken)
     {
-        var pairing = await kiosks.PairAsync(request.PairingCode, cancellationToken)
+        var paired = await kiosks.PairAsync(request.PairingCode, cancellationToken);
+        if (paired is null)
+        {
+            // Seguridad (§4.7): sin el código intentado (los códigos nunca se guardan).
+            logStore.RecordSecurityEvent(new SecurityEventLogEntry(SecurityEventTypes.KioskPairingFailed));
+        }
+
+        var pairing = paired
             ?? throw new UnauthorizedDomainException("El código es inválido o ya venció. Pídele al dueño uno nuevo.");
 
         if (await loginGate.IsSuspendedAsync(pairing.Device.GymId, cancellationToken))

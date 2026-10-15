@@ -43,6 +43,36 @@ public sealed class JobRunRow : LogRowBase
     public string? Error { get; set; }
 }
 
+/// <summary>Fila de <c>logs.business_rejections</c> (particionada por mes sobre <c>occurred_at</c>).</summary>
+public sealed class BusinessRejectionRow : LogRowBase
+{
+    public string? Method { get; set; }
+    public string? Endpoint { get; set; }
+    public int StatusCode { get; set; }
+    public string ExceptionType { get; set; } = "";
+    public string? Title { get; set; }
+    public string? Detail { get; set; }
+    public string? FieldErrors { get; set; }
+}
+
+/// <summary>Fila de <c>logs.security_events</c> (particionada por mes).</summary>
+public sealed class SecurityEventRow : LogRowBase
+{
+    public string EventType { get; set; } = "";
+    public string? Ip { get; set; }
+    public string? UserAgent { get; set; }
+    public string? Detail { get; set; }
+}
+
+/// <summary>Fila de <c>logs.slow_requests</c> (particionada por mes).</summary>
+public sealed class SlowRequestRow : LogRowBase
+{
+    public string? Method { get; set; }
+    public string? Endpoint { get; set; }
+    public int DurationMs { get; set; }
+    public int StatusCode { get; set; }
+}
+
 /// <summary>Fila de <c>logs.heartbeats</c>.</summary>
 public sealed class HeartbeatRow
 {
@@ -75,6 +105,9 @@ public sealed class LogsDbContext(DbContextOptions<LogsDbContext> options) : DbC
     public DbSet<ErrorRow> Errors => Set<ErrorRow>();
     public DbSet<EventHandlerFailureRow> EventHandlerFailures => Set<EventHandlerFailureRow>();
     public DbSet<JobRunRow> JobRuns => Set<JobRunRow>();
+    public DbSet<BusinessRejectionRow> BusinessRejections => Set<BusinessRejectionRow>();
+    public DbSet<SecurityEventRow> SecurityEvents => Set<SecurityEventRow>();
+    public DbSet<SlowRequestRow> SlowRequests => Set<SlowRequestRow>();
     public DbSet<HeartbeatRow> Heartbeats => Set<HeartbeatRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -89,6 +122,11 @@ public sealed class LogsDbContext(DbContextOptions<LogsDbContext> options) : DbC
             entity.ToTable("event_handler_failures").HasKey(e => e.Id);
             entity.Property(e => e.Payload).HasColumnType("jsonb");
         });
+
+        // Particionadas como `errors`: la PK real es (id, occurred_at); para insertar basta con id.
+        modelBuilder.Entity<BusinessRejectionRow>().ToTable("business_rejections").HasKey(e => e.Id);
+        modelBuilder.Entity<SecurityEventRow>().ToTable("security_events").HasKey(e => e.Id);
+        modelBuilder.Entity<SlowRequestRow>().ToTable("slow_requests").HasKey(e => e.Id);
 
         modelBuilder.Entity<JobRunRow>().ToTable("job_runs").HasKey(e => e.Id);
 

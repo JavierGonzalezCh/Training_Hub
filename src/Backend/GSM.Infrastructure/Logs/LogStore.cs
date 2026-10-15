@@ -44,6 +44,7 @@ public sealed class LogStore : BackgroundService, ILogStore
     private readonly ITraceContext _trace;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<LogStore> _logger;
+    private readonly IClientInfo? _clientInfo;
 
     public LogStore(
         IDbContextFactory<LogsDbContext> contextFactory,
@@ -51,8 +52,10 @@ public sealed class LogStore : BackgroundService, ILogStore
         ICurrentUserService currentUser,
         ITraceContext trace,
         IHostEnvironment environment,
-        ILogger<LogStore> logger)
+        ILogger<LogStore> logger,
+        IClientInfo? clientInfo = null)
     {
+        _clientInfo = clientInfo;
         _contextFactory = contextFactory;
         _clock = clock;
         _currentUser = currentUser;
@@ -131,6 +134,57 @@ public sealed class LogStore : BackgroundService, ILogStore
             };
             Stamp(row);
             row.OccurredAt = entry.StartedAt;
+            Enqueue(row);
+        });
+    }
+
+    public void RecordBusinessRejection(BusinessRejectionLogEntry entry)
+    {
+        Guard(() =>
+        {
+            var row = new BusinessRejectionRow
+            {
+                Method = Clip(entry.Method, 16),
+                Endpoint = Clip(entry.Endpoint, 512),
+                StatusCode = entry.StatusCode,
+                ExceptionType = Clip(entry.ExceptionType, 256)!,
+                Title = Clip(entry.Title, 512),
+                Detail = Clip(entry.Detail, MessageMax),
+                FieldErrors = Clip(entry.FieldErrors, MessageMax),
+            };
+            Stamp(row);
+            Enqueue(row);
+        });
+    }
+
+    public void RecordSecurityEvent(SecurityEventLogEntry entry)
+    {
+        Guard(() =>
+        {
+            var row = new SecurityEventRow
+            {
+                EventType = Clip(entry.EventType, 64)!,
+                Ip = Clip(entry.Ip ?? _clientInfo?.Ip, 64),
+                UserAgent = Clip(entry.UserAgent ?? _clientInfo?.UserAgent, 512),
+                Detail = Clip(entry.Detail, MessageMax),
+            };
+            Stamp(row);
+            Enqueue(row);
+        });
+    }
+
+    public void RecordSlowRequest(SlowRequestLogEntry entry)
+    {
+        Guard(() =>
+        {
+            var row = new SlowRequestRow
+            {
+                Method = Clip(entry.Method, 16),
+                Endpoint = Clip(entry.Endpoint, 512),
+                DurationMs = entry.DurationMs,
+                StatusCode = entry.StatusCode,
+            };
+            Stamp(row);
             Enqueue(row);
         });
     }
@@ -246,6 +300,9 @@ public sealed class LogStore : BackgroundService, ILogStore
                     case ErrorRow row: db.Errors.Add(row); break;
                     case EventHandlerFailureRow row: db.EventHandlerFailures.Add(row); break;
                     case JobRunRow row: db.JobRuns.Add(row); break;
+                    case BusinessRejectionRow row: db.BusinessRejections.Add(row); break;
+                    case SecurityEventRow row: db.SecurityEvents.Add(row); break;
+                    case SlowRequestRow row: db.SlowRequests.Add(row); break;
                 }
             }
 
