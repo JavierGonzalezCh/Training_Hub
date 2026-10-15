@@ -24,6 +24,40 @@ public sealed class AuthController : ControllerBase
         LoginRequest request, [FromServices] LoginHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
 
+    /// <summary>
+    /// "Enviarme un código": manda al correo un código de 6 dígitos (vence en 10 minutos, un solo uso, 5 intentos;
+    /// uno por minuto y 5 por hora por persona). Responde 202 igual exista o no la cuenta del miembro.
+    /// </summary>
+    [HttpPost("request-login-code")]
+    [AllowAnonymous]
+    [SubscriptionGateExempt]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<IActionResult> RequestLoginCode(
+        RequestLoginCodeRequest request,
+        [FromServices] RequestLoginCodeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(request, cancellationToken);
+        return Accepted();
+    }
+
+    /// <summary>
+    /// Entra con el código del correo (solo accesos de miembro). Con un solo gym deja la sesión iniciada; con
+    /// varios, la persona elige como en el login. 401 si el código no es válido, venció o se agotó.
+    /// </summary>
+    [HttpPost("verify-login-code")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<LoginResponse>> VerifyLoginCode(
+        VerifyLoginCodeRequest request,
+        [FromServices] VerifyLoginCodeHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
     /// <summary>Segundo paso del login con varios gyms: con el boleto del login y el acceso elegido emite la sesión.</summary>
     [HttpPost("select-gym")]
     [AllowAnonymous]

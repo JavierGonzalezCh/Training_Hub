@@ -200,6 +200,11 @@ public partial class NotificationSettingsClient
     partial void Initialize() => ReadResponseAsString = true;
 }
 
+public partial class PublicGymsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
 public partial class PushClient
 {
     partial void Initialize() => ReadResponseAsString = true;

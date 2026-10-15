@@ -91,6 +91,24 @@ public static class EmailTemplates
             $"Tu cuenta en {gymName} ya está lista.");
     }
 
+    /// <summary>
+    /// Código de 6 dígitos para entrar sin contraseña (Identity §6). Marcado <c>Sensitive</c>: ningún sender
+    /// lo vuelca al log.
+    /// </summary>
+    public static EmailMessage LoginCode(string to, string fullName, string code, string? gymName, int minutes)
+    {
+        var where = string.IsNullOrWhiteSpace(gymName) ? "GSM" : gymName;
+        var html = $"""
+            <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
+            <p>Tu código para entrar a <strong>{WebUtility.HtmlEncode(where)}</strong> es:</p>
+            <p><strong style="font-size:28px;letter-spacing:6px">{code}</strong></p>
+            <p>Vence en {minutes} minutos y sirve una sola vez. Si no lo pediste tú, ignora este correo.</p>
+            """;
+        return new EmailMessage(to, $"Tu código para entrar a {where}", html,
+            $"Tu código para entrar a {where}: {code} (vence en {minutes} minutos, sirve una sola vez).",
+            Sensitive: true);
+    }
+
     /// <summary>Restablecer contraseña: el enlace (24 h) abre el formulario precargado.</summary>
     public static EmailMessage PasswordReset(string to, string resetUrl)
     {

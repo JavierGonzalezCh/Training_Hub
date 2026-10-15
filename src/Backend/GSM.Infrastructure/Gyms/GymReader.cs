@@ -23,6 +23,15 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
             .Select(g => new GymBranding(g.Name, g.LogoUrl, g.PrimaryColor, g.SecondaryColor))
             .FirstOrDefaultAsync(cancellationToken);
 
+    public Task<GymBranding?> GetBrandingBySlugAsync(string slug, CancellationToken cancellationToken = default)
+    {
+        var normalized = slug.Trim().ToLowerInvariant();
+        return dbContext.Set<Gym>().IgnoreQueryFilters()
+            .Where(g => g.Slug == normalized)
+            .Select(g => new GymBranding(g.Name, g.LogoUrl, g.PrimaryColor, g.SecondaryColor))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public Task<GymFeatureFlagsView?> GetFeatureFlagsAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<GymFeatureFlags>().IgnoreQueryFilters()
             .Where(f => f.GymId == gymId)

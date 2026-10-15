@@ -30,6 +30,16 @@ public static class ReturnUrl
     public static string LoginFor(string baseRelativePath)
     {
         var target = Sanitize("/" + baseRelativePath.TrimStart('/'));
-        return target is null or "/" ? "/login" : $"/login?returnUrl={Uri.EscapeDataString(target)}";
+
+        // El área del miembro (/app/...) tiene su propia pantalla de entrada, con la marca del gym y el código
+        // por correo; el resto entra por el login del panel.
+        var login = IsMemberArea(target) ? "/app/entrar" : "/login";
+        return target is null or "/" ? login : $"{login}?returnUrl={Uri.EscapeDataString(target)}";
     }
+
+    private static bool IsMemberArea(string? path)
+        => path is not null
+           && (path.Equals("/app", StringComparison.OrdinalIgnoreCase)
+               || path.StartsWith("/app/", StringComparison.OrdinalIgnoreCase)
+               || path.StartsWith("/app?", StringComparison.OrdinalIgnoreCase));
 }

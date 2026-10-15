@@ -55,6 +55,45 @@ public sealed class SessionService(
         return await ToOutcomeAsync(response, cancellationToken);
     }
 
+    /// <summary>
+    /// "Enviarme un código": el servidor manda un código de 6 dígitos al correo del miembro. Responde igual
+    /// exista o no la cuenta; con <paramref name="gymSlug"/> el correo nombra el gym.
+    /// </summary>
+    public async Task RequestLoginCodeAsync(
+        string email, string? gymSlug = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await auth.RequestLoginCodeAsync(
+                new RequestLoginCodeRequest { Email = email, GymSlug = gymSlug }, cancellationToken);
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
+    }
+
+    /// <summary>
+    /// Entra con el código del correo. Igual que el login: con un solo gym deja la sesión iniciada; con varios,
+    /// devuelve la selección. Solo abre accesos de miembro.
+    /// </summary>
+    public async Task<LoginOutcome> VerifyLoginCodeAsync(
+        string email, string code, CancellationToken cancellationToken = default)
+    {
+        LoginResponse response;
+        try
+        {
+            response = await auth.VerifyLoginCodeAsync(
+                new VerifyLoginCodeRequest { Email = email, Code = code }, cancellationToken);
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
+
+        return await ToOutcomeAsync(response, cancellationToken);
+    }
+
     private async Task<LoginOutcome> ToOutcomeAsync(LoginResponse response, CancellationToken cancellationToken)
     {
         if (response.RequiresGymSelection)

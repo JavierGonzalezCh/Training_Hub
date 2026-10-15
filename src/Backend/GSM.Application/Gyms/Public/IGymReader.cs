@@ -7,6 +7,12 @@ public interface IGymReader
 
     Task<GymBranding?> GetBrandingAsync(Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// La marca del gym por su slug, para las pantallas anónimas (login del miembro). El slug se compara en
+    /// minúsculas; <c>null</c> si no existe.
+    /// </summary>
+    Task<GymBranding?> GetBrandingBySlugAsync(string slug, CancellationToken cancellationToken = default);
+
     Task<GymFeatureFlagsView?> GetFeatureFlagsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     /// <summary>Ficha del gym para SuperAdmin, incluido su estado comercial manual. <c>null</c> si no existe.</summary>

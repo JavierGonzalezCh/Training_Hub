@@ -122,7 +122,7 @@
         }
         catch (ApiErrorException ex) when (ex.Error.IsUnauthorized)
         {
-            Navigation.NavigateTo("/login", replace: true);
+            Navigation.NavigateTo("/app/entrar", replace: true);
         }
         finally
         {
@@ -142,7 +142,7 @@
         await PushRegistration.DisableAsync(); // da de baja el dispositivo mientras la sesión sigue válida
         await Session.LogoutAsync();
         MemberCtx.Clear();
-        Navigation.NavigateTo("/login", replace: true);
+        Navigation.NavigateTo("/app/entrar", replace: true);
     }
 
     public void Dispose()

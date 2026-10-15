@@ -29,7 +29,11 @@ public class ReturnUrlTests
     [Fact]
     public void Login_url_keeps_the_target_escaped()
     {
-        Assert.Equal("/login?returnUrl=%2Fapp%2Fcheckin%3Ft%3Dr1.abc", ReturnUrl.LoginFor("app/checkin?t=r1.abc"));
+        // El área del miembro entra por su propia pantalla (/app/entrar); el panel, por /login.
+        Assert.Equal("/app/entrar?returnUrl=%2Fapp%2Fcheckin%3Ft%3Dr1.abc", ReturnUrl.LoginFor("app/checkin?t=r1.abc"));
+        Assert.Equal("/app/entrar?returnUrl=%2Fapp", ReturnUrl.LoginFor("app"));
+        Assert.Equal("/login?returnUrl=%2Fsettings", ReturnUrl.LoginFor("settings"));
+        Assert.Equal("/login?returnUrl=%2Fapplications", ReturnUrl.LoginFor("applications"));
         Assert.Equal("/login", ReturnUrl.LoginFor(""));
     }
 }

@@ -59,6 +59,18 @@ public sealed record GymAccessOption(
 
 public sealed record SelectGymRequest(string SelectionToken, Guid AccessId);
 
+/// <summary>
+/// Pide un código de 6 dígitos por correo para entrar sin contraseña. <c>GymSlug</c> (opcional) pone el nombre
+/// del gym en el correo. La respuesta es siempre la misma exista o no la cuenta.
+/// </summary>
+public sealed record RequestLoginCodeRequest(string Email, string? GymSlug = null);
+
+/// <summary>Entra con el código recibido por correo. La respuesta es la del login (<see cref="LoginResponse"/>).</summary>
+public sealed record VerifyLoginCodeRequest(string Email, string Code);
+
+/// <summary>Marca pública del gym para la pantalla de entrada del miembro (sin sesión).</summary>
+public sealed record PublicGymBrandingResponse(string Name, string? LogoUrl, string PrimaryColor, string SecondaryColor);
+
 /// <summary>Cambiar de gym (o de modo en el mismo gym) sin pedir contraseña. <c>RefreshToken</c> es el de la sesión actual, que se revoca.</summary>
 public sealed record SwitchGymRequest(Guid AccessId, string? RefreshToken = null);
 

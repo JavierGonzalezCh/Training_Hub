@@ -1,0 +1,30 @@
+@* Cabecera de las pantallas públicas del miembro: logo y nombre del gym, o la marca de GSM si no se conoce. *@
+@inject MemberLoginBranding Branding
+@implements IDisposable
+
+@if (Branding.Gym is { } gym)
+{
+    <div class="gsm-m-brand mb-6" data-testid="gym-brand">
+        @if (!string.IsNullOrWhiteSpace(gym.LogoUrl))
+        {
+            <img class="gsm-m-brand__logo" src="@gym.LogoUrl" alt="@gym.Name" />
+        }
+        else
+        {
+            <span class="gsm-m-brand__mark" aria-hidden="true">@GymBrand.Initial(gym.Name)</span>
+        }
+        <span class="gsm-m-brand__name">@gym.Name</span>
+    </div>
+}
+else
+{
+    <div class="gsm-wordmark mb-6" style="font-size:1.6rem" data-testid="gsm-brand">GS<span class="accent">M</span></div>
+}
+
+@code {
+    protected override void OnInitialized() => Branding.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Branding.Changed -= OnChanged;
+}
