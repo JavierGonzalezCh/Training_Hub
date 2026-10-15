@@ -100,7 +100,7 @@ public class AnnouncementAudienceUiTests : TestContext
         var cut = RenderComponent<AnnouncementAudiencePicker>(p => p
             .Add(x => x.AudienceChanged, EventCallback.Factory.Create<AnnouncementAudienceDto>(this, a => emitted = a)));
 
-        cut.Find("[data-testid=audience-switch] input").Change(true);
+        cut.Find("input[data-testid=audience-switch]").Change(true);
 
         Assert.Equal(2, cut.FindComponents<MudSelect<string>>().Count); // estado y etiqueta
         Assert.Single(cut.FindComponents<MudSelect<Guid>>().Where(s => s.Instance.Label!.StartsWith("Plan")));
@@ -120,7 +120,7 @@ public class AnnouncementAudienceUiTests : TestContext
     {
         RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<AnnouncementAudiencePicker>();
-        cut.Find("[data-testid=audience-switch] input").Change(true);
+        cut.Find("input[data-testid=audience-switch]").Change(true);
 
         Assert.Empty(cut.FindAll("[data-testid=audience-list]"));
         cut.Find("[data-testid=audience-toggle-list]").Click();

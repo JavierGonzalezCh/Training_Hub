@@ -75,6 +75,8 @@
 | CO7 | **Unida** | Recordatorios N días antes, el día que vence y el último día de gracia; sin migración. Ver preguntas CO7 |
 | C2 | **Unida** | Instructor de la lista de entrenadores u "Otro", "Mis clases" (`Trainer`), marca "sin entrenador activo". Ver preguntas C2 |
 | E3 | **Unida** | Ligas ejercicio↔modelo (sistema) y ejercicio↔máquina (gym), nivel 1 "solo lo que se puede hacer", avisos en el editor y en la app. Ver preguntas E3 |
+| N5 | **Unida** | Avisos programados (recordatorio de clase 10 min antes, al instructor, cumpleaños listo para CO5); vencimientos de madrugada salen a las 8:00. Ver preguntas N5 |
+| CO2 | **Unida** | Audiencias por segmento (estado, plan, clase, etiqueta), destinatarios fijados al publicar, feed filtrado. Ver preguntas CO2 |
 | G1+S1 | **Unida** | Owner invitado sin contraseña, reenviar acceso, prueba opcional o primer pago. Falta S1b (fin de la prueba) |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
@@ -253,6 +255,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: N5 y CO2 unidas sin conflictos. Migración `V2_N5_CO2` (valores nuevos del enum `notification_type` + audiencia de anuncios). Al integrar: 2 errores de UI (`MultiSelectionTextFunc` recibe textos, no Guid) y 2 bUnit (`data-testid` en `MudSwitch` queda en el `<input>`). **Suite: 655 integración + 326 bUnit, todo verde.** De la Ola 3 solo queda CO5.
 - 2026-10-15: lanzadas CO2 y N5. CO5 queda para después (mismo carril que CO2 y usa N5).
 - 2026-10-15: CO7, C2 y E3 unidas sin conflictos. Migración `V2_C2_E3` con `SqlScript("E3")` al final. Al integrar: 1 `using`, 2 nombres de cliente (NSwag ignoró los `EndpointName` de E3: `EquipmentAsync`/`EquipmentItemsAsync`), 2 tests que no compilaban, 4 bUnit (menú con "Mis clases", popover) y 2 de C2 (clase a las 7:00 con el reloj fijo a mediodía). **Suite: 638 integración + 323 bUnit, todo verde.** De la Ola 3 quedan CO2, CO5 y N5.
 - 2026-10-15: lanzada la cuarta tanda: C2, E3 y CO7 (3 agentes, tras el corte por límite de uso). Quedan de la Ola 3: CO2, CO5 y N5.

@@ -70,7 +70,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_category", new[] { "membership", "classes", "progress", "news", "promotions", "security" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_priority", new[] { "normal", "urgent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_status", new[] { "pending", "held", "sent", "failed", "cancelled", "skipped" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement", "void_request_rejected" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement", "void_request_rejected", "class_reminder", "instructor_class_reminder", "birthday" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "push_platform", new[] { "android", "web_member", "web_panel" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "cash_movement_type", new[] { "withdrawal", "deposit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
@@ -809,6 +809,13 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Audience")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("audience")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
                     b.Property<Guid>("AuthorUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("author_user_id");
@@ -843,6 +850,12 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_important");
 
+                    b.Property<bool>("IsSegmented")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_segmented");
+
                     b.Property<bool>("Pinned")
                         .HasColumnType("boolean")
                         .HasColumnName("pinned");
@@ -850,6 +863,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("PublishedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("published_at");
+
+                    b.Property<int?>("RecipientCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("recipient_count");
 
                     b.Property<bool>("SendEmail")
                         .HasColumnType("boolean")
@@ -921,6 +938,46 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_announcement_reactions_announcement_id_member_id");
 
                     b.ToTable("announcement_reactions", "communications");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Communications.AnnouncementRecipient", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AnnouncementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("announcement_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_announcement_recipients");
+
+                    b.HasIndex("AnnouncementId", "MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_announcement_recipients_announcement_id_member_id");
+
+                    b.HasIndex("MemberId", "AnnouncementId")
+                        .HasDatabaseName("ix_announcement_recipients_member_id_announcement_id");
+
+                    b.ToTable("announcement_recipients", "communications");
                 });
 
             modelBuilder.Entity("GSM.Domain.Communications.CommunicationsSettings", b =>
@@ -4518,6 +4575,16 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_announcement_reactions_announcements");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Communications.AnnouncementRecipient", b =>
+                {
+                    b.HasOne("GSM.Domain.Communications.Announcement", null)
+                        .WithMany()
+                        .HasForeignKey("AnnouncementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_announcement_recipients_announcements");
                 });
 
             modelBuilder.Entity("GSM.Domain.Equipment.EquipmentStatusChange", b =>

@@ -21,7 +21,7 @@
         </MudSelect>
         <MudSelect T="Guid" MultiSelection="true" Label="Plan (vigente hoy)" Class="mt-2" Clearable="true"
                    SelectedValues="_planIds" SelectedValuesChanged="PlansChangedAsync"
-                   MultiSelectionTextFunc="@(v => string.Join(", ", v.Select(PlanName)))">
+                   MultiSelectionTextFunc="@(v => string.Join(", ", v.Select(s => Guid.TryParse(s, out var g) ? PlanName(g) : s)))">
             @foreach (var plan in _plans)
             {
                 <MudSelectItem T="Guid" Value="@plan.Id">@plan.Name</MudSelectItem>
@@ -29,7 +29,7 @@
         </MudSelect>
         <MudSelect T="Guid" MultiSelection="true" Label="Clase (reserva o asistencia en los últimos 30 días)" Class="mt-2"
                    Clearable="true" SelectedValues="_classIds" SelectedValuesChanged="ClassesChangedAsync"
-                   MultiSelectionTextFunc="@(v => string.Join(", ", v.Select(ClassName)))">
+                   MultiSelectionTextFunc="@(v => string.Join(", ", v.Select(s => Guid.TryParse(s, out var g) ? ClassName(g) : s)))">
             @foreach (var gymClass in _classes)
             {
                 <MudSelectItem T="Guid" Value="@gymClass.Id">@gymClass.Name</MudSelectItem>
