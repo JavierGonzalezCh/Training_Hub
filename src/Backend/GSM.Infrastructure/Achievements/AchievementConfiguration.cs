@@ -26,6 +26,9 @@ public sealed class MemberAchievementConfiguration : IEntityTypeConfiguration<Me
     {
         builder.ToTable("member_achievements", "achievements");
 
+        builder.Property(m => m.GrantReason).HasMaxLength(300);
+        builder.Property(m => m.RevokeReason).HasMaxLength(300);
+
         builder.HasIndex(m => new { m.MemberId, m.AchievementId }).IsUnique();
         builder.HasIndex(m => m.AchievementId);
 

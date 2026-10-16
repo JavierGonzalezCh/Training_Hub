@@ -1,0 +1,200 @@
+@* Logros del miembro en su ficha (Achievements L4): los ganados y "Otorgar logro" (tipo manual, con motivo). *@
+@inject IAchievementsClient Achievements
+@inject ISnackbar Snackbar
+
+<div class="mt-4">
+    @if (_items is null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Otorgar logro</MudText>
+            @if (Grantable.Count == 0)
+            {
+                <MudText Color="Color.Secondary" data-testid="no-manual-achievements">
+                    No hay logros manuales disponibles. El Owner puede crearlos en Configuración, con la condición "Otorgado por el staff".
+                </MudText>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap align-start mt-2" style="gap:0.75rem">
+                    <label for="grant-achievement-select" class="mud-typography mud-typography-body2">Logro</label>
+                    <select id="grant-achievement-select" data-testid="grant-achievement-select" class="gsm-native-select"
+                            value="@(_selected?.ToString() ?? string.Empty)" @onchange="OnSelectedChanged" disabled="@_saving">
+                        <option value="">Elige un logro</option>
+                        @foreach (var item in Grantable)
+                        {
+                            <option value="@item.AchievementId">@item.Name</option>
+                        }
+                    </select>
+                    <MudTextField T="string" @bind-Value="_reason" Label="Motivo" Immediate="true" MaxLength="300"
+                                  data-testid="grant-reason" Disabled="_saving" Style="flex:1;min-width:14rem"
+                                  Placeholder="Ganó la competencia de abril" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GrantAsync"
+                               data-testid="grant-submit"
+                               Disabled="@(_saving || _selected is null || string.IsNullOrWhiteSpace(_reason))">
+                        Otorgar logro
+                    </MudButton>
+                </div>
+            }
+        </MudPaper>
+
+        @if (Earned.Count == 0)
+        {
+            <MudText Color="Color.Secondary">Todavía no ha ganado logros.</MudText>
+        }
+        else
+        {
+            <MudTable Items="Earned" Hover="true" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Logro</MudTh>
+                    <MudTh>Fecha</MudTh>
+                    <MudTh>Origen</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Logro">@context.Name</MudTd>
+                    <MudTd DataLabel="Fecha">@(context.UnlockedAt?.ToString("d MMM yyyy") ?? "—")</MudTd>
+                    <MudTd DataLabel="Origen">
+                        @if (context.IsManual)
+                        {
+                            <span data-testid="manual-reason">Otorgado por el staff: @context.GrantReason</span>
+                        }
+                        else
+                        {
+                            <span>Automático</span>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        @if (context.IsManual)
+                        {
+                            <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                                       data-testid="@($"revoke-{context.AchievementId}")"
+                                       OnClick="@(() => StartRevoke(context.AchievementId))">
+                                Retirar
+                            </MudButton>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+
+        @if (_revoking is { } revokingId)
+        {
+            <MudPaper Class="pa-4 mt-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    Retirar «@NameOf(revokingId)». Queda registrado quién lo retiró y por qué.
+                </MudText>
+                <div class="d-flex flex-wrap align-start" style="gap:0.75rem">
+                    <MudTextField T="string" @bind-Value="_revokeReason" Label="Motivo del retiro" Immediate="true"
+                                  MaxLength="300" data-testid="revoke-reason" Disabled="_saving" Style="flex:1;min-width:14rem" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="RevokeAsync" data-testid="revoke-submit"
+                               Disabled="@(_saving || string.IsNullOrWhiteSpace(_revokeReason))">
+                        Confirmar retiro
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="CancelRevoke" Disabled="_saving">Cancelar</MudButton>
+                </div>
+            </MudPaper>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private List<MemberAchievementItem>? _items;
+    private Guid? _selected;
+    private string? _reason;
+    private Guid? _revoking;
+    private string? _revokeReason;
+    private bool _saving;
+
+    private List<MemberAchievementItem> Earned => (_items ?? []).Where(i => i.Unlocked).ToList();
+
+    private List<MemberAchievementItem> Grantable => (_items ?? []).Where(i => i.IsManual && !i.Unlocked).ToList();
+
+    private string NameOf(Guid achievementId)
+        => _items?.FirstOrDefault(i => i.AchievementId == achievementId)?.Name ?? "este logro";
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _items = (await Achievements.MemberAsync(MemberId)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _items = [];
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private void OnSelectedChanged(ChangeEventArgs e)
+        => _selected = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+
+    private async Task GrantAsync()
+    {
+        if (_selected is not { } achievementId || string.IsNullOrWhiteSpace(_reason))
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await Achievements.GrantManualAsync(
+                achievementId, new GrantManualAchievementRequest { MemberId = MemberId, Reason = _reason.Trim() });
+            Snackbar.Add("Logro otorgado. El miembro recibe un aviso.", Severity.Success);
+            _selected = null;
+            _reason = null;
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void StartRevoke(Guid achievementId)
+    {
+        _revoking = achievementId;
+        _revokeReason = null;
+    }
+
+    private void CancelRevoke() => _revoking = null;
+
+    private async Task RevokeAsync()
+    {
+        if (_revoking is not { } achievementId || string.IsNullOrWhiteSpace(_revokeReason))
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await Achievements.RevokeManualAsync(
+                achievementId, MemberId, new RevokeManualAchievementRequest { Reason = _revokeReason.Trim() });
+            Snackbar.Add("Logro retirado.", Severity.Success);
+            _revoking = null;
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

@@ -21,4 +21,6 @@ public sealed record MemberAchievementView(
     int ConditionValue,
     bool Unlocked,
     DateTimeOffset? UnlockedAt,
-    int Progress);
+    int Progress,
+    bool IsManual,
+    string? GrantReason);

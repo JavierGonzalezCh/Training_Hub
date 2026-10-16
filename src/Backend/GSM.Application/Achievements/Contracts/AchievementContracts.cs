@@ -45,4 +45,12 @@ public sealed record MemberAchievementItem(
     int ConditionValue,
     bool Unlocked,
     DateTimeOffset? UnlockedAt,
-    int Progress);
+    int Progress,
+    bool IsManual,
+    string? GrantReason);
+
+/// <summary>Otorga un logro manual a un miembro (L4). Motivo obligatorio.</summary>
+public sealed record GrantManualAchievementRequest(Guid MemberId, string Reason);
+
+/// <summary>Retira un logro manual a un miembro (L4). Motivo obligatorio.</summary>
+public sealed record RevokeManualAchievementRequest(string Reason);

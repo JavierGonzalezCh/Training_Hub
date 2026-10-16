@@ -45,7 +45,16 @@
                         <MudSelectItem Value="value">@label</MudSelectItem>
                     }
                 </MudSelect>
-                <MudNumericField T="int" @bind-Value="_model.ConditionValue" Label="@AchievementConditionLabels.ValueLabel(_model.ConditionType)" Required="true" Min="1" />
+                @if (_model.ConditionType == AchievementConditionLabels.Manual)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" data-testid="manual-hint">
+                        Sin condición automática: el staff lo otorga desde la ficha del miembro, con un motivo.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudNumericField T="int" @bind-Value="_model.ConditionValue" Label="@AchievementConditionLabels.ValueLabel(_model.ConditionType)" Required="true" Min="1" />
+                }
             </MudForm>
         }
     </DialogContent>
@@ -145,9 +154,11 @@
         {
             // Retroactivo (spec §6): al crear, o al bajar el valor / cambiar la condición, se avisa antes
             // cuántos miembros ya lo cumplen. Subir el valor no quita el logro a nadie, no se pregunta.
-            var askRetroactive = AchievementId is null
-                || _model.ConditionType != _originalType
-                || _model.ConditionValue < _originalValue;
+            // Un logro manual no tiene condición: nunca se otorga de forma retroactiva.
+            var askRetroactive = _model.ConditionType != AchievementConditionLabels.Manual
+                && (AchievementId is null
+                    || _model.ConditionType != _originalType
+                    || _model.ConditionValue < _originalValue);
             var grant = false;
             if (askRetroactive)
             {

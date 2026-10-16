@@ -11,6 +11,7 @@ public class AchievementConditionLabelsTests
     [InlineData("Classes", 3, "Clases")]
     [InlineData("TenureMonths", 4, "Antigüedad (meses)")]
     [InlineData("Referrals", 5, "Amigos referidos")]
+    [InlineData("Manual", 6, "Otorgado por el staff")]
     public void Round_trips_between_the_backend_name_and_the_select_value(string backendName, int value, string label)
     {
         Assert.Equal(value, AchievementConditionLabels.ToValue(backendName));
