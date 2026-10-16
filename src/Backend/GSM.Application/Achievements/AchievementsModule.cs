@@ -10,7 +10,7 @@ public static class AchievementsModuleRegistration
         // Los casos de uso (*Handler), validators y handlers de eventos se registran por assembly scanning.
         // Añade aquí solo lo que el scanning no cubra.
 
-        services.AddScoped<GSM.Application.Achievements.Public.IRankingStandingReader, RankingStandingReader>();
+        services.AddScoped<GSM.Application.Achievements.Public.IRankingStandingReader, GSM.Application.Achievements.RankingStandingReader>();
 
         return services;
     }
