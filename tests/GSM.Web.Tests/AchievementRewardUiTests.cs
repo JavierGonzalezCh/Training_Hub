@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Bunit;
 using Bunit.TestDoubles;
 using GSM.Client.Generated;
@@ -29,7 +29,6 @@ public class AchievementRewardUiTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
-        RenderComponent<MudPopoverProvider>();
     }
 
     private FakeClient Register<T>() where T : class
@@ -61,6 +60,7 @@ public class AchievementRewardUiTests : TestContext
         var fake = Register<IAchievementsClient>();
         fake.Handlers["RetroactivePreviewAsync"] = _ => new RetroactivePreviewResponse { EligibleCount = 0 };
         fake.Handlers["AchievementsPOSTAsync"] = _ => new AchievementResponse { Id = ShirtId, Name = "Constante" };
+        RenderComponent<MudPopoverProvider>();
         var dialogs = RenderComponent<MudDialogProvider>();
 
         var service = Services.GetRequiredService<IDialogService>();
@@ -99,6 +99,7 @@ public class AchievementRewardUiTests : TestContext
                 RewardDescription = "Camiseta del gym", RewardValidDays = 30,
             },
         };
+        RenderComponent<MudPopoverProvider>();
         var dialogs = RenderComponent<MudDialogProvider>();
 
         var service = Services.GetRequiredService<IDialogService>();
@@ -153,6 +154,7 @@ public class AchievementRewardUiTests : TestContext
             },
         };
 
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<RewardsOverviewPanel>();
         Assert.Empty(cut.FindAll("[data-testid='rewards-summary']"));
 
@@ -189,6 +191,7 @@ public class AchievementRewardUiTests : TestContext
         };
         fake.Handlers["DeliverRewardAsync"] = _ => new RewardDeliveredResponse { AchievementId = ShirtId, MemberId = MemberId };
 
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<MemberAchievementsPanel>(p => p.Add(x => x.MemberId, MemberId));
 
         cut.WaitForAssertion(() =>
@@ -219,6 +222,7 @@ public class AchievementRewardUiTests : TestContext
             Earned(ShirtId, "Constante", "Camiseta del gym", "Expired"),
         };
 
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<MemberAchievementsPanel>(p => p.Add(x => x.MemberId, MemberId));
 
         cut.WaitForAssertion(() => Assert.Contains("Vencido", cut.Find($"[data-testid='reward-{ShirtId}']").TextContent));
@@ -302,6 +306,7 @@ public class AchievementRewardUiTests : TestContext
         gym.Set(new MeResponse { FeatureFlags = new MeFeatureFlags { ShowGamification = true } }, impersonating: false);
         Services.AddSingleton(gym);
 
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>();
 
         cut.WaitForAssertion(() =>
@@ -329,6 +334,7 @@ public class AchievementRewardUiTests : TestContext
         gym.Set(new MeResponse { FeatureFlags = new MeFeatureFlags { ShowGamification = true } }, impersonating: false);
         Services.AddSingleton(gym);
 
+        RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>();
 
         cut.WaitForAssertion(() => Assert.NotNull(cut.Find($"[data-testid='reward-line-{CapId}']")));
@@ -352,6 +358,7 @@ public class AchievementRewardUiTests : TestContext
         Services.AddSingleton(whatsApp);
 
         this.AddTestAuthorization().SetAuthorized("staff");
+        RenderComponent<MudPopoverProvider>();
         RenderComponent<MudDialogProvider>();
         return RenderComponent<CheckIn>();
     }

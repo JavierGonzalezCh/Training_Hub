@@ -73,6 +73,16 @@ namespace GSM.Client.Generated
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<RewardDeliveredResponse> DeliverRewardAsync(System.Guid id, System.Guid memberId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<RewardsOverviewResponse> ListRewardsAsync(string? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<MemberAchievementItem>> MemberAsync(System.Guid memberId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -718,6 +728,164 @@ namespace GSM.Client.Generated
                         if (status_ == 204)
                         {
                             return;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<RewardDeliveredResponse> DeliverRewardAsync(System.Guid id, System.Guid memberId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (memberId == null)
+                throw new System.ArgumentNullException("memberId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/achievements/{id}/deliver-reward/{memberId}"
+                    urlBuilder_.Append("api/achievements/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/deliver-reward/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(memberId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<RewardDeliveredResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<RewardsOverviewResponse> ListRewardsAsync(string? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/achievements/rewards"
+                    urlBuilder_.Append("api/achievements/rewards");
+                    urlBuilder_.Append('?');
+                    if (status != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("status")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(status, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<RewardsOverviewResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -24312,6 +24480,16 @@ namespace GSM.Client.Generated
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<PlanChangePreviewResponse> PreviewPlanChangeAsync(System.Guid memberId, System.Guid membershipId, ChangePlanRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ChangePlanResponse> ChangePlanAsync(System.Guid memberId, System.Guid membershipId, ChangePlanRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<MembershipResponse> FreezeAsync(System.Guid memberId, System.Guid membershipId, CreateFreezeRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -24811,6 +24989,242 @@ namespace GSM.Client.Generated
                                 throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new GsmApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<PlanChangePreviewResponse> PreviewPlanChangeAsync(System.Guid memberId, System.Guid membershipId, ChangePlanRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (memberId == null)
+                throw new System.ArgumentNullException("memberId");
+
+            if (membershipId == null)
+                throw new System.ArgumentNullException("membershipId");
+
+            if (body == null)
+                throw new System.ArgumentNullException("body");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/members/{memberId}/memberships/{membershipId}/change-plan/preview"
+                    urlBuilder_.Append("api/members/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(memberId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/memberships/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(membershipId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/change-plan/preview");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<PlanChangePreviewResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ChangePlanResponse> ChangePlanAsync(System.Guid memberId, System.Guid membershipId, ChangePlanRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (memberId == null)
+                throw new System.ArgumentNullException("memberId");
+
+            if (membershipId == null)
+                throw new System.ArgumentNullException("membershipId");
+
+            if (body == null)
+                throw new System.ArgumentNullException("body");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/members/{memberId}/memberships/{membershipId}/change-plan"
+                    urlBuilder_.Append("api/members/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(memberId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/memberships/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(membershipId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/change-plan");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ChangePlanResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -35927,6 +36341,12 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
         public System.DateTimeOffset CreatedAt { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("rewardDescription")]
+        public string? RewardDescription { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardValidDays")]
+        public int? RewardValidDays { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -36824,6 +37244,66 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangePlanRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("planId")]
+        public System.Guid PlanId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("agreedPrice")]
+        public double? AgreedPrice { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("discountReason")]
+        public string? DiscountReason { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("creditOverride")]
+        public double? CreditOverride { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("creditAdjustmentReason")]
+        public string? CreditAdjustmentReason { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangePlanResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("previous")]
+        public MembershipResponse Previous { get; set; } = new MembershipResponse();
+
+        [System.Text.Json.Serialization.JsonPropertyName("current")]
+        public MembershipResponse Current { get; set; } = new MembershipResponse();
+
+        [System.Text.Json.Serialization.JsonPropertyName("creditApplied")]
+        public double CreditApplied { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalToCharge")]
+        public double TotalToCharge { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("refundAmount")]
+        public double RefundAmount { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CheckinAttemptItem
     {
 
@@ -37169,6 +37649,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("noActiveInstructor")]
         public bool NoActiveInstructor { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("equipmentItemIds")]
+        public System.Collections.Generic.ICollection<System.Guid> EquipmentItemIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -37396,6 +37879,12 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("conditionValue")]
         public int ConditionValue { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardDescription")]
+        public string? RewardDescription { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardValidDays")]
+        public int? RewardValidDays { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -39797,6 +40286,18 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("grantReason")]
         public string? GrantReason { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("rewardDescription")]
+        public string? RewardDescription { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardStatus")]
+        public string RewardStatus { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardExpiresAt")]
+        public System.DateTimeOffset? RewardExpiresAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardDeliveredAt")]
+        public System.DateTimeOffset? RewardDeliveredAt { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -40573,6 +41074,15 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("entriesLeft")]
         public int? EntriesLeft { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("creditApplied")]
+        public double CreditApplied { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("creditAdjustmentReason")]
+        public string? CreditAdjustmentReason { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("replacesMembershipId")]
+        public System.Guid? ReplacesMembershipId { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -41678,6 +42188,81 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PlanChangePreviewResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("currentMembershipId")]
+        public System.Guid CurrentMembershipId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("currentPlanName")]
+        public string CurrentPlanName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("currentEndDate")]
+        public System.DateOnly CurrentEndDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("amountPaid")]
+        public double AmountPaid { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("creditBase")]
+        public double CreditBase { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("calculatedCredit")]
+        public double CalculatedCredit { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("credit")]
+        public double Credit { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("creditApplied")]
+        public double CreditApplied { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("daysLeft")]
+        public int? DaysLeft { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("daysTotal")]
+        public int? DaysTotal { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entriesLeft")]
+        public int? EntriesLeft { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entriesTotal")]
+        public int? EntriesTotal { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("newPlanId")]
+        public System.Guid NewPlanId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("newPlanName")]
+        public string NewPlanName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("planPrice")]
+        public double PlanPrice { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("agreedPrice")]
+        public double AgreedPrice { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("startDate")]
+        public System.DateOnly StartDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("endDate")]
+        public System.DateOnly EndDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalToCharge")]
+        public double TotalToCharge { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("refundAmount")]
+        public double RefundAmount { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanResponse
     {
 
@@ -42217,6 +42802,36 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("entriesTotal")]
         public int? EntriesTotal { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pendingRewards")]
+        public System.Collections.Generic.ICollection<ReceptionRewardResponse> PendingRewards { get; set; } = new System.Collections.ObjectModel.Collection<ReceptionRewardResponse>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReceptionRewardResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("achievementId")]
+        public System.Guid AchievementId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("achievementName")]
+        public string AchievementName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardDescription")]
+        public string RewardDescription { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("expiresAt")]
+        public System.DateTimeOffset? ExpiresAt { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -42761,6 +43376,108 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RewardDeliveredResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("achievementId")]
+        public System.Guid AchievementId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberId")]
+        public System.Guid MemberId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("achievementName")]
+        public string AchievementName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardDescription")]
+        public string RewardDescription { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveredAt")]
+        public System.DateTimeOffset DeliveredAt { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RewardListItem
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("achievementId")]
+        public System.Guid AchievementId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("achievementName")]
+        public string AchievementName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberId")]
+        public System.Guid MemberId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberName")]
+        public string MemberName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardDescription")]
+        public string RewardDescription { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string Status { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("unlockedAt")]
+        public System.DateTimeOffset UnlockedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("expiresAt")]
+        public System.DateTimeOffset? ExpiresAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveredAt")]
+        public System.DateTimeOffset? DeliveredAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deliveredBy")]
+        public System.Guid? DeliveredBy { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RewardsOverviewResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("pending")]
+        public int Pending { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("delivered")]
+        public int Delivered { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("expired")]
+        public int Expired { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public System.Collections.Generic.ICollection<RewardListItem> Items { get; set; } = new System.Collections.ObjectModel.Collection<RewardListItem>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RosterEntry
     {
 
@@ -42823,6 +43540,15 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("waitlist")]
         public System.Collections.Generic.ICollection<WaitlistRosterEntry>? Waitlist { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("effectiveCapacity")]
+        public int? EffectiveCapacity { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("availableMachines")]
+        public int? AvailableMachines { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("linkedMachines")]
+        public int? LinkedMachines { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -43217,6 +43943,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("instructorUserId")]
         public System.Guid? InstructorUserId { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("equipmentItemIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? EquipmentItemIds { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -43375,6 +44104,15 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("myOfferExpiresAt")]
         public System.DateTimeOffset? MyOfferExpiresAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("effectiveCapacity")]
+        public int? EffectiveCapacity { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("availableMachines")]
+        public int? AvailableMachines { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("linkedMachines")]
+        public int? LinkedMachines { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -44311,6 +45049,12 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("conditionValue")]
         public int ConditionValue { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardDescription")]
+        public string? RewardDescription { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rewardValidDays")]
+        public int? RewardValidDays { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

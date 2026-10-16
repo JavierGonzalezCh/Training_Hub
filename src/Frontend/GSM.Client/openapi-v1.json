@@ -386,6 +386,95 @@
         }
       }
     },
+    "/api/achievements/{id}/deliver-reward/{memberId}": {
+      "post": {
+        "tags": [
+          "Achievements"
+        ],
+        "operationId": "DeliverReward",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewardDeliveredResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewardDeliveredResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewardDeliveredResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/achievements/rewards": {
+      "get": {
+        "tags": [
+          "Achievements"
+        ],
+        "operationId": "ListRewards",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewardsOverviewResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewardsOverviewResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewardsOverviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/achievements/member/{memberId}": {
       "get": {
         "tags": [
@@ -13199,6 +13288,266 @@
         }
       }
     },
+    "/api/members/{memberId}/memberships/{membershipId}/change-plan/preview": {
+      "post": {
+        "tags": [
+          "MemberMemberships"
+        ],
+        "operationId": "PreviewPlanChange",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanChangePreviewResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanChangePreviewResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanChangePreviewResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{memberId}/memberships/{membershipId}/change-plan": {
+      "post": {
+        "tags": [
+          "MemberMemberships"
+        ],
+        "operationId": "ChangePlan",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePlanResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePlanResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePlanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/members/{memberId}/memberships/{membershipId}/freeze": {
       "post": {
         "tags": [
@@ -19129,7 +19478,9 @@
           "conditionType",
           "conditionValue",
           "isActive",
-          "createdAt"
+          "createdAt",
+          "rewardDescription",
+          "rewardValidDays"
         ],
         "type": "object",
         "properties": {
@@ -19169,6 +19520,21 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "rewardDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rewardValidDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -20236,6 +20602,90 @@
           }
         }
       },
+      "ChangePlanRequest": {
+        "required": [
+          "planId"
+        ],
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agreedPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "discountReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "creditOverride": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "creditAdjustmentReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ChangePlanResponse": {
+        "required": [
+          "previous",
+          "current",
+          "creditApplied",
+          "totalToCharge",
+          "refundAmount"
+        ],
+        "type": "object",
+        "properties": {
+          "previous": {
+            "$ref": "#/components/schemas/MembershipResponse"
+          },
+          "current": {
+            "$ref": "#/components/schemas/MembershipResponse"
+          },
+          "creditApplied": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "totalToCharge": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "refundAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
       "CheckinAttemptItem": {
         "required": [
           "id",
@@ -20657,7 +21107,8 @@
           "deactivatedOn",
           "endsOn",
           "instructorUserId",
-          "noActiveInstructor"
+          "noActiveInstructor",
+          "equipmentItemIds"
         ],
         "type": "object",
         "properties": {
@@ -20747,6 +21198,13 @@
           },
           "noActiveInstructor": {
             "type": "boolean"
+          },
+          "equipmentItemIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -21056,6 +21514,21 @@
           "conditionValue": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rewardDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rewardValidDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
               "integer",
               "string"
             ],
@@ -24207,7 +24680,11 @@
           "unlockedAt",
           "progress",
           "isManual",
-          "grantReason"
+          "grantReason",
+          "rewardDescription",
+          "rewardStatus",
+          "rewardExpiresAt",
+          "rewardDeliveredAt"
         ],
         "type": "object",
         "properties": {
@@ -24267,6 +24744,29 @@
               "null",
               "string"
             ]
+          },
+          "rewardDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rewardStatus": {
+            "type": "string"
+          },
+          "rewardExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "rewardDeliveredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -25322,7 +25822,10 @@
           "nextFreeze",
           "entriesTotal",
           "entriesUsed",
-          "entriesLeft"
+          "entriesLeft",
+          "creditApplied",
+          "creditAdjustmentReason",
+          "replacesMembershipId"
         ],
         "type": "object",
         "properties": {
@@ -25462,6 +25965,27 @@
               "string"
             ],
             "format": "int32"
+          },
+          "creditApplied": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "creditAdjustmentReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "replacesMembershipId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -27049,6 +27573,167 @@
           }
         }
       },
+      "PlanChangePreviewResponse": {
+        "required": [
+          "currentMembershipId",
+          "currentPlanName",
+          "currentEndDate",
+          "amountPaid",
+          "creditBase",
+          "calculatedCredit",
+          "credit",
+          "creditApplied",
+          "daysLeft",
+          "daysTotal",
+          "entriesLeft",
+          "entriesTotal",
+          "newPlanId",
+          "newPlanName",
+          "planPrice",
+          "agreedPrice",
+          "startDate",
+          "endDate",
+          "totalToCharge",
+          "refundAmount"
+        ],
+        "type": "object",
+        "properties": {
+          "currentMembershipId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currentPlanName": {
+            "type": "string"
+          },
+          "currentEndDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "amountPaid": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "creditBase": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "calculatedCredit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "credit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "creditApplied": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "daysLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "daysTotal": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "entriesLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "entriesTotal": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "newPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "newPlanName": {
+            "type": "string"
+          },
+          "planPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "agreedPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "totalToCharge": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "refundAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
       "PlanResponse": {
         "required": [
           "id",
@@ -27665,7 +28350,8 @@
           "nextEntryAt",
           "birthdayToday",
           "entriesLeft",
-          "entriesTotal"
+          "entriesTotal",
+          "pendingRewards"
         ],
         "type": "object",
         "properties": {
@@ -27808,6 +28494,40 @@
               "string"
             ],
             "format": "int32"
+          },
+          "pendingRewards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceptionRewardResponse"
+            }
+          }
+        }
+      },
+      "ReceptionRewardResponse": {
+        "required": [
+          "achievementId",
+          "achievementName",
+          "rewardDescription",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "achievementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "achievementName": {
+            "type": "string"
+          },
+          "rewardDescription": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -28330,6 +29050,139 @@
           }
         }
       },
+      "RewardDeliveredResponse": {
+        "required": [
+          "achievementId",
+          "memberId",
+          "achievementName",
+          "rewardDescription",
+          "deliveredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "achievementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "achievementName": {
+            "type": "string"
+          },
+          "rewardDescription": {
+            "type": "string"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RewardListItem": {
+        "required": [
+          "achievementId",
+          "achievementName",
+          "memberId",
+          "memberName",
+          "rewardDescription",
+          "status",
+          "unlockedAt",
+          "expiresAt",
+          "deliveredAt",
+          "deliveredBy"
+        ],
+        "type": "object",
+        "properties": {
+          "achievementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "achievementName": {
+            "type": "string"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "rewardDescription": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "unlockedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "deliveredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "deliveredBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "RewardsOverviewResponse": {
+        "required": [
+          "pending",
+          "delivered",
+          "expired",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "pending": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "delivered": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expired": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewardListItem"
+            }
+          }
+        }
+      },
       "RosterEntry": {
         "required": [
           "bookingId",
@@ -28433,6 +29286,33 @@
             "items": {
               "$ref": "#/components/schemas/WaitlistRosterEntry"
             }
+          },
+          "effectiveCapacity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "availableMachines": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "linkedMachines": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -29020,6 +29900,16 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "equipmentItemIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -29257,6 +30147,33 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "effectiveCapacity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "availableMachines": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "linkedMachines": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -30419,6 +31336,21 @@
           "conditionValue": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rewardDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rewardValidDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
               "integer",
               "string"
             ],
