@@ -1,0 +1,101 @@
+@inject IAdminCatalogClient Catalog
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_name" Label="Nombre" Required="true" Class="mb-3" MaxLength="120" data-testid="model-name" />
+        <MudSelect T="int" @bind-Value="_type" Label="Tipo" Class="mb-3">
+            @foreach (var (value, label) in RoutineLabels.Equipment)
+            {
+                <MudSelectItem Value="value">@label</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="_description" Label="Descripción" Lines="2" Class="mb-3" MaxLength="1000" />
+        <MudTextField T="string" @bind-Value="_instructions" Label="Ajustes típicos" Lines="2" Class="mb-3" MaxLength="1000"
+                      HelperText="El gym puede reemplazarlos por los de su máquina." />
+        <MudSwitch T="bool" @bind-Value="_trackedPerUnit" Color="Color.Primary"
+                   Label="Una fila por unidad (máquina). Apagado: implemento suelto con cantidad." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting" data-testid="save-model">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Modelo a editar; nulo = crear uno nuevo.</summary>
+    [Parameter]
+    public AdminEquipmentModelResponse? Current { get; set; }
+
+    private string _name = string.Empty;
+    private int _type = 3;
+    private string? _description;
+    private string? _instructions;
+    private bool _trackedPerUnit = true;
+    private bool _submitting;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (Current is not { } m)
+        {
+            return;
+        }
+
+        _name = m.Name;
+        _type = CatalogLabels.EquipmentTypeValue(m.Type);
+        _description = m.Description;
+        _instructions = m.DefaultInstructions;
+        _trackedPerUnit = m.TrackedPerUnit;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "El nombre es obligatorio.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var body = new SaveEquipmentModelRequest
+            {
+                Name = _name,
+                Type = _type,
+                Description = _description,
+                DefaultInstructions = _instructions,
+                TrackedPerUnit = _trackedPerUnit,
+            };
+
+            if (Current is { } existing)
+            {
+                await Catalog.AdminCatalogUpdateModelAsync(existing.Id, body);
+            }
+            else
+            {
+                await Catalog.AdminCatalogCreateModelAsync(body);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

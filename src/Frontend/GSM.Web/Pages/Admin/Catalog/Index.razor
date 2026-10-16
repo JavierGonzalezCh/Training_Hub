@@ -1,0 +1,20 @@
+@page "/admin/catalog"
+@layout AdminLayout
+@attribute [Authorize(Roles = GsmRoles.SuperAdmin)]
+
+<PageTitle>Catálogos — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">Catálogos del sistema</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Lo que todos los gimnasios ven por defecto: los ejercicios del sistema, sus alternativas, las máquinas del catálogo
+    y qué ejercicio se hace en cada máquina. Un gimnasio puede ocultar o copiar un ejercicio, pero no cambiarlo.
+</MudText>
+
+<MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true" PanelClass="pt-4" data-testid="catalog-tabs">
+    <MudTabPanel Text="Ejercicios">
+        <ExercisesTab />
+    </MudTabPanel>
+    <MudTabPanel Text="Máquinas">
+        <ModelsTab />
+    </MudTabPanel>
+</MudTabs>

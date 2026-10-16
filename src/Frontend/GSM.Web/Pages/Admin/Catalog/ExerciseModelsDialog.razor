@@ -1,0 +1,111 @@
+@inject IAdminCatalogClient Catalog
+
+@* Ligas ejercicio ↔ modelo de máquina del sistema. Cuando un gym tiene una máquina de ese modelo, el ejercicio queda ligado a ella. *@
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudText Class="mb-3">
+                Modelos del catálogo con los que se hace <strong>@ExerciseName</strong> (máximo 20).
+            </MudText>
+            <div class="d-flex flex-column mb-3" style="max-height:360px;overflow:auto" data-testid="model-links">
+                @foreach (var model in _models)
+                {
+                    <label class="d-flex align-center" style="gap:.5rem">
+                        <input type="checkbox" data-testid="@($"link-{model.Id}")" checked="@_selected.Contains(model.Id)"
+                               @onchange="@(e => Toggle(model.Id, e.Value is true))" />
+                        <span>@model.Name</span>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@CatalogLabels.EquipmentTypeLabel(model.Type)</MudText>
+                    </label>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting" data-testid="save-links">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid ExerciseId { get; set; }
+
+    [Parameter]
+    public string ExerciseName { get; set; } = string.Empty;
+
+    private List<AdminEquipmentModelResponse> _models = [];
+    private readonly HashSet<Guid> _selected = [];
+    private bool _loading = true;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _models = (await Catalog.AdminCatalogListModelsAsync(false)).OrderBy(m => m.Name).ToList();
+            var links = await Catalog.AdminCatalogGetExerciseModelsAsync(ExerciseId);
+            foreach (var model in links.Models ?? [])
+            {
+                _selected.Add(model.Id);
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Toggle(Guid id, bool on)
+    {
+        if (on)
+        {
+            _selected.Add(id);
+        }
+        else
+        {
+            _selected.Remove(id);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _submitting = true;
+        _error = null;
+        try
+        {
+            await Catalog.AdminCatalogSetExerciseModelsAsync(ExerciseId, new SetExerciseEquipmentModelsRequest
+            {
+                ModelIds = _selected.ToList(),
+            });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

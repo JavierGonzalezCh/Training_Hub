@@ -10,13 +10,24 @@ public sealed record EquipmentFilter(
     string? Search = null,
     bool IncludeInactive = false);
 
-/// <summary>Catálogo del sistema (<see cref="EquipmentModel"/>): global, solo lectura en E1.</summary>
+/// <summary>Catálogo del sistema (<see cref="EquipmentModel"/>): global. Los gyms lo leen; lo escribe el SuperAdmin (S4).</summary>
 public interface IEquipmentModelRepository
 {
     Task<IReadOnlyList<EquipmentModel>> ListActiveAsync(EquipmentType? type, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<EquipmentModel>> GetByIdsAsync(
         IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>S4: todo el catálogo, con los inactivos si se piden.</summary>
+    Task<IReadOnlyList<EquipmentModel>> ListAllAsync(bool includeInactive, CancellationToken cancellationToken = default);
+
+    /// <summary>S4: un modelo con seguimiento, activo o no.</summary>
+    Task<EquipmentModel?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>S4: ¿ya hay un modelo con ese nombre (sin distinguir mayúsculas)?</summary>
+    Task<bool> NameTakenAsync(string name, Guid? excludeId, CancellationToken cancellationToken = default);
+
+    void Add(EquipmentModel model);
 }
 
 /// <summary>

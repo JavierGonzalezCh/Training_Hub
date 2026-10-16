@@ -62,3 +62,14 @@ public sealed class AddEquipmentFromModelsRequestValidator : AbstractValidator<A
         });
     }
 }
+
+public sealed class SaveEquipmentModelRequestValidator : AbstractValidator<SaveEquipmentModelRequest>
+{
+    public SaveEquipmentModelRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().Length(2, EquipmentModel.NameMaxLength);
+        RuleFor(x => x.Type).IsInEnum();
+        RuleFor(x => x.Description).MaximumLength(EquipmentModel.TextMaxLength);
+        RuleFor(x => x.DefaultInstructions).MaximumLength(EquipmentModel.TextMaxLength);
+    }
+}

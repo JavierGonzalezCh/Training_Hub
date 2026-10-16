@@ -149,6 +149,29 @@ public sealed class EquipmentModelRepository(GsmDbContext dbContext) : IEquipmen
 
         return await Models.AsNoTracking().Where(m => ids.Contains(m.Id)).ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<EquipmentModel>> ListAllAsync(
+        bool includeInactive, CancellationToken cancellationToken = default)
+    {
+        var q = Models.AsNoTracking();
+        if (!includeInactive)
+        {
+            q = q.Where(m => m.IsActive);
+        }
+
+        return await q.OrderBy(m => m.Type).ThenBy(m => m.Name).ToListAsync(cancellationToken);
+    }
+
+    public Task<EquipmentModel?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+        => Models.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+
+    public Task<bool> NameTakenAsync(string name, Guid? excludeId, CancellationToken cancellationToken = default)
+    {
+        var lower = name.Trim().ToLower();
+        return Models.AnyAsync(m => m.Name.ToLower() == lower && (excludeId == null || m.Id != excludeId), cancellationToken);
+    }
+
+    public void Add(EquipmentModel model) => Models.Add(model);
 }
 
 public sealed class EquipmentItemRepository(GsmDbContext dbContext) : IEquipmentItemRepository

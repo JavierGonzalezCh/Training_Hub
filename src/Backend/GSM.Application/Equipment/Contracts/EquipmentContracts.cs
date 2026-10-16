@@ -133,3 +133,22 @@ public sealed record MyEquipmentResponse(
 
 /// <summary>Tarjeta del dashboard: máquinas fuera de servicio o en mantenimiento y reportes abiertos.</summary>
 public sealed record EquipmentSummaryResponse(int OutOfService, int InMaintenance, int OpenIssues, int UrgentIssues);
+
+/// <summary>S4: modelo del catálogo tal como lo ve el SuperAdmin; incluye los inactivos. <c>Type</c> sale como texto.</summary>
+public sealed record AdminEquipmentModelResponse(
+    Guid Id,
+    string Name,
+    string Type,
+    string? ImageUrl,
+    string? Description,
+    string? DefaultInstructions,
+    bool TrackedPerUnit,
+    bool IsActive);
+
+/// <summary>S4: alta y edición de un modelo del catálogo. La imagen se sube aparte.</summary>
+public sealed record SaveEquipmentModelRequest(
+    string Name,
+    EquipmentType Type,
+    string? Description,
+    string? DefaultInstructions,
+    bool TrackedPerUnit);

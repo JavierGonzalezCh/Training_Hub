@@ -1,0 +1,124 @@
+@inject IAdminCatalogClient Catalog
+
+@* Alternativas recomendadas del sistema para un ejercicio. Valen en los dos sentidos. *@
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+
+        <MudText Class="mb-3">Alternativas de <strong>@ExerciseName</strong>. Aparecen primero cuando un gym busca otro ejercicio.</MudText>
+
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_recommended.Count == 0)
+            {
+                <MudText Color="Color.Secondary" Class="mb-3" data-testid="no-alternatives">Todavía no hay alternativas recomendadas.</MudText>
+            }
+            else
+            {
+                <div class="mb-3" data-testid="alternatives-list">
+                    @foreach (var alt in _recommended)
+                    {
+                        <MudChip T="string" Size="Size.Small" OnClose="@(() => RemoveAsync(alt.Id))" data-testid="@($"alt-{alt.Id}")">@alt.Name</MudChip>
+                    }
+                </div>
+            }
+
+            <MudAutocomplete T="ExerciseResponse" Label="Agregar alternativa" SearchFunc="SearchAsync" ToStringFunc="@(e => e?.Name)"
+                             Value="_picked" ValueChanged="AddAsync" CoerceText="false" ResetValueOnEmptyText="true"
+                             data-testid="alternative-picker" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => MudDialog.Close())">Listo</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid ExerciseId { get; set; }
+
+    [Parameter]
+    public string ExerciseName { get; set; } = string.Empty;
+
+    private IReadOnlyList<ExerciseAlternativeResponse> _recommended = [];
+    private ExerciseResponse? _picked;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _recommended = CatalogLabels.RecommendedOnly(await Catalog.AdminCatalogGetAlternativesAsync(ExerciseId));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task<IEnumerable<ExerciseResponse>> SearchAsync(string? value, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var found = await Catalog.AdminCatalogListExercisesAsync(string.IsNullOrWhiteSpace(value) ? null : value.Trim(), false, cancellationToken);
+            var taken = _recommended.Select(a => a.Id).ToHashSet();
+            return found.Where(e => e.Id != ExerciseId && !taken.Contains(e.Id)).Take(15).ToList();
+        }
+        catch (GsmApiException)
+        {
+            return [];
+        }
+    }
+
+    private async Task AddAsync(ExerciseResponse? picked)
+    {
+        _picked = null;
+        if (picked is null)
+        {
+            return;
+        }
+
+        _error = null;
+        try
+        {
+            await Catalog.AdminCatalogAddAlternativeAsync(ExerciseId, picked.Id);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+
+    private async Task RemoveAsync(Guid alternativeId)
+    {
+        _error = null;
+        try
+        {
+            await Catalog.AdminCatalogRemoveAlternativeAsync(ExerciseId, alternativeId);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+}

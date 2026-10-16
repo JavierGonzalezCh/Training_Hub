@@ -56,6 +56,33 @@ public sealed class EquipmentModel : BaseEntity
             ImageUrl = EquipmentText.Optional(imageUrl, 2048),
         };
     }
+
+    /// <summary>Edición del SuperAdmin (S4). No toca la imagen: esa se cambia con <see cref="SetImage"/>.</summary>
+    public void Update(
+        string name,
+        EquipmentType type,
+        string? description,
+        string? defaultInstructions,
+        bool trackedPerUnit)
+    {
+        if (!Enum.IsDefined(type))
+        {
+            throw new ValidationDomainException("Tipo de equipo no válido.");
+        }
+
+        Name = EquipmentText.Name(name, "modelo");
+        Type = type;
+        Description = EquipmentText.Optional(description, TextMaxLength);
+        DefaultInstructions = EquipmentText.Optional(defaultInstructions, TextMaxLength);
+        TrackedPerUnit = trackedPerUnit;
+    }
+
+    public void SetImage(string? imageUrl) => ImageUrl = EquipmentText.Optional(imageUrl, 2048);
+
+    /// <summary>Un modelo inactivo deja de ofrecerse a los gyms; las máquinas que ya salieron de él no cambian.</summary>
+    public void Deactivate() => IsActive = false;
+
+    public void Activate() => IsActive = true;
 }
 
 internal static class EquipmentText
