@@ -99,6 +99,10 @@
 | L2 | **Unida** | Logros `tenure_months` y `referrals`, evaluados en check-in y por eventos de membresía; 2 logros por defecto más. Ver preguntas L2 |
 | C4 | **Unida** | Lista de espera con oferta y plazo (60 min, recortado a 15 min del inicio), perezosa + tarea periódica; candado al reservar. Ver preguntas C4 |
 | MS4 | **Unida** | Congelamientos en `membership_freezes` (reglas por plan, programados, historial); los `paused` migrados a congelamientos abiertos. Suite 850 + 416. Ver preguntas MS4 |
+| L4 | **Unida** | Logros `manual` que otorga o retira el staff con motivo (retiro lógico); nunca se desbloquean solos. Ver preguntas L4 |
+| CO4 | **Unida** | Imagen del anuncio y publicación programada por la tarea periódica (resuelve CO2-5). Ver preguntas CO4 |
+| MS5 | **Unida** | Tiqueteras: consumo por evento `CheckInRegistered` (tabla `pass_usages`), devolución al anular, sin gracia; cierra C1-1 y el pendiente de CO7. Ver preguntas MS5 |
+| E4 | **Unida** | Reportes de fallas (app y staff), campana agrupada, `unsafe` urgente con correo al Owner, flag `MembersCanReportEquipment`. Suite 902 + 463. Ver preguntas E4 |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -331,6 +335,27 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **MS4-5 (= MS3-1):** correr el fin por un congelamiento no mueve el día del ciclo; la renovación siguiente arranca ciclo nuevo si no coincide.
 - **Integración MS4 ↔ L2:** MS4 reemplazó `paused`/`paused_on` por congelamientos; el `PausedDays` de L2 se retiró y la antigüedad descuenta los tramos congelados.
 
+**Preguntas de la tanda L4/CO4/MS5/E4 (2026-10-15):**
+
+- **L4-1:** cualquier staff retira un logro manual (igual que otorgarlo). Confirmar.
+- **L4-2:** volver a otorgar un logro retirado no genera aviso nuevo (misma fila, aviso idempotente). ¿Avisar otra vez?
+- **L4-3:** se guarda el id de quien otorgó, pero la UI no muestra su nombre (exigiría leer de Identity).
+- **L4-4:** en `/app/logros` los manuales no ganados se ven bloqueados. ¿Se ocultan?
+- **L4-5:** el aviso dice "Desbloqueaste «X»" también para los manuales. ¿Otro texto?
+- **CO4-1:** un programado que ya no puede salir (audiencia vacía o caducado) vuelve a borrador solo con un log. ¿Avisar al autor?
+- **CO4-2:** el correo y el push aún no incluyen la imagen (el dato ya viaja en el evento).
+- **CO4-3:** dos ejecuciones simultáneas de la tarea podrían publicar el mismo anuncio (sin claim atómico). Con una sola tarea de Dokploy no debería pasar.
+- **MS5-1:** se permiten varias tiqueteras vigentes; se gasta la que vence primero. ¿O se rechaza comprar otra?
+- **MS5-2:** si un plan por tiempo cubre el día, manda y la tiquetera no se toca. Confirmar.
+- **MS5-3:** una tiquetera cobra matrícula si es la primera membresía (§4.1 literal). Confirmar.
+- **MS5-4:** la lista "Por vencer" y el dashboard siguen contando solo por fecha (no por ≤ 2 entradas).
+- **MS5-5:** agotar la tiquetera no avisa al miembro.
+- **E4-1:** el aviso "tu reporte se resolvió" usa la categoría `News` (configurable, respeta el horario sin avisos). Confirmar.
+- **E4-2:** el texto al miembro es neutro ("Lo que reportaste de «X» ya quedó resuelto"). Confirmar.
+- **E4-3:** al volver una máquina a `available`, los reportes abiertos no se ofrecen cerrar automáticamente (solo se listan).
+- **E4-4:** un reporte `unsafe` nunca se agrupa con otros. Confirmar.
+- **Encontrado al integrar (corregido):** `IMemberWaitlistClient` (C4) no estaba registrado en el cliente; `/app/clases` habría fallado en la app real (los tests registran sus propios falsos).
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
@@ -364,6 +389,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: L4, CO4, MS5 y E4 unidas (MS5 y L4 combinadas solas en `Detail.razor`). Migración `V2_MS5_E4_L4_CO4` con `SqlScript` MS5, E4, L4, CO4. Al integrar: cliente de la lista de espera sin registrar (hueco de C4), `EndpointName` para `ScheduleAnnouncement` (chocaba con Clases), namespace en un test de E4; un bUnit del kiosco intermitente (pasa 3 de 3). **Suite (en dos mitades): 902 integración + 463 bUnit, todo verde.**
 - 2026-10-15: A5, L2, C4 y MS4 unidas (MS4 y C4 se quedaron detenidos una vez y se reanudaron). Conflicto MS4 ↔ L2 en `Membership.cs`: queda el modelo de congelamientos; `CoveredDaysThrough` descuenta los tramos. Migración `V2_MS4_A5_C4_L2` **reordenada**: `SqlScript` MS4/C4/L2 antes de soltar `paused_on`. La primera suite la cortó Claude Code por memoria baja; se corrió en dos mitades. Al integrar: un falso de push en bUnit, `Input` en un campo `Immediate`, conteo de logros por defecto (5 → 7), una fila de logs de corridas anteriores, y **un defecto real de C4**: `UpdateClassSettingsHandler` agregaba la fila antes de validar (un 422 dejaba la fila rastreada). B4 marcado corregido. **Suite: 850 integración + 416 bUnit, todo verde.**
 - 2026-10-15: MS3, A4, R5 y LG4 unidas sin conflictos (se cortaron una vez por el límite de uso y se reanudaron). Migraciones `V2_MS3_A4_R5` (EF detectó el renombrado de `duration_days`; `SqlScript` MS3, A4, R5) y `V2_LG4_PanelErrores`. Al integrar: 1 `using` (R5), `AlternativesAllAsync`, el parámetro `documentOnly` en medio de `AttendanceGETAsync`, 5 bUnit y 1 test de A4 con planes duplicados. **Suite: 800 integración + 390 bUnit, todo verde.** Lanzada la tanda MS4, A5, C4 y L2.
 - 2026-10-15: A3, MS2, LG3 e I4+G4 unidas (MS2 y A3 combinadas solas en `CheckinTab`). Migraciones `V2_MS2_I4` (`SqlScript("MS2")`, `SqlScript("I4")`) y `V2_LG3_Logs`. Al integrar: 1 `using` (LG3), métodos del panel con sufijo `2` (I4), 18 bUnit (autorización de prueba en recepción por el `RequireRole` de A3, selectores, popover, `Change`) y 2 tests de I4 con contraseñas distintas. **Suite: 756 integración + 367 bUnit, todo verde.**
