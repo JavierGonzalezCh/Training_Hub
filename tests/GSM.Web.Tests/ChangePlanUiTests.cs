@@ -1,4 +1,4 @@
-using AngleSharp.Dom;
+﻿using AngleSharp.Dom;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Panel.UI.Pages.Members;
@@ -67,7 +67,7 @@ public class ChangePlanUiTests : TestContext
             { x => x.Membership, _membership },
         };
         await _provider.InvokeAsync(() => dialogs.ShowAsync<ChangePlanDialog>("Cambiar plan", parameters));
-        _provider.WaitForAssertion(() => Assert.Contains("Total a cobrar", _provider.Markup));
+        _provider.WaitForAssertion(() => Assert.NotEmpty(_provider.FindAll("#total-to-charge")));
     }
 
     private IElement Input(string id)
