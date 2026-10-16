@@ -1,0 +1,13 @@
+@* «Reportar falla» de la pantalla del ejercicio (Equipment §6). Sin el flag del gym (members_can_report_equipment) o sin
+   máquinas ligadas al ejercicio no muestra nada. *@
+@inject GymContext GymCtx
+
+@if (GymCtx.FeatureFlags?.MembersCanReportEquipment == true && Machines.Count > 0)
+{
+    <EquipmentReportBody Machines="Machines" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<EquipmentMachineInfo> Machines { get; set; } = [];
+}

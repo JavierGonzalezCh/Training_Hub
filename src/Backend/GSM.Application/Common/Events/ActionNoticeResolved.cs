@@ -15,4 +15,7 @@ public sealed record ActionNoticeResolved(
 public static class ActionNoticeKinds
 {
     public const string CheckinRejected = "checkin_rejected";
+
+    /// <summary>E4: aviso de reporte de falla de una máquina (la referencia es el reporte que encabeza el aviso).</summary>
+    public const string EquipmentIssue = "equipment_issue";
 }

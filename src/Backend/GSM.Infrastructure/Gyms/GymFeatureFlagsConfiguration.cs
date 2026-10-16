@@ -30,5 +30,8 @@ public sealed class GymFeatureFlagsConfiguration : IEntityTypeConfiguration<GymF
 
         // El auto-servicio arranca apagado: cada gym lo enciende a propósito.
         builder.Property(f => f.MembersCanCreateRoutines).HasDefaultValue(false);
+
+        // Reportar fallas de máquinas está permitido por defecto (Equipment E4); los gyms existentes lo heredan encendido.
+        builder.Property(f => f.MembersCanReportEquipment).HasDefaultValue(true);
     }
 }

@@ -149,6 +149,72 @@ public sealed class EquipmentController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
 
+    /// <summary>Tarjeta del dashboard: máquinas fuera de servicio o en mantenimiento y reportes abiertos.</summary>
+    [HttpGet("summary")]
+    [ProducesResponseType<EquipmentSummaryResponse>(StatusCodes.Status200OK)]
+    [EndpointName("GetEquipmentSummary")]
+    public async Task<ActionResult<EquipmentSummaryResponse>> Summary(
+        [FromServices] GetEquipmentSummaryHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Reportes de falla: urgentes y abiertos primero. Filtros por estado, máquina y «solo sin cerrar».</summary>
+    [HttpGet("issues")]
+    [ProducesResponseType<IReadOnlyList<EquipmentIssueResponse>>(StatusCodes.Status200OK)]
+    [EndpointName("ListEquipmentIssues")]
+    public async Task<ActionResult<IReadOnlyList<EquipmentIssueResponse>>> ListIssues(
+        [FromQuery] EquipmentIssueStatus? status,
+        [FromQuery] Guid? itemId,
+        [FromQuery] bool openOnly,
+        [FromServices] ListEquipmentIssuesHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(new EquipmentIssueFilter(status, itemId, openOnly), cancellationToken));
+
+    /// <summary>
+    /// Un reporte. Abrirlo por primera vez lo marca como visto y atiende su aviso de la campana (deja de estar
+    /// "sin ver").
+    /// </summary>
+    [HttpGet("issues/{id:guid}")]
+    [ProducesResponseType<EquipmentIssueResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("GetEquipmentIssue")]
+    public async Task<ActionResult<EquipmentIssueResponse>> GetIssue(
+        Guid id, [FromServices] GetEquipmentIssueHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>
+    /// Cambia el estado de un reporte (en revisión, resuelto o descartado; los dos últimos exigen la resolución).
+    /// No cambia el estado de la máquina.
+    /// </summary>
+    [HttpPut("issues/{id:guid}")]
+    [ProducesResponseType<EquipmentIssueResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [EndpointName("UpdateEquipmentIssue")]
+    public async Task<ActionResult<EquipmentIssueResponse>> UpdateIssue(
+        Guid id,
+        UpdateEquipmentIssueRequest request,
+        [FromServices] UpdateEquipmentIssueHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
+    /// <summary>El staff reporta una falla de una máquina (la ve al pasar). Avisa al resto del equipo.</summary>
+    [HttpPost("{id:guid}/issues")]
+    [ProducesResponseType<EquipmentIssueResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [EndpointName("ReportEquipmentIssueByStaff")]
+    public async Task<ActionResult<EquipmentIssueResponse>> ReportIssue(
+        Guid id,
+        ReportEquipmentIssueRequest request,
+        [FromServices] ReportEquipmentIssueByStaffHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var issue = await handler.HandleAsync(id, request, cancellationToken);
+        return CreatedAtAction(nameof(GetIssue), new { id = issue.Id }, issue);
+    }
+
     /// <summary>Baja lógica. Solo el Owner.</summary>
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = AuthPolicies.RequireOwner)]

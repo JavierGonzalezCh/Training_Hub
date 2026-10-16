@@ -42,4 +42,41 @@ public interface IEquipmentItemRepository
     /// <summary>Historial de estado de una máquina, el más reciente primero.</summary>
     Task<IReadOnlyList<EquipmentStatusChange>> ListStatusChangesAsync(
         Guid itemId, CancellationToken cancellationToken = default);
+
+    /// <summary>Las máquinas pedidas (de cualquier estado, incluso dadas de baja), sin seguimiento.</summary>
+    Task<IReadOnlyDictionary<Guid, EquipmentItem>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>E4: cuántas máquinas activas hay en cada estado (para la tarjeta del dashboard).</summary>
+    Task<IReadOnlyDictionary<EquipmentStatus, int>> CountActiveByStatusAsync(CancellationToken cancellationToken = default);
+}
+
+/// <summary>Filtro de los reportes de falla. Sin <c>Status</c> salen todos; <c>OpenOnly</c> deja los sin cerrar.</summary>
+public sealed record EquipmentIssueFilter(
+    EquipmentIssueStatus? Status = null,
+    Guid? ItemId = null,
+    bool OpenOnly = false);
+
+/// <summary>E4: reportes de falla del gym actual. El Global Query Filter restringe al gym. Sin <c>SaveChanges</c>.</summary>
+public interface IEquipmentIssueRepository
+{
+    void Add(EquipmentIssue issue);
+
+    Task<EquipmentIssue?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Urgentes abiertos primero, luego los abiertos, y dentro de cada grupo los más recientes.</summary>
+    Task<IReadOnlyList<EquipmentIssue>> ListAsync(
+        EquipmentIssueFilter filter, int take, CancellationToken cancellationToken = default);
+
+    /// <summary>Todos los reportes de una máquina (con seguimiento: el caso de uso puede marcarlos vistos).</summary>
+    Task<IReadOnlyList<EquipmentIssue>> ListByItemAsync(Guid itemId, CancellationToken cancellationToken = default);
+
+    /// <summary>Reporte sin cerrar de ese miembro sobre esa máquina, si lo hay.</summary>
+    Task<EquipmentIssue?> FindUnclosedByReporterAsync(Guid itemId, Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Los reportes de una cuenta, el más reciente primero.</summary>
+    Task<IReadOnlyList<EquipmentIssue>> ListByReporterAsync(Guid userId, int take, CancellationToken cancellationToken = default);
+
+    /// <summary>E4: reportes sin cerrar y, de ellos, urgentes (para la tarjeta del dashboard).</summary>
+    Task<(int Open, int Urgent)> CountUnclosedAsync(CancellationToken cancellationToken = default);
 }

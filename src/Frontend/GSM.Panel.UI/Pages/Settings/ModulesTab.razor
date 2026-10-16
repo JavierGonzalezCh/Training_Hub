@@ -29,6 +29,9 @@ else
             @ModuleCard(Icons.Material.Outlined.EditNote, "Rutinas propias",
                 "Los miembros pueden crear su propia rutina sin esperar a que el staff se la arme.",
                 _flagsModel.MembersCanCreateRoutines, v => _flagsModel.MembersCanCreateRoutines = v)
+            @ModuleCard(Icons.Material.Outlined.ReportProblem, "Reportar fallas de máquinas",
+                "Los miembros pueden avisar desde la app cuando una máquina falla. Si lo apagas, solo el equipo reporta.",
+                _flagsModel.MembersCanReportEquipment, v => _flagsModel.MembersCanReportEquipment = v)
             @ModuleCard(Icons.Material.Outlined.CalendarMonth, "Clases",
                 "Horario semanal de clases grupales, con reservas y cupos desde la app.",
                 _flagsModel.ShowClasses, v => _flagsModel.ShowClasses = v)
@@ -80,6 +83,7 @@ else
             _flagsModel.CheckinQr = flags.CheckinQr;
             _flagsModel.CommunityComments = flags.CommunityComments;
             _flagsModel.MembersCanCreateRoutines = flags.MembersCanCreateRoutines;
+            _flagsModel.MembersCanReportEquipment = flags.MembersCanReportEquipment;
         }
         catch (GsmApiException ex)
         {
@@ -106,6 +110,7 @@ else
                 CheckinQr = _flagsModel.CheckinQr,
                 CommunityComments = _flagsModel.CommunityComments,
                 MembersCanCreateRoutines = _flagsModel.MembersCanCreateRoutines,
+                MembersCanReportEquipment = _flagsModel.MembersCanReportEquipment,
             });
             await Session.BootstrapAsync();
             Snackbar.Add("Módulos actualizados.", Severity.Success);
@@ -144,5 +149,6 @@ else
         public bool CheckinQr { get; set; }
         public bool CommunityComments { get; set; }
         public bool MembersCanCreateRoutines { get; set; }
+        public bool MembersCanReportEquipment { get; set; }
     }
 }

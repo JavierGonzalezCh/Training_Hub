@@ -16,7 +16,47 @@ public sealed class EquipmentEnums : IModuleEnums
     [
         PgEnumMapping.Of<EquipmentType>("equipment_type", "equipment", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<EquipmentStatus>("equipment_status", "equipment", SnakeCaseNameTranslator.Instance),
+        PgEnumMapping.Of<EquipmentIssueReason>("equipment_issue_reason", "equipment", SnakeCaseNameTranslator.Instance),
+        PgEnumMapping.Of<EquipmentIssueStatus>("equipment_issue_status", "equipment", SnakeCaseNameTranslator.Instance),
+        PgEnumMapping.Of<IssueReporterRole>("equipment_issue_reporter_role", "equipment", LowerCaseNameTranslator.Instance),
     ];
+}
+
+public sealed class EquipmentIssueConfiguration : IEntityTypeConfiguration<EquipmentIssue>
+{
+    public void Configure(EntityTypeBuilder<EquipmentIssue> builder)
+    {
+        builder.ToTable("equipment_issues", "equipment", t =>
+            t.HasCheckConstraint(
+                "ck_equipment_issues_other_description",
+                "reason <> 'other' OR description IS NOT NULL"));
+
+        builder.Property(i => i.Reason).HasColumnName("reason");
+        builder.Property(i => i.Status).HasColumnName("status").HasDefaultValue(EquipmentIssueStatus.Open);
+        builder.Property(i => i.ReportedByRole).HasColumnName("reported_by_role");
+        builder.Property(i => i.Description).HasMaxLength(EquipmentIssue.DescriptionMaxLength);
+        builder.Property(i => i.Resolution).HasMaxLength(EquipmentIssue.ResolutionMaxLength);
+        builder.Property(i => i.PhotoUrl).HasMaxLength(2048);
+        builder.Ignore(i => i.IsUrgent);
+        builder.Ignore(i => i.IsClosed);
+
+        // La máquina no se borra (solo se da de baja), así que el reporte siempre conserva su máquina.
+        builder.HasOne<EquipmentItem>()
+            .WithMany()
+            .HasForeignKey(i => i.ItemId)
+            .HasConstraintName("fk_equipment_issues_equipment_items")
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(i => new { i.GymId, i.Status, i.CreatedAt });
+        builder.HasIndex(i => new { i.ItemId, i.Status });
+
+        // Un miembro tiene como máximo un reporte sin cerrar por máquina (Equipment §4).
+        builder.HasIndex(i => new { i.ItemId, i.ReportedByUserId })
+            .IsUnique()
+            .HasDatabaseName("ix_equipment_issues_item_reporter_unclosed")
+            .HasFilter("reported_by_role = 'member' AND status IN ('open', 'in_progress')");
+        builder.HasIndex(i => i.ReportedByUserId);
+    }
 }
 
 public sealed class EquipmentModelConfiguration : IEntityTypeConfiguration<EquipmentModel>
@@ -176,4 +216,88 @@ public sealed class EquipmentItemRepository(GsmDbContext dbContext) : IEquipment
             .OrderByDescending(c => c.ChangedAt)
             .ThenByDescending(c => c.Id)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, EquipmentItem>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
+        => ids.Count == 0
+            ? new Dictionary<Guid, EquipmentItem>()
+            : await Items.AsNoTracking().Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<EquipmentStatus, int>> CountActiveByStatusAsync(
+        CancellationToken cancellationToken = default)
+        => await Items
+            .Where(i => i.IsActive)
+            .GroupBy(i => i.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Status, x => x.Count, cancellationToken);
+}
+
+public sealed class EquipmentIssueRepository(GsmDbContext dbContext) : IEquipmentIssueRepository
+{
+    private DbSet<EquipmentIssue> Issues => dbContext.Set<EquipmentIssue>();
+
+    public void Add(EquipmentIssue issue) => Issues.Add(issue);
+
+    public Task<EquipmentIssue?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+        => Issues.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<EquipmentIssue>> ListAsync(
+        EquipmentIssueFilter filter, int take, CancellationToken cancellationToken = default)
+    {
+        var q = Issues.AsNoTracking().AsQueryable();
+
+        if (filter.ItemId is { } itemId)
+        {
+            q = q.Where(i => i.ItemId == itemId);
+        }
+
+        if (filter.Status is { } status)
+        {
+            q = q.Where(i => i.Status == status);
+        }
+
+        if (filter.OpenOnly)
+        {
+            q = q.Where(i => i.Status == EquipmentIssueStatus.Open || i.Status == EquipmentIssueStatus.InProgress);
+        }
+
+        // Urgentes sin cerrar primero, luego los sin cerrar, luego el resto; dentro de cada grupo, lo más reciente.
+        return await q
+            .OrderByDescending(i => i.Reason == EquipmentIssueReason.Unsafe
+                && (i.Status == EquipmentIssueStatus.Open || i.Status == EquipmentIssueStatus.InProgress))
+            .ThenByDescending(i => i.Status == EquipmentIssueStatus.Open || i.Status == EquipmentIssueStatus.InProgress)
+            .ThenByDescending(i => i.CreatedAt)
+            .ThenByDescending(i => i.Id)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EquipmentIssue>> ListByItemAsync(
+        Guid itemId, CancellationToken cancellationToken = default)
+        => await Issues.Where(i => i.ItemId == itemId).OrderBy(i => i.CreatedAt).ToListAsync(cancellationToken);
+
+    public Task<EquipmentIssue?> FindUnclosedByReporterAsync(
+        Guid itemId, Guid userId, CancellationToken cancellationToken = default)
+        => Issues.FirstOrDefaultAsync(
+            i => i.ItemId == itemId
+                 && i.ReportedByUserId == userId
+                 && (i.Status == EquipmentIssueStatus.Open || i.Status == EquipmentIssueStatus.InProgress),
+            cancellationToken);
+
+    public async Task<IReadOnlyList<EquipmentIssue>> ListByReporterAsync(
+        Guid userId, int take, CancellationToken cancellationToken = default)
+        => await Issues.AsNoTracking()
+            .Where(i => i.ReportedByUserId == userId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ThenByDescending(i => i.Id)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+    public async Task<(int Open, int Urgent)> CountUnclosedAsync(CancellationToken cancellationToken = default)
+    {
+        var unclosed = Issues.Where(i => i.Status == EquipmentIssueStatus.Open || i.Status == EquipmentIssueStatus.InProgress);
+        var open = await unclosed.CountAsync(cancellationToken);
+        var urgent = await unclosed.CountAsync(i => i.Reason == EquipmentIssueReason.Unsafe, cancellationToken);
+        return (open, urgent);
+    }
 }

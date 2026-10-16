@@ -174,6 +174,7 @@ internal static class StaffNotificationMapper
     public static string KindOf(NotificationType type) => type switch
     {
         NotificationType.CheckinRejected => ActionNoticeKinds.CheckinRejected,
+        NotificationType.EquipmentIssueReported => ActionNoticeKinds.EquipmentIssue,
         _ => type.ToString(),
     };
 

@@ -41,6 +41,7 @@ else if (_dashboard is { } dashboard)
         }
         <OccupancyCard />
         <MemberLimitCard />
+        <EquipmentCards />
         <StatCard Label="@($"Por vencer · {dashboard.ExpiringDays} días")" Value="@dashboard.ExpiringSoon.ToString()"
                   Accent="@(dashboard.ExpiringSoon > 0 ? Color.Error : Color.Default)"
                   Hint="@($"{dashboard.ExpiredMemberships} ya vencidas")" />

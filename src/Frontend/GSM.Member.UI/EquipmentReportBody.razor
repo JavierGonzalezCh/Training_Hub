@@ -1,0 +1,63 @@
+@* El cuerpo de «Reportar falla» (ver EquipmentReport, que decide si se muestra). Si el miembro ya tiene un reporte
+   sin cerrar de la máquina, dice "Ya reportaste esta máquina" con el estado. *@
+@using GSM.UI.Shared.Routines
+@inject IMemberEquipmentClient EquipmentApi
+@inject IDialogService Dialogs
+
+@if (_existing is { } existing)
+{
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1" data-testid="already-reported">
+        Ya reportaste esta máquina · @EquipmentIssueLabels.Status(existing.Status)
+    </MudText>
+}
+else if (!_loading)
+{
+    <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Outlined.ReportProblem"
+               OnClick="OpenAsync" data-testid="report-issue">
+        Reportar falla
+    </MudButton>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<EquipmentMachineInfo> Machines { get; set; } = [];
+
+    private MyEquipmentIssueResponse? _existing;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    // La máquina que se muestra es la primera disponible (o la primera): su reporte sin cerrar es el que importa.
+    private async Task LoadAsync()
+    {
+        _existing = null;
+        try
+        {
+            var primary = Machines.FirstOrDefault(m => m.Status == EquipmentNotice.Available) ?? Machines[0];
+            var mine = await EquipmentApi.ListMyEquipmentIssuesAsync();
+            _existing = mine.FirstOrDefault(i => i.ItemId == primary.Id && EquipmentIssueLabels.IsUnclosed(i.Status));
+        }
+        catch (GsmApiException)
+        {
+            // Sin el dato se ofrece el botón; el servidor impide el duplicado con un 409.
+            _existing = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenAsync()
+    {
+        var parameters = new DialogParameters<ReportEquipmentDialog> { { x => x.Machines, Machines } };
+        var dialog = await Dialogs.ShowAsync<ReportEquipmentDialog>(
+            "Reportar falla", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+}

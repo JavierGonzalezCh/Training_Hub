@@ -13,6 +13,7 @@ public static class EquipmentInfrastructureRegistration
     {
         services.AddScoped<IEquipmentModelRepository, EquipmentModelRepository>();
         services.AddScoped<IEquipmentItemRepository, EquipmentItemRepository>();
+        services.AddScoped<IEquipmentIssueRepository, EquipmentIssueRepository>();
 
         services.AddScoped<GSM.Application.Equipment.Public.IEquipmentReader, EquipmentReader>();
 
