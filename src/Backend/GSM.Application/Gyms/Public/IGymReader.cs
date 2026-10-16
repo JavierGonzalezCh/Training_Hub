@@ -48,7 +48,16 @@ public interface IGymReader
 
     /// <summary>¿Está abierto el gym en ese instante? Sin horario cargado, siempre <c>true</c>.</summary>
     Task<bool> IsOpenAtAsync(Guid gymId, DateTimeOffset instant, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// D3: cuándo nació cada gym y si su onboarding ya quedó completado, de todos los gyms en una sola consulta
+    /// (bloque "Arranque" del panel del SuperAdmin). Es lo persistido: el onboarding se calcula perezosamente
+    /// cuando el Owner abre la pantalla, así que un gym que nunca la abrió figura pendiente.
+    /// </summary>
+    Task<IReadOnlyList<GymStartupState>> ListStartupStatesAsync(CancellationToken cancellationToken = default);
 }
+
+public sealed record GymStartupState(Guid GymId, DateTimeOffset CreatedAt, bool OnboardingDone);
 
 public sealed record GymGeofence(double Latitude, double Longitude, int RadiusMeters);
 

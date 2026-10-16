@@ -127,6 +127,17 @@ public sealed class IdentityReader(GsmDbContext dbContext) : IIdentityReader
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<PendingOwnerDto>> ListOwnersPendingActivationAsync(
+        CancellationToken cancellationToken = default)
+        => await (
+                from access in dbContext.GymAccesses
+                join user in dbContext.Users on access.UserId equals user.Id
+                where access.Role == UserRole.Owner && access.IsActive && user.IsActive && user.PasswordHash == null
+                orderby access.CreatedAt, access.Id
+                select new PendingOwnerDto(access.GymId, user.Id, user.FullName, user.Email!, access.CreatedAt))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
     public async Task<GymTeamSetup> GetTeamSetupAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
         var staff = await (

@@ -1,0 +1,70 @@
+@inject NavigationManager Navigation
+@inject IAdminGymOwnersClient Owners
+@inject ISnackbar Snackbar
+
+@* "Arranque" (Dashboards §3): gyms con el Owner sin activar o el onboarding sin terminar. *@
+@if (Block is { } b)
+{
+    <MudText Typo="Typo.h6" Class="mb-2">Arranque</MudText>
+    @if (b.Total == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6" data-testid="startup-empty">
+            Todos los gyms activaron su cuenta y terminaron su configuración.
+        </MudText>
+    }
+    else
+    {
+        <MudTable Items="b.Items" Hover="true" Dense="true" Elevation="0" Class="mb-6" data-testid="startup-table">
+            <HeaderContent>
+                <MudTh>Gym</MudTh>
+                <MudTh>Desde el alta</MudTh>
+                <MudTh>Owner</MudTh>
+                <MudTh>Onboarding</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Gym">
+                    <MudLink OnClick="@(() => Navigation.NavigateTo($"/admin/gyms/{context.GymId}"))" Underline="Underline.None">@context.Name</MudLink>
+                </MudTd>
+                <MudTd DataLabel="Desde el alta">@DaysLabel(context.DaysSinceCreated)</MudTd>
+                <MudTd DataLabel="Owner">@(context.OwnerNotActivated ? "Sin activar" : "Activo")</MudTd>
+                <MudTd DataLabel="Onboarding">@(context.OnboardingPending ? "Sin terminar" : "Terminado")</MudTd>
+                <MudTd>
+                    @if (context.PendingOwnerUserId is { } ownerId)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ResendAsync(context, ownerId))" data-testid="startup-resend">Reenviar acceso</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+        @if (b.Total > b.Items.Count)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Y @(b.Total - b.Items.Count) más.</MudText>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public AdminStartupBlock? Block { get; set; }
+
+    public static string DaysLabel(int days) => days switch
+    {
+        0 => "hoy",
+        1 => "1 día",
+        _ => $"{days} días",
+    };
+
+    private async Task ResendAsync(StartupGymRow row, Guid ownerId)
+    {
+        try
+        {
+            await Owners.ResendAsync(row.GymId, ownerId);
+            Snackbar.Add($"Acceso reenviado a {row.PendingOwnerEmail}. El enlace anterior ya no sirve.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

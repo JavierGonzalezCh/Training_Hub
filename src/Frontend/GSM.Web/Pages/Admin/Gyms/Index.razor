@@ -67,7 +67,19 @@ else if (_portfolio is { } portfolio)
     private string _status = FilterValues.All;
     private bool _loading = true;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    /// <summary>"Ver todos" del panel de plataforma llega con el estado ya puesto (<c>/admin/gyms?status=Overdue</c>).</summary>
+    [SupplyParameterFromQuery(Name = "status")]
+    public string? InitialStatus { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(InitialStatus))
+        {
+            _status = InitialStatus;
+        }
+
+        return LoadAsync();
+    }
 
     private async Task LoadAsync()
     {

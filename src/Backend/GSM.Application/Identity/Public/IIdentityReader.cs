@@ -1,4 +1,4 @@
-﻿namespace GSM.Application.Identity.Public;
+namespace GSM.Application.Identity.Public;
 
 /// <summary>
 /// Único punto de lectura que Identity expone a otros módulos. Sin acceso a la entidad,
@@ -42,7 +42,16 @@ public interface IIdentityReader
     /// correo. <c>null</c> si no hay.
     /// </summary>
     Task<SuperAdminContactDto?> GetSuperAdminContactAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// D3: los Owners activos de <b>todos</b> los gyms que todavía no definieron su contraseña (no activaron la
+    /// cuenta), el más antiguo primero, para el bloque "Arranque" del SuperAdmin. Solo el SuperAdmin lo consulta.
+    /// </summary>
+    Task<IReadOnlyList<PendingOwnerDto>> ListOwnersPendingActivationAsync(CancellationToken cancellationToken = default);
 }
+
+/// <summary>Un Owner activo que aún no activó su cuenta, con el gym al que pertenece.</summary>
+public sealed record PendingOwnerDto(Guid GymId, Guid UserId, string FullName, string Email, DateTimeOffset InvitedAt);
 
 /// <summary>El SuperAdmin como destinatario de las alertas de la plataforma.</summary>
 public sealed record SuperAdminContactDto(Guid UserId, string Email);

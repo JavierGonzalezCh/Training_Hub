@@ -1,0 +1,35 @@
+@inject NavigationManager Navigation
+
+@* "Límites" (Dashboards §3): gyms al 90 % o más de su límite de miembros. *@
+@if (Block is { } b)
+{
+    <MudText Typo="Typo.h6" Class="mb-2">Límites de miembros</MudText>
+    @if (b.Total == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6" data-testid="limits-empty">Ningún gym está cerca de su límite.</MudText>
+    }
+    else
+    {
+        <MudTable Items="b.Items" Hover="true" Dense="true" Elevation="0" Class="mb-6" data-testid="limits-table">
+            <HeaderContent>
+                <MudTh>Gym</MudTh>
+                <MudTh>Miembros</MudTh>
+                <MudTh>Uso</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Gym">
+                    <MudLink OnClick="@(() => Navigation.NavigateTo($"/admin/gyms/{context.GymId}"))" Underline="Underline.None">@context.Name</MudLink>
+                </MudTd>
+                <MudTd DataLabel="Miembros" Class="gsm-mono">@SuperAdminLabels.MemberUsage(context.CountedMembers, context.MemberLimit)</MudTd>
+                <MudTd DataLabel="Uso">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@(context.UsagePercent >= 100 ? Color.Error : Color.Warning)" Class="gsm-mono">@context.UsagePercent %</MudChip>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    [Parameter]
+    public AdminLimitsBlock? Block { get; set; }
+}

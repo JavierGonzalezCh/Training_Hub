@@ -138,16 +138,63 @@ public sealed record AdminDashboardResponse(
     PortfolioSummary Portfolio,
     PlatformRevenue Revenue,
     IReadOnlyList<GymUsageRow> GymUsage,
-    PlatformTotals Platform);
+    PlatformTotals Platform,
+    AdminAttentionBlock? Attention,
+    AdminStartupBlock? Startup,
+    AdminLimitsBlock? Limits);
+
+/// <summary>
+/// "Requiere acción" (Dashboards §3): cuatro listas cortas (máximo 10 filas, con el total real para el "Ver todos").
+/// Un gym puede estar en más de una (por ejemplo, en mora y por inhabilitarse).
+/// </summary>
+public sealed record AdminAttentionBlock(
+    AttentionList TrialEnded,
+    AttentionList Overdue,
+    AttentionList AboutToDisable,
+    AttentionList ExpiringSoon);
+
+public sealed record AttentionList(int Total, IReadOnlyList<AttentionGymRow> Items);
+
+/// <param name="DaysUntilDisabled">Solo en prueba terminada y mora; nulo en "vencen pronto".</param>
+/// <param name="DaysUntilExpiry">Solo en "vencen pronto": días hasta <c>paid_through</c>.</param>
+public sealed record AttentionGymRow(
+    Guid GymId,
+    string Name,
+    string EffectiveStatus,
+    DateOnly PaidThrough,
+    int? DaysUntilDisabled,
+    int? DaysUntilExpiry);
+
+/// <summary>"Arranque": gyms con Owners sin activar o con el onboarding sin terminar.</summary>
+public sealed record AdminStartupBlock(int Total, IReadOnlyList<StartupGymRow> Items);
+
+/// <param name="PendingOwnerUserId">El Owner sin activar al que apunta "Reenviar acceso"; nulo si todos activaron.</param>
+public sealed record StartupGymRow(
+    Guid GymId,
+    string Name,
+    int DaysSinceCreated,
+    bool OwnerNotActivated,
+    bool OnboardingPending,
+    Guid? PendingOwnerUserId,
+    string? PendingOwnerEmail);
+
+/// <summary>"Límites": gyms al 90 % o más de su límite de miembros.</summary>
+public sealed record AdminLimitsBlock(int Total, IReadOnlyList<LimitGymRow> Items);
+
+public sealed record LimitGymRow(Guid GymId, string Name, int CountedMembers, int MemberLimit, int UsagePercent);
 
 public sealed record PortfolioSummary(
     IReadOnlyDictionary<string, int> CountByStatus,
     int ExpiringWithin15Days);
 
+/// <param name="Mrr">Ingreso recurrente mensual: suma de los precios de las suscripciones al día o en mora (igual que la foto mensual).</param>
+/// <param name="Pending">Cartera pendiente: lo contratado menos lo cobrado este mes, nunca negativo.</param>
 public sealed record PlatformRevenue(
     decimal Contracted,
     decimal CollectedThisMonth,
-    decimal CollectedLastMonth);
+    decimal CollectedLastMonth,
+    decimal Mrr,
+    decimal Pending);
 
 public sealed record GymUsageRow(
     Guid GymId,
@@ -156,7 +203,11 @@ public sealed record GymUsageRow(
     int ActiveMembers,
     int CheckInsThisMonth,
     decimal MemberRevenueThisMonth,
-    DateOnly? LastCheckIn);
+    DateOnly? LastCheckIn,
+    int? CountedMembers,
+    int? MemberLimit,
+    bool IsInactive,
+    int? DaysSinceLastCheckIn);
 
 public sealed record PlatformTotals(
     int GymCount,
