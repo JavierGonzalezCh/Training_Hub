@@ -1,4 +1,4 @@
-namespace GSM.Application.Identity.Public;
+﻿namespace GSM.Application.Identity.Public;
 
 /// <summary>
 /// Único punto de lectura que Identity expone a otros módulos. Sin acceso a la entidad,
@@ -36,7 +36,16 @@ public interface IIdentityReader
     /// staff activas (sin contar Owners) y kioscos emparejados y no revocados.
     /// </summary>
     Task<GymTeamSetup> GetTeamSetupAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// LG5: a quién van las alertas de la plataforma: la cuenta del SuperAdmin (una sola, S5) si está activa y tiene
+    /// correo. <c>null</c> si no hay.
+    /// </summary>
+    Task<SuperAdminContactDto?> GetSuperAdminContactAsync(CancellationToken cancellationToken = default);
 }
+
+/// <summary>El SuperAdmin como destinatario de las alertas de la plataforma.</summary>
+public sealed record SuperAdminContactDto(Guid UserId, string Email);
 
 /// <summary>Staff activo (sin Owners) y kioscos emparejados vigentes de un gym.</summary>
 public sealed record GymTeamSetup(int ActiveStaff, int PairedKiosks);

@@ -18,6 +18,7 @@ public static class NotificationsModuleRegistration
         services.AddScoped<NotificationDispatchRunner>();
         services.AddScoped<INotificationReader, NotificationReader>();
         services.AddScoped<INotificationPreferenceReader, NotificationPreferenceReader>();
+        services.AddScoped<IPlatformAlertNotifier, PlatformAlertNotifier>(); // LG5: alertas al SuperAdmin
 
         return services;
     }

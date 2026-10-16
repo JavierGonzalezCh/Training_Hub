@@ -28,6 +28,14 @@ public static class LogsInfrastructureRegistration
 
         services.AddSingleton<GSM.Application.Logs.ILogAdminStore, LogAdminStore>();
 
+        // LG5: alertas al SuperAdmin (umbrales en `Logs:Alerts`; el evaluador es scoped y vive en Application).
+        services.AddSingleton(
+            configuration.GetSection(GSM.Application.Logs.Alerts.PlatformAlertOptions.SectionName)
+                .Get<GSM.Application.Logs.Alerts.PlatformAlertOptions>()
+            ?? new GSM.Application.Logs.Alerts.PlatformAlertOptions());
+        services.AddSingleton<GSM.Application.Logs.Alerts.IAlertSignalSource, AlertSignalSource>();
+        services.AddSingleton<GSM.Application.Logs.Alerts.IPlatformAlertStore, PlatformAlertStore>();
+
         services.AddSingleton<LogMaintenance>();
         services.AddSingleton<ILogMaintenance>(sp => sp.GetRequiredService<LogMaintenance>());
 

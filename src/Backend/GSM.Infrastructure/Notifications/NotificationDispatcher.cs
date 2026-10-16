@@ -1,3 +1,4 @@
+using GSM.Application.Logs.Alerts;
 using GSM.Application.Notifications;
 using GSM.Application.Notifications.Abstractions;
 using Microsoft.Extensions.Configuration;
@@ -23,10 +24,15 @@ public sealed class NotificationDispatcherOptions
 /// El primer proceso en segundo plano del sistema (spec §5): cada 30 segundos ejecuta una vuelta de
 /// <see cref="NotificationDispatchRunner"/>. El candado de Postgres evita que dos copias de la API
 /// envíen lo mismo; si la que lo tiene se cae, la otra toma el relevo en la vuelta siguiente.
+/// <para>
+/// LG5: cada <c>Logs:Alerts:EvaluationIntervalSeconds</c> evalúa además las alertas al SuperAdmin. Es seguro en
+/// varias copias (la repetición y la entrega se reclaman en la base) y no depende del candado del dispatcher.
+/// </para>
 /// </summary>
 public sealed class NotificationDispatcher(
     IServiceScopeFactory scopeFactory,
     Microsoft.Extensions.Options.IOptions<NotificationDispatcherOptions> options,
+    PlatformAlertOptions alertOptions,
     ILogger<NotificationDispatcher> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -38,6 +44,8 @@ public sealed class NotificationDispatcher(
         }
 
         var interval = TimeSpan.FromSeconds(Math.Max(1, options.Value.IntervalSeconds));
+        var alertEvery = TimeSpan.FromSeconds(Math.Max(1, alertOptions.EvaluationIntervalSeconds));
+        var nextAlertEvaluation = DateTimeOffset.MinValue;
         using var timer = new PeriodicTimer(interval);
         do
         {
@@ -55,8 +63,32 @@ public sealed class NotificationDispatcher(
                 // El runner ya dejó el error en logs.errors; el proceso sigue vivo para la vuelta siguiente.
                 logger.LogError(ex, "Falló una vuelta del dispatcher de avisos");
             }
+
+            if (alertOptions.Enabled && DateTimeOffset.UtcNow >= nextAlertEvaluation)
+            {
+                nextAlertEvaluation = DateTimeOffset.UtcNow + alertEvery;
+                await EvaluateAlertsAsync(stoppingToken);
+            }
         }
         while (await WaitAsync(timer, stoppingToken));
+    }
+
+    private async Task EvaluateAlertsAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<PlatformAlertEvaluator>()
+                .RunOnceAsync([NotificationDispatchRunner.Name], stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            // El evaluador no lanza; esto es la última red para que el dispatcher siga vivo pase lo que pase.
+            logger.LogError(ex, "Falló la evaluación de alertas al SuperAdmin");
+        }
     }
 
     private static async Task<bool> WaitAsync(PeriodicTimer timer, CancellationToken cancellationToken)

@@ -22,6 +22,13 @@ public sealed class IdentityReader(GsmDbContext dbContext) : IIdentityReader
                 u.Id, u.IsSuperAdmin ? PlatformDisplayName : u.FullName, u.IsSuperAdmin))
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<SuperAdminContactDto?> GetSuperAdminContactAsync(CancellationToken cancellationToken = default)
+        => await dbContext.Users
+            .AsNoTracking()
+            .Where(u => u.IsSuperAdmin && u.IsActive && u.Email != null)
+            .Select(u => new SuperAdminContactDto(u.Id, u.Email!))
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<IReadOnlyList<TrainerCandidateDto>> ListTrainersAsync(
         Guid gymId, CancellationToken cancellationToken = default)
     {

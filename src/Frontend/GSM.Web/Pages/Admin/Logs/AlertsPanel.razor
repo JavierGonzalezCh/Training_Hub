@@ -1,0 +1,88 @@
+@inject IAdminLogsClient Logs
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Lo que el sistema te avisó por correo y push: fallas nuevas, picos, procesos detenidos, servicios externos con fallas y ráfagas de logins fallidos.
+    Los rechazos de negocio, la lentitud y los errores del cliente no generan alerta.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="alerts-empty">Sin alertas emitidas.</MudText>
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0" data-testid="alerts-table">
+        <thead>
+            <tr><th>Cuándo</th><th>Tipo</th><th>Alerta</th><th>Correo</th><th>Push</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var alert in _items)
+            {
+                <tr data-testid="alert-row">
+                    <td>@GsmFormat.Instant(alert.CreatedAt)</td>
+                    <td>@KindLabel(alert.Kind)</td>
+                    <td>
+                        <strong>@alert.Title</strong><br />
+                        <span style="white-space:pre-line">@alert.Body</span>
+                    </td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(alert.EmailStatus)" data-testid="alert-email">@StatusLabel(alert.EmailStatus)</MudChip></td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(alert.PushStatus)" data-testid="alert-push">@StatusLabel(alert.PushStatus)</MudChip></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<PlatformAlertItem> _items = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var page = await Logs.ListPlatformAlertsAsync(1, 100);
+            _items = page.Items.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    internal static string KindLabel(string kind) => kind switch
+    {
+        "new_error" => "Falla nueva",
+        "spike" => "Pico",
+        "process_stopped" => "Proceso detenido",
+        "external_down" => "Servicio externo",
+        "security" => "Seguridad",
+        _ => kind,
+    };
+
+    internal static string StatusLabel(string status) => status switch
+    {
+        "pending" => "Pendiente",
+        "sent" => "Enviado",
+        "skipped" => "No aplica",
+        "failed" => "Falló",
+        _ => status,
+    };
+
+    internal static Color StatusColor(string status) => status switch
+    {
+        "sent" => Color.Success,
+        "failed" => Color.Error,
+        "pending" => Color.Warning,
+        _ => Color.Default,
+    };
+}
