@@ -67,6 +67,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             services.AddScoped<GSM.Application.Common.Events.IDomainEventHandler<
                 GSM.Application.Routines.Events.RoutineSessionLogged>>(
                 sp => sp.GetRequiredService<RoutineEventRecorder>());
+            services.AddScoped<GSM.Application.Common.Events.IDomainEventHandler<
+                GSM.Application.Routines.Events.PersonalRecordSet>>(
+                sp => sp.GetRequiredService<RoutineEventRecorder>());
         });
     }
 

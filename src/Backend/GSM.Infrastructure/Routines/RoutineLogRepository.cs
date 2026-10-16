@@ -60,6 +60,17 @@ public sealed class RoutineLogRepository(GsmDbContext dbContext) : IRoutineLogRe
                       plannedCatalog != null ? plannedCatalog.Name : "?"))
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<ProgressLogRow>> GetProgressLogsAsync(
+        Guid memberId, Guid? exerciseId, CancellationToken cancellationToken = default)
+        => await (from log in Logs.AsNoTracking() // las series son una colección JSON propia: proyectarla exige no rastrear
+                  where log.MemberId == memberId && (exerciseId == null || log.ExerciseId == exerciseId)
+                  join ex in dbContext.Set<RoutineExercise>() on log.RoutineExerciseId equals ex.Id
+                  join day in dbContext.Set<RoutineDay>() on ex.RoutineDayId equals day.Id
+                  join routine in dbContext.Set<Routine>() on day.RoutineId equals routine.Id
+                  select new ProgressLogRow(
+                      log.PerformedOn, log.ExerciseId, routine.SelfAssigned, log.Sets, log.RoutineExerciseId))
+            .ToListAsync(cancellationToken);
+
     public void Add(RoutineExerciseLog log) => Logs.Add(log);
 
     public void Remove(RoutineExerciseLog log) => Logs.Remove(log);

@@ -1796,6 +1796,57 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
     margin-bottom: 0.5rem;
 }
 
+/* Progreso por ejercicio (R7). */
+.gsm-progress-list .mud-expansion-panel {
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.gsm-progress-head {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+}
+
+.gsm-progress-head__name {
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-progress-head__meta {
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-progress-records {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+}
+
+.gsm-progress-records li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.gsm-progress-records__date {
+    margin-left: auto;
+    font-size: 0.8125rem;
+    color: var(--gsm-text-2);
+}
+
+.gsm-progress-chart {
+    width: 100%;
+    height: 5rem;
+    display: block;
+}
+
 .gsm-routine-notes {
     margin: 0 0 1rem;
     color: var(--gsm-text-2);

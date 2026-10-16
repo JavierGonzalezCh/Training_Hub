@@ -17,8 +17,20 @@ public sealed record RoutineHistoryRow(
     Guid PlannedExerciseId = default,
     string PlannedExerciseName = "?");
 
+/// <summary>Un registro reducido para el progreso (R7): qué ejercicio se hizo de verdad, qué día y con qué series.</summary>
+public sealed record ProgressLogRow(
+    DateOnly PerformedOn, Guid ExerciseId, bool SelfAssigned, IReadOnlyList<RoutineSetEntry> Sets,
+    Guid RoutineExerciseId);
+
 public interface IRoutineLogRepository
 {
+    /// <summary>
+    /// Los registros del miembro (de un ejercicio concreto, o de todos), con sus series, sin rastrear. El ejercicio es el
+    /// que se hizo, no el planeado. Incluye también los de rutinas ya desactivadas y de líneas retiradas.
+    /// </summary>
+    Task<IReadOnlyList<ProgressLogRow>> GetProgressLogsAsync(
+        Guid memberId, Guid? exerciseId, CancellationToken cancellationToken = default);
+
     Task<RoutineExerciseRef?> GetExerciseRefAsync(
         Guid routineExerciseId, CancellationToken cancellationToken = default);
 

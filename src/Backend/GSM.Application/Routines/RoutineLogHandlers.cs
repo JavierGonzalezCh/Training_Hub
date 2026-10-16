@@ -102,6 +102,10 @@ public sealed class LogRoutineExerciseHandler(
             logs.Add(log);
         }
 
+        // R7: récords. Se comparan contra los días anteriores, leídos antes de guardar.
+        var brokenKinds = await DetectRecordsAsync(
+            memberId, performedExerciseId, routineExerciseId, today, log, cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         if (firstOfDay)
@@ -113,11 +117,54 @@ public sealed class LogRoutineExerciseHandler(
                 cancellationToken);
         }
 
+        if (brokenKinds.Count > 0)
+        {
+            logger.LogInformation(
+                "Miembro {MemberId} batió un récord en {ExerciseId}: {Kinds}", memberId, performedExerciseId, brokenKinds);
+            await events.PublishAsync(
+                new PersonalRecordSet(
+                    memberId, reference.GymId, performedExerciseId, today, reference.SelfAssigned, brokenKinds),
+                cancellationToken);
+        }
+
         return new RoutineLogResponse(
             log.Id, log.RoutineExerciseId, log.PerformedOn,
             log.Notes, log.CompletedAt,
             log.Sets.Select(RoutineMapper.ToSetResponse).ToList(),
             log.ExerciseId);
+    }
+
+    /// <summary>
+    /// Récords de repeticiones con peso que este registro bate: contra lo mejor de los días anteriores y contra lo que
+    /// ya había guardado hoy (así repetir el mismo guardado no vuelve a publicar).
+    /// </summary>
+    private async Task<IReadOnlyList<string>> DetectRecordsAsync(
+        Guid memberId, Guid exerciseId, Guid routineExerciseId, DateOnly today, RoutineExerciseLog log,
+        CancellationToken cancellationToken)
+    {
+        if (log.Sets.Count == 0)
+        {
+            return [];
+        }
+
+        var summaries = await exercises.GetVisibleSummariesAsync([exerciseId], cancellationToken);
+        if (!summaries.TryGetValue(exerciseId, out var exercise) || exercise.TrackingType != TrackingType.RepsWeight)
+        {
+            return [];
+        }
+
+        // Aún no guardado: las filas son lo que había en la base antes de este registro.
+        var rows = await logs.GetProgressLogsAsync(memberId, exerciseId, cancellationToken);
+        var previousDays = MemberProgressCalculator.Points(
+            rows.Where(r => r.PerformedOn < today).Select(r => new ProgressLog(r.PerformedOn, r.SelfAssigned, r.Sets)));
+
+        var todayRows = rows.Where(r => r.PerformedOn == today).ToList();
+        var oldToday = MemberProgressCalculator.PointOf(today, todayRows.SelectMany(r => r.Sets));
+        var newToday = MemberProgressCalculator.PointOf(
+            today,
+            todayRows.Where(r => r.RoutineExerciseId != routineExerciseId).SelectMany(r => r.Sets).Concat(log.Sets));
+
+        return MemberProgressCalculator.BrokenKinds(previousDays, oldToday, newToday);
     }
 }
 

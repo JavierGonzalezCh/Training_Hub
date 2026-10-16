@@ -85,6 +85,28 @@ public sealed class MeController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
 
+    /// <summary>
+    /// Progreso (R7): los ejercicios que el miembro ya registró, con sus récords personales (mejor peso, mejor volumen…
+    /// según lo que mide cada ejercicio). 403 si <c>show_routines = false</c>.
+    /// </summary>
+    [HttpGet("progress")]
+    [EndpointName("GetMyProgress")]
+    [ProducesResponseType<IReadOnlyList<ExerciseProgressSummary>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<ExerciseProgressSummary>>> Progress(
+        [FromServices] GetMyProgressHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Evolución de un ejercicio del miembro: un punto por día con carga y sus récords.</summary>
+    [HttpGet("progress/{exerciseId:guid}")]
+    [EndpointName("GetMyExerciseProgress")]
+    [ProducesResponseType<ExerciseProgressResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ExerciseProgressResponse>> ExerciseProgress(
+        Guid exerciseId, [FromServices] GetMyExerciseProgressHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(exerciseId, cancellationToken));
+
     /// <summary>Horario de clases del gym para la app del miembro. 403 si <c>show_classes = false</c>.</summary>
     [HttpGet("classes")]
     [ProducesResponseType<ScheduleResponse>(StatusCodes.Status200OK)]

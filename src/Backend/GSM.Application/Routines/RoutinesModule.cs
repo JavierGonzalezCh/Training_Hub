@@ -13,6 +13,7 @@ public static class RoutinesModuleRegistration
 
         services.AddScoped<ExerciseEquipmentResolver>();
         services.AddScoped<ExerciseAlternativesResolver>();
+        services.AddScoped<MemberProgressService>();
 
         return services;
     }
