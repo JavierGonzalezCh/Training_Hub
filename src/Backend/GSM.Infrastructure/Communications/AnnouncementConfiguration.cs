@@ -34,6 +34,14 @@ public sealed class AnnouncementConfiguration : IEntityTypeConfiguration<Announc
             .IsRequired();
         builder.Property(a => a.IsSegmented).HasDefaultValue(false);
 
+        // CO4: programación e imagen. ScheduledFor lleva índice parcial por columna (no por el valor del enum:
+        // 'scheduled' se agrega en la misma migración y Postgres no deja usarlo hasta que confirma).
+        builder.Property(a => a.ScheduledFor).HasColumnName("scheduled_for");
+        builder.Property(a => a.ImageUrl).HasColumnName("image_url").HasMaxLength(500);
+        builder.HasIndex(a => a.ScheduledFor)
+            .HasDatabaseName("ix_announcements_scheduled_for")
+            .HasFilter("scheduled_for IS NOT NULL");
+
         builder.HasIndex(a => new { a.GymId, a.Status, a.PublishedAt });
     }
 }

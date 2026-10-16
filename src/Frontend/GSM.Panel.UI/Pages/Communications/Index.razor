@@ -57,7 +57,14 @@ else
                             <span class="gsm-tag"><MudIcon Icon="@Icons.Material.Filled.PushPin" Style="font-size:0.85rem" /> Fijado</span>
                         }
                         <span class="gsm-announcement__date">
-                            @(a.PublishedAt is { } p ? $"Publicado {GsmFormat.Instant(p)}" : $"Creado {GsmFormat.Instant(a.CreatedAt)}")
+                            @if (a.Status == "Scheduled" && a.ScheduledFor is { } at)
+                            {
+                                <span data-testid="scheduled-for">Sale el @GsmFormat.Instant(at)</span>
+                            }
+                            else
+                            {
+                                @(a.PublishedAt is { } p ? $"Publicado {GsmFormat.Instant(p)}" : $"Creado {GsmFormat.Instant(a.CreatedAt)}")
+                            }
                         </span>
                         @if (a.ExpiresOn is { } exp)
                         {
@@ -70,9 +77,15 @@ else
                         {
                             <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="() => OpenEditorAsync(a)">Editar</MudMenuItem>
                         }
-                        @if (a.Status == "Draft")
+                        @if (a.Status is "Draft" or "Scheduled")
                         {
-                            <MudMenuItem Icon="@Icons.Material.Outlined.Send" OnClick="() => PublishAsync(a)">Publicar</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Outlined.Send" OnClick="() => PublishAsync(a)">
+                                @(a.Status == "Scheduled" ? "Publicar ahora" : "Publicar")
+                            </MudMenuItem>
+                        }
+                        @if (a.Status == "Scheduled")
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Outlined.EventBusy" OnClick="() => UnscheduleAsync(a)">Cancelar programación</MudMenuItem>
                         }
                         @if (a.Status != "Archived")
                         {
@@ -86,6 +99,10 @@ else
 
                 <h2 class="gsm-announcement__title">@a.Title</h2>
                 <p class="gsm-announcement__body">@a.Body</p>
+                @if (!string.IsNullOrEmpty(a.ImageUrl))
+                {
+                    <img class="gsm-announcement__image" src="@a.ImageUrl" alt="Imagen del anuncio" loading="lazy" data-testid="announcement-image" />
+                }
 
                 <footer class="gsm-announcement__footer">
                     <div class="gsm-reaction-totals" aria-label="Reacciones">
@@ -105,7 +122,7 @@ else
                             <span>Segmento · @reached @(reached == 1 ? "miembro" : "miembros")</span>
                         </span>
                     }
-                    else if (a.Status == "Draft" && a.Audience is { } aud
+                    else if (a.Status is "Draft" or "Scheduled" && a.Audience is { } aud
                         && aud.Statuses.Count + aud.PlanIds.Count + aud.ClassIds.Count + aud.Tags.Count > 0)
                     {
                         <span class="gsm-announcement__audience" data-testid="audience-badge">
@@ -123,7 +140,7 @@ else
                             }
                             else
                             {
-                                <span>@(a.Status == "Draft" ? "Se enviará por email al publicar" : "Por email")</span>
+                                <span>@(a.Status is "Draft" or "Scheduled" ? "Se enviará por email al publicar" : "Por email")</span>
                             }
                         </span>
                     }
@@ -135,7 +152,7 @@ else
 
 @code {
     private static readonly (string? Value, string Label)[] Filters =
-        [(null, "Todos"), ("Draft", "Borradores"), ("Published", "Publicados"), ("Archived", "Archivados")];
+        [(null, "Todos"), ("Draft", "Borradores"), ("Scheduled", "Programados"), ("Published", "Publicados"), ("Archived", "Archivados")];
 
     private List<AnnouncementResponse> _items = [];
     private string? _status;
@@ -190,6 +207,9 @@ else
 
         await RunAsync(() => Announcements.PublishAsync(a.Id), "Anuncio publicado.");
     }
+
+    private Task UnscheduleAsync(AnnouncementResponse a)
+        => RunAsync(() => Announcements.UnscheduleAsync(a.Id), "Programación cancelada: vuelve a ser un borrador.");
 
     private Task TogglePinAsync(AnnouncementResponse a)
         => RunAsync(() => a.Pinned ? Announcements.UnpinAsync(a.Id) : Announcements.PinAsync(a.Id),

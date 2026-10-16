@@ -42,7 +42,51 @@
                     </p>
                 }
 
-                @if (Existing is null || Existing.Status == "Draft")
+                @* Imagen (CO4): una por anuncio. Se sube al guardar, cuando el anuncio ya existe. *@
+                <div class="gsm-editor__image mt-3" data-testid="image-section">
+                    <div class="gsm-eyebrow">Imagen (opcional)</div>
+                    @if (_pendingImage is not null)
+                    {
+                        <p class="gsm-editor__hint" data-testid="image-pending">Se subirá al guardar: @_pendingImage.Name</p>
+                    }
+                    else if (_currentImageUrl is not null)
+                    {
+                        <img class="gsm-announcement__image" src="@_currentImageUrl" alt="Imagen actual del anuncio" data-testid="image-current" />
+                    }
+                    <div class="d-flex" style="gap:0.5rem">
+                        <MudFileUpload T="IBrowserFile" FilesChanged="OnImageChosen" Accept=".jpg,.jpeg,.png,.webp" Class="ma-0">
+                            <ActivatorContent>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Image">
+                                    @(_currentImageUrl is null && _pendingImage is null ? "Agregar imagen" : "Cambiar imagen")
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                        @if (_pendingImage is not null || _currentImageUrl is not null)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="RemoveImage" data-testid="image-remove">Quitar</MudButton>
+                        }
+                    </div>
+                    <p class="gsm-editor__hint">JPG, PNG o WebP, hasta 5 MB.</p>
+                </div>
+
+                @* Programar la publicación (CO4): solo mientras no ha salido. *@
+                @if (IsDraft)
+                {
+                    <MudSwitch T="bool" @bind-Value="_schedule" Label="Programar la publicación" Color="Color.Primary"
+                               Class="mt-3" data-testid="schedule-switch" />
+                    @if (_schedule)
+                    {
+                        <div class="d-flex flex-wrap" style="gap:0.75rem">
+                            <MudDatePicker Label="Día" Date="_schedDate" DateChanged="d => _schedDate = d" MinDate="DateTime.Today" />
+                            <MudTimePicker Label="Hora" Time="_schedTime" TimeChanged="t => _schedTime = t" />
+                        </div>
+                        <p class="gsm-editor__hint" data-testid="schedule-hint">
+                            Sale en la hora indicada o unos minutos después, nunca antes. La audiencia se calcula en ese momento.
+                        </p>
+                    }
+                }
+
+                @if (IsDraft)
                 {
                     <MudSelect T="int" Value="_category" ValueChanged="CategoryChangedAsync" Label="Tipo de anuncio" Class="mt-2"
                                HelperText="Las promociones solo les llegan por push y correo a quienes las aceptaron.">
@@ -84,7 +128,7 @@
                     <p class="gsm-editor__hint">Ya se envió por email: editar cambia lo que se ve en la app, pero no reenvía correos.</p>
                 }
 
-                @if (Existing is { Status: not "Draft", Important: true })
+                @if (Existing is { Status: not "Draft" and not "Scheduled", Important: true })
                 {
                     <p class="gsm-editor__hint">Este anuncio se publicó como importante: ya no se puede cambiar.</p>
                 }
@@ -95,6 +139,10 @@
                 <article class="gsm-feed-card">
                     <h3 class="gsm-feed-card__title">@(string.IsNullOrWhiteSpace(_title) ? "Título del anuncio" : _title)</h3>
                     <p class="gsm-feed-card__body">@(string.IsNullOrWhiteSpace(_body) ? "El texto aparecerá aquí." : _body)</p>
+                    @if (_currentImageUrl is not null && _pendingImage is null)
+                    {
+                        <img class="gsm-announcement__image" src="@_currentImageUrl" alt="" />
+                    }
                 </article>
             </aside>
         </div>
@@ -102,12 +150,13 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
         <MudButton Variant="Variant.Outlined" OnClick="() => SaveAsync(publish: false)" Disabled="_submitting">
-            @(IsDraft ? "Guardar borrador" : "Guardar cambios")
+            @(Existing is null || Existing.Status == "Draft" ? "Guardar borrador" : "Guardar cambios")
         </MudButton>
         @if (IsDraft)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SaveAsync(publish: true)" Disabled="_submitting">
-                Publicar
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SaveAsync(publish: true)" Disabled="_submitting"
+                       data-testid="primary-action">
+                @(_schedule ? "Programar" : "Publicar")
             </MudButton>
         }
     </DialogActions>
@@ -136,7 +185,15 @@
 
     private bool IsNew => Existing is null;
 
-    private bool IsDraft => Existing is null || Existing.Status == "Draft";
+    /// <summary>Borrador o programado: todavía no salió, así que audiencia, tipo y correo se pueden cambiar.</summary>
+    private bool IsDraft => Existing is null || Existing.Status is "Draft" or "Scheduled";
+
+    private bool _schedule;
+    private DateTime? _schedDate;
+    private TimeSpan? _schedTime;
+    private IBrowserFile? _pendingImage;
+    private string? _currentImageUrl;
+    private bool _removeImage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -150,6 +207,14 @@
             _category = a.Category == "Promotions" ? 1 : 0;
             _important = a.Important;
             _audienceFilter = a.Audience;
+            _currentImageUrl = a.ImageUrl;
+            if (a.Status == "Scheduled" && a.ScheduledFor is { } at)
+            {
+                var local = GsmFormat.GymLocal(at);
+                _schedule = true;
+                _schedDate = local.Date;
+                _schedTime = local.TimeOfDay;
+            }
         }
 
         // Solo el Owner (o un SuperAdmin impersonando) puede marcar el anuncio como importante, y solo en borrador.
@@ -192,6 +257,23 @@
             return;
         }
 
+        DateTimeOffset? scheduledFor = null;
+        if (_schedule)
+        {
+            if (_schedDate is null || _schedTime is null)
+            {
+                _error = "Elige el día y la hora de publicación.";
+                return;
+            }
+
+            scheduledFor = GsmFormat.GymInstant(DateOnly.FromDateTime(_schedDate.Value), _schedTime.Value);
+            if (scheduledFor <= DateTimeOffset.UtcNow)
+            {
+                _error = "La hora de publicación debe ser futura.";
+                return;
+            }
+        }
+
         if (publish && !await AnnouncementActions.ConfirmPublishAsync(Dialogs, Announcements, _sendEmail))
         {
             return;
@@ -222,12 +304,32 @@
                 });
             }
 
-            if (publish)
+            await SyncImageAsync(id);
+
+            // Programar: el botón principal, o guardar un anuncio que ya estaba programado (mantiene la hora).
+            var wasScheduled = Existing?.Status == "Scheduled";
+            if (scheduledFor is { } sched && (publish || wasScheduled))
+            {
+                await Announcements.ScheduleAsync(id, new ScheduleAnnouncementRequest { ScheduledFor = sched });
+            }
+            else if (wasScheduled && !_schedule && !publish)
+            {
+                await Announcements.UnscheduleAsync(id);
+            }
+            else if (publish)
             {
                 await Announcements.PublishAsync(id);
             }
 
-            MudDialog.Close(DialogResult.Ok(publish ? "Anuncio publicado." : IsNew ? "Borrador guardado." : "Cambios guardados."));
+            var message = publish
+                ? (scheduledFor is null ? "Anuncio publicado." : "Anuncio programado.")
+                : IsNew ? "Borrador guardado." : "Cambios guardados.";
+            MudDialog.Close(DialogResult.Ok(message));
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500 && _pendingImage is not null)
+        {
+            // El anuncio ya quedó guardado; solo falló la subida (R2 sin configurar, ver CLAUDE.md).
+            _error = "El anuncio se guardó, pero las imágenes no están disponibles todavía: falta configurar el almacenamiento.";
         }
         catch (GsmApiException ex)
         {
@@ -236,6 +338,38 @@
         finally
         {
             _submitting = false;
+        }
+    }
+
+    private void OnImageChosen(IBrowserFile file)
+    {
+        _pendingImage = file;
+        _removeImage = false;
+    }
+
+    private void RemoveImage()
+    {
+        _pendingImage = null;
+        if (_currentImageUrl is not null)
+        {
+            _removeImage = true;
+            _currentImageUrl = null;
+        }
+    }
+
+    /// <summary>Sube la imagen elegida o quita la actual, ya con el anuncio guardado.</summary>
+    private async Task SyncImageAsync(Guid id)
+    {
+        if (_pendingImage is { } file)
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            await Announcements.ImagePOSTAsync(id, new FileParameter(stream, file.Name, file.ContentType));
+            _pendingImage = null;
+        }
+        else if (_removeImage)
+        {
+            await Announcements.ImageDELETEAsync(id);
+            _removeImage = false;
         }
     }
 

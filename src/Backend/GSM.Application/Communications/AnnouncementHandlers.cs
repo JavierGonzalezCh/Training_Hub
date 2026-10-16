@@ -112,8 +112,8 @@ public sealed class UpdateAnnouncementHandler(
 
         announcement.Edit(request.Title, request.Body, request.ExpiresOn, request.SendEmail, request.Category);
 
-        // La audiencia solo cambia mientras es borrador; publicado, los destinatarios ya están fijados.
-        if (request.Audience is not null && announcement.Status == AnnouncementStatus.Draft)
+        // La audiencia solo cambia mientras no ha salido (borrador o programado); publicado, los destinatarios ya están fijados.
+        if (request.Audience is not null && announcement.IsUnsent)
         {
             announcement.SetAudience(AnnouncementAudienceMapper.ToDomain(request.Audience));
         }
@@ -130,49 +130,17 @@ public sealed class UpdateAnnouncementHandler(
 }
 
 public sealed class PublishAnnouncementHandler(
-    IClock clock,
     IAnnouncementRepository announcements,
     IAnnouncementReactionRepository reactions,
     INotificationReader notificationReader,
-    AnnouncementAudienceResolver audienceResolver,
-    IUnitOfWork unitOfWork,
-    IDomainEventPublisher events,
-    ILogger<PublishAnnouncementHandler> logger)
+    AnnouncementPublisher publisher)
 {
     public async Task<AnnouncementResponse> HandleAsync(Guid id, CancellationToken cancellationToken)
     {
         var announcement = await announcements.GetAsync(id, cancellationToken)
             ?? throw new NotFoundException("Anuncio no encontrado.");
 
-        announcement.Publish(clock.UtcNow, clock.Today);
-
-        // La audiencia se calcula aquí, al publicar (CO2). Si el anuncio es segmentado, los destinatarios
-        // se fijan en la misma transacción que el cambio de estado; si no, lo ve todo el gym.
-        var audience = await audienceResolver.ResolveAsync(announcement.Audience, announcement.GymId, cancellationToken);
-        if (announcement.IsSegmented)
-        {
-            if (audience.Count == 0)
-            {
-                throw new ValidationDomainException("La audiencia elegida no tiene ningún miembro: ajusta los filtros.");
-            }
-
-            announcements.AddRecipients(audience.Select(
-                memberId => AnnouncementRecipient.Create(announcement.GymId, announcement.Id, memberId)));
-            announcement.SetRecipientCount(audience.Count);
-        }
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        // Notifications crea los avisos y los correos al consumir el evento. Si falla, el anuncio queda
-        // publicado igual.
-        await events.PublishAsync(
-            new AnnouncementPublished(
-                announcement.Id, announcement.GymId, announcement.Title, announcement.Body,
-                announcement.SendEmail, audience, announcement.Category, announcement.IsImportant),
-            cancellationToken);
-
-        logger.LogInformation(
-            "Anuncio {AnnouncementId} publicado para {Audience} miembros", id, audience.Count);
+        await publisher.PublishAsync(announcement, cancellationToken);
         return await AnnouncementMapper.ToResponseAsync(announcement, reactions, notificationReader, cancellationToken);
     }
 }
@@ -210,7 +178,7 @@ public sealed class GetAnnouncementRecipientsHandler(
         var announcement = await announcements.GetAsync(id, cancellationToken)
             ?? throw new NotFoundException("Anuncio no encontrado.");
 
-        var ids = announcement.IsSegmented && announcement.Status != AnnouncementStatus.Draft
+        var ids = announcement.IsSegmented && !announcement.IsUnsent
             ? await announcements.GetRecipientIdsAsync(id, cancellationToken)
             : await resolver.ResolveAsync(announcement.Audience, gymId, cancellationToken);
         return await AudiencePreviewBuilder.BuildAsync(
@@ -313,7 +281,7 @@ public sealed class GetMemberFeedHandler(
                 a.Id, a.Title, a.Body, a.PublishedAt!.Value, a.Pinned,
                 counts.GetValueOrDefault(a.Id) ?? ReactionCounts.None,
                 own.TryGetValue(a.Id, out var kind) ? kind.ToString() : null,
-                a.IsImportant)).ToList(),
+                a.IsImportant, a.ImageUrl)).ToList(),
             page, pageSize, total);
     }
 }
@@ -365,7 +333,7 @@ internal static class AnnouncementMapper
     public static AnnouncementResponse ToResponse(Announcement a, ReactionCounts? reactions, EmailDelivery? delivery) => new(
         a.Id, a.Title, a.Body, a.Status.ToString(), a.PublishedAt, a.Pinned, a.ExpiresOn, a.SendEmail, a.CreatedAt,
         reactions ?? ReactionCounts.None, delivery, a.Category.ToString(), a.IsImportant, a.ImportantMarkedBy,
-        AnnouncementAudienceMapper.ToDto(a.Audience), a.RecipientCount);
+        AnnouncementAudienceMapper.ToDto(a.Audience), a.RecipientCount, a.ScheduledFor, a.ImageUrl);
 
     public static async Task<IReadOnlyDictionary<Guid, EmailDelivery>> GetDeliveryAsync(
         INotificationReader notificationReader, IReadOnlyCollection<Guid> announcementIds, CancellationToken cancellationToken)

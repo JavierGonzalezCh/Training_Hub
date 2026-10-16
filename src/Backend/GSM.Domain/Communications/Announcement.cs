@@ -68,6 +68,15 @@ public sealed class Announcement : BaseEntity, ITenantEntity
     /// <summary>A cuántos miembros llegó, fijado al publicar. Solo si <see cref="IsSegmented"/>.</summary>
     public int? RecipientCount { get; private set; }
 
+    /// <summary>CO4: instante (UTC) a partir del cual la tarea periódica lo publica. Solo en estado <c>Scheduled</c>.</summary>
+    public DateTimeOffset? ScheduledFor { get; private set; }
+
+    /// <summary>CO4: URL pública de la imagen (R2). Nula = sin imagen.</summary>
+    public string? ImageUrl { get; private set; }
+
+    /// <summary>Todavía no salió: borrador o programado. En este estado se edita audiencia, tipo y correo.</summary>
+    public bool IsUnsent => Status is AnnouncementStatus.Draft or AnnouncementStatus.Scheduled;
+
     public static Announcement CreateDraft(
         Guid gymId, Guid authorUserId, string title, string body, bool pinned, DateOnly? expiresOn, bool sendEmail,
         AnnouncementCategory category = AnnouncementCategory.GymNews, bool important = false,
@@ -106,7 +115,7 @@ public sealed class Announcement : BaseEntity, ITenantEntity
             return;
         }
 
-        if (Status != AnnouncementStatus.Draft)
+        if (!IsUnsent)
         {
             throw new ConflictException("Un anuncio publicado ya no puede cambiar de importante.");
         }
@@ -128,7 +137,7 @@ public sealed class Announcement : BaseEntity, ITenantEntity
     /// </summary>
     public void SetAudience(AnnouncementAudience? audience)
     {
-        if (Status != AnnouncementStatus.Draft)
+        if (!IsUnsent)
         {
             throw new ConflictException("Un anuncio publicado ya no puede cambiar de audiencia.");
         }
@@ -156,7 +165,7 @@ public sealed class Announcement : BaseEntity, ITenantEntity
         string title, string body, DateOnly? expiresOn, bool sendEmail, AnnouncementCategory? category = null)
     {
         EnsureNotArchived("editar");
-        if (category is { } newCategory && Status == AnnouncementStatus.Draft)
+        if (category is { } newCategory && IsUnsent)
         {
             if (newCategory == AnnouncementCategory.Promotions && IsImportant)
             {
@@ -167,7 +176,7 @@ public sealed class Announcement : BaseEntity, ITenantEntity
             Category = newCategory;
         }
 
-        Apply(title, body, expiresOn, Status == AnnouncementStatus.Draft ? sendEmail : SendEmail);
+        Apply(title, body, expiresOn, IsUnsent ? sendEmail : SendEmail);
     }
 
     public void Publish(DateTimeOffset now, DateOnly today)
@@ -185,6 +194,68 @@ public sealed class Announcement : BaseEntity, ITenantEntity
 
         Status = AnnouncementStatus.Published;
         PublishedAt = now;
+        ScheduledFor = null;
+    }
+
+    /// <summary>
+    /// CO4: programa (o reprograma) la publicación. <paramref name="scheduledDay"/> es el día de negocio de
+    /// <paramref name="at"/> en la zona del gym (lo calcula el caso de uso con <c>IClock</c>). Debe ser futuro
+    /// y no pasar la caducidad. Publicado o archivado → 409.
+    /// </summary>
+    public void Schedule(DateTimeOffset at, DateTimeOffset now, DateOnly scheduledDay)
+    {
+        if (!IsUnsent)
+        {
+            throw new ConflictException("Solo se puede programar un borrador o reprogramar uno ya programado.");
+        }
+
+        if (at <= now)
+        {
+            throw new ValidationDomainException("La hora de publicación debe ser futura.");
+        }
+
+        if (ExpiresOn is { } expires && expires < scheduledDay)
+        {
+            throw new ValidationDomainException("El anuncio caducaría antes de la hora programada: cambia la fecha «Visible hasta».");
+        }
+
+        Status = AnnouncementStatus.Scheduled;
+        ScheduledFor = at;
+    }
+
+    /// <summary>CO4: cancela la programación y lo devuelve a borrador. Idempotente sobre un borrador.</summary>
+    public void Unschedule()
+    {
+        if (Status == AnnouncementStatus.Draft)
+        {
+            return;
+        }
+
+        if (Status != AnnouncementStatus.Scheduled)
+        {
+            throw new ConflictException("Solo se puede cancelar la programación de un anuncio programado.");
+        }
+
+        Status = AnnouncementStatus.Draft;
+        ScheduledFor = null;
+    }
+
+    /// <summary>CO4: pone la imagen (ya subida al almacenamiento). Cambia lo que se ve, no reenvía nada.</summary>
+    public void SetImage(string url)
+    {
+        EnsureNotArchived("cambiar la imagen de");
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new ValidationDomainException("La URL de la imagen es obligatoria.");
+        }
+
+        ImageUrl = url;
+    }
+
+    public void RemoveImage()
+    {
+        EnsureNotArchived("cambiar la imagen de");
+        ImageUrl = null;
     }
 
     public void Archive()
@@ -196,6 +267,7 @@ public sealed class Announcement : BaseEntity, ITenantEntity
 
         Status = AnnouncementStatus.Archived;
         Pinned = false;
+        ScheduledFor = null;
     }
 
     /// <summary>El límite de fijados por gym lo comprueba el caso de uso, que ve a los demás.</summary>

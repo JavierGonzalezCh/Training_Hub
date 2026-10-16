@@ -66,7 +66,12 @@ public sealed record AnnouncementResponse(
     bool Important,
     Guid? ImportantMarkedBy,
     AnnouncementAudienceDto Audience,
-    int? RecipientCount);
+    int? RecipientCount,
+    DateTimeOffset? ScheduledFor = null,
+    string? ImageUrl = null);
+
+/// <summary>CO4: programa o reprograma la publicación. Debe ser futura.</summary>
+public sealed record ScheduleAnnouncementRequest(DateTimeOffset ScheduledFor);
 
 /// <summary>Vista del feed del miembro: solo lo publicado y vigente.</summary>
 public sealed record FeedItem(
@@ -77,7 +82,8 @@ public sealed record FeedItem(
     bool Pinned,
     ReactionCounts Reactions,
     string? MyReaction,
-    bool Important);
+    bool Important,
+    string? ImageUrl = null);
 
 /// <summary>
 /// Totales por tipo, como campos y no como diccionario de enum: NSwag genera mal las colecciones

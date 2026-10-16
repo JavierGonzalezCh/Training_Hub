@@ -14,6 +14,7 @@ public static class CommunicationLabels
     public static string Status(string status) => status switch
     {
         "Draft" => "Borrador",
+        "Scheduled" => "Programado",
         "Published" => "Publicado",
         "Archived" => "Archivado",
         _ => status,

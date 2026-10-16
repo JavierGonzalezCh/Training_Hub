@@ -72,6 +72,14 @@ public sealed class AnnouncementRepository(GsmDbContext dbContext) : IAnnounceme
             || await Recipients.AnyAsync(
                 r => r.AnnouncementId == announcement.Id && r.MemberId == memberId, cancellationToken);
 
+    public async Task<IReadOnlyList<Announcement>> ListDueScheduledAsync(
+        DateTimeOffset now, int take, CancellationToken cancellationToken = default)
+        => await Announcements.IgnoreQueryFilters()
+            .Where(a => a.Status == AnnouncementStatus.Scheduled && a.ScheduledFor != null && a.ScheduledFor <= now)
+            .OrderBy(a => a.ScheduledFor)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
     public void AddRecipients(IEnumerable<AnnouncementRecipient> recipients) => Recipients.AddRange(recipients);
 
     public async Task<IReadOnlyList<Guid>> GetRecipientIdsAsync(

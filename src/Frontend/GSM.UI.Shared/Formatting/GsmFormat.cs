@@ -60,6 +60,17 @@ public static class GsmFormat
     public static string Instant(DateTimeOffset instant)
         => TimeZoneInfo.ConvertTime(instant, GymZone).ToString("d MMM yyyy, HH:mm", Colombia);
 
+    /// <summary>El instante (UTC) que corresponde a «<paramref name="day"/> a las <paramref name="time"/>» en la hora del gym.</summary>
+    public static DateTimeOffset GymInstant(DateOnly day, TimeSpan time)
+    {
+        var local = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).Add(time);
+        return new DateTimeOffset(local, GymZone.GetUtcOffset(local)).ToUniversalTime();
+    }
+
+    /// <summary>La hora de pared del gym para un instante (para rellenar un selector de fecha y hora).</summary>
+    public static DateTime GymLocal(DateTimeOffset instant)
+        => TimeZoneInfo.ConvertTime(instant, GymZone).DateTime;
+
     /// <summary>Solo la hora local del gym, p. ej. <c>06:42</c>. Para listas acotadas a un día.</summary>
     public static string Time(DateTimeOffset instant)
         => TimeZoneInfo.ConvertTime(instant, GymZone).ToString("HH:mm", Colombia);

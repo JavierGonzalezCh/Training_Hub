@@ -27,6 +27,13 @@ public interface IAnnouncementRepository
     /// <summary>¿Es <paramref name="memberId"/> destinatario de este anuncio? Los de "todos" lo ven todos.</summary>
     Task<bool> IsVisibleToMemberAsync(Announcement announcement, Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// CO4: anuncios programados cuya hora ya llegó, de <b>todos</b> los gyms (la tarea corre sin usuario; el
+    /// filtro global se ignora de forma explícita), del más antiguo al más reciente. Con seguimiento de cambios.
+    /// </summary>
+    Task<IReadOnlyList<Announcement>> ListDueScheduledAsync(
+        DateTimeOffset now, int take, CancellationToken cancellationToken = default);
+
     /// <summary>Fija los destinatarios de un anuncio segmentado (se guardan con el siguiente SaveChanges).</summary>
     void AddRecipients(IEnumerable<AnnouncementRecipient> recipients);
 

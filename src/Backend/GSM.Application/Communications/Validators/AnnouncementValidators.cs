@@ -33,7 +33,7 @@ public sealed class ListAnnouncementsQueryValidator : AbstractValidator<ListAnno
     {
         RuleFor(x => x.Status)
             .Must(s => s is null || Enum.TryParse<AnnouncementStatus>(s, ignoreCase: true, out _))
-            .WithMessage("Estado inválido: Draft, Published o Archived.");
+            .WithMessage("Estado inválido: Draft, Scheduled, Published o Archived.");
         RuleFor(x => x.Page).GreaterThanOrEqualTo(1);
         RuleFor(x => x.PageSize).InclusiveBetween(1, 100);
     }

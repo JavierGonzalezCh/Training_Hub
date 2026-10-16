@@ -2489,6 +2489,17 @@ a.gsm-m-card:hover {
 
 .gsm-tag--draft { border-style: dashed; }
 .gsm-tag--published { color: var(--gsm-ok); border-color: currentColor; }
+.gsm-tag--scheduled { color: var(--gsm-info, var(--gsm-text-2)); border-color: currentColor; }
+
+/* CO4: imagen del anuncio, en el panel y en el feed. */
+.gsm-announcement__image {
+    display: block;
+    width: 100%;
+    max-height: 280px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-top: 0.75rem;
+}
 .gsm-tag--archived { color: var(--gsm-text-3); }
 
 /* Panel: lista de anuncios como tarjetas, no como tabla: el texto es el contenido. */
