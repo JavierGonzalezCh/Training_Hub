@@ -1,4 +1,4 @@
-/* ============================================================================================
+﻿/* ============================================================================================
    GSM · estilos compartidos y temas
    --------------------------------------------------------------------------------------------
    Un solo tema, Forja (data-gsm-theme="forja" en <html>, lo pone gsm-theme.js): industrial oscuro,
@@ -3252,5 +3252,54 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 1.5rem;
         align-items: start;
+
+/* AP7 — pantallas no diarias en el celular (configuración, planes, ejercicios, equipos, rutinas).
+   Solo por debajo de 960 px: la vista de escritorio no cambia. */
+@media (max-width: 959.95px) {
+    /* Pestañas de configuración: se desplazan de lado en vez de apretarse o desbordar la página. */
+    .gsm-settings-tabs .mud-tabs-tabbar-content,
+    .gsm-settings-subtabs .mud-tabs-tabbar-content {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .gsm-settings-tabs .mud-tab,
+    .gsm-settings-subtabs .mud-tab {
+        min-width: max-content;
+        min-height: 44px;
+    }
+
+    .gsm-settings-tabs .mud-tabs-panels {
+        padding-top: 0.75rem;
+    }
+
+    /* Tablas apiladas de las pantallas no diarias: filas legibles y acciones tocables. */
+    .gsm-table--stack .mud-table-body .mud-table-row {
+        height: auto;
+        padding: 0.35rem 0;
+    }
+
+    .gsm-table--stack .mud-table-cell {
+        word-break: break-word;
+    }
+
+    .gsm-table--stack .mud-icon-button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Editor de rutinas: las líneas y las series ocupan el ancho y los controles se pueden tocar. */
+    .gsm-routine-line {
+        padding-left: 0.5rem;
+    }
+
+    .gsm-routine-line .mud-input-control,
+    .gsm-routine-line .mud-autocomplete {
+        max-width: 100%;
+    }
+
+    .gsm-routine-line .mud-icon-button {
+        min-width: 44px;
+        min-height: 44px;
     }
 }
