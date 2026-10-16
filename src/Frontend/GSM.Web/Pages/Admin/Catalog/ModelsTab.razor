@@ -1,0 +1,155 @@
+@inject IAdminCatalogClient Catalog
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<div class="d-flex align-center flex-wrap mb-3" style="gap:1rem">
+    <MudSwitch T="bool" Value="_includeInactive" ValueChanged="OnIncludeInactiveAsync" Color="Color.Primary"
+               Label="Ver inactivos" data-testid="model-inactive" />
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => OpenFormAsync(null))" data-testid="new-model">
+        Nueva máquina
+    </MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_models.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="no-models">No hay máquinas en el catálogo.</MudText>
+}
+else
+{
+    <MudTable Items="_models" Hover="true" Dense="true" Elevation="0" data-testid="models-table">
+        <HeaderContent>
+            <MudTh>Máquina</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Alta en el gym</MudTh>
+            <MudTh>Imagen</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Máquina">@context.Name</MudTd>
+            <MudTd DataLabel="Tipo">@CatalogLabels.EquipmentTypeLabel(context.Type)</MudTd>
+            <MudTd DataLabel="Alta en el gym">@CatalogLabels.UnitModeLabel(context.TrackedPerUnit)</MudTd>
+            <MudTd DataLabel="Imagen">
+                @if (!string.IsNullOrWhiteSpace(context.ImageUrl))
+                {
+                    <img src="@context.ImageUrl" alt="@context.Name" style="height:36px;border-radius:4px" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Sin imagen</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Estado">@CatalogLabels.StatusLabel(context.IsActive)</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Editar"
+                               OnClick="@(() => OpenFormAsync(context))" data-testid="@($"edit-model-{context.Id}")" />
+                <MudFileUpload T="IBrowserFile" FilesChanged="@(f => UploadImageAsync(context, f))" Class="d-inline-block ma-0"
+                               Accept=".jpg,.jpeg,.png,.webp">
+                    <ActivatorContent>
+                        <MudIconButton Icon="@Icons.Material.Filled.AddAPhoto" Size="Size.Small" title="Subir imagen" />
+                    </ActivatorContent>
+                </MudFileUpload>
+                @if (context.IsActive)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error" title="Desactivar"
+                                   OnClick="@(() => SetActiveAsync(context, false))" data-testid="@($"deactivate-model-{context.Id}")" />
+                }
+                else
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" title="Reactivar"
+                                   OnClick="@(() => SetActiveAsync(context, true))" data-testid="@($"activate-model-{context.Id}")" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<AdminEquipmentModelResponse> _models = [];
+    private bool _includeInactive;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _models = (await Catalog.AdminCatalogListModelsAsync(_includeInactive)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task OnIncludeInactiveAsync(bool value)
+    {
+        _includeInactive = value;
+        return LoadAsync();
+    }
+
+    private async Task OpenFormAsync(AdminEquipmentModelResponse? model)
+    {
+        var parameters = new DialogParameters<ModelFormDialog> { { x => x.Current, model } };
+        var dialog = await Dialogs.ShowAsync<ModelFormDialog>(
+            model is null ? "Nueva máquina del catálogo" : "Editar máquina", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task SetActiveAsync(AdminEquipmentModelResponse model, bool active)
+    {
+        try
+        {
+            if (active)
+            {
+                await Catalog.AdminCatalogActivateModelAsync(model.Id);
+            }
+            else
+            {
+                await Catalog.AdminCatalogDeactivateModelAsync(model.Id);
+            }
+
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task UploadImageAsync(AdminEquipmentModelResponse model, IBrowserFile file)
+    {
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: CatalogLabels.MaxImageBytes);
+            await Catalog.AdminCatalogUploadModelImageAsync(model.Id, new FileParameter(stream, file.Name, file.ContentType));
+            Snackbar.Add("Imagen actualizada.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500)
+        {
+            // R2 aún no está configurado (ver CLAUDE.md): la subida falla siempre.
+            Snackbar.Add("Las imágenes no están disponibles todavía: falta configurar el almacenamiento.", Severity.Warning);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

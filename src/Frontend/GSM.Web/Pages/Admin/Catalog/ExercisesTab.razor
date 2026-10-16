@@ -1,0 +1,179 @@
+@inject IAdminCatalogClient Catalog
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<div class="d-flex align-center flex-wrap mb-3" style="gap:1rem">
+    <MudTextField T="string" Value="_search" ValueChanged="OnSearchAsync" Label="Buscar" Immediate="false"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width:280px"
+                  data-testid="exercise-search" />
+    <MudSwitch T="bool" Value="_includeInactive" ValueChanged="OnIncludeInactiveAsync" Color="Color.Primary"
+               Label="Ver inactivos" data-testid="exercise-inactive" />
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => OpenFormAsync(null))" data-testid="new-exercise">
+        Nuevo ejercicio
+    </MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_exercises.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="no-exercises">No hay ejercicios que coincidan.</MudText>
+}
+else
+{
+    <MudTable Items="_exercises" Hover="true" Dense="true" Elevation="0" data-testid="exercises-table">
+        <HeaderContent>
+            <MudTh>Ejercicio</MudTh>
+            <MudTh>Detalle</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Ejercicio">@context.Name</MudTd>
+            <MudTd DataLabel="Detalle">@CatalogLabels.ExerciseSummary(context)</MudTd>
+            <MudTd DataLabel="Estado">@CatalogLabels.StatusLabel(context.IsActive)</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Editar"
+                               OnClick="@(() => OpenFormAsync(context))" data-testid="@($"edit-{context.Id}")" />
+                <MudFileUpload T="IBrowserFile" FilesChanged="@(f => UploadImageAsync(context, f))" Class="d-inline-block ma-0"
+                               Accept=".jpg,.jpeg,.png,.webp">
+                    <ActivatorContent>
+                        <MudIconButton Icon="@Icons.Material.Filled.AddAPhoto" Size="Size.Small" title="Subir imagen" />
+                    </ActivatorContent>
+                </MudFileUpload>
+                <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" title="Alternativas recomendadas"
+                               OnClick="@(() => OpenAlternativesAsync(context))" data-testid="@($"alternatives-{context.Id}")" />
+                <MudIconButton Icon="@Icons.Material.Filled.PrecisionManufacturing" Size="Size.Small" title="Máquinas donde se hace"
+                               OnClick="@(() => OpenModelsAsync(context))" data-testid="@($"models-{context.Id}")" />
+                @if (context.IsActive)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error" title="Desactivar"
+                                   OnClick="@(() => SetActiveAsync(context, false))" data-testid="@($"deactivate-{context.Id}")" />
+                }
+                else
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" title="Reactivar"
+                                   OnClick="@(() => SetActiveAsync(context, true))" data-testid="@($"activate-{context.Id}")" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<ExerciseResponse> _exercises = [];
+    private string? _search;
+    private bool _includeInactive;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var search = string.IsNullOrWhiteSpace(_search) ? null : _search.Trim();
+            _exercises = (await Catalog.AdminCatalogListExercisesAsync(search, _includeInactive)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task OnSearchAsync(string? value)
+    {
+        _search = value;
+        return LoadAsync();
+    }
+
+    private Task OnIncludeInactiveAsync(bool value)
+    {
+        _includeInactive = value;
+        return LoadAsync();
+    }
+
+    private async Task OpenFormAsync(ExerciseResponse? exercise)
+    {
+        var parameters = new DialogParameters<ExerciseFormDialog> { { x => x.Current, exercise } };
+        var dialog = await Dialogs.ShowAsync<ExerciseFormDialog>(
+            exercise is null ? "Nuevo ejercicio del sistema" : "Editar ejercicio", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenAlternativesAsync(ExerciseResponse exercise)
+    {
+        var parameters = new DialogParameters<AlternativesDialog>
+        {
+            { x => x.ExerciseId, exercise.Id },
+            { x => x.ExerciseName, exercise.Name },
+        };
+        await Dialogs.ShowAsync<AlternativesDialog>(
+            "Alternativas recomendadas", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+    }
+
+    private async Task OpenModelsAsync(ExerciseResponse exercise)
+    {
+        var parameters = new DialogParameters<ExerciseModelsDialog>
+        {
+            { x => x.ExerciseId, exercise.Id },
+            { x => x.ExerciseName, exercise.Name },
+        };
+        await Dialogs.ShowAsync<ExerciseModelsDialog>(
+            "Máquinas donde se hace", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+    }
+
+    private async Task SetActiveAsync(ExerciseResponse exercise, bool active)
+    {
+        try
+        {
+            if (active)
+            {
+                await Catalog.AdminCatalogActivateExerciseAsync(exercise.Id);
+            }
+            else
+            {
+                await Catalog.AdminCatalogDeactivateExerciseAsync(exercise.Id);
+            }
+
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task UploadImageAsync(ExerciseResponse exercise, IBrowserFile file)
+    {
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: CatalogLabels.MaxImageBytes);
+            await Catalog.AdminCatalogUploadExerciseImageAsync(exercise.Id, new FileParameter(stream, file.Name, file.ContentType));
+            Snackbar.Add("Imagen actualizada.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500)
+        {
+            // R2 aún no está configurado (ver CLAUDE.md): la subida falla. Mientras tanto la URL se pega en el formulario.
+            Snackbar.Add("Las imágenes no están disponibles todavía: falta configurar el almacenamiento. Pega una URL en el formulario.", Severity.Warning);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+}

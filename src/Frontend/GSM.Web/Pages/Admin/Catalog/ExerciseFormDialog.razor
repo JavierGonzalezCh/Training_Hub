@@ -1,0 +1,193 @@
+@inject IAdminCatalogClient Catalog
+
+@* Alta y edición de un ejercicio del sistema (gym_id nulo). Mismos campos que el formulario del staff. *@
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_name" Label="Nombre" Required="true" Class="mb-3" MaxLength="120" data-testid="exercise-name" />
+        <MudTextField T="string" @bind-Value="_description" Label="Descripción" Lines="2" Class="mb-3" MaxLength="1000" />
+        <div class="d-flex flex-wrap mb-3" style="gap:1rem">
+            <label class="gsm-native-field">
+                <span>Tipo de ejercicio</span>
+                <select data-testid="exercise-type" @onchange="OnTypeChanged">
+                    @foreach (var (value, label) in RoutineLabels.ExerciseTypes)
+                    {
+                        <option value="@value" selected="@(_exerciseType == value)">@label</option>
+                    }
+                </select>
+            </label>
+            <label class="gsm-native-field">
+                <span>Qué se mide</span>
+                <select data-testid="tracking-type" @onchange="OnTrackingChanged">
+                    @foreach (var (value, label) in RoutineLabels.TrackingTypes)
+                    {
+                        <option value="@value" selected="@(_trackingType == value)">@label</option>
+                    }
+                </select>
+            </label>
+            <label class="gsm-native-field">
+                <span>Nivel</span>
+                <select data-testid="difficulty" @onchange="@(e => _difficulty = ToInt(e.Value, 1))">
+                    @foreach (var (value, label) in RoutineLabels.Difficulties)
+                    {
+                        <option value="@value" selected="@(_difficulty == value)">@label</option>
+                    }
+                </select>
+            </label>
+        </div>
+        <MudSwitch T="bool" @bind-Value="_isUnilateral" Color="Color.Primary" Class="mb-2"
+                   Label="Se hace por lado (las repeticiones son por lado)" />
+        <MudSelect T="int" @bind-Value="_primaryMuscle" Label="Músculo principal" Required="true" Class="mb-3">
+            @foreach (var (value, label) in RoutineLabels.Muscles)
+            {
+                <MudSelectItem Value="value">@label</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_secondaryMuscles" Label="Músculos secundarios" Class="mb-3">
+            @foreach (var (value, label) in RoutineLabels.Muscles)
+            {
+                <MudSelectItem Value="value">@label</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_equipment" Label="Equipo" Class="mb-3">
+            @foreach (var (value, label) in RoutineLabels.Equipment)
+            {
+                <MudSelectItem Value="value">@label</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="_videoUrl" Label="Video (URL)" Class="mb-3" />
+        <MudTextField T="string" @bind-Value="_imageUrl" Label="Imagen (URL)"
+                      HelperText="También puedes subir el archivo desde la tabla." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting" data-testid="save-exercise">
+            @(_submitting ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Ejercicio a editar; nulo = crear uno nuevo.</summary>
+    [Parameter]
+    public ExerciseResponse? Current { get; set; }
+
+    private string _name = string.Empty;
+    private string? _description;
+    private int _primaryMuscle;
+    private IEnumerable<int> _secondaryMuscles = [];
+    private IEnumerable<int> _equipment = [];
+    private int _exerciseType;
+    private int _trackingType;
+    private int _difficulty = 1;
+    private bool _isUnilateral;
+    private string? _videoUrl;
+    private string? _imageUrl;
+    private bool _trackingTouched;
+    private bool _submitting;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (Current is not { } e)
+        {
+            _trackingType = RoutineLabels.SuggestedTracking(_exerciseType);
+            return;
+        }
+
+        _name = e.Name;
+        _description = e.Description;
+        _primaryMuscle = RoutineLabels.MuscleValue(e.PrimaryMuscle);
+        _secondaryMuscles = e.SecondaryMuscles.Select(RoutineLabels.MuscleValue).ToList();
+        _equipment = e.Equipment.Select(CatalogLabels.EquipmentTypeValue).ToList();
+        _exerciseType = RoutineLabels.ExerciseTypeValue(e.ExerciseType);
+        _trackingType = RoutineLabels.TrackingTypeValue(e.TrackingType);
+        _difficulty = RoutineLabels.DifficultyValue(e.Difficulty);
+        _isUnilateral = e.IsUnilateral;
+        _videoUrl = e.VideoUrl;
+        _imageUrl = e.ImageUrl;
+        _trackingTouched = true;
+    }
+
+    private void OnTypeChanged(ChangeEventArgs e)
+    {
+        _exerciseType = ToInt(e.Value, 0);
+        if (!_trackingTouched)
+        {
+            _trackingType = RoutineLabels.SuggestedTracking(_exerciseType);
+        }
+    }
+
+    private void OnTrackingChanged(ChangeEventArgs e)
+    {
+        _trackingType = ToInt(e.Value, 0);
+        _trackingTouched = true;
+    }
+
+    private static int ToInt(object? value, int fallback) => int.TryParse(value?.ToString(), out var n) ? n : fallback;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "El nombre es obligatorio.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            if (Current is { } existing)
+            {
+                await Catalog.AdminCatalogUpdateExerciseAsync(existing.Id, new UpdateExerciseRequest
+                {
+                    Name = _name,
+                    Description = _description,
+                    PrimaryMuscle = _primaryMuscle,
+                    SecondaryMuscles = _secondaryMuscles.ToList(),
+                    Equipment = _equipment.ToList(),
+                    VideoUrl = _videoUrl,
+                    ImageUrl = _imageUrl,
+                    ExerciseType = _exerciseType,
+                    TrackingType = _trackingType,
+                    IsUnilateral = _isUnilateral,
+                    Difficulty = _difficulty,
+                });
+            }
+            else
+            {
+                await Catalog.AdminCatalogCreateExerciseAsync(new CreateExerciseRequest
+                {
+                    Name = _name,
+                    Description = _description,
+                    PrimaryMuscle = _primaryMuscle,
+                    SecondaryMuscles = _secondaryMuscles.ToList(),
+                    Equipment = _equipment.ToList(),
+                    VideoUrl = _videoUrl,
+                    ImageUrl = _imageUrl,
+                    ExerciseType = _exerciseType,
+                    TrackingType = _trackingType,
+                    IsUnilateral = _isUnilateral,
+                    Difficulty = _difficulty,
+                });
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}
