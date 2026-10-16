@@ -1,4 +1,4 @@
-namespace GSM.Client.Generated;
+﻿namespace GSM.Client.Generated;
 
 // El cliente generado por NSwag, en su plantilla por defecto, descarta el cuerpo crudo de la
 // respuesta cuando la deserialización tiene éxito (ReadResponseAsString = false optimiza para
@@ -181,6 +181,11 @@ public partial class EquipmentClient
 }
 
 public partial class MemberEquipmentClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class MemberWaitlistClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
