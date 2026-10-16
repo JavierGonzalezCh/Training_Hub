@@ -1,0 +1,25 @@
+@namespace GSM.UI.Shared.Push
+@implements IDisposable
+@inject PushLinkNavigator Links
+@inject NavigationManager Navigation
+@* Abre la pantalla del aviso push que el usuario tocó (N3). Sin sesión, el router lo manda al login y de vuelta. *@
+
+@code {
+    protected override void OnInitialized()
+    {
+        Links.Arrived += OnArrived;
+        OpenPending();
+    }
+
+    private void OnArrived() => InvokeAsync(OpenPending);
+
+    private void OpenPending()
+    {
+        if (Links.TryTake() is { } link)
+        {
+            Navigation.NavigateTo(link.Path);
+        }
+    }
+
+    public void Dispose() => Links.Arrived -= OnArrived;
+}

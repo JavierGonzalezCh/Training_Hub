@@ -11,5 +11,14 @@ public class MainApplication : MauiApplication
 	{
 	}
 
+	public override void OnCreate()
+	{
+		base.OnCreate();
+
+		// Firebase se inicializa por código con la configuración guardada (sin google-services.json): hace falta
+		// al arrancar el proceso aunque sea un push el que lo despierte (N3). Sin lo guardado, no hace nada.
+		GSM.Mobile.Platform.AndroidFirebase.TryInitializeFromStored(this);
+	}
+
 	protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 }

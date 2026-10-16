@@ -2,6 +2,7 @@ using GSM.Client;
 using GSM.Client.Http;
 using GSM.Member.UI;
 using GSM.Mobile.Platform;
+using GSM.Panel.UI.Navigation;
 using GSM.UI.Shared;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
@@ -31,6 +32,12 @@ public static class MauiProgram
         builder.Services.AddGsmClient(ApiBaseUrl);
         builder.Services.AddGsmUiShared();
         builder.Services.AddGsmMemberUi();
+        builder.Services.AddGsmPanel(); // AP3: el panel del gym (staff y Owner) también vive en la app
+        builder.Services.AddSingleton<GSM.UI.Shared.Push.PushLinkNavigator>();
+#if ANDROID
+        builder.Services.AddScoped<GSM.UI.Shared.Push.IPushNotifications, AndroidPushNotifications>();
+        builder.Services.AddSingleton<GSM.UI.Shared.IPrintService, AndroidPrintService>();
+#endif
         builder.Services.AddSingleton<IQrScanner, ZxingQrScanner>();
         builder.Services.AddSingleton<GSM.UI.Shared.IClipboard, MauiClipboard>();
         builder.Services.AddSingleton<IDeviceLocation, MauiDeviceLocation>();
