@@ -4,6 +4,7 @@
 @inject GymContext GymCtx
 @inject IMeClient Me
 @inject IMemberClassesClient MemberClasses
+@inject IMemberClassAttendanceClient ClassAttendance
 @inject IMemberWaitlistClient Waitlist
 @inject IMeClassBookingStatusClient BookingStatus
 @inject IDialogService Dialogs
@@ -113,6 +114,17 @@ else
                             else if (entry.OutsideOpeningHours == true && entry.MyBookingStatus is not "Booked")
                             {
                                 <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono outside-hours-chip">GYM CERRADO</MudChip>
+                            }
+                            else if (entry.MyBookingStatus is "Attended")
+                            {
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono attended-chip">ASISTISTE</MudChip>
+                            }
+                            else if (CanMarkAttendance(entry))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" id="@($"attend-{entry.ClassId}")"
+                                           OnClick="@(() => AttendAsync(entry))">
+                                    Estoy en clase
+                                </MudButton>
                             }
                             else if (entry.MyBookingStatus is "Booked")
                             {
@@ -226,6 +238,44 @@ else
         catch (GsmApiException)
         {
             // Sin las reglas la pantalla sigue funcionando: el servidor las impone igual al reservar.
+        }
+    }
+
+    private const int AttendWindowMinutes = 15; // C7: igual que el servidor (MarkOwnAttendanceHandler.WindowMinutes)
+
+    /// <summary>
+    /// C7: "Estoy en clase" se ofrece el día de la clase, de 15 minutos antes a 15 minutos después del inicio, a quien
+    /// tiene reserva (o en una clase de entrada libre). El servidor lo valida igual, y además exige la entrada al gym de hoy.
+    /// </summary>
+    private bool CanMarkAttendance(ScheduleEntry entry)
+    {
+        if (entry.SessionDate != _today || entry.Status == "Cancelled")
+        {
+            return false;
+        }
+
+        if (entry.Capacity is not null ? entry.MyBookingStatus != "Booked" : entry.MyBookingStatus is "Attended")
+        {
+            return false;
+        }
+
+        var nowTime = TimeOnly.ParseExact(GsmFormat.Time(DateTimeOffset.UtcNow), "HH:mm");
+        var minutes = (nowTime.ToTimeSpan() - entry.StartTime.ToTimeSpan()).TotalMinutes;
+        return minutes >= -AttendWindowMinutes && minutes <= AttendWindowMinutes;
+    }
+
+    private async Task AttendAsync(ScheduleEntry entry)
+    {
+        try
+        {
+            await ClassAttendance.AttendAsync(entry.ClassId, entry.SessionDate);
+            Snackbar.Add("Listo, quedó marcada tu asistencia a la clase.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            // 409: aún no registró su entrada al gym, no está al día o no tiene reserva. 422: fuera de la ventana de tiempo.
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
         }
     }
 
