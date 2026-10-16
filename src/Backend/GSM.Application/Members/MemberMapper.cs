@@ -46,6 +46,8 @@ public static class MemberMapper
     {
         TrainerUserId = m.TrainerUserId,
         HasHealthAlerts = m.HasHealthAlerts,
+        IsAnonymized = m.IsAnonymized,
+        DeactivatedOn = m.DeactivatedOn,
     };
 
     public static MemberListItem ToListItem(Member m) => new(

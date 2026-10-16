@@ -144,6 +144,20 @@ public sealed class Member : BaseEntity, ITenantEntity
     public DateOnly JoinedAt { get; private set; }
 
     /// <summary>
+    /// Día de negocio de la baja (M6). Nulo mientras está activo. Desde aquí corre el plazo de anonimización del gym;
+    /// reactivar lo borra y el plazo deja de correr.
+    /// </summary>
+    public DateOnly? DeactivatedOn { get; private set; }
+
+    /// <summary>Instante en que la ficha se anonimizó (M6). Nulo = no anonimizada. Es irreversible.</summary>
+    public DateTimeOffset? AnonymizedAt { get; private set; }
+
+    /// <summary>Día en que se avisó al Owner de la anonimización próxima (una vez por baja). Nulo = sin avisar.</summary>
+    public DateOnly? AnonymizationNoticeSentOn { get; private set; }
+
+    public bool IsAnonymized => AnonymizedAt is not null;
+
+    /// <summary>
     /// "Ficha incompleta": falta la fecha de nacimiento o el teléfono guardado no es un E.164
     /// válido. Se deriva de los datos, así que desaparece sola cuando el staff los completa.
     /// </summary>
@@ -194,6 +208,7 @@ public sealed class Member : BaseEntity, ITenantEntity
     /// </summary>
     public IReadOnlyList<MemberFieldChange> UpdateProfile(MemberProfile profile, DateOnly? joinedAt, DateOnly today)
     {
+        EnsureNotAnonymized();
         var before = Snapshot();
 
         if (BirthDate is not null && profile.BirthDate is null)
@@ -256,6 +271,7 @@ public sealed class Member : BaseEntity, ITenantEntity
     /// </summary>
     public IReadOnlyList<MemberFieldChange> UpdateHealth(MemberHealthData data, DateOnly today)
     {
+        EnsureNotAnonymized();
         if (data.MedicalClearanceDate is { } clearance && clearance > today)
         {
             throw new ValidationDomainException("La fecha del apto médico no puede ser futura.");
@@ -292,6 +308,7 @@ public sealed class Member : BaseEntity, ITenantEntity
     /// <summary>Asigna, cambia o quita (<c>null</c>) el entrenador. Devuelve si algo cambió.</summary>
     public bool AssignTrainer(Guid? trainerUserId)
     {
+        EnsureNotAnonymized();
         if (trainerUserId == Guid.Empty)
         {
             throw new ValidationDomainException("El entrenador no es válido.");
@@ -306,25 +323,108 @@ public sealed class Member : BaseEntity, ITenantEntity
         return true;
     }
 
-    public void Deactivate() => Status = MemberStatus.Inactive;
+    /// <param name="today">Día de negocio de la baja (<c>IClock.Today</c>); arranca el plazo de anonimización.</param>
+    public void Deactivate(DateOnly? today = null)
+    {
+        if (Status == MemberStatus.Inactive)
+        {
+            return;
+        }
+
+        Status = MemberStatus.Inactive;
+        DeactivatedOn = today;
+        AnonymizationNoticeSentOn = null;
+    }
+
+    /// <summary>Día en que la ficha se anonimiza si sigue de baja, dado el plazo del gym. Nulo si no hay plazo corriendo.</summary>
+    public DateOnly? AnonymizesOn(int months)
+        => Status == MemberStatus.Inactive && AnonymizedAt is null && DeactivatedOn is { } on ? on.AddMonths(months) : null;
+
+    /// <summary>El Owner ya fue avisado de la anonimización próxima.</summary>
+    public void MarkAnonymizationNoticeSent(DateOnly today) => AnonymizationNoticeSentOn = today;
+
+    /// <summary>
+    /// Anonimiza la ficha (§11): vacía los datos personales y sensibles y conserva los de actividad. Irreversible;
+    /// idempotente (<c>null</c> si ya estaba anonimizada). Devuelve la URL de la foto que había, para que quien llama la
+    /// borre del almacenamiento. Solo se anonimiza a un miembro dado de baja.
+    /// </summary>
+    public string? Anonymize(DateTimeOffset now)
+    {
+        if (AnonymizedAt is not null)
+        {
+            return null;
+        }
+
+        if (Status != MemberStatus.Inactive)
+        {
+            throw new ConflictException("Solo se anonimiza a un miembro dado de baja.");
+        }
+
+        var photo = PhotoUrl;
+        var hex = Id.ToString("N");
+
+        FirstName = "Miembro anonimizado";
+        LastName = hex[^4..];
+
+        // 25 caracteres: el documento admite 30. Se toma la parte aleatoria del UUID v7 para no chocar con el índice único.
+        DocumentNumber = "ANON-" + hex[12..32];
+        BirthDate = BirthDate is { } birth ? new DateOnly(birth.Year, 1, 1) : null;
+        PhotoUrl = null;
+        Phone = null;
+        Email = null;
+        Address = null;
+        City = null;
+        EmergencyContactName = null;
+        EmergencyContactRelationship = null;
+        EmergencyContactPhone = null;
+        GuardianName = null;
+        GuardianDocumentType = null;
+        GuardianDocumentNumber = null;
+        GuardianPhone = null;
+        GuardianRelationship = null;
+        MedicalConditions = null;
+        Medications = null;
+        TrainingRestrictions = null;
+        MedicalClearanceDate = null;
+        TrainerUserId = null;
+        UserId = null;
+        AnonymizedAt = now;
+        return photo;
+    }
+
+    private void EnsureNotAnonymized()
+    {
+        if (AnonymizedAt is not null)
+        {
+            throw new ConflictException("La ficha está anonimizada y no se puede modificar.");
+        }
+    }
 
     /// <summary>Vuelve a activo a un miembro dado de baja. Uno que ya está activo es un choque de estado.</summary>
     public void Reactivate()
     {
+        EnsureNotAnonymized();
         if (Status == MemberStatus.Active)
         {
             throw new ConflictException("El miembro ya está activo.");
         }
 
         Status = MemberStatus.Active;
+        DeactivatedOn = null;
+        AnonymizationNoticeSentOn = null;
     }
 
     /// <summary>Fija solo la foto (subida de archivo).</summary>
-    public void SetPhoto(string? photoUrl) => PhotoUrl = Clean(photoUrl);
+    public void SetPhoto(string? photoUrl)
+    {
+        EnsureNotAnonymized();
+        PhotoUrl = Clean(photoUrl);
+    }
 
     /// <summary>Vincula la cuenta de Identity. Solo una vez (etapa 3b, canje de invitación).</summary>
     public void LinkUser(Guid userId)
     {
+        EnsureNotAnonymized();
         if (userId == Guid.Empty)
         {
             throw new ValidationDomainException("userId inválido.");
@@ -344,6 +444,11 @@ public sealed class Member : BaseEntity, ITenantEntity
     /// </summary>
     public MemberFieldChange? ChangeEmail(string newEmail)
     {
+        if (AnonymizedAt is not null)
+        {
+            return null;
+        }
+
         var email = OptionalText(newEmail, "El email", 256);
         if (string.Equals(Email, email, StringComparison.OrdinalIgnoreCase))
         {

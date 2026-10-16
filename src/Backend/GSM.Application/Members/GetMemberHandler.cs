@@ -4,6 +4,7 @@ using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Identity;
+using GSM.Domain.Members;
 
 namespace GSM.Application.Members;
 
@@ -26,6 +27,13 @@ public sealed class GetMemberHandler(ICurrentUserService currentUser, IClock clo
         if (member.TrainerUserId is { } trainerId)
         {
             detail = detail with { TrainerName = (await identity.GetUserAsync(trainerId, cancellationToken))?.FullName };
+        }
+
+        if (currentUser.Role != UserRole.Member && member.AnonymizesOn(1) is not null)
+        {
+            var months = (await members.GetSettingsAsync(member.GymId, cancellationToken))?.AnonymizationMonths
+                ?? MemberSettings.DefaultAnonymizationMonths;
+            detail = detail with { AnonymizesOn = member.AnonymizesOn(months) };
         }
 
         // Source, Tags y el referente son solo del staff (Members v2, §3.1): el miembro no los ve.

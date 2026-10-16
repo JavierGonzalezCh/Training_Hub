@@ -127,6 +127,17 @@ public sealed record TrainerOption(Guid UserId, string FullName, bool IsOwner);
 
 public sealed record CreateMemberResponse(Guid Id);
 
+/// <summary>Ajustes de Members del gym (M6). <c>NoticeDays</c> es fijo: con cuántos días se avisa a los Owners.</summary>
+public sealed record MemberSettingsResponse(int AnonymizationMonths, int NoticeDays);
+
+public sealed record UpdateMemberSettingsRequest(int AnonymizationMonths);
+
+/// <summary>Supresión a pedido (Ley 1581): <c>Confirm</c> debe ser verdadero; la UI lo pide con un diálogo.</summary>
+public sealed record AnonymizeMemberRequest(bool Confirm);
+
+/// <summary>Resultado de la ejecución de la tarea de anonimización.</summary>
+public sealed record AnonymizationJobResult(int Notices, int Anonymized);
+
 public sealed record InviteMemberResponse(string Code, DateTimeOffset ExpiresAt);
 
 /// <summary>
@@ -200,6 +211,15 @@ public sealed record MemberDetail(
 {
     /// <summary>Hay condiciones o restricciones de salud anotadas. Es lo único de salud que sale aquí; el detalle va por <c>/health</c> (M3).</summary>
     public bool HasHealthAlerts { get; init; }
+
+    /// <summary>La ficha se anonimizó (M6): irreversible, no se puede editar ni reactivar.</summary>
+    public bool IsAnonymized { get; init; }
+
+    /// <summary>Día de la baja (M6). Nulo si está activo.</summary>
+    public DateOnly? DeactivatedOn { get; init; }
+
+    /// <summary>Día en que la ficha se anonimizará si sigue de baja (M6). Nulo si está activa o ya anonimizada. Solo para el staff.</summary>
+    public DateOnly? AnonymizesOn { get; init; }
 
     /// <summary>Entrenador asignado (nulo = sin entrenador). El miembro también lo ve.</summary>
     public Guid? TrainerUserId { get; init; }

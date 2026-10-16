@@ -1,4 +1,4 @@
-using GSM.Client;
+﻿using GSM.Client;
 using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
@@ -17,5 +17,6 @@ public sealed class MembersPanelModule : IPanelModule
     public IEnumerable<PanelSettingsSection> SettingsSections =>
     [
         new("Autorizaciones", 35, typeof(Pages.Settings.ConsentDocumentsTab), GsmRoles.Owner, PanelSettingsGroups.Members),
+        new("Privacidad", 36, typeof(Pages.Settings.AnonymizationTab), GsmRoles.Owner, PanelSettingsGroups.Members),
     ];
 }

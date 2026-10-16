@@ -189,4 +189,51 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
         => Invitations
             .Where(i => i.MemberId == memberId && i.RedeemedAt == null)
             .ExecuteDeleteAsync(cancellationToken);
+
+    // --- Anonimización (M6) ---
+
+    public Task<MemberSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<MemberSettings>().IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);
+
+    public void Add(MemberSettings settings) => dbContext.Set<MemberSettings>().Add(settings);
+
+    public async Task<IReadOnlyDictionary<Guid, int>> GetAnonymizationMonthsByGymAsync(
+        CancellationToken cancellationToken = default)
+        => await dbContext.Set<MemberSettings>().IgnoreQueryFilters().AsNoTracking()
+            .ToDictionaryAsync(s => s.GymId, s => s.AnonymizationMonths, cancellationToken);
+
+    public async Task<IReadOnlyList<AnonymizationCandidate>> GetAnonymizationCandidatesAsync(
+        DateOnly deactivatedOnOrBefore, CancellationToken cancellationToken = default)
+        => await Members.IgnoreQueryFilters().AsNoTracking()
+            .Where(m => m.Status == MemberStatus.Inactive
+                        && m.AnonymizedAt == null
+                        && m.DeactivatedOn != null
+                        && m.DeactivatedOn <= deactivatedOnOrBefore)
+            .OrderBy(m => m.DeactivatedOn).ThenBy(m => m.Id)
+            .Select(m => new AnonymizationCandidate(
+                m.Id, m.GymId, m.DeactivatedOn!.Value, m.AnonymizationNoticeSentOn != null))
+            .ToListAsync(cancellationToken);
+
+    public Task<Member?> GetForGymAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken = default)
+        => Members.IgnoreQueryFilters().FirstOrDefaultAsync(
+            m => m.Id == memberId && m.GymId == gymId, cancellationToken);
+
+    public async Task ClearPersonalRecordsAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken = default)
+    {
+        await dbContext.Set<MemberNote>().IgnoreQueryFilters()
+            .Where(n => n.GymId == gymId && n.MemberId == memberId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await dbContext.Set<MemberHealthAccess>().IgnoreQueryFilters()
+            .Where(a => a.GymId == gymId && a.MemberId == memberId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await Invitations.IgnoreQueryFilters()
+            .Where(i => i.GymId == gymId && i.MemberId == memberId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await dbContext.Set<MemberChange>().IgnoreQueryFilters()
+            .Where(c => c.GymId == gymId && c.MemberId == memberId && (c.OldValue != null || c.NewValue != null))
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(c => c.OldValue, (string?)null).SetProperty(c => c.NewValue, (string?)null),
+                cancellationToken);
+    }
 }

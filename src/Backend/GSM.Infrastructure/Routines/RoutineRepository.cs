@@ -77,4 +77,25 @@ public sealed class RoutineRepository(GsmDbContext dbContext) : IRoutineReposito
             entry.State = EntityState.Added;
         }
     }
+
+    public async Task ClearNotesForMemberAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken = default)
+    {
+        await dbContext.Set<Routine>().IgnoreQueryFilters()
+            .Where(r => r.GymId == gymId && r.MemberId == memberId && r.Notes != null)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Notes, (string?)null), cancellationToken);
+
+        var routineIds = dbContext.Set<Routine>().IgnoreQueryFilters()
+            .Where(r => r.GymId == gymId && r.MemberId == memberId)
+            .Select(r => r.Id);
+        var dayIds = dbContext.Set<RoutineDay>().IgnoreQueryFilters()
+            .Where(d => d.GymId == gymId && routineIds.Contains(d.RoutineId))
+            .Select(d => d.Id);
+        await dbContext.Set<RoutineExercise>().IgnoreQueryFilters()
+            .Where(e => e.GymId == gymId && e.Notes != null && dayIds.Contains(e.RoutineDayId))
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.Notes, (string?)null), cancellationToken);
+
+        await dbContext.Set<RoutineExerciseLog>().IgnoreQueryFilters()
+            .Where(l => l.GymId == gymId && l.MemberId == memberId && l.Notes != null)
+            .ExecuteUpdateAsync(s => s.SetProperty(l => l.Notes, (string?)null), cancellationToken);
+    }
 }

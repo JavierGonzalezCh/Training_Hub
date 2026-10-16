@@ -127,6 +127,23 @@ public sealed class MembersController : ControllerBase
         Guid id, [FromServices] ReactivateMemberHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
 
+    /// <summary>
+    /// Supresión a pedido (Ley 1581, M6): anonimiza la ficha de inmediato y para siempre. Solo el Owner, con
+    /// <c>confirm: true</c>. Si el miembro seguía activo se le da de baja. Una ficha ya anonimizada responde igual (idempotente).
+    /// </summary>
+    [HttpPost("{id:guid}/anonymize")]
+    [EndpointName("AnonymizeMember")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<MemberDetail>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<MemberDetail>> Anonymize(
+        Guid id,
+        AnonymizeMemberRequest request,
+        [FromServices] AnonymizeMemberHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
     /// <summary>Historial de cambios de la ficha, del más reciente al más antiguo.</summary>
     [HttpGet("{id:guid}/changes")]
     [Authorize(Policy = AuthPolicies.RequireStaff)]
