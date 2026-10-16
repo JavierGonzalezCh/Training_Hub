@@ -307,7 +307,7 @@ public class AchievementRewardUiTests : TestContext
         Services.AddSingleton(gym);
 
         RenderComponent<MudPopoverProvider>();
-        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>();
+        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>(p => p.Add(x => x.Tab, "logros"));
 
         cut.WaitForAssertion(() =>
         {
@@ -335,7 +335,7 @@ public class AchievementRewardUiTests : TestContext
         Services.AddSingleton(gym);
 
         RenderComponent<MudPopoverProvider>();
-        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>();
+        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>(p => p.Add(x => x.Tab, "logros"));
 
         cut.WaitForAssertion(() => Assert.NotNull(cut.Find($"[data-testid='reward-line-{CapId}']")));
         Assert.Empty(cut.FindAll("[data-testid='pending-rewards']"));

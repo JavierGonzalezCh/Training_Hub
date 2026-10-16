@@ -24,6 +24,14 @@ public sealed class AchievementReader(
         => dbContext.Set<Achievement>().Where(a => a.Id == achievementId).Select(a => (string?)a.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<StreakFreezeView>> GetStreakFreezesAsync(
+        Guid memberId, CancellationToken cancellationToken = default)
+        => await dbContext.Set<StreakFreeze>()
+            .Where(f => f.MemberId == memberId)
+            .OrderBy(f => f.GrantedOn)
+            .Select(f => new StreakFreezeView(f.GrantedOn, f.UsedOn))
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<MemberAchievementView>> GetForMemberAsync(
         Guid memberId, Guid gymId, CancellationToken cancellationToken = default)
     {

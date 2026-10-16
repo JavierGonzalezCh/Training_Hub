@@ -1,0 +1,181 @@
+@page "/app/membresia"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject IMeClient Me
+@inject ISnackbar Snackbar
+
+@* "Mi membresía" (MS8, Memberships v2 §11): mi estado de hoy, el historial de mis membresías, mis congelamientos y,
+   en una tiquetera, los días en que gasté cada entrada. Sin precios ni motivos internos del staff. *@
+
+<PageTitle>Mi membresía — GSM</PageTitle>
+
+<div class="d-flex align-center mb-3">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/app/perfil" aria-label="Volver a mi perfil" />
+    <MudText Typo="Typo.h5" HtmlTag="h1">Mi membresía</MudText>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_response is null)
+{
+    <MudAlert Severity="Severity.Normal">No pudimos cargar tu membresía.</MudAlert>
+}
+else
+{
+    var access = _response.Access;
+    <section class="gsm-m-card" style="display:block" data-testid="membership-access">
+        <h2 class="gsm-m-card__title">Hoy</h2>
+        <MudChip T="string" Size="Size.Small" Color="@AccessColor(access.Commercial)" data-testid="membership-commercial">@CommercialLabel(access.Commercial)</MudChip>
+        @if (access.EntriesLeft is { } left && access.EntriesTotal is { } total)
+        {
+            <MudText Typo="Typo.body1" Class="mt-2" data-testid="membership-entries-line">
+                Te @(left == 1 ? "queda 1 entrada" : $"quedan {left} entradas") de @total@(access.EndsOn is { } ends ? $" · vence el {GsmFormat.Day(ends)}" : string.Empty)
+            </MudText>
+        }
+        else if (access.EndsOn is { } endsOn)
+        {
+            <MudText Typo="Typo.body1" Class="mt-2">
+                @(endsOn >= GsmFormat.Today() ? "Tu membresía vence el" : "Tu membresía venció el") @GsmFormat.Day(endsOn)
+            </MudText>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(access.Notice))
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="membership-notice">@access.Notice</MudText>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(access.BlockMessage))
+        {
+            <MudText Typo="Typo.body2" Color="Color.Error" data-testid="membership-block">@access.BlockMessage</MudText>
+        }
+    </section>
+
+    @if (_response.Items.Count == 0)
+    {
+        <MudText Color="Color.Secondary" Class="mt-3" data-testid="membership-empty">
+            Todavía no tienes membresías. Pregunta en recepción por los planes del gimnasio.
+        </MudText>
+    }
+    else
+    {
+        <h2 class="gsm-m-section mt-4">Historial</h2>
+        @foreach (var item in _response.Items)
+        {
+            <section class="gsm-m-card" style="display:block" data-testid="@($"membership-{item.Id}")">
+                <div class="d-flex align-center justify-space-between">
+                    <h3 class="gsm-m-card__title" style="margin:0">@item.PlanName@(item.Kind == "pass" ? " · tiquetera" : string.Empty)</h3>
+                    <MudChip T="string" Size="Size.Small" Color="@StatusColor(item)" data-testid="status">@StatusLabel(item)</MudChip>
+                </div>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @GsmFormat.DayRange(item.StartDate, item.EndDate)@(item.IsGroup ? " · plan de grupo" : string.Empty)
+                </MudText>
+
+                @if (item.EntriesTotal is { } entriesTotal)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-1" data-testid="entries">
+                        @item.EntriesUsed de @entriesTotal entradas usadas · @(item.EntriesLeft ?? 0) @(item.EntriesLeft == 1 ? "disponible" : "disponibles")
+                    </MudText>
+                    @if (item.Entries.Count > 0)
+                    {
+                        <details class="mt-1" data-testid="entry-days">
+                            <summary>Días en que usaste una entrada</summary>
+                            <ul>
+                                @foreach (var entry in item.Entries)
+                                {
+                                    <li>@GsmFormat.Day(entry.UsedOn)</li>
+                                }
+                            </ul>
+                        </details>
+                    }
+                }
+
+                @if (item.Freezes.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mt-2">Congelamientos</MudText>
+                    <ul class="gsm-membership-freezes" data-testid="freezes">
+                        @foreach (var freeze in item.Freezes)
+                        {
+                            <li>
+                                @FreezeRange(freeze) · @FreezeState(freeze)
+                                @if (!string.IsNullOrWhiteSpace(freeze.Reason))
+                                {
+                                    <span> · @freeze.Reason</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        }
+    }
+}
+
+@code {
+    private MyMembershipsResponse? _response;
+    private bool _loading = true;
+
+    private static string CommercialLabel(string commercial) => commercial switch
+    {
+        "current" => "Al día",
+        "expiring" => "Por vencer",
+        "grace" => "En gracia",
+        "expired" => "Vencida",
+        "frozen" => "Congelada",
+        "scheduled" => "Por empezar",
+        _ => "Sin plan",
+    };
+
+    private static Color AccessColor(string commercial) => commercial switch
+    {
+        "current" => Color.Success,
+        "expiring" or "grace" or "scheduled" => Color.Warning,
+        "frozen" => Color.Info,
+        _ => Color.Default,
+    };
+
+    private static string StatusLabel(MyMembershipItem item) => item.Status switch
+    {
+        "Active" => item.IsScheduled ? "Por empezar" : "Vigente",
+        "Expired" => "Vencida",
+        "Cancelled" => "Cancelada",
+        "Paused" => "Congelada",
+        _ => item.Status,
+    };
+
+    private static Color StatusColor(MyMembershipItem item) => item.Status switch
+    {
+        "Active" => item.IsScheduled ? Color.Warning : Color.Success,
+        "Paused" => Color.Info,
+        _ => Color.Default,
+    };
+
+    private static string FreezeRange(MyFreezeItem freeze)
+        => freeze.EndsOn is { } end
+            ? $"Del {GsmFormat.DayShort(freeze.StartsOn)} al {GsmFormat.Day(end)}"
+            : $"Desde el {GsmFormat.Day(freeze.StartsOn)}";
+
+    private static string FreezeState(MyFreezeItem freeze) => freeze.State switch
+    {
+        "scheduled" => "programado",
+        "active" => "en curso",
+        _ => $"{freeze.DaysCredited} {(freeze.DaysCredited == 1 ? "día" : "días")} sumados a tu fecha de vencimiento",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _response = await Me.GetMyMembershipsAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

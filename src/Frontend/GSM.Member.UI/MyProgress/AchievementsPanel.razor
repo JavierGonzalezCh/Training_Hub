@@ -1,0 +1,107 @@
+@* "Mi progreso" → Logros (L7, Achievements v2 §8.2): premios pendientes arriba, los ganados con su fecha y los que faltan
+   ordenados por los más cercanos a ganarse. Los logros manuales muestran el motivo. *@
+@inject GymContext GymCtx
+@inject IMeClient Me
+@inject ISnackbar Snackbar
+
+@if (GymCtx.FeatureFlags?.ShowGamification == false)
+{
+    <MudAlert Severity="Severity.Normal">La gamificación no está activada en este gimnasio.</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_achievements.Count == 0)
+{
+    <MudText Color="Color.Secondary">Todavía no hay logros configurados.</MudText>
+}
+else
+{
+    @if (PendingRewards.Count > 0)
+    {
+        <div class="mb-4" data-testid="pending-rewards">
+            @foreach (var reward in PendingRewards)
+            {
+                <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.CardGiftcard" Class="mb-2"
+                          data-testid="@($"pending-reward-{reward.AchievementId}")">
+                    Premio pendiente: <strong>@reward.RewardDescription</strong> · reclámalo en recepción@(reward.RewardExpiresAt is { } exp ? $" · vence el {exp:d MMM yyyy}" : string.Empty)
+                </MudAlert>
+            }
+        </div>
+    }
+
+    @if (Earned.Count > 0)
+    {
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Ganados</MudText>
+        <MudGrid Class="mb-4" data-testid="achievements-earned">
+            @foreach (var achievement in Earned)
+            {
+                <MudItem xs="6" sm="4">
+                    <AchievementCard Item="achievement" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    @if (Locked.Count > 0)
+    {
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Por ganar</MudText>
+        <MudGrid data-testid="achievements-locked">
+            @foreach (var achievement in Locked)
+            {
+                <MudItem xs="6" sm="4">
+                    <AchievementCard Item="achievement" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+}
+
+@code {
+    private List<MemberAchievementItem> _achievements = [];
+    private bool _loading = true;
+
+    /// <summary>Premios ganados que aún se pueden reclamar en recepción (L5), los que vencen antes primero.</summary>
+    private List<MemberAchievementItem> PendingRewards => _achievements
+        .Where(a => a.Unlocked && a.RewardStatus == "Pending" && !string.IsNullOrWhiteSpace(a.RewardDescription))
+        .OrderBy(a => a.RewardExpiresAt ?? DateTimeOffset.MaxValue)
+        .ToList();
+
+    /// <summary>Ganados, el más reciente primero.</summary>
+    private List<MemberAchievementItem> Earned => _achievements
+        .Where(a => a.Unlocked)
+        .OrderByDescending(a => a.UnlockedAt ?? DateTimeOffset.MinValue)
+        .ToList();
+
+    /// <summary>Por ganar: los más cercanos primero (progreso sobre la meta); los manuales, al final.</summary>
+    private List<MemberAchievementItem> Locked => _achievements
+        .Where(a => !a.Unlocked)
+        .OrderBy(a => a.IsManual ? 1 : 0)
+        .ThenByDescending(a => a.ConditionValue > 0 ? (double)a.Progress / a.ConditionValue : 0d)
+        .ThenBy(a => a.Name)
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GymCtx.FeatureFlags?.ShowGamification == false)
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            var result = await Me.AchievementsAll2Async();
+            _achievements = result.ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

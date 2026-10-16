@@ -18,6 +18,12 @@ public interface IAchievementReader
     Task<IReadOnlyList<PendingRewardView>> GetPendingRewardsAsync(
         Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Los congeladores de racha que el miembro ha recibido (L7: "Mi progreso"): cuándo se concedió cada uno y, si ya se
+    /// gastó, el día que salvó. Solo lectura: no concede ni consume (eso lo hace <see cref="IAchievementService"/>).
+    /// </summary>
+    Task<IReadOnlyList<StreakFreezeView>> GetStreakFreezesAsync(Guid memberId, CancellationToken cancellationToken = default);
+
     /// <summary>El premio de un desbloqueo concreto (para programar el aviso de vencimiento). Nulo si no existe o no tiene premio.</summary>
     Task<PendingRewardView?> GetRewardAsync(Guid memberAchievementId, CancellationToken cancellationToken = default);
 }
@@ -48,3 +54,6 @@ public sealed record PendingRewardView(
     string AchievementName,
     string RewardDescription,
     DateTimeOffset? ExpiresAt);
+
+/// <summary>Un congelador de racha. <c>UsedOn</c> nulo = todavía disponible.</summary>
+public sealed record StreakFreezeView(DateOnly GrantedOn, DateOnly? UsedOn);

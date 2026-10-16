@@ -13,6 +13,8 @@ using GSM.Application.Communications.Contracts;
 using GSM.Application.Notifications;
 using GSM.Application.Notifications.Contracts;
 using GSM.Application.MemberStreak;
+using GSM.Application.Memberships;
+using GSM.Application.Memberships.Contracts;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -161,6 +163,27 @@ public sealed class MeController : ControllerBase
     [ProducesResponseType<MemberStreakResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<MemberStreakResponse>> Streak(
         [FromServices] GetMyStreakHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>
+    /// "Mi progreso" → Racha (L7): calendario de racha de un mes (por defecto el actual) con días entrenados, de descanso,
+    /// salvados por un congelador y fallados; racha actual, mejor racha, qué toca hoy y congeladores. 422 si el mes no es válido.
+    /// </summary>
+    [HttpGet("streak/calendar")]
+    [EndpointName("GetMyStreakCalendar")]
+    [ProducesResponseType<StreakCalendarResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<StreakCalendarResponse>> StreakCalendar(
+        [FromQuery] int? year, [FromQuery] int? month,
+        [FromServices] GetMyStreakCalendarHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(year, month, cancellationToken));
+
+    /// <summary>"Mi membresía" (MS8): mi estado de hoy y el historial de mis membresías, con congelamientos y entradas de tiquetera.</summary>
+    [HttpGet("memberships")]
+    [EndpointName("GetMyMemberships")]
+    [ProducesResponseType<MyMembershipsResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MyMembershipsResponse>> MyMemberships(
+        [FromServices] GetMyMembershipsHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
     /// <summary>Anuncios publicados y vigentes del gym, fijados primero. 403 si <c>show_community = false</c>.</summary>

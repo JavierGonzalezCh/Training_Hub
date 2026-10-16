@@ -5,11 +5,11 @@
 @inject GymContext GymCtx
 @inject IMeClient Me
 
-<PageTitle>Mi progreso — GSM</PageTitle>
+<PageTitle>Mis récords — GSM</PageTitle>
 
 <div class="d-flex align-center mb-4">
     <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/app/rutina" aria-label="Volver a mi rutina" />
-    <MudText Typo="Typo.h5" HtmlTag="h1">Mi progreso</MudText>
+    <MudText Typo="Typo.h5" HtmlTag="h1">Mis récords</MudText>
 </div>
 
 @if (GymCtx.FeatureFlags?.ShowRoutines == false)

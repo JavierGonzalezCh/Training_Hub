@@ -1,0 +1,179 @@
+@* "Mi progreso" → Racha (L7, Achievements v2 §8.1): racha actual y mejor racha, qué toca hoy, el calendario del mes con
+   cada día en su color (entrenado, descanso, salvado por un congelador, fallado) y los congeladores. *@
+@using System.Globalization
+@inject IMeClient Me
+@inject ISnackbar Snackbar
+
+@if (_loading && _calendar is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_calendar is null)
+{
+    <MudText Color="Color.Secondary">No pudimos cargar tu racha.</MudText>
+}
+else
+{
+    <div class="gsm-streak-stats">
+        <div class="gsm-m-stat" data-testid="streak-current">
+            <span class="gsm-m-stat__value">@_calendar.CurrentStreak</span>
+            <span class="gsm-m-stat__label">Racha actual</span>
+        </div>
+        <div class="gsm-m-stat" data-testid="streak-best">
+            <span class="gsm-m-stat__value">@_calendar.BestStreak</span>
+            <span class="gsm-m-stat__label">Mejor racha</span>
+        </div>
+        <div class="gsm-m-stat" data-testid="streak-freezes">
+            <span class="gsm-m-stat__value">@_calendar.FreezesAvailable</span>
+            <span class="gsm-m-stat__label">Congeladores</span>
+        </div>
+    </div>
+
+    <MudAlert Severity="@(_calendar.TodayKind == "train" ? Severity.Warning : Severity.Info)" Dense="true" Class="mb-4"
+              data-testid="streak-today">
+        @TodayMessage
+    </MudAlert>
+
+    <div class="gsm-streak-nav">
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="PreviousAsync" Disabled="@(!CanGoBack || _loading)"
+                       aria-label="Mes anterior" data-testid="streak-prev" />
+        <span class="gsm-streak-nav__label" data-testid="streak-month">@MonthLabel</span>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="NextAsync" Disabled="@(!CanGoForward || _loading)"
+                       aria-label="Mes siguiente" data-testid="streak-next" />
+    </div>
+
+    <div class="gsm-streak-cal" role="grid" aria-label="@MonthLabel" data-testid="streak-calendar">
+        @foreach (var name in new[] { "L", "M", "M", "J", "V", "S", "D" })
+        {
+            <span class="gsm-streak-cal__dow" aria-hidden="true">@name</span>
+        }
+        @for (var blank = 0; blank < LeadingBlanks; blank++)
+        {
+            <span class="gsm-streak-cal__blank" aria-hidden="true"></span>
+        }
+        @foreach (var day in _calendar.Days)
+        {
+            <span class="@($"gsm-streak-cal__day gsm-streak-cal__day--{day.Kind}{(day.Date == _today ? " is-today" : "")}")"
+                  role="gridcell"
+                  title="@DayTitle(day)"
+                  aria-label="@($"{GsmFormat.DayShort(day.Date)}: {KindText(day.Kind)}")"
+                  data-testid="@($"streak-day-{day.Date:yyyy-MM-dd}")"
+                  data-kind="@day.Kind"
+                  data-note="@(day.Note is null ? null : "true")">@day.Date.Day</span>
+        }
+    </div>
+
+    <ul class="gsm-streak-legend" aria-label="Cómo leer el calendario">
+        <li><i class="gsm-streak-cal__day--trained"></i> Entrenaste</li>
+        @if (_calendar.HasRoutine || _calendar.Days.Any(d => d.Kind == "rest"))
+        {
+            <li><i class="gsm-streak-cal__day--rest"></i> Descanso de tu rutina</li>
+        }
+        <li><i class="gsm-streak-cal__day--frozen"></i> Salvado por un congelador</li>
+        <li><i class="gsm-streak-cal__day--missed"></i> Te tocaba y no fuiste</li>
+    </ul>
+
+    @foreach (var day in _calendar.Days.Where(d => d.Note is not null))
+    {
+        <MudAlert Severity="Severity.Normal" Dense="true" Class="mb-2" data-testid="@($"streak-note-{day.Date:yyyy-MM-dd}")">
+            <strong>@GsmFormat.DayShort(day.Date):</strong> @day.Note
+        </MudAlert>
+    }
+
+    <section class="gsm-m-card" style="display:block" data-testid="streak-freeze-info">
+        <h2 class="gsm-m-card__title">Congeladores</h2>
+        <MudText Typo="Typo.body2">
+            Un congelador salva un día de entrenamiento que no fuiste para que tu racha no se corte. Tienes
+            @_calendar.FreezesAvailable @(_calendar.FreezesAvailable == 1 ? "disponible" : "disponibles") (máximo 2).
+        </MudText>
+        @if (_calendar.NextFreezeOn is { } next)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1" data-testid="streak-next-freeze">
+                @(next <= _today ? "Ganas el siguiente en cuanto vuelvas a entrar a esta pantalla." : $"Ganas el siguiente el {GsmFormat.Day(next)}.")
+            </MudText>
+        }
+        @if (_calendar.FreezesUsedOn.Count > 0)
+        {
+            <MudText Typo="Typo.body2" Class="mt-2" data-testid="streak-freezes-used">
+                Los usaste en: @string.Join(", ", _calendar.FreezesUsedOn.Take(8).Select(GsmFormat.Day))@(_calendar.FreezesUsedOn.Count > 8 ? "…" : string.Empty)
+            </MudText>
+        }
+    </section>
+}
+
+@code {
+    private StreakCalendarResponse? _calendar;
+    private bool _loading = true;
+    private readonly DateOnly _today = GsmFormat.Today();
+    private int _year;
+    private int _month;
+
+    private string MonthLabel
+        => new DateTime(_year, _month, 1).ToString("MMMM 'de' yyyy", GsmFormat.Colombia);
+
+    private bool CanGoForward => new DateOnly(_year, _month, 1) < new DateOnly(_today.Year, _today.Month, 1);
+
+    private bool CanGoBack
+        => _calendar?.HistoryStart is { } start
+           && new DateOnly(_year, _month, 1) > new DateOnly(start.Year, start.Month, 1);
+
+    /// <summary>Casillas vacías antes del día 1 con la semana empezando el lunes.</summary>
+    private int LeadingBlanks
+        => _calendar is null || _calendar.Days.Count == 0 ? 0 : ((int)_calendar.Days[0].Date.DayOfWeek + 6) % 7;
+
+    private string TodayMessage => _calendar?.TodayKind switch
+    {
+        "trained" => "Hoy ya entrenaste. Tu racha sigue viva.",
+        "train" => "Hoy te toca entrenar para mantener tu racha.",
+        "rest" => "Hoy es tu día de descanso.",
+        _ => "Entrena hoy para sumar un día a tu racha.",
+    };
+
+    private static string KindText(string kind) => kind switch
+    {
+        "trained" => "entrenaste",
+        "rest" => "descanso de tu rutina",
+        "frozen" => "salvado por un congelador",
+        "missed" => "no fuiste",
+        "pending" => "hoy te toca entrenar",
+        _ => "sin actividad",
+    };
+
+    private static string? DayTitle(StreakCalendarDay day) => day.Note ?? KindText(day.Kind);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _year = _today.Year;
+        _month = _today.Month;
+        await LoadAsync();
+    }
+
+    private async Task PreviousAsync() => await ShiftAsync(-1);
+
+    private async Task NextAsync() => await ShiftAsync(1);
+
+    private async Task ShiftAsync(int months)
+    {
+        var target = new DateOnly(_year, _month, 1).AddMonths(months);
+        _year = target.Year;
+        _month = target.Month;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _calendar = await Me.GetMyStreakCalendarAsync(_year, _month);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

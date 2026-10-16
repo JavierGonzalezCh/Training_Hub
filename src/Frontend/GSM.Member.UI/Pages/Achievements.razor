@@ -1,129 +1,83 @@
 @page "/app/logros"
 @layout MemberLayout
 @attribute [Authorize(Roles = GsmRoles.Member)]
+@using GSM.Member.UI.MyProgress
 @inject GymContext GymCtx
-@inject IMeClient Me
-@inject ISnackbar Snackbar
 
-<PageTitle>Logros — GSM</PageTitle>
+@* "Mi progreso" (L7, Achievements v2 §8): una sola pantalla con tres pestañas, Racha, Logros y Ranking (si el gym lo
+   tiene encendido). Conserva la ruta /app/logros —la pestaña "Logros" de la barra inferior apunta ahí— y acepta
+   ?tab=racha|logros|ranking. El progreso por ejercicio (récords y gráficas) no está aquí: vive en /app/progreso, junto
+   a la rutina. *@
 
-<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Logros</MudText>
+<PageTitle>Mi progreso — GSM</PageTitle>
 
-@if (GymCtx.FeatureFlags is { ShowRanking: true, ShowGamification: true })
-{
-    <MudButton Href="/app/ranking" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
-               StartIcon="@Icons.Material.Outlined.Leaderboard" Class="mb-4" data-testid="ranking-link">Ver el ranking del mes</MudButton>
-}
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-3">Mi progreso</MudText>
 
-@if (GymCtx.FeatureFlags?.ShowGamification == false)
-{
-    <MudAlert Severity="Severity.Normal">La gamificación no está activada en este gimnasio.</MudAlert>
-}
-else if (_loading)
-{
-    <MudProgressCircular Indeterminate="true" />
-}
-else if (_achievements.Count == 0)
-{
-    <MudText Color="Color.Secondary">Todavía no hay logros configurados.</MudText>
-}
-else
-{
-    @if (PendingRewards.Count > 0)
+<div class="gsm-streak-tabs" role="tablist" aria-label="Secciones de Mi progreso">
+    @foreach (var tab in Tabs)
     {
-        <div class="mb-4" data-testid="pending-rewards">
-            @foreach (var reward in PendingRewards)
-            {
-                <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.CardGiftcard" Class="mb-2"
-                          data-testid="@($"pending-reward-{reward.AchievementId}")">
-                    Premio pendiente: <strong>@reward.RewardDescription</strong> · reclámalo en recepción@(reward.RewardExpiresAt is { } exp ? $" · vence el {exp:d MMM yyyy}" : string.Empty)
-                </MudAlert>
-            }
-        </div>
+        var current = tab.Key;
+        <button type="button" role="tab" id="@($"progress-tab-{tab.Key}")"
+                aria-selected="@(current == _active ? "true" : "false")"
+                class="gsm-streak-tabs__tab @(current == _active ? "is-active" : null)"
+                data-testid="@($"tab-{tab.Key}")"
+                @onclick="() => _active = current">@tab.Label</button>
     }
+</div>
 
-    <MudGrid>
-        @foreach (var achievement in _achievements)
-        {
-            <MudItem xs="6" sm="4">
-                <MudPaper Class="@($"pa-4 text-center gsm-achievement{(achievement.Unlocked ? "" : " gsm-achievement--locked")}")" Elevation="0">
-                    <MudIcon Icon="@(achievement.Unlocked ? Icons.Material.Filled.EmojiEvents : Icons.Material.Filled.Lock)"
-                             Size="Size.Large" Class="mb-2"
-                             Style="@($"color:{(achievement.Unlocked ? "var(--gsm-red)" : "var(--gsm-muted)")}")" />
-                    <MudText Typo="Typo.body1" Style="@(achievement.Unlocked ? null : "color:var(--gsm-silver)")">@achievement.Name</MudText>
-                    @if (achievement.IsManual)
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="manual-caption">
-                            @(achievement.Unlocked && !string.IsNullOrWhiteSpace(achievement.GrantReason) ? achievement.GrantReason : AchievementConditionLabels.Label(achievement.ConditionType))
-                        </MudText>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @AchievementConditionLabels.Label(achievement.ConditionType) · @achievement.Progress/@achievement.ConditionValue
-                        </MudText>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(achievement.RewardDescription))
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="@($"reward-line-{achievement.AchievementId}")">
-                            @RewardLine(achievement)
-                        </MudText>
-                    }
-                    @if (!achievement.Unlocked && !achievement.IsManual && achievement.ConditionValue > 0)
-                    {
-                        <div class="gsm-achievement-progress"
-                             role="progressbar"
-                             aria-valuenow="@achievement.Progress"
-                             aria-valuemin="0"
-                             aria-valuemax="@achievement.ConditionValue"
-                             aria-label="@($"Progreso de {achievement.Name}")">
-                            <span style="@($"width:{Math.Min(100, achievement.Progress * 100d / achievement.ConditionValue).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}%")"></span>
-                        </div>
-                    }
-                </MudPaper>
-            </MudItem>
-        }
-    </MudGrid>
-}
+<div role="tabpanel" aria-labelledby="@($"progress-tab-{_active}")" data-testid="@($"panel-{_active}")">
+    @if (_active == "racha")
+    {
+        <StreakPanel />
+    }
+    else if (_active == "ranking")
+    {
+        <RankingPanel />
+    }
+    else
+    {
+        <AchievementsPanel />
+    }
+</div>
 
 @code {
-    private List<MemberAchievementItem> _achievements = [];
-    private bool _loading = true;
+    /// <summary>Pestaña inicial: <c>racha</c> (por defecto), <c>logros</c> o <c>ranking</c>.</summary>
+    [Parameter, SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
 
-    /// <summary>Premios ganados que aún se pueden reclamar en recepción (L5), los que vencen antes primero.</summary>
-    private List<MemberAchievementItem> PendingRewards => _achievements
-        .Where(a => a.Unlocked && a.RewardStatus == "Pending" && !string.IsNullOrWhiteSpace(a.RewardDescription))
-        .OrderBy(a => a.RewardExpiresAt ?? DateTimeOffset.MaxValue)
-        .ToList();
+    private string _active = "racha";
 
-    private static string RewardLine(MemberAchievementItem a) => a.RewardStatus switch
+    private bool RankingOn => GymCtx.FeatureFlags is not { ShowRanking: false } and not { ShowGamification: false };
+
+    private List<(string Key, string Label)> Tabs
     {
-        "Pending" => $"Premio pendiente: {a.RewardDescription}",
-        "Delivered" => $"Premio entregado: {a.RewardDescription}",
-        "Expired" => $"Premio vencido: {a.RewardDescription}",
-        _ => $"Premio: {a.RewardDescription}",
-    };
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (GymCtx.FeatureFlags?.ShowGamification == false)
+        get
         {
-            _loading = false;
+            var tabs = new List<(string, string)> { ("racha", "Racha"), ("logros", "Logros") };
+            if (RankingOn)
+            {
+                tabs.Add(("ranking", "Ranking"));
+            }
+
+            return tabs;
+        }
+    }
+
+    private string? _appliedTab;
+
+    protected override void OnParametersSet()
+    {
+        // Solo cuando cambia el ?tab= de la dirección: así un re-render no deshace la pestaña que tocó el miembro.
+        if (Tab == _appliedTab)
+        {
             return;
         }
 
-        try
+        _appliedTab = Tab;
+        var requested = Tab?.Trim().ToLowerInvariant();
+        if (requested is not null && Tabs.Any(t => t.Key == requested))
         {
-            var result = await Me.AchievementsAll2Async();
-            _achievements = result.ToList();
-        }
-        catch (GsmApiException ex)
-        {
-            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
-        }
-        finally
-        {
-            _loading = false;
+            _active = requested;
         }
     }
 }
