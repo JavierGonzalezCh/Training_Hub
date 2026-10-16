@@ -167,10 +167,22 @@ public sealed class CheckInHandler(
             EntryChannel.Document => AttendanceMethod.Document,
             _ => AttendanceMethod.Manual,
         };
+
+        // A6: geocerca solo con el QR fijo y solo si el gym configuró sus coordenadas. Se guarda el resultado,
+        // nunca las coordenadas. Fuera del radio o sin ubicación la entrada se registra igual (acceso, tiquetera y
+        // ocupación), pero no cuenta para logros ni racha.
+        LocationCheck? locationCheck = null;
+        if (channel == EntryChannel.Qr && settings.Mode == CheckinMode.Static
+            && await gyms.GetGeofenceAsync(gymId, cancellationToken) is { } fence)
+        {
+            locationCheck = GeoDistance.Evaluate(fence, request.Latitude, request.Longitude);
+        }
+
         var record = AttendanceEntity.Create(
             gymId, member.Id, method, clock.UtcNow, today,
             authorizationReason is null ? null : currentUser.UserId,
-            authorizationReason);
+            authorizationReason,
+            locationCheck);
         attendance.Add(record);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await events.PublishAsync(new CheckInRegistered(record.Id, gymId, member.Id, record.AttendanceDate), cancellationToken);
@@ -182,8 +194,9 @@ public sealed class CheckInHandler(
         }
 
         logger.LogInformation(
-            "Check-in {AttendanceId} de miembro {MemberId}{Authorized}",
-            record.Id, member.Id, record.AuthorizedBy is null ? string.Empty : " (entrada autorizada)");
+            "Check-in {AttendanceId} de miembro {MemberId}{Authorized} (ubicación: {LocationCheck})",
+            record.Id, member.Id, record.AuthorizedBy is null ? string.Empty : " (entrada autorizada)",
+            locationCheck?.ToString() ?? "no pedida");
 
         // Tiquetera (MS5): el evento ya descontó esta entrada; el saldo y el letrero deben reflejarlo
         // ("Te quedan 2 entradas" tras entrar, no antes). Si el manejador falló, queda el saldo anterior.
@@ -198,7 +211,10 @@ public sealed class CheckInHandler(
                 : after.Notice;
         }
 
-        var unlocked = await achievements.EvaluateForMemberAsync(member.Id, cancellationToken);
+        // Una entrada que no cuenta para el progreso no desbloquea logros (los lectores de Attendance ya la excluyen).
+        IReadOnlyList<UnlockedAchievement> unlocked = record.CountsForProgress
+            ? await achievements.EvaluateForMemberAsync(member.Id, cancellationToken)
+            : [];
 
         var covered = access.Kind is AccessKind.Covered or AccessKind.Expiring;
         var response = new CheckInResponse(
@@ -216,7 +232,10 @@ public sealed class CheckInHandler(
             Authorized: record.AuthorizedBy is not null,
             MissingWaiver: !await members.HasLiabilityWaiverAsync(member.Id, cancellationToken),
             EntriesLeft: entriesLeft,
-            EntriesTotal: access.EntriesTotal);
+            EntriesTotal: access.EntriesTotal,
+            LocationCheck: record.LocationCheck?.ToString(),
+            CountsForProgress: record.CountsForProgress,
+            LocationNotice: GeoDistance.NoticeFor(record.LocationCheck));
 
         return (response, true);
     }

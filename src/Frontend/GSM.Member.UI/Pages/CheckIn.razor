@@ -4,6 +4,7 @@
 @inject IAttendanceClient Attendance
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Navigation
+@inject IDeviceLocation Location
 
 <PageTitle>Registrar entrada — GSM</PageTitle>
 
@@ -14,6 +15,10 @@
     <div class="d-flex justify-center mt-8" role="status" aria-label="Registrando tu entrada">
         <MudProgressCircular Indeterminate="true" />
     </div>
+    @if (_locating)
+    {
+        <p class="text-center mt-4" id="checkin-locating">Obteniendo tu ubicación…</p>
+    }
 }
 else
 {
@@ -24,6 +29,14 @@ else
         <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4 gsm-checkin-notice" role="alert"
                   ShowCloseIcon="true" CloseIconClicked="@(() => _noticeDismissed = true)" id="checkin-notice">
             <MudText Typo="Typo.h6">@_result!.Notice</MudText>
+        </MudAlert>
+    }
+
+    @* Geocerca del QR fijo (A6): la entrada se registró, pero sin ubicación o fuera del radio no suma a racha ni logros. *@
+    @if (!string.IsNullOrEmpty(_result?.LocationNotice))
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4" role="status" id="checkin-location-notice">
+            @_result!.LocationNotice
         </MudAlert>
     }
 
@@ -58,6 +71,7 @@ else
     private string? _detail;
     private CheckInResponse? _result;
     private bool _noticeDismissed;
+    private bool _locating;
 
     // Solo OnInitialized: al quitar ?t= de la URL la página no se reinicia y conserva el resultado.
     protected override async Task OnInitializedAsync()
@@ -80,7 +94,24 @@ else
         var code = Code;
         try
         {
-            _result = await Attendance.CheckinAsync(new CheckInRequest { GymCode = code });
+            var request = new CheckInRequest { GymCode = code };
+
+            // Solo con el QR fijo y un gym con coordenadas se pide la ubicación (A6). Si la niega, el servidor
+            // registra la entrada igual, pero sin sumar a racha ni logros.
+            if (await LocationRequiredAsync())
+            {
+                _locating = true;
+                StateHasChanged();
+                var location = await Location.GetAsync();
+                _locating = false;
+                if (location is not null)
+                {
+                    request.Latitude = location.Latitude;
+                    request.Longitude = location.Longitude;
+                }
+            }
+
+            _result = await Attendance.CheckinAsync(request);
             Resolve(_result);
         }
         catch (GsmApiException ex)
@@ -110,6 +141,24 @@ else
         {
             // Fuera de la URL el código: recargar ya no repite el intento.
             Navigation.NavigateTo(GymCodeLink.CheckinPath, replace: true);
+        }
+    }
+
+    private async Task<bool> LocationRequiredAsync()
+    {
+        if (!Location.IsSupported)
+        {
+            return false;
+        }
+
+        try
+        {
+            return (await Attendance.GetCheckinLocationPolicyAsync()).LocationRequired;
+        }
+        catch (Exception)
+        {
+            // Sin la política no se bloquea el check-in: se registra sin comprobar la ubicación.
+            return false;
         }
     }
 

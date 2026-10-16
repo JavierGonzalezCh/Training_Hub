@@ -3,7 +3,7 @@ using AttendanceEntity = GSM.Domain.Attendance.Attendance;
 namespace GSM.Application.Attendance.Abstractions;
 
 public sealed record AttendancePageQuery(
-    Guid? MemberId, DateOnly? From, DateOnly? To, int Page, int PageSize, bool AuthorizedOnly = false, bool IncludeVoided = false, bool DocumentOnly = false);
+    Guid? MemberId, DateOnly? From, DateOnly? To, int Page, int PageSize, bool AuthorizedOnly = false, bool IncludeVoided = false, bool DocumentOnly = false, bool NotCountedOnly = false);
 
 public interface IAttendanceRepository
 {

@@ -12,9 +12,13 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
     // Las entradas anuladas no cuentan para nada (visitas, racha, mes, último día).
     private IQueryable<AttendanceEntity> Attendances => dbContext.Set<AttendanceEntity>().Where(a => a.VoidedAt == null);
 
+    // A6: lo que cuenta para logros y racha excluye las entradas con QR fijo fuera del radio o sin ubicación.
+    private IQueryable<AttendanceEntity> ProgressAttendances => Attendances
+        .Where(a => a.LocationCheck == null || a.LocationCheck == GSM.Domain.Attendance.LocationCheck.Inside);
+
     // Visitas = días con entrada, no entradas: los logros cuentan días (A1b, §3.2).
     public Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default)
-        => Attendances.Where(a => a.MemberId == memberId).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
+        => ProgressAttendances.Where(a => a.MemberId == memberId).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
 
     public async Task<IReadOnlyDictionary<Guid, int>> GetVisitCountsAsync(
         IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
@@ -24,7 +28,7 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
             return new Dictionary<Guid, int>();
         }
 
-        return await Attendances
+        return await ProgressAttendances
             .Where(a => memberIds.Contains(a.MemberId))
             .GroupBy(a => a.MemberId)
             .Select(g => new { MemberId = g.Key, Days = g.Select(a => a.AttendanceDate).Distinct().Count() })
@@ -55,7 +59,7 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
 
     public async Task<int> GetStreakAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
-        var dates = await Attendances
+        var dates = await ProgressAttendances
             .Where(a => a.MemberId == memberId)
             .Select(a => a.AttendanceDate)
             .Distinct()
@@ -66,7 +70,7 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
 
     public async Task<IReadOnlyList<DateOnly>> GetAttendanceDatesAsync(
         Guid memberId, DateOnly? from = null, CancellationToken cancellationToken = default)
-        => await Attendances
+        => await ProgressAttendances
             .Where(a => a.MemberId == memberId && (from == null || a.AttendanceDate >= from))
             .Select(a => a.AttendanceDate)
             .Distinct()

@@ -26,5 +26,6 @@ builder.Services.AddScoped<GSM.UI.Shared.IClipboard, BrowserClipboard>();
 builder.Services.AddScoped<GSM.UI.Shared.Diagnostics.IClientEnvironment, BrowserClientEnvironment>();
 builder.Services.AddScoped<GSM.UI.Shared.Push.IPushNotifications, BrowserPushNotifications>();
 builder.Services.AddSingleton<GSM.Member.UI.IQrScanner, GSM.Member.UI.UnsupportedQrScanner>();
+builder.Services.AddScoped<GSM.Member.UI.IDeviceLocation, BrowserDeviceLocation>();
 
 await builder.Build().RunAsync();

@@ -7,8 +7,16 @@ namespace GSM.Application.Attendance.Contracts;
 /// Staff/Owner: `MemberId` (registro manual). Miembro: `GymCode`, el código del QR del gym.
 /// `AuthorizationReason` es el motivo de "Dejar pasar": solo el staff, y solo cuando la membresía no
 /// deja entrar (vencida fuera de la gracia, sin plan o congelada). Sin motivo → 422.
+/// `Latitude`/`Longitude`: ubicación del teléfono del miembro (A6), solo con el QR fijo y si el gym tiene
+/// coordenadas. No se guardan: el servidor calcula la distancia y guarda solo el resultado (`LocationCheck`).
 /// </summary>
-public sealed record CheckInRequest(Guid? MemberId, string? GymCode, string? AuthorizationReason = null);
+public sealed record CheckInRequest(
+    Guid? MemberId, string? GymCode, string? AuthorizationReason = null, double? Latitude = null, double? Longitude = null);
+
+/// <summary>
+/// ¿Debe la app pedir la ubicación al escanear? Solo con el QR fijo y si el gym configuró sus coordenadas (A6).
+/// </summary>
+public sealed record CheckinLocationPolicyResponse(bool LocationRequired);
 
 /// <param name="Notice">Letrero de §5.3 (por vencer o en gracia). Nulo si no hay nada que avisar.</param>
 /// <param name="DaysLeft">Días que le quedan cubiertos (0 = vence hoy). Nulo en gracia o sin cobertura.</param>
@@ -31,7 +39,10 @@ public sealed record CheckInResponse(
     bool Authorized = false,
     bool MissingWaiver = false,
     int? EntriesLeft = null,
-    int? EntriesTotal = null);
+    int? EntriesTotal = null,
+    string? LocationCheck = null,
+    bool CountsForProgress = true,
+    string? LocationNotice = null);
 
 public sealed record CheckinAttemptItem(
     Guid Id,
@@ -71,7 +82,9 @@ public sealed record AttendanceListItem(
     DateTimeOffset? VoidedAt = null,
     Guid? VoidedBy = null,
     string? VoidedByName = null,
-    string? VoidReason = null);
+    string? VoidReason = null,
+    string? LocationCheck = null,
+    bool CountsForProgress = true);
 
 public sealed record VoidCheckInRequest(string Reason);
 
@@ -91,6 +104,9 @@ public sealed record ListAttendanceQuery
 
     /// <summary>Incluye también las entradas anuladas (con su motivo). Por defecto no salen.</summary>
     public bool IncludeVoided { get; init; }
+
+    /// <summary>Solo las entradas con QR fijo fuera del radio o sin ubicación: no cuentan para logros ni racha (A6).</summary>
+    public bool NotCountedOnly { get; init; }
 
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;

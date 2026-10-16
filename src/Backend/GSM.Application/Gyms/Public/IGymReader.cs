@@ -16,6 +16,12 @@ public interface IGymReader
     /// <summary>Aforo del gym (personas a la vez); <c>null</c> si no lo configuró o el gym no existe (A5).</summary>
     Task<int?> GetCapacityAsync(Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Coordenadas y radio de la geocerca del gym (A6). <c>null</c> si el gym no configuró sus coordenadas o no existe:
+    /// en ese caso no se pide ubicación y todas las entradas cuentan.
+    /// </summary>
+    Task<GymGeofence?> GetGeofenceAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     Task<GymFeatureFlagsView?> GetFeatureFlagsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     /// <summary>Ficha del gym para SuperAdmin, incluido su estado comercial manual. <c>null</c> si no existe.</summary>
@@ -43,6 +49,8 @@ public interface IGymReader
     /// <summary>¿Está abierto el gym en ese instante? Sin horario cargado, siempre <c>true</c>.</summary>
     Task<bool> IsOpenAtAsync(Guid gymId, DateTimeOffset instant, CancellationToken cancellationToken = default);
 }
+
+public sealed record GymGeofence(double Latitude, double Longitude, int RadiusMeters);
 
 public sealed record GymAdminView(
     Guid Id,

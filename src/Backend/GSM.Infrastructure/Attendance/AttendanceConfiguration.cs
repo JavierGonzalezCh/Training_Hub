@@ -18,6 +18,10 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
         builder.Property(a => a.VoidReason).HasMaxLength(500);
         builder.Ignore(a => a.IsVoided);
 
+        // A6: resultado de la geocerca con el QR fijo (nulo = no se pidió). Nunca se guardan coordenadas.
+        builder.Property(a => a.LocationCheck).HasColumnName("location_check");
+        builder.Ignore(a => a.CountsForProgress);
+
         builder.HasIndex(a => new { a.MemberId, a.AttendanceDate });
         // Requerido por el plan.
         builder.HasIndex(a => new { a.GymId, a.CheckedInAt });

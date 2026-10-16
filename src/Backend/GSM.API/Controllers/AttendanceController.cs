@@ -27,6 +27,18 @@ public sealed class AttendanceController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
+    /// <summary>
+    /// ¿Debe la app pedir la ubicación del teléfono antes de registrar la entrada? Solo con el QR fijo y si el gym
+    /// tiene coordenadas (A6). Lo consulta la app del miembro antes de llamar a `checkin`.
+    /// </summary>
+    [HttpGet("checkin/location-policy")]
+    [Authorize]
+    [EndpointName("GetCheckinLocationPolicy")]
+    [ProducesResponseType<CheckinLocationPolicyResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<CheckinLocationPolicyResponse>> GetCheckinLocationPolicy(
+        [FromServices] GetCheckinLocationPolicyHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     /// <summary>Tarjeta de recepción: estado del miembro antes de registrar su entrada. No cambia datos.</summary>
     [HttpGet("reception/{memberId:guid}")]
     [Authorize(Policy = AuthPolicies.RequireStaff)]
