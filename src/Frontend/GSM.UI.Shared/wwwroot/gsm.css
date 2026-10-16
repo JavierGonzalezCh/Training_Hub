@@ -498,6 +498,14 @@ body,
     }
 }
 
+/* Dashboard del panel en celular (D1): los indicadores van en dos filas compactas, no en una columna larga. */
+@media (max-width: 559px) {
+    .gsm-kpi-grid--compact {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+}
+
 .gsm-kpi {
     display: flex;
     flex-direction: column;

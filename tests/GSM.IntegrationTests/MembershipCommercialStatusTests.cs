@@ -151,8 +151,8 @@ public sealed class MembershipCommercialStatusTests(ApiFactory factory) : IClass
         Assert.DoesNotContain(noPlan.Items, i => i.Id == w.Members[0]);
 
         var dashboard = await s.ServiceProvider.GetRequiredService<GetDashboardHandler>().HandleAsync(default);
-        Assert.Equal(1, dashboard.CommercialStatus.Scheduled);
-        Assert.Equal(4, dashboard.CommercialStatus.NoPlan);
+        Assert.Equal(1, dashboard.Indicators!.CommercialStatus.Scheduled);
+        Assert.Equal(4, dashboard.Indicators.CommercialStatus.NoPlan);
 
         var reader = s.ServiceProvider.GetRequiredService<IMembershipReader>();
         var access = await reader.GetAccessStatusAsync(w.Members[0]);
@@ -361,8 +361,8 @@ public sealed class MembershipCommercialStatusTests(ApiFactory factory) : IClass
         }
 
         var dashboard = await s.ServiceProvider.GetRequiredService<GetDashboardHandler>().HandleAsync(default);
-        Assert.Equal(new CommercialStatusCounts(1, 1, 1, 1, 0, 1, 0), dashboard.CommercialStatus);
-        Assert.Equal(7, dashboard.ExpiringDays);
+        Assert.Equal(new CommercialStatusCounts(1, 1, 1, 1, 0, 1, 0), dashboard.Indicators!.CommercialStatus);
+        Assert.Equal(7, dashboard.Indicators.ExpiringDays);
     }
 
     [Fact]
@@ -377,7 +377,7 @@ public sealed class MembershipCommercialStatusTests(ApiFactory factory) : IClass
 
         using var scope = Scope(w, UserRole.Staff);
         var dashboard = await scope.ServiceProvider.GetRequiredService<GetDashboardHandler>().HandleAsync(default);
-        Assert.Equal(0, dashboard.CommercialStatus.Current);
+        Assert.Equal(0, dashboard.Indicators!.CommercialStatus.Current);
     }
 
     [Fact]

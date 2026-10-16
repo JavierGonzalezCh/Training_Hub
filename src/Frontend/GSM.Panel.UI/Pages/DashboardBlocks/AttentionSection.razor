@@ -1,0 +1,165 @@
+@* "Requiere atención" del panel del gym (D1): máquinas fuera de servicio y reportes abiertos, intentos de entrada
+   rechazados hoy, solicitudes de anulación pendientes y la caja abierta. Cada parte llega (o no) según los permisos de
+   quien mira y la decide el servidor: aquí solo se dibuja lo que viene. *@
+@inject NavigationManager Navigation
+
+<section class="gsm-panel" aria-labelledby="attention-title" data-testid="dash-attention">
+    <header class="gsm-panel__header">
+        <h2 id="attention-title" class="gsm-panel__title">Requiere atención</h2>
+        <span class="gsm-panel__meta">@Meta()</span>
+    </header>
+
+    @if (!AnyContent())
+    {
+        <div class="gsm-empty" data-testid="attention-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.GppGood" Class="gsm-empty-icon" />
+            <span>Nada pide atención ahora.</span>
+        </div>
+    }
+    else
+    {
+        <div class="gsm-kpi-grid gsm-kpi-grid--compact" style="margin-bottom:1rem">
+            @if (Block.Equipment is { } equipment && (equipment.OutOfService > 0 || equipment.OpenIssues > 0))
+            {
+                <EquipmentCards AutoLoad="false" Summary="@ToSummary(equipment)" />
+            }
+            @if (Block.Rejected is { Total: > 0 } rejected)
+            {
+                <div data-testid="attention-rejected">
+                    <a href="/attendance" style="text-decoration:none;color:inherit">
+                        <StatCard Label="Entradas rechazadas hoy" Value="@rejected.Total.ToString()"
+                                  Accent="@(rejected.Unseen > 0 ? Color.Error : Color.Default)"
+                                  Hint="@(rejected.Unseen == 0 ? "Todas atendidas" : rejected.Unseen == 1 ? "1 sin atender" : $"{rejected.Unseen} sin atender")" />
+                    </a>
+                </div>
+            }
+            @if (Block.VoidRequests is { Pending: > 0 } voids)
+            {
+                <div data-testid="attention-voids">
+                    <a href="/payments" style="text-decoration:none;color:inherit">
+                        <StatCard Label="Solicitudes de anulación" Value="@voids.Pending.ToString()" Accent="Color.Warning"
+                                  Hint="Esperan tu aprobación" />
+                    </a>
+                </div>
+            }
+            @if (Cash is { } cash)
+            {
+                <div data-testid="attention-cash">
+                    <a href="/cash-register" style="text-decoration:none;color:inherit">
+                        <StatCard Label="@(cash.IsStale ? "Caja olvidada" : "Caja abierta")"
+                                  Value="@GsmFormat.Money((decimal)cash.ExpectedCash)"
+                                  Accent="@(cash.IsStale ? Color.Error : Color.Default)"
+                                  Hint="@CashHint(cash)" />
+                    </a>
+                </div>
+            }
+        </div>
+
+        @if (Block.Equipment is { Machines.Count: > 0 } machines)
+        {
+            <ul class="gsm-list" data-testid="attention-machines" aria-label="Máquinas fuera de servicio">
+                @foreach (var machine in machines.Machines)
+                {
+                    <li class="gsm-identity">
+                        <MudIcon Icon="@Icons.Material.Outlined.BuildCircle" Size="Size.Small" />
+                        <MudLink OnClick="@(() => Navigation.NavigateTo($"/equipment/{machine.Id}"))" Underline="Underline.None">
+                            @machine.Name
+                        </MudLink>
+                        @if (machine.HasUnsafeIssue)
+                        {
+                            <span class="gsm-tag" data-testid="machine-unsafe">Insegura</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(machine.Zone))
+                        {
+                            <span class="gsm-panel__meta">@machine.Zone</span>
+                        }
+                    </li>
+                }
+            </ul>
+            <a class="gsm-panel__link" href="/equipment/issues">Ver reportes</a>
+        }
+
+        @if (Block.Rejected is { Items.Count: > 0 } rejectedList)
+        {
+            <ol class="gsm-feed" data-testid="attention-rejected-list">
+                @foreach (var item in rejectedList.Items)
+                {
+                    <li class="gsm-feed__item">
+                        <span class="gsm-feed__time">@GsmFormat.Time(item.AttemptedAt)</span>
+                        <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(item.MemberName)</span>
+                        <a class="gsm-feed__name" href="@($"/members/{item.MemberId}")">@item.MemberName</a>
+                        <span class="gsm-tag">@AttemptLabel(item.Reason)@(item.AttemptCount > 1 ? $" · x{item.AttemptCount}" : "")</span>
+                    </li>
+                }
+            </ol>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public AttentionBlock Block { get; set; } = default!;
+
+    /// <summary>La caja abierta; la dibuja el panel porque se refresca sola cada 60 s (puede traer algo más nuevo que el bloque).</summary>
+    [Parameter]
+    public CashBlock? Cash { get; set; }
+
+    public static string AttemptLabel(string reason) => reason switch
+    {
+        "no_membership" => "Sin membresía",
+        "membership_frozen" => "Congelada",
+        "pass_exhausted" => "Sin entradas",
+        "member_inactive" => "De baja",
+        "already_checked_in" => "Ya entró hoy",
+        _ => "Vencida",
+    };
+
+    public static string CashHint(CashBlock cash)
+    {
+        var who = cash.IsMine ? "La abriste tú" : $"Abrió {cash.OpenedByName ?? "otra persona"}";
+        return cash.IsStale
+            ? $"{who} el {GsmFormat.DayShort(DateOnly.FromDateTime(GsmFormat.GymLocal(cash.OpenedAt)))}: ciérrala"
+            : $"{who} · {GsmFormat.Time(cash.OpenedAt)} · efectivo esperado";
+    }
+
+    private static EquipmentSummaryResponse ToSummary(EquipmentAttentionBlock e)
+        => new()
+        {
+            OutOfService = e.OutOfService,
+            InMaintenance = e.InMaintenance,
+            OpenIssues = e.OpenIssues,
+            UrgentIssues = e.UrgentIssues,
+        };
+
+    private bool AnyContent()
+        => Cash is not null
+           || Block.Equipment is { } e && (e.OutOfService > 0 || e.OpenIssues > 0)
+           || Block.Rejected is { Total: > 0 }
+           || Block.VoidRequests is { Pending: > 0 };
+
+    private string Meta()
+    {
+        var count = 0;
+        if (Block.Equipment is { } e && (e.OutOfService > 0 || e.OpenIssues > 0))
+        {
+            count++;
+        }
+
+        if (Block.Rejected is { Total: > 0 })
+        {
+            count++;
+        }
+
+        if (Block.VoidRequests is { Pending: > 0 })
+        {
+            count++;
+        }
+
+        if (Cash is not null)
+        {
+            count++;
+        }
+
+        return count == 0 ? "Todo en orden" : count == 1 ? "1 aviso" : $"{count} avisos";
+    }
+}

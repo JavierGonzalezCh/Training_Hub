@@ -1,3 +1,4 @@
+using GSM.Application.Common.Abstractions;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Public;
 using GSM.Domain.Routines;
@@ -10,7 +11,7 @@ namespace GSM.Infrastructure.Routines;
 /// Lectura para el compositor de racha y para Achievements. Respeta el Global Query Filter:
 /// el llamador siempre opera en su gym.
 /// </summary>
-public sealed class RoutineReader(GsmDbContext dbContext) : IRoutineReader
+public sealed class RoutineReader(GsmDbContext dbContext, IClock clock) : IRoutineReader
 {
     private IQueryable<Routine> Routines => dbContext.Set<Routine>();
 
@@ -166,5 +167,38 @@ public sealed class RoutineReader(GsmDbContext dbContext) : IRoutineReader
         return LiftingStatsCalculator.Compute(rows
             .Where(r => repsWeight.Contains(r.ExerciseId))
             .Select(r => (r.ExerciseId, new ProgressLog(r.PerformedOn, r.SelfAssigned, r.Sets))));
+    }
+
+    public async Task<DueRoutinesCount> GetDueForReviewCountAsync(
+        IReadOnlyCollection<Guid>? memberIds, int windowDays, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        var until = today.AddDays(windowDays);
+
+        var query = Routines.Where(r => r.IsActive && !r.SelfAssigned && r.ReviewOn <= until);
+        if (memberIds is not null)
+        {
+            query = query.Where(r => memberIds.Contains(r.MemberId));
+        }
+
+        var due = await query.CountAsync(cancellationToken);
+        var overdue = await query.CountAsync(r => r.ReviewOn < today, cancellationToken);
+        return new DueRoutinesCount(due, overdue);
+    }
+
+    public async Task<IReadOnlySet<Guid>> GetMemberIdsWithActiveRoutineAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return new HashSet<Guid>();
+        }
+
+        return (await Routines
+                .Where(r => r.IsActive && memberIds.Contains(r.MemberId))
+                .Select(r => r.MemberId)
+                .Distinct()
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
     }
 }

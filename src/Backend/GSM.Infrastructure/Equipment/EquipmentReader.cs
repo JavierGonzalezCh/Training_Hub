@@ -74,4 +74,34 @@ public sealed class EquipmentReader(GsmDbContext dbContext) : IEquipmentReader
             .Select(m => new EquipmentModelInfo(m.Id, m.Name, m.Type))
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<EquipmentAttentionView> GetAttentionAsync(
+        Guid gymId, int itemLimit, CancellationToken cancellationToken = default)
+    {
+        var items = await GetActiveItemsAsync(gymId, cancellationToken);
+        var outOfService = items.Where(i => i.Status == EquipmentStatus.OutOfService).ToList();
+        var inMaintenance = items.Count(i => i.Status == EquipmentStatus.Maintenance);
+
+        var unclosed = dbContext.Set<EquipmentIssue>()
+            .IgnoreQueryFilters()
+            .Where(i => i.GymId == gymId
+                        && (i.Status == EquipmentIssueStatus.Open || i.Status == EquipmentIssueStatus.InProgress));
+        var open = await unclosed.CountAsync(cancellationToken);
+        var urgent = await unclosed.CountAsync(i => i.Reason == EquipmentIssueReason.Unsafe, cancellationToken);
+        var unsafeItemIds = (await unclosed
+                .Where(i => i.Reason == EquipmentIssueReason.Unsafe)
+                .Select(i => i.ItemId)
+                .Distinct()
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+
+        var list = outOfService
+            .Select(i => new OutOfServiceItemView(i.Id, i.Name, i.Zone, i.ExpectedBackOn, unsafeItemIds.Contains(i.Id)))
+            .OrderByDescending(i => i.HasUnsafeIssue)
+            .ThenBy(i => i.Name)
+            .Take(Math.Clamp(itemLimit, 1, 20))
+            .ToList();
+
+        return new EquipmentAttentionView(outOfService.Count, inMaintenance, open, urgent, list);
+    }
 }

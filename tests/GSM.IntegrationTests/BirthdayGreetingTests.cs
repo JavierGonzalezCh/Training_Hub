@@ -212,7 +212,7 @@ public sealed class BirthdayGreetingTests(ApiFactory factory) : IClassFixture<Ap
         using var scope = AsOwner(w, AtLocal(Birthday, 9));
         var dashboard = await scope.ServiceProvider.GetRequiredService<GetDashboardHandler>().HandleAsync(default);
 
-        var row = Assert.Single(dashboard.BirthdaysToday);
+        var row = Assert.Single(dashboard.Today!.Birthdays!);
         Assert.Equal(ana, row.MemberId);
         Assert.Contains("Ana", row.MemberName);
     }

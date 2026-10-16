@@ -30,7 +30,7 @@ public static class OccupancyLevel
 /// Estimación de cuánta gente hay adentro: personas distintas con una entrada no anulada en la permanencia asumida
 /// del gym (la salida no se registra). El aforo es de Gyms y se lee por <see cref="IGymReader"/>.
 /// </summary>
-internal static class OccupancyEstimator
+public static class OccupancyEstimator
 {
     public static async Task<OccupancyResponse> EstimateAsync(
         Guid gymId,

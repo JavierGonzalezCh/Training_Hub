@@ -30,4 +30,27 @@ public interface IClassReader
 
     /// <summary>Nombre de la clase (para los avisos de Comunicaciones). Nulo si no existe.</summary>
     Task<string?> GetClassNameAsync(Guid classId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Las sesiones de hoy del gym (calculadas + materializadas, ordenadas por hora) con reservas, cupo y lista de
+    /// espera, para el dashboard del panel (D1). El cupo es el efectivo (limitado por las máquinas ligadas).
+    /// </summary>
+    Task<IReadOnlyList<TodaySessionView>> GetTodaySessionsAsync(Guid gymId, CancellationToken cancellationToken = default);
 }
+
+/// <param name="Status"><c>Scheduled</c> o <c>Cancelled</c>.</param>
+/// <param name="Capacity">Cupo efectivo; nulo = entrada libre.</param>
+/// <param name="Booked">Reservas vigentes (solo se cuentan si la sesión ya existe; si nadie ha reservado vale 0).</param>
+/// <param name="Waiting">Personas en la lista de espera (esperando u con oferta vigente).</param>
+public sealed record TodaySessionView(
+    Guid ClassId,
+    string ClassName,
+    TimeOnly StartTime,
+    int DurationMinutes,
+    string? InstructorName,
+    Guid? InstructorUserId,
+    string Status,
+    int? Capacity,
+    int Booked,
+    int Waiting,
+    bool OutsideOpeningHours);

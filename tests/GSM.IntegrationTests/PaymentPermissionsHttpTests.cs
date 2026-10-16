@@ -50,14 +50,13 @@ public sealed class PaymentPermissionsHttpTests(ApiFactory factory) : IClassFixt
         Assert.NotEqual(HttpStatusCode.Forbidden, ofMember.StatusCode);
 
         var dash = (await staff.GetFromJsonAsync<DashboardResponse>("/api/dashboard"))!;
-        Assert.Null(dash.RevenueThisMonth);
-        Assert.Null(dash.RevenueLastMonth);
+        Assert.Null(dash.Finances);
 
         // El Owner ve todo.
         Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync("/api/payments")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync("/api/cash-register/daily")).StatusCode);
         var ownerDash = (await owner.GetFromJsonAsync<DashboardResponse>("/api/dashboard"))!;
-        Assert.True(ownerDash.RevenueThisMonth >= 50_000m);
+        Assert.True(ownerDash.Finances!.RevenueThisMonth >= 50_000m);
     }
 
     [Fact]
@@ -72,7 +71,7 @@ public sealed class PaymentPermissionsHttpTests(ApiFactory factory) : IClassFixt
         var list = await staff.GetFromJsonAsync<PagedResult<PaymentResponse>>("/api/payments");
         Assert.NotNull(list);
         Assert.Equal(HttpStatusCode.OK, (await staff.GetAsync("/api/cash-register/daily")).StatusCode);
-        Assert.NotNull((await staff.GetFromJsonAsync<DashboardResponse>("/api/dashboard"))!.RevenueThisMonth);
+        Assert.NotNull((await staff.GetFromJsonAsync<DashboardResponse>("/api/dashboard"))!.Finances);
     }
 
     // ---- criterio 2: VoidPayments y solicitud ----

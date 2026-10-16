@@ -44,4 +44,19 @@ public interface IRoutineReader
     /// </summary>
     Task<LiftingStats> GetLiftingStatsAsync(
         Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Rutinas activas armadas por el staff con la revisión vencida o dentro de los próximos
+    /// <paramref name="windowDays"/> días (D1). <paramref name="memberIds"/> las limita a esos miembros; nulo = todas.
+    /// </summary>
+    Task<DueRoutinesCount> GetDueForReviewCountAsync(
+        IReadOnlyCollection<Guid>? memberIds, int windowDays, CancellationToken cancellationToken = default);
+
+    /// <summary>De <paramref name="memberIds"/>, los que tienen al menos una rutina activa (D1: "mis miembros sin rutina").</summary>
+    Task<IReadOnlySet<Guid>> GetMemberIdsWithActiveRoutineAsync(
+        IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
 }
+
+/// <param name="Due">Por revisar: vencidas más las que vencen dentro de la ventana.</param>
+/// <param name="Overdue">Las que ya pasaron su fecha de revisión.</param>
+public sealed record DueRoutinesCount(int Due, int Overdue);
