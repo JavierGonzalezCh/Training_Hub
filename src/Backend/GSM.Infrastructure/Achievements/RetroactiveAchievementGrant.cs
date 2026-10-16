@@ -135,6 +135,8 @@ public sealed class RetroactiveAchievementGrant(
                     0),
                 AchievementConditionType.Classes => achievement.IsMetBy(
                     0, 0, 0, await classes.GetAttendedCountAsync(memberId, cancellationToken)),
+                AchievementConditionType.PersonalRecords or AchievementConditionType.LiftedVolume => IsLiftingMet(
+                    achievement, await routines.GetLiftingStatsAsync(memberId, onlyAssigned: true, cancellationToken)),
                 _ => false,
             };
 
@@ -146,4 +148,10 @@ public sealed class RetroactiveAchievementGrant(
 
         return eligible;
     }
+
+    private static bool IsLiftingMet(Achievement achievement, GSM.Application.Routines.LiftingStats stats)
+        => achievement.IsMetBy(
+            0, 0, 0, 0,
+            personalRecords: stats.PersonalRecords,
+            liftedVolumeKg: AchievementMetrics.ToWholeKg(stats.LiftedVolumeKg));
 }

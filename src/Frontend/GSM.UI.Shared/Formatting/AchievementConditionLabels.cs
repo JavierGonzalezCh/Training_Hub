@@ -1,7 +1,7 @@
 namespace GSM.UI.Shared.Formatting;
 
 /// <summary>
-/// <c>AchievementConditionType</c> del backend (<c>Visits=0, Streak=1, RoutineSessions=2, Classes=3, TenureMonths=4, Referrals=5, Manual=6</c>).
+/// <c>AchievementConditionType</c> del backend (<c>Visits=0, Streak=1, RoutineSessions=2, Classes=3, TenureMonths=4, Referrals=5, Manual=6, PersonalRecords=7, LiftedVolume=8</c>).
 /// </summary>
 public static class AchievementConditionLabels
 {
@@ -14,6 +14,8 @@ public static class AchievementConditionLabels
         (4, "Antigüedad (meses)"),
         (5, "Amigos referidos"),
         (6, "Otorgado por el staff"),
+        (7, "Récords personales"),
+        (8, "Volumen levantado (kg)"),
     ];
 
     /// <summary>Qué cuenta el valor de cada condición, para el rótulo del campo del formulario.</summary>
@@ -26,6 +28,8 @@ public static class AchievementConditionLabels
         4 => "Valor (meses con membresía)",
         5 => "Valor (amigos que se inscribieron)",
         6 => "Sin condición: lo otorga el staff",
+        7 => "Valor (récords personales batidos)",
+        8 => "Valor (kilos levantados en total)",
         _ => "Valor",
     };
 
@@ -39,6 +43,8 @@ public static class AchievementConditionLabels
         "TenureMonths" => 4,
         "Referrals" => 5,
         "Manual" => 6,
+        "PersonalRecords" => 7,
+        "LiftedVolume" => 8,
         _ => 0,
     };
 
@@ -54,6 +60,8 @@ public static class AchievementConditionLabels
         "TenureMonths" => "Antigüedad (meses)",
         "Referrals" => "Amigos referidos",
         "Manual" => "Otorgado por el staff",
+        "PersonalRecords" => "Récords personales",
+        "LiftedVolume" => "Volumen levantado (kg)",
         _ => conditionType,
     };
 }

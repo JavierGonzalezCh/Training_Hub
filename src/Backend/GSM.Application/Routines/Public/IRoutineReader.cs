@@ -1,3 +1,5 @@
+using GSM.Application.Routines;
+
 namespace GSM.Application.Routines.Public;
 
 /// <summary>
@@ -34,5 +36,12 @@ public interface IRoutineReader
 
     /// <summary>Días distintos con al menos un ejercicio registrado. <paramref name="onlyAssigned"/> excluye las auto-asignadas.</summary>
     Task<int> GetCompletedSessionCountAsync(
+        Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Récords personales batidos y kilos levantados (L3), solo en ejercicios de repeticiones con peso.
+    /// <paramref name="onlyAssigned"/> excluye los registros de rutinas creadas por el propio miembro.
+    /// </summary>
+    Task<LiftingStats> GetLiftingStatsAsync(
         Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default);
 }

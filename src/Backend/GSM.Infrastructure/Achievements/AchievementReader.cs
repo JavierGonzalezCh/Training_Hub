@@ -1,4 +1,4 @@
-﻿using GSM.Application.Achievements.Public;
+using GSM.Application.Achievements.Public;
 using GSM.Application.Attendance.Public;
 using GSM.Application.Classes.Public;
 using GSM.Application.Common.Abstractions;
@@ -37,10 +37,11 @@ public sealed class AchievementReader(
             .ToDictionaryAsync(u => u.AchievementId, cancellationToken);
         var now = clock.UtcNow;
 
-        var (visits, streak, sessions, classAttendance, tenure, referrals) = await AchievementMetrics.ComputeAsync(
+        var (visits, streak, sessions, classAttendance, tenure, referrals, records, volume) = await AchievementMetrics.ComputeAsync(
             memberId, clock.Today, attendance, routines, classes, members, memberships,
             needTenure: achievements.Any(a => a.ConditionType == AchievementConditionType.TenureMonths),
             needReferrals: achievements.Any(a => a.ConditionType == AchievementConditionType.Referrals),
+            needLifting: achievements.Any(a => a.ConditionType is AchievementConditionType.PersonalRecords or AchievementConditionType.LiftedVolume),
             cancellationToken);
 
         return achievements
@@ -49,7 +50,7 @@ public sealed class AchievementReader(
                 unlocked.ContainsKey(a.Id),
                 unlocked.TryGetValue(a.Id, out var row) ? row.UnlockedAt : null,
                 a.IsManual ? (unlocked.ContainsKey(a.Id) ? 1 : 0)
-                    : a.ProgressOf(visits, streak, sessions, classAttendance, tenure, referrals),
+                    : a.ProgressOf(visits, streak, sessions, classAttendance, tenure, referrals, records, volume),
                 a.IsManual,
                 unlocked.TryGetValue(a.Id, out var reasonRow) ? reasonRow.GrantReason : null,
                 // Ganado: el premio prometido al ganarlo. Sin ganar: el que ofrece el logro hoy.

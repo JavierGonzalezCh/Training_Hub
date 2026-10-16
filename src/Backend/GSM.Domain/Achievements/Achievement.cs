@@ -85,7 +85,7 @@ public sealed class Achievement : BaseEntity, ITenantEntity
     /// <summary>¿El progreso del miembro alcanza la condición?</summary>
     public bool IsMetBy(
         int visitCount, int currentStreak, int routineSessions, int classAttendance,
-        int tenureMonths = 0, int referrals = 0) => ConditionType switch
+        int tenureMonths = 0, int referrals = 0, int personalRecords = 0, int liftedVolumeKg = 0) => ConditionType switch
     {
         AchievementConditionType.Visits => visitCount >= ConditionValue,
         AchievementConditionType.Streak => currentStreak >= ConditionValue,
@@ -93,12 +93,14 @@ public sealed class Achievement : BaseEntity, ITenantEntity
         AchievementConditionType.Classes => classAttendance >= ConditionValue,
         AchievementConditionType.TenureMonths => tenureMonths >= ConditionValue,
         AchievementConditionType.Referrals => referrals >= ConditionValue,
+        AchievementConditionType.PersonalRecords => personalRecords >= ConditionValue,
+        AchievementConditionType.LiftedVolume => liftedVolumeKg >= ConditionValue,
         _ => false,
     };
 
     public int ProgressOf(
         int visitCount, int currentStreak, int routineSessions, int classAttendance,
-        int tenureMonths = 0, int referrals = 0) => ConditionType switch
+        int tenureMonths = 0, int referrals = 0, int personalRecords = 0, int liftedVolumeKg = 0) => ConditionType switch
     {
         AchievementConditionType.Visits => Math.Min(visitCount, ConditionValue),
         AchievementConditionType.Streak => Math.Min(currentStreak, ConditionValue),
@@ -106,6 +108,8 @@ public sealed class Achievement : BaseEntity, ITenantEntity
         AchievementConditionType.Classes => Math.Min(classAttendance, ConditionValue),
         AchievementConditionType.TenureMonths => Math.Min(tenureMonths, ConditionValue),
         AchievementConditionType.Referrals => Math.Min(referrals, ConditionValue),
+        AchievementConditionType.PersonalRecords => Math.Min(personalRecords, ConditionValue),
+        AchievementConditionType.LiftedVolume => Math.Min(liftedVolumeKg, ConditionValue),
         _ => 0,
     };
 

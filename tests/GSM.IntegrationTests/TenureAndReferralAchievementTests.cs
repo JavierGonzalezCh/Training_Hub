@@ -265,7 +265,7 @@ public sealed class TenureAndReferralAchievementTests(ApiFactory factory) : ICla
             .Where(a => a.GymId == w.GymId).ToListAsync();
         Assert.Contains(all, a => a.ConditionType == AchievementConditionType.TenureMonths && a.ConditionValue == 12);
         Assert.Contains(all, a => a.ConditionType == AchievementConditionType.Referrals && a.ConditionValue == 1);
-        Assert.Equal(7, all.Count);
+        Assert.Equal(8, all.Count);
     }
 
     // ---- helpers ----
