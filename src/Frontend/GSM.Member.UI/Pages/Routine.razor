@@ -11,7 +11,14 @@
 
 <PageTitle>Mi rutina — GSM</PageTitle>
 
-<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Mi rutina</MudText>
+<div class="d-flex align-center justify-space-between mb-4">
+    <MudText Typo="Typo.h5" HtmlTag="h1">Mi rutina</MudText>
+    @if (GymCtx.FeatureFlags?.ShowRoutines != false)
+    {
+        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.TrendingUp"
+                   Href="/app/progreso" data-testid="progress-link">Mi progreso</MudButton>
+    }
+</div>
 
 @if (GymCtx.FeatureFlags?.ShowRoutines == false)
 {

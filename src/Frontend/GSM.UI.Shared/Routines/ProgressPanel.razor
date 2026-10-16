@@ -1,0 +1,158 @@
+@* Progreso por ejercicio (R7): lista de ejercicios registrados con su mejor marca; al abrir uno, la evolución y sus récords.
+   La comparten la app del miembro (/app/progreso) y la ficha del miembro en el panel (pestaña Rutina). *@
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true">@_error</MudAlert>
+}
+else if (_summaries.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="progress-empty">@EmptyText</MudText>
+}
+else
+{
+    <MudExpansionPanels MultiExpansion="true" Elevation="0" Class="gsm-progress-list">
+        @foreach (var summary in _summaries)
+        {
+            var current = summary;
+            <MudExpansionPanel ExpandedChanged="@((bool open) => OnToggledAsync(current.ExerciseId, open))" data-testid="@($"progress-{current.ExerciseId}")">
+                <TitleContent>
+                    <div class="gsm-progress-head">
+                        <span class="gsm-progress-head__name">@current.ExerciseName</span>
+                        <span class="gsm-progress-head__meta">
+                            @current.Sessions @(current.Sessions == 1 ? "sesión" : "sesiones") · último @GsmFormat.Day(current.LastPerformedOn)
+                            @if (ProgressLabels.RecordsSummary(current.Records) is { } best)
+                            {
+                                <text> · @best</text>
+                            }
+                        </span>
+                    </div>
+                </TitleContent>
+                <ChildContent>
+                    @if (!_details.TryGetValue(current.ExerciseId, out var detail))
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                    }
+                    else
+                    {
+                        var metric = ProgressLabels.Primary(detail.TrackingType);
+                        var series = ProgressLabels.Series(detail);
+
+                        @if (detail.Records is { Count: > 0 })
+                        {
+                            <ul class="gsm-progress-records" aria-label="Récords personales" data-testid="@($"records-{current.ExerciseId}")">
+                                @foreach (var record in detail.Records)
+                                {
+                                    <li>
+                                        <span>@ProgressLabels.RecordLabel(record.Kind)</span>
+                                        <strong class="gsm-mono">@ProgressLabels.FormatValue(record.Value, record.Unit)</strong>
+                                        <span class="gsm-progress-records__date">@GsmFormat.Day(record.AchievedOn)</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        @if (series.Count >= 2)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@metric.Label por sesión</MudText>
+                            <svg class="gsm-progress-chart" viewBox="0 0 300 80" role="img"
+                                 aria-label="@($"Evolución de {detail.ExerciseName}: de {ProgressLabels.FormatValue(series[0].Value, metric.Unit)} a {ProgressLabels.FormatValue(series[^1].Value, metric.Unit)}")"
+                                 data-testid="@($"chart-{current.ExerciseId}")">
+                                <polyline fill="none" stroke="var(--mud-palette-primary)" stroke-width="2" points="@ProgressLabels.PolylinePoints(series)" />
+                            </svg>
+                        }
+                        else if (series.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Todavía no hay series con peso, repeticiones, tiempo o distancia anotadas.</MudText>
+                        }
+
+                        @if (detail.Points is { Count: > 0 })
+                        {
+                            <MudSimpleTable Dense="true" Elevation="0" Class="mt-2" data-testid="@($"points-{current.ExerciseId}")">
+                                <thead>
+                                    <tr>
+                                        <th>Día</th>
+                                        <th>Series</th>
+                                        <th>@metric.Label</th>
+                                        @if (HasVolume(detail))
+                                        {
+                                            <th>Volumen</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var point in detail.Points.OrderByDescending(p => p.PerformedOn).Take(10))
+                                    {
+                                        <tr>
+                                            <td>@GsmFormat.Day(point.PerformedOn)</td>
+                                            <td>@point.SetCount</td>
+                                            <td class="gsm-mono">@(metric.Pick(point) is { } v ? ProgressLabels.FormatValue(v, metric.Unit) : "—")</td>
+                                            @if (HasVolume(detail))
+                                            {
+                                                <td class="gsm-mono">@(point.TotalVolume is { } vol ? ProgressLabels.FormatValue(vol, "kg") : "—")</td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        }
+                    }
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
+@code {
+    /// <summary>Carga los ejercicios registrados con sus récords.</summary>
+    [Parameter, EditorRequired] public Func<Task<ICollection<ExerciseProgressSummary>>> LoadSummaries { get; set; } = default!;
+
+    /// <summary>Carga la evolución de un ejercicio.</summary>
+    [Parameter, EditorRequired] public Func<Guid, Task<ExerciseProgressResponse>> LoadDetail { get; set; } = default!;
+
+    [Parameter] public string EmptyText { get; set; } = "Todavía no hay ejercicios registrados.";
+
+    private bool _loading = true;
+    private string? _error;
+    private List<ExerciseProgressSummary> _summaries = [];
+    private readonly Dictionary<Guid, ExerciseProgressResponse> _details = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _summaries = (await LoadSummaries()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnToggledAsync(Guid exerciseId, bool open)
+    {
+        if (!open || _details.ContainsKey(exerciseId))
+        {
+            return;
+        }
+
+        try
+        {
+            _details[exerciseId] = await LoadDetail(exerciseId);
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+
+    private static bool HasVolume(ExerciseProgressResponse detail) => detail.Points.Any(p => p.TotalVolume is not null);
+}

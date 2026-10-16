@@ -52,6 +52,25 @@ public sealed class MemberRoutinesController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(memberId, cancellationToken));
 
+    /// <summary>Progreso (R7): los ejercicios que el miembro ya registró, con sus récords personales. Ficha del miembro, pestaña Rutina.</summary>
+    [HttpGet("progress")]
+    [EndpointName("GetMemberProgress")]
+    [ProducesResponseType<IReadOnlyList<ExerciseProgressSummary>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<ExerciseProgressSummary>>> Progress(
+        Guid memberId, [FromServices] GetMemberProgressHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, cancellationToken));
+
+    /// <summary>Evolución de un ejercicio del miembro: un punto por día con carga y sus récords.</summary>
+    [HttpGet("progress/{exerciseId:guid}")]
+    [EndpointName("GetMemberExerciseProgress")]
+    [ProducesResponseType<ExerciseProgressResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ExerciseProgressResponse>> ExerciseProgress(
+        Guid memberId, Guid exerciseId,
+        [FromServices] GetMemberExerciseProgressHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, exerciseId, cancellationToken));
+
     [HttpPost]
     [ProducesResponseType<RoutineResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -341,6 +341,11 @@ else if (_member is not null)
                     }
                 </MudExpansionPanels>
             }
+
+            <MudText Typo="Typo.h6" Class="mt-6 mb-2">Progreso y récords</MudText>
+            <ProgressPanel LoadSummaries="@(() => MemberRoutinesClient.GetMemberProgressAsync(Id))"
+                           LoadDetail="@(exerciseId => MemberRoutinesClient.GetMemberExerciseProgressAsync(Id, exerciseId))"
+                           EmptyText="Este miembro todavía no ha anotado ejercicios en su rutina." />
         </MudTabPanel>
         <MudTabPanel Text="Pagos">
             <ServerTable @ref="_paymentsTable" TItem="PaymentResponse" Load="LoadPaymentsAsync" Class="mt-4">
