@@ -310,7 +310,7 @@
             var wasScheduled = Existing?.Status == "Scheduled";
             if (scheduledFor is { } sched && (publish || wasScheduled))
             {
-                await Announcements.ScheduleAsync(id, new ScheduleAnnouncementRequest { ScheduledFor = sched });
+                await Announcements.ScheduleAnnouncementAsync(id, new ScheduleAnnouncementRequest { ScheduledFor = sched });
             }
             else if (wasScheduled && !_schedule && !publish)
             {

@@ -508,7 +508,7 @@ public sealed class EquipmentIssueTests(ApiFactory factory) : IClassFixture<ApiF
         => factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<ICurrentUserService>();
-            services.AddSingleton<ICurrentUserService, CurrentUser>();
+            services.AddSingleton<ICurrentUserService, GSM.API.Auth.CurrentUser>();
         }));
 
     private static async Task<HttpClient> LoggedInAsync(WebApplicationFactory<Program> host, string email)

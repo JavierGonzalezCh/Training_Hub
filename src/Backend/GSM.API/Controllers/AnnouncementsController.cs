@@ -144,6 +144,7 @@ public sealed class AnnouncementsController : ControllerBase
     /// minutos después de la hora elegida como mucho, nunca antes. Publicado o archivado → 409; pasada → 422.
     /// </summary>
     [HttpPost("{id:guid}/schedule")]
+    [EndpointName("ScheduleAnnouncement")]
     [ProducesResponseType<AnnouncementResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]

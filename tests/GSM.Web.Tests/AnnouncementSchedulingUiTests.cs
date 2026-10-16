@@ -27,7 +27,7 @@ public class AnnouncementSchedulingUiTests : TestContext
 
         public List<UpdateAnnouncementRequest> Updated { get; } = [];
 
-        public Task<AnnouncementResponse> ScheduleAsync(Guid id, ScheduleAnnouncementRequest body, CancellationToken cancellationToken = default)
+        public Task<AnnouncementResponse> ScheduleAnnouncementAsync(Guid id, ScheduleAnnouncementRequest body, CancellationToken cancellationToken = default)
         {
             Scheduled.Add((id, body));
             return Task.FromResult(Response(id, "Scheduled"));
