@@ -54,7 +54,7 @@ public class AnnouncementSchedulingUiTests : TestContext
         public Task<PagedResultOfAnnouncementResponse> AnnouncementsGETAsync(string? status = null, int? page = null, int? pageSize = null, CancellationToken cancellationToken = default)
             => Task.FromResult(new PagedResultOfAnnouncementResponse { Items = Items, Page = 1, PageSize = 50, Total = Items.Count });
 
-        public Task<EmailAudienceResponse> EmailAudienceAsync(int? category = null, CancellationToken cancellationToken = default)
+        public Task<EmailAudienceResponse> EmailAudienceAsync(EmailAudienceRequest body, CancellationToken cancellationToken = default)
             => Task.FromResult(new EmailAudienceResponse { Recipients = 3 });
 
         public Task<AudiencePreviewResponse> AudiencePreviewAsync(AnnouncementAudienceDto body, CancellationToken cancellationToken = default)

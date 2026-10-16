@@ -27,16 +27,18 @@ public sealed class AnnouncementsController : ControllerBase
         => Ok(await handler.HandleAsync(query, cancellationToken));
 
     /// <summary>
-    /// Cuántos miembros recibirían un anuncio por email (activos, con email y con el correo de su categoría
-    /// encendido: Novedades o Promociones).
+    /// Cuántos miembros recibirían un anuncio por email: los de su audiencia (nula = todos) que están activos, tienen
+    /// email y el correo de su categoría encendido (Novedades o Promociones).
     /// </summary>
-    [HttpGet("email-audience")]
+    [HttpPost("email-audience")]
+    [EndpointName("EmailAudience")]
     [ProducesResponseType<EmailAudienceResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<EmailAudienceResponse>> EmailAudience(
+        EmailAudienceRequest request,
         [FromServices] GetEmailAudienceHandler handler,
-        CancellationToken cancellationToken,
-        [FromQuery] AnnouncementCategory category = AnnouncementCategory.GymNews)
-        => Ok(await handler.HandleAsync(category, cancellationToken));
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
 
     /// <summary>"Llegará a N miembros": calcula una audiencia (filtros vacíos = todos) sin guardar nada.</summary>
     [HttpPost("audience-preview")]

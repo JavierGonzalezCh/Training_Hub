@@ -47,19 +47,30 @@ public sealed class UpdateCommunicationsSettingsHandler(
 }
 
 /// <summary>
-/// Cuántos miembros recibirían un anuncio por email: el editor lo muestra antes de publicar. Respeta la
-/// preferencia de correo de la categoría del anuncio (Novedades o Promociones).
+/// Cuántos miembros recibirían un anuncio por email: el editor lo muestra antes de publicar. Aplica la misma audiencia
+/// que la publicación (CO2-4: antes contaba a todos aunque el anuncio fuera a un segmento) y respeta la preferencia de
+/// correo de la categoría del anuncio (Novedades o Promociones).
 /// </summary>
 public sealed class GetEmailAudienceHandler(
     ICurrentUserService currentUser,
     IMemberReader members,
-    INotificationPreferenceReader preferences)
+    INotificationPreferenceReader preferences,
+    AnnouncementAudienceResolver audienceResolver)
 {
     public async Task<EmailAudienceResponse> HandleAsync(
         AnnouncementCategory category, CancellationToken cancellationToken)
+        => await HandleAsync(new EmailAudienceRequest(category), cancellationToken);
+
+    public async Task<EmailAudienceResponse> HandleAsync(
+        EmailAudienceRequest request, CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
-        var contacts = await members.GetEmailContactsAsync(gymId, cancellationToken);
+        var category = request.Category;
+        var audience = (await audienceResolver.ResolveAsync(
+            AnnouncementAudienceMapper.ToDomain(request.Audience), gymId, cancellationToken)).ToHashSet();
+        var contacts = (await members.GetEmailContactsAsync(gymId, cancellationToken))
+            .Where(c => audience.Contains(c.Id))
+            .ToList();
         var enabled = await preferences.GetEmailEnabledAsync(
             contacts.Select(c => c.Id).ToList(),
             category == AnnouncementCategory.Promotions ? NotificationCategory.Promotions : NotificationCategory.News,

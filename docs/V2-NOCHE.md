@@ -196,7 +196,7 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 
 - **I5-1:** si la persona es staff y miembro, el código **solo abre sus accesos de miembro**. ¿O todos?
 - **I5-2:** solo puede pedir código quien tiene un acceso de miembro activo; los demás reciben la misma respuesta 202 sin correo. Confirmar.
-- **I5-3:** sin Resend, el código **no aparece en el log** (correo marcado sensible). ¿Se permite verlo solo en Development?
+- **[DECIDIDA 2026-10-16: el código se ve en el log solo en Development. Hecho, con test.]** **I5-3:** sin Resend, el código **no aparece en el log** (correo marcado sensible). ¿Se permite verlo solo en Development?
 - **I5-4:** el enlace de invitación `/app/registro?code=…` no lleva el slug del gym, así que la primera vez no sale la marca. ¿Se agrega `&gym=slug` al enlace?
 - **I5-5:** si el correo falla, la respuesta sigue siendo 202 sin aviso. Confirmar.
 - **I5-7:** el límite de 5 códigos por hora no se le avisa al miembro (solo no le llega). ¿Mensaje explícito?
@@ -248,7 +248,7 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **C3-2:** "bloqueado hasta el X" es inclusivo (7 días contando el día en que se llega al límite). Confirmar.
 - **C3-3:** una cancelación tardía cuenta como inasistencia aunque luego vuelva a reservar; marcar asistencia la borra. Confirmar.
 - **C3-4:** la penalización se levanta desde "Penalizados" en Clases, no desde la ficha del miembro. ¿También en la ficha?
-- **C3-5:** los eventos `BookingPenaltyApplied`/`Lifted` aún **no avisan al miembro** (falta un consumidor en Notifications; ¿va en C8?).
+- **[DECIDIDA 2026-10-16: aviso al miembro al quedar penalizado y al levantarse (tipos `BookingPenaltyApplied`/`Lifted`, categoría Clases, migración `V2_C3b_BookingPenaltyNotices`). Hecho, con test.]** **C3-5:** los eventos `BookingPenaltyApplied`/`Lifted` aún **no avisan al miembro** (falta un consumidor en Notifications; ¿va en C8?).
 
 - **R4-2:** una serie no exige objetivo (reps, tiempo o distancia); solo mínimo 1 serie por línea. ¿Se exige?
 - **R4-3:** las líneas de una superserie no tienen que tener el mismo número de series; el backend no exige mínimo 2 líneas (la UI suelta las de una sola). Confirmar.
@@ -274,13 +274,13 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **N5-2:** un recordatorio de vencimiento generado de madrugada sale a las 8:00 aunque el staff haya renovado entretanto. ¿Se revalida al enviar?
 - **N5-3:** el recordatorio del instructor se crea con la primera reserva; si todas se cancelan, lo recibe igual; una sesión sin reservas no lo genera. Confirmar.
 - **N5-4:** el recordatorio del instructor no se puede apagar (no está en las preferencias del staff). ¿Se agrega?
-- **N5-6 (hueco de Classes):** desactivar una clase no cancela sus reservas futuras ni sus recordatorios.
-- **N5-7:** `BookingPenaltyApplied` sigue sin aviso al miembro (ver C3-5).
+- **[DECIDIDA 2026-10-16: dar de baja cancela las sesiones futuras con reservas ("Clase dada de baja") y avisa; los recordatorios se retiran por el mismo evento. Hecho, con test.]** **N5-6 (hueco de Classes):** desactivar una clase no cancela sus reservas futuras ni sus recordatorios.
+- **[DECIDIDA 2026-10-16: ver C3-5. Hecho.]** **N5-7:** `BookingPenaltyApplied` sigue sin aviso al miembro (ver C3-5).
 
 - **CO2-1:** dentro de un filtro los valores suman (O); entre filtros, "y". Confirmar.
 - **CO2-2:** publicar un segmento sin miembros da 422. Confirmar.
 - **CO2-3:** el filtro de plan solo cuenta membresías que cubren hoy (no en gracia ni congelados); el de clase cuenta reservas y asistencias de los últimos 30 días. Confirmar.
-- **CO2-4 (hueco):** `GET api/announcements/email-audience` ignora el segmento: la confirmación por email puede decir "a N miembros" con N mayor. ¿Se corrige ya?
+- **[DECIDIDA 2026-10-16: corregido; `POST api/announcements/email-audience` recibe categoría y audiencia, y el editor recalcula al cambiar los filtros. Hecho, con test.]** **CO2-4 (hueco):** `GET api/announcements/email-audience` ignora el segmento: la confirmación por email puede decir "a N miembros" con N mayor. ¿Se corrige ya?
 - **CO2-5 (para CO4):** la publicación programada corre sin usuario; los readers de la audiencia necesitarán el gym explícito.
 
 - **CO5-1:** si la tarea no corre en todo el día, ese cumpleaños no se felicita (no se recupera). Confirmar.

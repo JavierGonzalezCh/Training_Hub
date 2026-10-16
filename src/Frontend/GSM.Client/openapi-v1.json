@@ -4178,20 +4178,31 @@
       }
     },
     "/api/announcements/email-audience": {
-      "get": {
+      "post": {
         "tags": [
           "Announcements"
         ],
-        "parameters": [
-          {
-            "name": "category",
-            "in": "query",
-            "schema": {
-              "default": 0,
-              "$ref": "#/components/schemas/AnnouncementCategory"
+        "operationId": "EmailAudience",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailAudienceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailAudienceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailAudienceRequest"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -4209,6 +4220,26 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EmailAudienceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -26760,6 +26791,24 @@
           "hideOriginal": {
             "type": "boolean",
             "default": false
+          }
+        }
+      },
+      "EmailAudienceRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/AnnouncementCategory"
+          },
+          "audience": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnnouncementAudienceDto"
+              }
+            ]
           }
         }
       },

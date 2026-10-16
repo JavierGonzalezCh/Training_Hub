@@ -1,3 +1,4 @@
+using GSM.Domain.Communications;
 namespace GSM.Application.Communications.Contracts;
 
 /// <summary>Correos de un anuncio enviado por email.</summary>
@@ -28,3 +29,10 @@ public sealed record CommunicationsRunOutcome(int Reminders, int Birthdays, int 
 
 /// <summary>Destinatarios de un anuncio por email (para avisar en el editor antes de publicar).</summary>
 public sealed record EmailAudienceResponse(int Recipients);
+
+/// <summary>
+/// CO2-4: para contar a quién llegaría el correo de un anuncio hace falta su categoría (la preferencia de correo de
+/// Novedades o Promociones) y su audiencia (nula = todos), igual que al publicar.
+/// </summary>
+public sealed record EmailAudienceRequest(
+    AnnouncementCategory Category = AnnouncementCategory.GymNews, AnnouncementAudienceDto? Audience = null);

@@ -90,7 +90,7 @@ public class PushUiTests : TestContext
             return Task.FromResult(new AnnouncementResponse { Id = id, Title = body.Title, Body = body.Body, Status = "Draft" });
         }
 
-        public Task<EmailAudienceResponse> EmailAudienceAsync(int? category = null, CancellationToken cancellationToken = default)
+        public Task<EmailAudienceResponse> EmailAudienceAsync(EmailAudienceRequest body, CancellationToken cancellationToken = default)
             => Task.FromResult(new EmailAudienceResponse { Recipients = 3 });
 
         public Task<PagedResultOfAnnouncementResponse> AnnouncementsGETAsync(string? status = null, int? page = null, int? pageSize = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();

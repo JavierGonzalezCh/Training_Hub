@@ -39,7 +39,7 @@ public class AnnouncementAudienceUiTests : TestContext
 
         public Task<AnnouncementResponse> AnnouncementsPUTAsync(Guid id, UpdateAnnouncementRequest body, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-        public Task<EmailAudienceResponse> EmailAudienceAsync(int? category = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<EmailAudienceResponse> EmailAudienceAsync(EmailAudienceRequest body, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
         public Task<PagedResultOfAnnouncementResponse> AnnouncementsGETAsync(string? status = null, int? page = null, int? pageSize = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 

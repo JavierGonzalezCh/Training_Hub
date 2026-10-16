@@ -53,6 +53,28 @@ public sealed class AnnouncementAudienceTests(ApiFactory factory) : IClassFixtur
     }
 
     [Fact]
+    public async Task The_email_count_before_publishing_uses_the_same_segment_as_the_announcement()
+    {
+        var w = await SeedAsync();
+        using var scope = Staff(w.GymId);
+        var handler = scope.ServiceProvider.GetRequiredService<GetEmailAudienceHandler>();
+
+        // CO2-4: antes contaba a todos los activos con email (5) aunque el anuncio fuera solo al plan Oro.
+        var everyone = await handler.HandleAsync(new EmailAudienceRequest(AnnouncementCategory.GymNews), default);
+        Assert.Equal(w.ActiveCount, everyone.Recipients);
+
+        var gold = await handler.HandleAsync(
+            new EmailAudienceRequest(AnnouncementCategory.GymNews, new AnnouncementAudienceDto([], [w.GoldPlanId], [], [])),
+            default);
+        Assert.Equal(1, gold.Recipients);
+
+        var expiredOrGrace = await handler.HandleAsync(
+            new EmailAudienceRequest(AnnouncementCategory.GymNews, new AnnouncementAudienceDto(["Expired", "Grace"], [], [], [])),
+            default);
+        Assert.Equal(3, expiredOrGrace.Recipients);
+    }
+
+    [Fact]
     public async Task Inactive_members_are_never_in_the_audience_not_even_for_everyone()
     {
         var w = await SeedAsync();
@@ -329,7 +351,9 @@ public sealed class AnnouncementAudienceTests(ApiFactory factory) : IClassFixtur
             var userId = Guid.CreateVersion7();
             var member = Member.Create(
                 gym.Id,
-                new MemberProfile(first, "Test", DocumentType.Cc, $"doc-{Guid.NewGuid():N}"[..12], null, Tags: tags),
+                new MemberProfile(
+                    first, "Test", DocumentType.Cc, $"doc-{Guid.NewGuid():N}"[..12], null,
+                    Email: $"aud-{Guid.NewGuid():N}@test.local", Tags: tags),
                 Today.AddDays(-400), Today.AddDays(-400));
             member.LinkUser(userId);
             db.Add(member);

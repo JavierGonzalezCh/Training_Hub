@@ -200,7 +200,8 @@ else
 
     private async Task PublishAsync(AnnouncementResponse a)
     {
-        if (!await AnnouncementActions.ConfirmPublishAsync(Dialogs, Announcements, a.SendEmail))
+        if (!await AnnouncementActions.ConfirmPublishAsync(
+                Dialogs, Announcements, a.SendEmail, a.Category == "Promotions" ? 1 : 0, a.Audience))
         {
             return;
         }

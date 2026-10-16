@@ -7,9 +7,11 @@ internal static class AnnouncementActions
 {
     /// <summary>
     /// Pide confirmación antes de publicar si el anuncio va por email: los correos no se pueden
-    /// retirar. Sin email se publica directamente.
+    /// retirar. Sin email se publica directamente. El conteo usa la categoría y la audiencia del anuncio (CO2-4).
     /// </summary>
-    public static async Task<bool> ConfirmPublishAsync(IDialogService dialogs, IAnnouncementsClient announcements, bool sendEmail)
+    public static async Task<bool> ConfirmPublishAsync(
+        IDialogService dialogs, IAnnouncementsClient announcements, bool sendEmail, int category,
+        AnnouncementAudienceDto? audience)
     {
         if (!sendEmail)
         {
@@ -19,7 +21,8 @@ internal static class AnnouncementActions
         int recipients;
         try
         {
-            recipients = (await announcements.EmailAudienceAsync()).Recipients;
+            recipients = (await announcements.EmailAudienceAsync(
+                new EmailAudienceRequest { Category = category, Audience = audience })).Recipients;
         }
         catch (GsmApiException)
         {

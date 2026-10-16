@@ -32,7 +32,7 @@
                 {
                     <div class="mt-3">
                         <div class="gsm-eyebrow">Audiencia</div>
-                        <AnnouncementAudiencePicker Audience="_audienceFilter" AudienceChanged="a => _audienceFilter = a" />
+                        <AnnouncementAudiencePicker Audience="_audienceFilter" AudienceChanged="AudienceChangedAsync" />
                     </div>
                 }
                 else if (Existing?.RecipientCount is { } reached)
@@ -236,11 +236,19 @@
         await LoadAudienceAsync();
     }
 
+    /// <summary>CO2-4: el conteo del correo sigue a la audiencia elegida, no a todo el gym.</summary>
+    private async Task AudienceChangedAsync(AnnouncementAudienceDto audience)
+    {
+        _audienceFilter = audience;
+        await LoadAudienceAsync();
+    }
+
     private async Task LoadAudienceAsync()
     {
         try
         {
-            _audience = (await Announcements.EmailAudienceAsync(_category)).Recipients;
+            _audience = (await Announcements.EmailAudienceAsync(
+                new EmailAudienceRequest { Category = _category, Audience = _audienceFilter })).Recipients;
         }
         catch (GsmApiException)
         {
@@ -274,7 +282,8 @@
             }
         }
 
-        if (publish && !await AnnouncementActions.ConfirmPublishAsync(Dialogs, Announcements, _sendEmail))
+        if (publish && !await AnnouncementActions.ConfirmPublishAsync(
+                Dialogs, Announcements, _sendEmail, _category, _audienceFilter))
         {
             return;
         }
