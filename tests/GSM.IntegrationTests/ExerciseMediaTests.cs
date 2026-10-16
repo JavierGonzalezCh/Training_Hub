@@ -1,4 +1,4 @@
-using GSM.Application.Common.Abstractions;
+﻿using GSM.Application.Common.Abstractions;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Abstractions;
 using GSM.Application.Routines.Contracts;
@@ -113,7 +113,8 @@ public sealed class ExerciseMediaTests(ApiFactory factory) : IClassFixture<ApiFa
             {
                 var uploaded = await Video(scope, storage).HandleAsync(systemId, Mp4(), default);
                 Assert.StartsWith("https://files.test/exercise-videos/", uploaded.VideoUrl);
-                await Assert.ThrowsAsync<ForbiddenDomainException>(() =>
+                // Un ejercicio de un gym ni siquiera es visible para el superadmin: 404, no 403.
+                await Assert.ThrowsAsync<NotFoundException>(() =>
                     Video(scope, storage).HandleAsync(gymExerciseId, Mp4(), default));
             }
         }

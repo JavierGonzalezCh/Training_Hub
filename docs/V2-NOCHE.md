@@ -104,6 +104,36 @@
 | MS5 | **Unida** | Tiqueteras: consumo por evento `CheckInRegistered` (tabla `pass_usages`), devolución al anular, sin gracia; cierra C1-1 y el pendiente de CO7. Ver preguntas MS5 |
 | E4 | **Unida** | Reportes de fallas (app y staff), campana agrupada, `unsafe` urgente con correo al Owner, flag `MembersCanReportEquipment`. Suite 902 + 463. Ver preguntas E4 |
 
+| A7, MS6, C6, L5 | **Unidas** | Suite arreglada el 2026-10-16 (consulta de premios, reloj de los tests de A7, test de MS6) |
+| MS7 | **Unida** | Planes de grupo. Ver preguntas MS7 |
+| C7 | **Unida** | "Estoy en clase". Ver preguntas C7 |
+| L6 | **Unida** | Ranking voluntario. Ver preguntas L6 |
+| S3 | **Unida** | Avisos de la suscripción a los Owners. Ver preguntas S3 |
+| A6 | **Unida** | Geocerca con QR fijo; Android sin probar. Ver preguntas A6 |
+| R7 | **Unida** | Progreso y récords; evento `PersonalRecordSet`. Ver preguntas R7 |
+| G5 | **Unida** | Onboarding obligatorio; gyms existentes marcados como completos. Ver preguntas G5 |
+| M5 | **Unida** | "Mi perfil" del miembro. Ver preguntas M5 |
+| S4 | **Unida** | Catálogos del sistema en `/admin/catalog`. Ver preguntas S4 |
+| LG5 | **Unida** | Alertas al SuperAdmin (`logs.platform_alerts`). Ver preguntas LG5 |
+| C8 | **Unida** | Aviso de clase nueva como anuncio. Ver preguntas C8 |
+| L3 | **Unida** | Logros de récords y volumen. Ver preguntas L3 |
+| G6 | **Unida** | Configuración por secciones; fuera `CommunityComments`. Ver preguntas G6 |
+| R8 | **Unida** | Fecha de revisión de rutinas. Ver preguntas R8 |
+| M6 | **Unida** | Anonimización (+R10 y consumidores). La tarea admite limitarse a un gym (tests). Ver preguntas M6 |
+| R9 | **Unida** | Aviso de salud en el editor del staff. Ver pregunta R9 |
+| CO6 | **Unida** | Ya estaba cubierto por N4; solo tests nuevos |
+| D3 | **Unida** | Panel del SuperAdmin. Ver preguntas D3 |
+| R11 | **Unida** | Plantillas de rutina por gym. Ver pregunta R11 |
+| AP6 | **Unida** | Miembro en escritorio (Inicio y menú lateral). Ver pregunta AP6 |
+| AP7 | **Unida** | Tablas apiladas en celular. **Falta mirarlo a 375 px** |
+| AP4 | **Unida** | Modo staff / miembro con el `switch-gym` de I2 |
+| MS8+L7 | **Unida** | "Mi membresía" y "Mi progreso". Ver preguntas MS8/L7 |
+| D1 | **Unida** | Panel del gym por bloques y permisos. Ver preguntas D1 |
+| R6 | **Unida** | Imagen y video del ejercicio (R2 sin configurar). Ver pregunta R6 |
+| AP3+N3 | **Unida** | Panel en la app y push Android (FCM). **Compila para Android; sin probar en dispositivo** |
+| AP5 | **Unida** | Bloqueo con huella o PIN. **Compila para Android; sin probar en dispositivo** |
+| D2 | **Unida** | Inicio del miembro (`GET /api/me/home`) |
+| V1, DP | Pendiente | Necesitan servicios externos (R2, Resend, Firebase, Dokploy) y un Android real |
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
 ## 2. Preguntas para el dueño
@@ -470,6 +500,8 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-16: tanda C8, L3, G6, R8, M6 unida. La suite completa dio 74 fallos y tardó 45 min: **la tarea de anonimización de M6 recorría todos los gyms con el reloj adelantado hasta 60 meses y anonimizaba miembros (y borraba cuentas) de otros tests en paralelo** (401, 404, concurrencia). Arreglo: la tarea admite `onlyGymId` (solo tests). Bug real encontrado: `UpdateMemberSettingsHandler` añadía la entidad antes de validar (otros 5 handlers de ajustes perezosos tienen el mismo patrón; en producción no se nota porque cada petición tiene su contexto). Después: **1159 integración + 609 bUnit en verde, 12 min**.
+- 2026-10-16: unidas R9, CO6, D3, R11, AP6, AP7, AP4, MS8+L7, D1, R6, AP3+N3, AP5 y D2. Conflictos solo en `gsm.css` (bloques al final), `MembersPanelModule` y `Routes.razor` de Mobile. Migración `V2_R11_RoutineTemplates`. **`GSM.Mobile` compila para Android** en esta máquina (Firebase y Plugin.Fingerprint resuelven); no hay emulador. bUnit 663 en verde; el test del kiosco intermitente se estabilizó con esperas de 10 s.
 - 2026-10-16: suite de la tanda A7/MS6/C6/L5: 21 fallos de integración + 2 bUnit. Causas: `RewardRow` era un record posicional y EF no traducía el filtro de premios pendientes (tumbaba la tarjeta de recepción); los tests de A7 publicaban con el reloj fijado a mediodía y despachaban antes; un test de MS6 esperaba "Total a cobrar" con devolución. Corregidos (300607f y siguiente). `KioskDeviceUiTests.The_typed_number_is_masked...` falla de forma intermitente.
 - 2026-10-16: unidas MS7, C7, L6, S3, A6, R7, G5, M5, S4 y LG5 (dos tandas de agentes que solo escriben código). Un conflicto (dos métodos nuevos en `IIdentityReader`). Migración única `V2_MS7_L6_S3_A6_G5_LG5` con `SqlScript` MS7, L6, G5, LG5. Al integrar: `using GSM.Application.Common` (3), `[EndpointName]` para el onboarding (NSwag numeraba `Onboarding2Async`), **12 clientes sin `ReadResponseAsString`** (8 de tandas anteriores: `CashShifts`, `Owners`, `ClassSettings`, `AdminLogs`… — sus 409/422 llegaban con el mensaje genérico), 2 bUnit (query `t` de A6, cliente de C7 en lista de espera). bUnit 543 en verde. Lanzada la tanda C8, L3, M6 y G6.
 - 2026-10-15: L4, CO4, MS5 y E4 unidas (MS5 y L4 combinadas solas en `Detail.razor`). Migración `V2_MS5_E4_L4_CO4` con `SqlScript` MS5, E4, L4, CO4. Al integrar: cliente de la lista de espera sin registrar (hueco de C4), `EndpointName` para `ScheduleAnnouncement` (chocaba con Clases), namespace en un test de E4; un bUnit del kiosco intermitente (pasa 3 de 3). **Suite (en dos mitades): 902 integración + 463 bUnit, todo verde.**
