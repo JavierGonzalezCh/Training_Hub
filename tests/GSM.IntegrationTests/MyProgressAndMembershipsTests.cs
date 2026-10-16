@@ -1,4 +1,4 @@
-using GSM.Application.Memberships;
+﻿using GSM.Application.Memberships;
 using GSM.Application.Memberships.Contracts;
 using GSM.Application.MemberStreak;
 using GSM.Domain.Common.Exceptions;
@@ -86,7 +86,13 @@ public sealed class MyProgressAndMembershipsTests(ApiFactory factory) : IClassFi
             var assign = sp.GetRequiredService<AssignMembershipHandler>();
             timeId = (await assign.HandleAsync(w.MemberId, new AssignMembershipRequest(planId, Today.AddDays(-60), "Histórica"), default)).Id;
             await assign.HandleAsync(w.MemberId, new AssignMembershipRequest(passPlanId, null), default);
-            await sp.GetRequiredService<CreateFreezeHandler>().HandleAsync(
+        }
+
+        // Un congelamiento no puede empezar en el pasado: se registra el día en que empezó.
+        using (var s = Scope(w, UserRole.Owner))
+        {
+            s.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(Today.AddDays(-50));
+            await s.ServiceProvider.GetRequiredService<CreateFreezeHandler>().HandleAsync(
                 w.MemberId, timeId, new CreateFreezeRequest(Today.AddDays(-50), Today.AddDays(-46), "Viaje"), default);
         }
 

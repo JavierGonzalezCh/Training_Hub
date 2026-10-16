@@ -430,6 +430,13 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **AP4-1:** el cambio de modo usa el `switch-gym` de I2 (sin backend nuevo). En la app nativa, un staff en modo staff verá "no encontrado" hasta AP3 (panel en la app).
 - **AP7-1:** las tablas de planes, ejercicios y equipos se apilan en celular con `DataLabel` (no tarjetas de `ServerTable`). Falta mirarlas a 375 px en el navegador.
 
+- **R6-1:** video del ejercicio: solo MP4 hasta 50 MB (la spec no fija límite de video). No hay "quitar medio" sin reemplazarlo; vaciar la URL deja el archivo huérfano en R2. Un archivo compartido con un duplicado no se borra mientras alguien lo use.
+
+- **AP5-1:** el bloqueo en modo staff también salta al abrir la app en frío (no solo tras 15 min en segundo plano); 5 PIN erróneos cierran la sesión. PIN propio de 4–6 dígitos (PBKDF2 con sal). Paquete nuevo `Plugin.Fingerprint` 2.1.5 (solo Android), **sin verificar que compile en .NET 10**; alternativa: `Xamarin.AndroidX.Biometric`. Nada probado en dispositivo.
+
+- **AP3-1:** el panel ya se monta en `GSM.Mobile` y el push de Android usa FCM inicializado por código desde `GET /api/push/config` (sin `google-services.json`). Paquete `Xamarin.Firebase.Messaging` 124.1.2.2 **sin verificar**. Nada probado en dispositivo; falta proyecto de Firebase (`com.gsm.mobile`) y `Notifications:Fcm:*`.
+- **AP3-2:** tocar un aviso de otro gym solo navega, no cambia de gym (la spec dice que sí). El staff no tiene "olvidé mi contraseña" en la app. Si el token FCM rota con la app cerrada, se actualiza en la siguiente apertura.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
