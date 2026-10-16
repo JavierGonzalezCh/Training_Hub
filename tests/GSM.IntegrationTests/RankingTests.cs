@@ -1,4 +1,4 @@
-using GSM.Application.Achievements;
+﻿using GSM.Application.Achievements;
 using GSM.Application.Achievements.Contracts;
 using GSM.Domain.Achievements;
 using GSM.Domain.Common.Exceptions;
@@ -417,9 +417,18 @@ public sealed class RankingTests(ApiFactory factory) : IClassFixture<ApiFactory>
         // Sin fecha indicada = adulto; unknownBirthDate = ficha anterior a la v2 sin fecha de nacimiento.
         DateOnly? birth = unknownBirthDate ? null : birthDate ?? Today.AddYears(-30);
         var userId = Guid.CreateVersion7();
+        var minor = birth is { } b && b > Today.AddYears(-18);
         var member = Member.Create(
-            w.GymId, first, last, $"doc-{Guid.NewGuid():N}"[..12], Today.AddDays(-400),
-            birthDate: birth, photoUrl: photoUrl);
+            w.GymId,
+            new MemberProfile(
+                first, last, DocumentType.Cc, $"doc-{Guid.NewGuid():N}"[..12], birth, PhotoUrl: photoUrl,
+                // Un menor exige los datos del acudiente.
+                GuardianName: minor ? "Acudiente Prueba" : null,
+                GuardianDocumentType: minor ? DocumentType.Cc : null,
+                GuardianDocumentNumber: minor ? $"g-{Guid.NewGuid():N}"[..12] : null,
+                GuardianPhone: minor ? "+573001112233" : null,
+                GuardianRelationship: minor ? "Madre" : null),
+            Today.AddDays(-400), today: Today);
         member.LinkUser(userId);
         db.Add(member);
         await db.SaveChangesAsync();

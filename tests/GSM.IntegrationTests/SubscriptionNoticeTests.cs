@@ -323,7 +323,7 @@ public sealed class SubscriptionNoticeTests(ApiFactory factory) : IClassFixture<
     // ---------- helpers ----------
 
     private static DateTimeOffset AtLocal(DateOnly day, int hour)
-        => new(day.ToDateTime(new TimeOnly(hour, 0)), TimeSpan.FromHours(-5)); // Colombia: UTC-5, sin horario de verano
+        => new DateTimeOffset(day.ToDateTime(new TimeOnly(hour, 0)), TimeSpan.FromHours(-5)).ToUniversalTime(); // Colombia: UTC-5; Npgsql solo escribe UTC
 
     private IServiceScope System(DateOnly day, int hour = 12)
     {

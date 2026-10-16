@@ -400,6 +400,14 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **LG5-2:** `/admin` todavía no registra push: hasta entonces el push de las alertas queda `skipped` y solo llega el correo.
 - **LG5-3:** "5 fallas seguidas" del proveedor = 5 o más en 10 min (no se guardan los éxitos). Un grupo resuelto que reaparece no vuelve a dar "error nuevo". Toda tarea `*_job` se asume al menos cada 30 min.
 
+- **G6-1:** "entrada con documento" se deja en `CheckinSettings.ByDocument` (A4), no se duplica como flag del gym como pide §7. ¿Migrar el dato al flag?
+- **G6-2:** Membresías, Rutinas y Equipos no tienen sección propia todavía (sus flags siguen en "Módulos"; la gracia vive en la pestaña Check-in). Se añadió la sección "Clases", que §7 no lista.
+- **G6-3:** se quitó `CommunityComments` de punta a punta (columna incluida): cambio incompatible del contrato; la app nativa debe regenerarse junto con la web.
+
+- **C8-1:** el aviso de clase nueva es un anuncio en Novedades ("Nueva clase: …"), con interruptor "Avisar a los miembros" al crear (editar nunca avisa); respeta la preferencia de Novedades. Sin botón "Ver horario" (el aviso apunta a `/app`); los textos no llevan salón ni número de reservas.
+- **L3-1:** el récord cuenta por día y ejercicio (no por tipo de marca); el volumen excluye calentamientos (la spec dice "todas las series") y solo rutinas asignadas.
+- **L3-2:** el volumen se evalúa al primer registro del día o al batir un récord; registros posteriores del mismo día esperan al siguiente evento. Los gyms existentes no reciben el logro "Primer récord" (solo los nuevos).
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
