@@ -12,6 +12,7 @@ public static class MembershipsModuleRegistration
         // Añade aquí solo lo que el scanning no cubra.
 
         services.AddScoped<RenewalResolver>();
+        services.AddScoped<PlanChangeResolver>();
 
         return services;
     }

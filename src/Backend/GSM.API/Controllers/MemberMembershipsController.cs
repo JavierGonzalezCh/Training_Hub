@@ -71,6 +71,43 @@ public sealed class MemberMembershipsController : ControllerBase
         => Ok(await handler.HandleAsync(memberId, membershipId, request, cancellationToken));
 
     /// <summary>
+    /// Vista previa del cambio de plan de la membresía vigente: crédito de lo no usado, la membresía nueva y qué se
+    /// cobra o se devuelve. No crea nada. Recibe lo mismo que el cambio para mostrar el efecto de un descuento o de un
+    /// crédito ajustado antes de confirmar.
+    /// </summary>
+    [HttpPost("{membershipId:guid}/change-plan/preview")]
+    [EndpointName("PreviewPlanChange")]
+    [ProducesResponseType<PlanChangePreviewResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PlanChangePreviewResponse>> PreviewPlanChange(
+        Guid memberId,
+        Guid membershipId,
+        ChangePlanRequest request,
+        [FromServices] PreviewPlanChangeHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, membershipId, request, cancellationToken));
+
+    /// <summary>
+    /// Cambia el plan de la membresía vigente: la cancela hoy ("Cambio de plan") y crea la nueva, que empieza hoy con
+    /// el crédito de lo no usado. Cobrar la diferencia o devolver el excedente lo registra el cliente en Payments.
+    /// </summary>
+    [HttpPost("{membershipId:guid}/change-plan")]
+    [EndpointName("ChangePlan")]
+    [ProducesResponseType<ChangePlanResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<ChangePlanResponse>> ChangePlan(
+        Guid memberId,
+        Guid membershipId,
+        ChangePlanRequest request,
+        [FromServices] ChangePlanHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, membershipId, request, cancellationToken));
+
+    /// <summary>
     /// Congela la membresía: abierto desde hoy (sin fechas; termina al reanudar) o programado con
     /// `endsOn` (y `startsOn`, por defecto hoy). Reglas del plan; solo el Owner puede superar el límite.
     /// </summary>

@@ -8,7 +8,8 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
 {
     public void Configure(EntityTypeBuilder<Membership> builder)
     {
-        builder.ToTable("memberships", "memberships");
+        builder.ToTable("memberships", "memberships", t => t.HasCheckConstraint(
+            "ck_memberships_credit_applied", "credit_applied >= 0 AND credit_applied <= agreed_price + enrollment_fee"));
 
         builder.Property(m => m.Status).HasColumnName("status");
         builder.Property(m => m.CancellationReason).HasMaxLength(500);
@@ -21,6 +22,12 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
         builder.Property(m => m.EnrollmentFee).HasColumnType("decimal(12,2)");
         builder.Property(m => m.EnrollmentWaivedReason).HasMaxLength(500);
         builder.Ignore(m => m.TotalToCharge);
+
+        // MS6: cambio de plan con crédito. El crédito nunca es negativo ni supera lo que cuesta la membresía.
+        builder.Property(m => m.CreditApplied).HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+        builder.Property(m => m.CreditAdjustmentReason).HasMaxLength(500);
+        builder.Property(m => m.ReplacesMembershipId).HasColumnName("replaces_membership_id");
+        builder.HasIndex(m => m.ReplacesMembershipId);
 
         // MS3: día del mes en que arranca el ciclo, solo en planes en meses del calendario.
         builder.Property(m => m.CycleDay).HasColumnName("cycle_day");

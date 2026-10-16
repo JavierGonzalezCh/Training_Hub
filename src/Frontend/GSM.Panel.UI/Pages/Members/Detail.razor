@@ -244,6 +244,10 @@ else if (_member is not null)
                                     {
                                         <MudMenuItem OnClick="@(() => ResumeMembershipAsync(context))">Reanudar</MudMenuItem>
                                     }
+                                    @if ((context.Status == "Active" || context.Status == "Paused") && context.StartDate <= DateOnly.FromDateTime(DateTime.Today))
+                                    {
+                                        <MudMenuItem OnClick="@(() => ChangePlanAsync(context))">Cambiar plan</MudMenuItem>
+                                    }
                                     <MudMenuItem OnClick="@(() => CancelMembershipAsync(context))">Cancelar membresía</MudMenuItem>
                                 </MudMenu>
                             }
@@ -589,6 +593,28 @@ else if (_member is not null)
     private Task ResumeMembershipAsync(MembershipResponse membership)
         => RunMembershipActionAsync(
             () => MemberMemberships.ResumeAsync(Id, membership.Id), "Membresía reanudada; su fin se corrió los días que estuvo congelada.");
+
+    private async Task ChangePlanAsync(MembershipResponse membership)
+    {
+        var parameters = new DialogParameters<ChangePlanDialog>
+        {
+            { x => x.MemberId, Id },
+            { x => x.Membership, membership },
+        };
+        var dialog = await Dialogs.ShowAsync<ChangePlanDialog>("Cambiar plan", parameters);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: ChangePlanDialog.ChangePlanResult outcome })
+        {
+            return;
+        }
+
+        Snackbar.Add(
+            outcome.PaymentError is null
+                ? "Plan cambiado."
+                : "Plan cambiado, pero el movimiento de dinero no se registró: regístralo desde la pestaña Pagos.",
+            outcome.PaymentError is null ? Severity.Success : Severity.Warning);
+        await RefreshMembershipsAsync();
+    }
 
     private async Task CancelMembershipAsync(MembershipResponse membership)
     {

@@ -1,4 +1,4 @@
-using GSM.Domain.Payments;
+﻿using GSM.Domain.Payments;
 
 namespace GSM.Application.Payments.Public;
 
@@ -19,6 +19,12 @@ public interface IPaymentReader
     /// <summary>Suma de montos por gym en un mes de negocio, en una sola consulta (panel de SuperAdmin).</summary>
     Task<IReadOnlyDictionary<Guid, decimal>> GetMonthlyRevenueByGymAsync(
         int year, int month, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lo que se pagó de verdad por una membresía: la suma de los asientos ligados a ella (cobros, y las anulaciones
+    /// y devoluciones, que son negativos). Memberships lo usa para calcular el crédito de un cambio de plan.
+    /// </summary>
+    Task<decimal> GetNetPaidForMembershipAsync(Guid membershipId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<MemberPaymentView>> GetRecentByMemberAsync(
         Guid memberId, int limit, CancellationToken cancellationToken = default);

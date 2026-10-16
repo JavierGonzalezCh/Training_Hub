@@ -64,14 +64,27 @@ public sealed class Membership : BaseEntity, ITenantEntity
 
     public bool IsPass => EntriesTotal is not null;
 
-    /// <summary>Total que se cobra al asignarla: precio acordado + matrícula (el crédito de un cambio de plan llega en MS6).</summary>
-    public decimal TotalToCharge => AgreedPrice + EnrollmentFee;
+    /// <summary>
+    /// Crédito de lo no usado de la membresía anterior, que descuenta de esta (cambio de plan, MS6 / §8). 0 si no
+    /// viene de un cambio de plan. Nunca supera precio acordado + matrícula: el excedente se devuelve al miembro.
+    /// </summary>
+    public decimal CreditApplied { get; private set; }
+
+    /// <summary>Por qué el staff ajustó el crédito que calculó el sistema. Solo si lo ajustó.</summary>
+    public string? CreditAdjustmentReason { get; private set; }
+
+    /// <summary>Membresía que esta reemplazó en un cambio de plan (quedó cancelada con el motivo "Cambio de plan").</summary>
+    public Guid? ReplacesMembershipId { get; private set; }
+
+    /// <summary>Total que se cobra al asignarla: precio acordado + matrícula − crédito de un cambio de plan.</summary>
+    public decimal TotalToCharge => AgreedPrice + EnrollmentFee - CreditApplied;
 
     public static Membership Create(
         Guid gymId, Guid memberId, Guid planId, DateOnly startDate, int durationValue,
         RenewalKind renewalKind = RenewalKind.New, string? startOverrideReason = null,
         MembershipPricing? pricing = null, DurationUnit durationUnit = DurationUnit.Days,
-        int? inheritedCycleDay = null, int? entriesTotal = null)
+        int? inheritedCycleDay = null, int? entriesTotal = null,
+        decimal creditApplied = 0m, string? creditAdjustmentReason = null, Guid? replacesMembershipId = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty || planId == Guid.Empty)
         {
@@ -86,6 +99,13 @@ public sealed class Membership : BaseEntity, ITenantEntity
         if (entriesTotal is < 1)
         {
             throw new ValidationDomainException("Una tiquetera necesita al menos una entrada.");
+        }
+
+        var price = pricing?.AgreedPrice ?? 0m;
+        var fee = pricing?.EnrollmentFee ?? 0m;
+        if (creditApplied < 0 || creditApplied > price + fee)
+        {
+            throw new ValidationDomainException("El crédito no puede ser negativo ni superar el total de la membresía.");
         }
 
         var (endDate, cycleDay) = MembershipCalendar.Resolve(startDate, durationUnit, durationValue, inheritedCycleDay);
@@ -106,6 +126,9 @@ public sealed class Membership : BaseEntity, ITenantEntity
             DiscountReason = pricing?.DiscountReason,
             EnrollmentFee = pricing?.EnrollmentFee ?? 0m,
             EnrollmentWaivedReason = pricing?.EnrollmentWaivedReason,
+            CreditApplied = decimal.Round(creditApplied, 2),
+            CreditAdjustmentReason = string.IsNullOrWhiteSpace(creditAdjustmentReason) ? null : creditAdjustmentReason.Trim(),
+            ReplacesMembershipId = replacesMembershipId,
         };
     }
 

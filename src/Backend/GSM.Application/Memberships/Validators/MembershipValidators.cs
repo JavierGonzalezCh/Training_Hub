@@ -78,3 +78,15 @@ public sealed class CancelMembershipRequestValidator : AbstractValidator<CancelM
         RuleFor(x => x.Reason).NotEmpty().MinimumLength(3).MaximumLength(500);
     }
 }
+
+public sealed class ChangePlanRequestValidator : AbstractValidator<ChangePlanRequest>
+{
+    public ChangePlanRequestValidator()
+    {
+        RuleFor(x => x.PlanId).NotEmpty();
+        RuleFor(x => x.AgreedPrice!.Value).InclusiveBetween(0m, 100_000_000m).When(x => x.AgreedPrice.HasValue);
+        RuleFor(x => x.DiscountReason).MaximumLength(500);
+        RuleFor(x => x.CreditOverride!.Value).InclusiveBetween(0m, 100_000_000m).When(x => x.CreditOverride.HasValue);
+        RuleFor(x => x.CreditAdjustmentReason).MaximumLength(500);
+    }
+}

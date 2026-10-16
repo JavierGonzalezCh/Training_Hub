@@ -1,4 +1,4 @@
-using GSM.Application.Memberships.Contracts;
+﻿using GSM.Application.Memberships.Contracts;
 using GSM.Application.Memberships.Public;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
@@ -77,7 +77,10 @@ public static partial class MembershipMapper
             next is null ? null : ToResponse(next, today),
             membership.EntriesTotal,
             membership.EntriesTotal is null ? null : entriesUsed ?? 0,
-            membership.EntriesTotal is null ? null : Math.Max(0, membership.EntriesTotal.Value - (entriesUsed ?? 0)));
+            membership.EntriesTotal is null ? null : Math.Max(0, membership.EntriesTotal.Value - (entriesUsed ?? 0)),
+            membership.CreditApplied,
+            membership.CreditAdjustmentReason,
+            membership.ReplacesMembershipId);
 
     public static AccessStatusResponse ToResponse(AccessStatus access)
         => new(
