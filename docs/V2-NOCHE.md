@@ -95,6 +95,10 @@
 | A4 | **Unida** | Entrada con documento en el kiosco (ajuste `by_document`, apagado), rechazo genérico, bloqueo de 5 fallos / 1 min con `document_entry_locked`. Ver preguntas A4 |
 | R5 | **Unida** | Alternativas recomendadas (tabla + ~31 pares sembrados) y sugeridas; "Cambiar por…" y "Hacer otro ejercicio hoy". Ver preguntas R5 |
 | LG4 | **Unida** | `/admin/logs`: grupos con estado, búsqueda por código (prefijo ≥ 4), reintento de eventos (sin refrescadores aún). Suite 800 + 390. Ver preguntas LG4 |
+| A5 | **Unida** | Ocupación (personas distintas, 2 h configurables) en dashboard y `/app`. **Corrige B4**. Ver preguntas A5 |
+| L2 | **Unida** | Logros `tenure_months` y `referrals`, evaluados en check-in y por eventos de membresía; 2 logros por defecto más. Ver preguntas L2 |
+| C4 | **Unida** | Lista de espera con oferta y plazo (60 min, recortado a 15 min del inicio), perezosa + tarea periódica; candado al reservar. Ver preguntas C4 |
+| MS4 | **Unida** | Congelamientos en `membership_freezes` (reglas por plan, programados, historial); los `paused` migrados a congelamientos abiertos. Suite 850 + 416. Ver preguntas MS4 |
 
 Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
@@ -309,6 +313,24 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **LG4-4 (riesgo):** el reintento corre el manejador como SuperAdmin (sin gym, filtro apagado). No se auditaron los ~20 manejadores; los que usen `RequireGymId()` fallarían. ¿Contexto de gym para el reintento?
 - **LG4-5:** las vistas de rechazos, seguridad, lentitud y procesos del §7 no se construyeron (la fila LG4 no las pide). ¿Tarea aparte?
 
+**Preguntas de la tanda A5/L2/C4/MS4 (2026-10-15):**
+
+- **A5-1:** "Check-ins hoy" sigue contando entradas, no personas (la ocupación sí cuenta personas). Es la A1b-6.
+- **A5-2:** la spec pone la ocupación del miembro "junto a las horas pico que ya existen", pero el miembro no tiene horas pico (solo el staff). ¿Se le exponen?
+- **L2-1:** la antigüedad son días cubiertos ÷ 30 (spec §3.1), no meses del calendario. Confirmar.
+- **L2-2:** un referido cuenta con una membresía no cancelada de precio > 0, no con un pago registrado (evita depender de Payments). ¿Se acepta?
+- **L2-3:** si el staff anota el referidor cuando el amigo ya tenía membresía, el logro llega en el próximo check-in o membresía, no al instante. ¿Evento de Members?
+- **L2-4:** un referido inactivo sigue contando. Confirmar.
+- **C4-1:** subir el cupo de una clase no llega a las sesiones ya materializadas (copian el cupo), así que no libera ofertas. ¿Se propaga?
+- **C4-2:** al cancelar una sesión, la lista de espera queda `expired` sin aviso. ¿Aviso propio?
+- **C4-3:** si el miembro deja de estar al día con una oferta abierta, no puede confirmar pero la oferta aparta el cupo hasta vencer. ¿Debe saltar al siguiente?
+- **MS4-1:** los planes (nuevos y migrados) quedan con `MaxFreezeDays = 0`, como pide §13: hasta configurarlos solo el Owner congela, con override. ¿Otro valor por defecto (p. ej. 30)?
+- **MS4-2:** un congelamiento abierto que supera el límite del plan solo acredita hasta el límite (salvo override). ¿Se acredita todo?
+- **MS4-3:** un programado no puede empezar antes de hoy ni fuera de la vigencia, pero sí terminar después del fin actual. Confirmar.
+- **MS4-4:** "por vencer" y los días que quedan cuentan los días de un congelamiento futuro ya programado (el fin ya está corrido). Confirmar.
+- **MS4-5 (= MS3-1):** correr el fin por un congelamiento no mueve el día del ciclo; la renovación siguiente arranca ciclo nuevo si no coincide.
+- **Integración MS4 ↔ L2:** MS4 reemplazó `paused`/`paused_on` por congelamientos; el `PausedDays` de L2 se retiró y la antigüedad descuenta los tramos congelados.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
@@ -342,6 +364,7 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-15: A5, L2, C4 y MS4 unidas (MS4 y C4 se quedaron detenidos una vez y se reanudaron). Conflicto MS4 ↔ L2 en `Membership.cs`: queda el modelo de congelamientos; `CoveredDaysThrough` descuenta los tramos. Migración `V2_MS4_A5_C4_L2` **reordenada**: `SqlScript` MS4/C4/L2 antes de soltar `paused_on`. La primera suite la cortó Claude Code por memoria baja; se corrió en dos mitades. Al integrar: un falso de push en bUnit, `Input` en un campo `Immediate`, conteo de logros por defecto (5 → 7), una fila de logs de corridas anteriores, y **un defecto real de C4**: `UpdateClassSettingsHandler` agregaba la fila antes de validar (un 422 dejaba la fila rastreada). B4 marcado corregido. **Suite: 850 integración + 416 bUnit, todo verde.**
 - 2026-10-15: MS3, A4, R5 y LG4 unidas sin conflictos (se cortaron una vez por el límite de uso y se reanudaron). Migraciones `V2_MS3_A4_R5` (EF detectó el renombrado de `duration_days`; `SqlScript` MS3, A4, R5) y `V2_LG4_PanelErrores`. Al integrar: 1 `using` (R5), `AlternativesAllAsync`, el parámetro `documentOnly` en medio de `AttendanceGETAsync`, 5 bUnit y 1 test de A4 con planes duplicados. **Suite: 800 integración + 390 bUnit, todo verde.** Lanzada la tanda MS4, A5, C4 y L2.
 - 2026-10-15: A3, MS2, LG3 e I4+G4 unidas (MS2 y A3 combinadas solas en `CheckinTab`). Migraciones `V2_MS2_I4` (`SqlScript("MS2")`, `SqlScript("I4")`) y `V2_LG3_Logs`. Al integrar: 1 `using` (LG3), métodos del panel con sufijo `2` (I4), 18 bUnit (autorización de prueba en recepción por el `RequireRole` de A3, selectores, popover, `Change`) y 2 tests de I4 con contraseñas distintas. **Suite: 756 integración + 367 bUnit, todo verde.**
 - 2026-10-15: lanzada la tanda I4+G4, A3, MS2 y LG3 (solo escriben código).

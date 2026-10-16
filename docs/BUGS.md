@@ -12,7 +12,7 @@ se decide cambiar va en la especificación del módulo.
 | B1 | Routines | Editar una rutina borra todo el historial de entrenamiento del miembro | Alta | **Corregido en R1** (v2) |
 | B2 | Dashboard | "Ingresos del mes" compara el mes en curso contra el mes anterior completo | Media | **Corregido en P3** (v2) |
 | B3 | Memberships (UI) | El precio del plan sale con formato distinto según la pantalla | Baja | **Corregido** (v2, tarea B3) |
-| B4 | Gyms (UI) | El campo "Aforo" promete medir qué tan lleno está el gym en tiempo real, y nada lo usa | Baja | Abierto |
+| B4 | Gyms (UI) | El campo "Aforo" promete medir qué tan lleno está el gym en tiempo real, y nada lo usa | Baja | **Corregido en A5** (v2) |
 
 ---
 
@@ -70,6 +70,7 @@ se decide cambiar va en la especificación del módulo.
   tan lleno está el gimnasio en tiempo real" (`GSM.Web/Pages/Settings/Index.razor`). `Gym.Capacity` se
   guarda (migración `Etapa12_7_GymCapacity`), pero **ningún caso de uso ni pantalla lo lee**.
 - **Impacto:** el dueño llena un dato esperando algo que no pasa.
+- **Corregido en A5 (2026-10-15):** ocupación = personas distintas con entrada no anulada en las últimas 2 h (permanencia configurable), comparada con el aforo; tarjeta en el dashboard y nivel en `/app`. Test `OccupancyTests` (primero el que reproducía el bug).
 - **Arreglo propuesto:** construir la ocupación, que se decide en la revisión de Attendance, o quitar
   la promesa del texto mientras tanto.
 

@@ -1,4 +1,4 @@
-using GSM.Application.Classes.Abstractions;
+﻿using GSM.Application.Classes.Abstractions;
 using GSM.Application.Classes.Contracts;
 using GSM.Application.Classes.Events;
 using GSM.Application.Common.Abstractions;
@@ -38,16 +38,18 @@ public sealed class UpdateClassSettingsHandler(
         UpdateClassSettingsRequest request, CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
-        var current = await settings.GetAsync(gymId, cancellationToken);
-        if (current is null)
-        {
-            current = ClassSettings.Default(gymId);
-            settings.Add(current);
-        }
+        var existing = await settings.GetAsync(gymId, cancellationToken);
+        var current = existing ?? ClassSettings.Default(gymId);
 
+        // Se valida antes de agregar la fila: un 422 no debe dejar una fila nueva rastreada en el contexto.
         current.Update(
             request.CancelDeadlineHours, request.NoShowLimit, request.NoShowWindowDays,
             request.NoShowBlockDays, request.BookingWindowDays, request.MaxActiveBookings, request.WaitlistOfferMinutes);
+        if (existing is null)
+        {
+            settings.Add(current);
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Reglas de reserva del gym {GymId} actualizadas", gymId);

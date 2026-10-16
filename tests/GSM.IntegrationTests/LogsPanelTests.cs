@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -287,6 +287,14 @@ public sealed class LogsPanelTests(ApiFactory factory) : IClassFixture<ApiFactor
         var good1 = EventFailure<LogRetryGroupTestEvent, RetryGroupTestHandler>(new { id = idA, name = "a" });
         var good2 = EventFailure<LogRetryGroupTestEvent, RetryGroupTestHandler>(new { id = idB, name = "b" });
         var truncated = EventFailure<LogRetryGroupTestEvent, RetryGroupTestHandler>(new { _truncated = true });
+        // logs.* no se trunca entre corridas: se quitan las fallas de este grupo que dejaron corridas anteriores.
+        await using (var db = OpenLogs(host))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "delete from logs.event_handler_failures where event_type = {0} and handler_type = {1}",
+                good1.EventType, good1.HandlerType);
+        }
+
         await AddAsync(host, good1, good2, truncated);
         var admin = await LoggedInAsync(host, w.AdminEmail, AdminPassword);
 

@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Member.UI.Pages;
@@ -43,6 +43,10 @@ public class ClassWaitlistUiTests : TestContext
         waitlistFake.Handlers["ConfirmAsync"] = _ => new BookingResponse { Status = "Booked" };
         Services.AddSingleton(waitlist);
 
+        // Tras anotarse, la página ofrece activar los avisos: un dispositivo que ya los tiene no muestra nada.
+        Services.AddSingleton<GSM.UI.Shared.Push.IPushNotifications>(new GrantedPushDevice());
+        Services.AddSingleton(DispatchProxy.Create<IPushClient, FakeClient>());
+        Services.AddScoped<GSM.UI.Shared.Push.PushRegistrationService>();
         RenderComponent<MudPopoverProvider>();
         RenderComponent<MudDialogProvider>();
         return RenderComponent<GSM.Member.UI.Pages.Classes>();
@@ -234,5 +238,25 @@ public class ClassWaitlistUiTests : TestContext
             var put = Assert.Single(fake.Calls, c => c.Method == "ClassSettingsPUTAsync");
             Assert.Equal(30, Assert.IsType<UpdateClassSettingsRequest>(put.Args[0]).WaitlistOfferMinutes);
         });
+    }
+
+    private sealed class GrantedPushDevice : GSM.UI.Shared.Push.IPushNotifications
+    {
+        public Task<GSM.UI.Shared.Push.PushPermissionState> GetStateAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(GSM.UI.Shared.Push.PushPermissionState.Granted);
+
+        public Task<bool> IsInstalledAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+
+        public Task<string?> RequestTokenAsync(PushConfigResponse config, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(null);
+
+        public Task<string?> GetTokenAsync(PushConfigResponse config, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(null);
+
+        public Task ForgetTokenAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<bool> IsPromptDismissedAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+
+        public Task DismissPromptAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

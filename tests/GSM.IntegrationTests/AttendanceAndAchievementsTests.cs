@@ -38,7 +38,7 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
         {
             var count = await scope.ServiceProvider.GetRequiredService<GsmDbContext>()
                 .Set<Achievement>().CountAsync(a => a.GymId == gymId);
-            Assert.Equal(5, count);
+            Assert.Equal(7, count); // L2 suma "1 año con nosotros" y "Primer amigo"
         }
     }
 

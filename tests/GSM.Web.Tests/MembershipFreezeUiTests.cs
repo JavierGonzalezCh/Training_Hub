@@ -94,7 +94,7 @@ public class MembershipFreezeUiTests : TestContext
     {
         await OpenAsync(maxFreezeDays: 15, isOwner: false);
 
-        _provider.Find("[data-testid='freeze-reason']").Change("Viaje de trabajo");
+        _provider.Find("[data-testid='freeze-reason']").Input("Viaje de trabajo");
         Click("Congelar");
 
         _provider.WaitForAssertion(() => Assert.Contains(_fake.Calls, c => c.Method == "FreezeAsync"));
@@ -111,7 +111,7 @@ public class MembershipFreezeUiTests : TestContext
         await OpenAsync(maxFreezeDays: 15, isOwner: false);
 
         _provider.Find("[data-testid='freeze-scheduled']").Change(true);
-        _provider.Find("[data-testid='freeze-reason']").Change("Vacaciones");
+        _provider.Find("[data-testid='freeze-reason']").Input("Vacaciones");
         Click("Congelar");
 
         _provider.WaitForAssertion(() => Assert.Contains("desde y hasta", _provider.Markup));
