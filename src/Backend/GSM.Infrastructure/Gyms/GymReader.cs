@@ -100,6 +100,16 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
         return OpeningHoursSupport.BuildSchedule(weekly, specials);
     }
 
+    public async Task<IReadOnlyList<GymStartupState>> ListStartupStatesAsync(CancellationToken cancellationToken = default)
+        => await (
+                from gym in dbContext.Set<Gym>().IgnoreQueryFilters()
+                join onboarding in dbContext.Set<GymOnboarding>().IgnoreQueryFilters()
+                    on gym.Id equals onboarding.GymId into joined
+                from o in joined.DefaultIfEmpty()
+                select new GymStartupState(gym.Id, gym.CreatedAt, o != null && o.CompletedAt != null))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
     public async Task<bool> IsOpenAtAsync(Guid gymId, DateTimeOffset instant, CancellationToken cancellationToken = default)
         => (await GetOpenStatusAsync(gymId, instant, cancellationToken)).IsOpen;
 }

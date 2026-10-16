@@ -1,4 +1,4 @@
-﻿using GSM.Application.Attendance.Events;
+using GSM.Application.Attendance.Events;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Application.Common.Logs;
@@ -451,6 +451,9 @@ public sealed class NotificationsTests(ApiFactory factory) : IClassFixture<ApiFa
 
         public Task<SuperAdminContactDto?> GetSuperAdminContactAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<SuperAdminContactDto?>(null);
+
+        public Task<IReadOnlyList<PendingOwnerDto>> ListOwnersPendingActivationAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<PendingOwnerDto>>([]);
     }
 
     private async Task PublishAsync<TEvent>(Guid gymId, TEvent evt) where TEvent : IDomainEvent
