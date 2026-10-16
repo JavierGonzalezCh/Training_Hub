@@ -1,0 +1,229 @@
+@page "/app/ranking"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject GymContext GymCtx
+@inject IMeClient Me
+@inject ISnackbar Snackbar
+
+<PageTitle>Ranking — GSM</PageTitle>
+
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-1">Ranking del mes</MudText>
+
+@if (GymCtx.FeatureFlags is { ShowRanking: false } || GymCtx.FeatureFlags is { ShowGamification: false })
+{
+    <MudAlert Severity="Severity.Normal" data-testid="ranking-off">El ranking no está activado en este gimnasio.</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_ranking is null)
+{
+    <MudText Color="Color.Secondary">No pudimos cargar el ranking.</MudText>
+}
+else
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        Constancia de @MonthLabel(_ranking.Year, _ranking.Month): días en que entrenaste. Solo aparece quien acepta participar.
+    </MudText>
+
+    @if (_ranking.Me.Participating)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4" data-testid="ranking-me">
+            @if (_ranking.Me.Position is { } position)
+            {
+                <span>Vas @(position).º con @_ranking.Me.Days @(_ranking.Me.Days == 1 ? "día" : "días").</span>
+            }
+            else
+            {
+                <span>Aún no sumas días este mes. En cuanto entrenes, aparecerás en la lista.</span>
+            }
+        </MudAlert>
+    }
+    else if (_ranking.Me.CanParticipate)
+    {
+        <MudAlert Severity="Severity.Normal" Class="mb-4" data-testid="ranking-invite">
+            Aún no apareces en el ranking. Súmate cuando quieras; puedes salirte en cualquier momento.
+        </MudAlert>
+    }
+
+    @if (_ranking.Top.Count == 0)
+    {
+        <MudText Color="Color.Secondary" data-testid="ranking-empty">Todavía nadie suma días este mes.</MudText>
+    }
+    else
+    {
+        <MudList T="string" Dense="true" Class="mb-4" data-testid="ranking-top">
+            @foreach (var entry in _ranking.Top)
+            {
+                <MudListItem T="string" data-testid="@($"ranking-row-{entry.Position}")">
+                    <div class="d-flex align-center">
+                        <MudText Typo="Typo.h6" Style="min-width:2.5rem">@entry.Position</MudText>
+                        <MudAvatar Size="Size.Small" Class="mr-3">
+                            @if (!string.IsNullOrWhiteSpace(entry.PhotoUrl))
+                            {
+                                <MudImage Src="@entry.PhotoUrl" Alt="@entry.DisplayName" />
+                            }
+                            else
+                            {
+                                @Initial(entry.DisplayName)
+                            }
+                        </MudAvatar>
+                        <MudText Typo="Typo.body1" Class="flex-grow-1" Style="@(entry.IsMe ? "font-weight:700" : null)">
+                            @entry.DisplayName@(entry.IsMe ? " (tú)" : string.Empty)
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@entry.Days @(entry.Days == 1 ? "día" : "días")</MudText>
+                    </div>
+                </MudListItem>
+            }
+        </MudList>
+    }
+
+    @if (_ranking.PreviousPodium.Count > 0)
+    {
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Podio de @MonthLabel(_ranking.PreviousYear, _ranking.PreviousMonth)</MudText>
+        <MudList T="string" Dense="true" Class="mb-4" data-testid="ranking-podium">
+            @foreach (var entry in _ranking.PreviousPodium)
+            {
+                <MudListItem T="string" data-testid="@($"podium-row-{entry.Position}")">
+                    <div class="d-flex align-center">
+                        <MudText Typo="Typo.h6" Style="min-width:2.5rem">@entry.Position</MudText>
+                        <MudText Typo="Typo.body1" Class="flex-grow-1">@entry.DisplayName@(entry.IsMe ? " (tú)" : string.Empty)</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@entry.Days @(entry.Days == 1 ? "día" : "días")</MudText>
+                    </div>
+                </MudListItem>
+            }
+        </MudList>
+    }
+
+    <MudDivider Class="my-4" />
+
+    @if (!_ranking.Me.CanParticipate && !_ranking.Me.Participating)
+    {
+        <MudText Color="Color.Secondary" data-testid="ranking-cannot">@_ranking.Me.CannotParticipateReason</MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Mi participación</MudText>
+        <MudSwitch T="bool" Value="_participating" ValueChanged="OnToggleAsync" Disabled="_saving"
+                   Label="Aparecer en el ranking del gimnasio" Color="Color.Primary"
+                   data-testid="ranking-switch" />
+
+        @if (_participating)
+        {
+            <MudRadioGroup T="bool" @bind-Value="_useAlias" Class="d-block mb-2" data-testid="ranking-display-mode">
+                <MudRadio T="bool" Value="false" Color="Color.Primary">Mi nombre e inicial del apellido, con mi foto</MudRadio>
+                <MudRadio T="bool" Value="true" Color="Color.Primary">Un alias</MudRadio>
+            </MudRadioGroup>
+
+            @if (_useAlias)
+            {
+                <MudTextField T="string" @bind-Value="_alias" Label="Alias" MaxLength="20"
+                              HelperText="Entre 3 y 20 caracteres. Sin foto ni apellido." Class="mb-2"
+                              data-testid="ranking-alias" />
+            }
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
+                       data-testid="ranking-save">Guardar</MudButton>
+        }
+    }
+}
+
+@code {
+    private RankingResponse? _ranking;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _participating;
+    private bool _useAlias;
+    private string? _alias;
+
+    private static string MonthLabel(int year, int month)
+        => new DateTime(year, month, 1).ToString("MMMM 'de' yyyy", System.Globalization.CultureInfo.GetCultureInfo("es-CO"));
+
+    private static string Initial(string name)
+        => string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[..1].ToUpperInvariant();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GymCtx.FeatureFlags is { ShowRanking: false } || GymCtx.FeatureFlags is { ShowGamification: false })
+        {
+            _loading = false;
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _ranking = await Me.GetMyRankingAsync();
+            _participating = _ranking.Me.Participating;
+            _useAlias = _ranking.Me.UsesAlias;
+            _alias = _ranking.Me.Alias;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnToggleAsync(bool value)
+    {
+        _participating = value;
+        if (value)
+        {
+            // Al sumarse queda con nombre e inicial; el alias se elige y guarda después.
+            await SaveAsync();
+        }
+        else
+        {
+            await LeaveAsync();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            await Me.JoinMyRankingAsync(new JoinRankingRequest { UseAlias = _useAlias, Alias = _useAlias ? _alias : null });
+            Snackbar.Add("Listo, apareces en el ranking.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            _participating = _ranking?.Me.Participating ?? false;
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task LeaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            await Me.LeaveMyRankingAsync();
+            Snackbar.Add("Saliste del ranking.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            _participating = true;
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

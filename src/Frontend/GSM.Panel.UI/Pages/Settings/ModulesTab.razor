@@ -32,6 +32,9 @@ else
             @ModuleCard(Icons.Material.Outlined.ReportProblem, "Reportar fallas de máquinas",
                 "Los miembros pueden avisar desde la app cuando una máquina falla. Si lo apagas, solo el equipo reporta.",
                 _flagsModel.MembersCanReportEquipment, v => _flagsModel.MembersCanReportEquipment = v)
+            @ModuleCard(Icons.Material.Outlined.Leaderboard, "Ranking de constancia",
+                "Ranking mensual voluntario de días entrenados. Solo aparece quien acepta participar; los menores de edad no pueden.",
+                _flagsModel.ShowRanking, v => _flagsModel.ShowRanking = v)
             @ModuleCard(Icons.Material.Outlined.CalendarMonth, "Clases",
                 "Horario semanal de clases grupales, con reservas y cupos desde la app.",
                 _flagsModel.ShowClasses, v => _flagsModel.ShowClasses = v)
@@ -84,6 +87,7 @@ else
             _flagsModel.CommunityComments = flags.CommunityComments;
             _flagsModel.MembersCanCreateRoutines = flags.MembersCanCreateRoutines;
             _flagsModel.MembersCanReportEquipment = flags.MembersCanReportEquipment;
+            _flagsModel.ShowRanking = flags.ShowRanking;
         }
         catch (GsmApiException ex)
         {
@@ -111,6 +115,7 @@ else
                 CommunityComments = _flagsModel.CommunityComments,
                 MembersCanCreateRoutines = _flagsModel.MembersCanCreateRoutines,
                 MembersCanReportEquipment = _flagsModel.MembersCanReportEquipment,
+                ShowRanking = _flagsModel.ShowRanking,
             });
             await Session.BootstrapAsync();
             Snackbar.Add("Módulos actualizados.", Severity.Success);
@@ -150,5 +155,6 @@ else
         public bool CommunityComments { get; set; }
         public bool MembersCanCreateRoutines { get; set; }
         public bool MembersCanReportEquipment { get; set; }
+        public bool ShowRanking { get; set; } = true;
     }
 }

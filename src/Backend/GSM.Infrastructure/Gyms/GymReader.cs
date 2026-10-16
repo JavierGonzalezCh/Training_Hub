@@ -44,7 +44,7 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
             .Select(f => new GymFeatureFlagsView(
                 f.ShowRoutines, f.ShowClasses, f.ShowProgress, f.ShowGamification,
                 f.ShowCommunity, f.CheckinQr, f.CommunityComments, f.MembersCanCreateRoutines,
-                f.MembersCanReportEquipment))
+                f.MembersCanReportEquipment, f.ShowRanking))
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<GymAdminView?> GetAdminViewAsync(Guid gymId, CancellationToken cancellationToken = default)

@@ -31,6 +31,28 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
             .ToDictionaryAsync(x => x.MemberId, x => x.Days, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<MemberDaysInRange>> GetDayCountsInRangeAsync(
+        IReadOnlyCollection<Guid> memberIds, DateOnly from, DateOnly toExclusive,
+        CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return [];
+        }
+
+        // AttendanceDate ya es un día de negocio (DateOnly): el rango se acota por fecha, sin rango UTC.
+        var rows = await Attendances
+            .Where(a => memberIds.Contains(a.MemberId) && a.AttendanceDate >= from && a.AttendanceDate < toExclusive)
+            .Select(a => new { a.MemberId, a.AttendanceDate })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(r => r.MemberId)
+            .Select(g => new MemberDaysInRange(g.Key, g.Count(), g.Max(r => r.AttendanceDate)))
+            .ToList();
+    }
+
     public async Task<int> GetStreakAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
         var dates = await Attendances

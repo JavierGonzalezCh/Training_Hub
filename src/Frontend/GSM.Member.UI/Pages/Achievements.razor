@@ -9,6 +9,12 @@
 
 <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Logros</MudText>
 
+@if (GymCtx.FeatureFlags is { ShowRanking: true, ShowGamification: true })
+{
+    <MudButton Href="/app/ranking" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+               StartIcon="@Icons.Material.Outlined.Leaderboard" Class="mb-4" data-testid="ranking-link">Ver el ranking del mes</MudButton>
+}
+
 @if (GymCtx.FeatureFlags?.ShowGamification == false)
 {
     <MudAlert Severity="Severity.Normal">La gamificación no está activada en este gimnasio.</MudAlert>

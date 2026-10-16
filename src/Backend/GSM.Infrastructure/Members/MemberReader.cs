@@ -38,6 +38,23 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
         => Project(Members.IgnoreQueryFilters().Where(m => m.UserId == userId))
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, MemberRankingView>> GetRankingViewsAsync(
+        IReadOnlyCollection<Guid> memberIds, DateOnly today, CancellationToken cancellationToken = default)
+    {
+        if (memberIds.Count == 0)
+        {
+            return new Dictionary<Guid, MemberRankingView>();
+        }
+
+        var adultBirthLimit = today.AddYears(-Member.AdultAge);
+        return await Members
+            .Where(m => memberIds.Contains(m.Id))
+            .Select(m => new MemberRankingView(
+                m.Id, m.FirstName, m.LastName, m.PhotoUrl, m.Status,
+                m.BirthDate == null || m.BirthDate > adultBirthLimit))
+            .ToDictionaryAsync(v => v.Id, cancellationToken);
+    }
+
     public Task<int> GetActiveCountAsync(Guid gymId, CancellationToken cancellationToken = default)
         => Members.CountAsync(m => m.GymId == gymId && m.Status == MemberStatus.Active, cancellationToken);
 

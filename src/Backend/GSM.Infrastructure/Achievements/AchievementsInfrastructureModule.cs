@@ -13,6 +13,7 @@ public static class AchievementsInfrastructureRegistration
         IConfiguration configuration)
     {
         services.AddScoped<IAchievementRepository, AchievementRepository>();
+        services.AddScoped<IRankingRepository, RankingRepository>();
         services.AddScoped<IAchievementReader, AchievementReader>();
         services.AddScoped<IAchievementService, AchievementService>();
         services.AddScoped<IRetroactiveAchievementGrant, RetroactiveAchievementGrant>();

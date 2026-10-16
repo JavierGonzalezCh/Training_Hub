@@ -12,6 +12,15 @@ public interface IAttendanceReader
     Task<IReadOnlyDictionary<Guid, int>> GetVisitCountsAsync(
         IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Días con entrada válida de cada miembro pedido dentro de <c>[from, toExclusive)</c> (días de negocio), con el
+    /// día en que llegó a esa cantidad (el último día con entrada), para el ranking mensual (L6). Mismo criterio que
+    /// las visitas: cuenta días, no entradas, y no cuenta las anuladas. Quien no entró en el rango no aparece.
+    /// </summary>
+    Task<IReadOnlyList<MemberDaysInRange>> GetDayCountsInRangeAsync(
+        IReadOnlyCollection<Guid> memberIds, DateOnly from, DateOnly toExclusive,
+        CancellationToken cancellationToken = default);
+
     Task<int> GetStreakAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     /// <summary>Días de negocio con asistencia del miembro, opcionalmente desde <paramref name="from"/> (inclusive).</summary>
@@ -33,3 +42,6 @@ public interface IAttendanceReader
 
     Task<DateOnly?> GetLastVisitAsync(Guid memberId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Días con entrada de un miembro en un rango y el último de esos días (cuándo llegó a esa cantidad).</summary>
+public sealed record MemberDaysInRange(Guid MemberId, int Days, DateOnly LastDay);
