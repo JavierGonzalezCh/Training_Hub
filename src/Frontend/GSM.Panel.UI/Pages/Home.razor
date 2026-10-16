@@ -255,7 +255,7 @@ else if (_dashboard is { } dashboard)
         // secundarias (afluencia, feed) el dashboard sigue mostrando las cifras.
         var dashboardTask = Dashboard.Dashboard2Async();
         var peakTask = Attendance.PeakHoursAsync(_today.AddDays(-PeakWindowDays), _today);
-        var feedTask = Attendance.AttendanceGETAsync(null, _today, _today, null, null, null, 1, 8);
+        var feedTask = Attendance.AttendanceGETAsync(null, _today, _today, null, null, null, null, 1, 8);
         var rejectedTask = Attendance.AttemptsAsync(_today, _today, null, null, 1, 6);
 
         try

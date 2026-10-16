@@ -39,6 +39,8 @@
                    Label="Entradas autorizadas" />
         <MudSwitch T="bool" Value="_includeVoided" ValueChanged="OnIncludeVoidedChangedAsync" Color="Color.Primary"
                    Label="Ver anuladas" data-testid="include-voided" />
+        <MudSwitch T="bool" Value="_notCountedOnly" ValueChanged="OnNotCountedChangedAsync" Color="Color.Primary"
+                   Label="Sin ubicación o fuera del radio" data-testid="not-counted-only" />
     </ToolBarContent>
     <HeaderContent>
         <MudTh>Miembro</MudTh>
@@ -56,7 +58,16 @@
         </MudTd>
         <MudTd DataLabel="Fecha">@GsmFormat.Day(context.AttendanceDate)</MudTd>
         <MudTd DataLabel="Hora">@GsmFormat.Instant(context.CheckedInAt)</MudTd>
-        <MudTd DataLabel="Método">@(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")</MudTd>
+        <MudTd DataLabel="Método">
+            @(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")
+            @* A6: con el QR fijo, fuera del radio o sin ubicación la entrada no suma a racha ni logros. *@
+            @if (context.CountsForProgress == false)
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="ml-2 location-not-counted">
+                    @(context.LocationCheck == "Denied" ? "Sin ubicación" : "Fuera del radio")
+                </MudChip>
+            }
+        </MudTd>
         <MudTd DataLabel="Autorizada">
             @if (context.Authorized == true)
             {
@@ -176,6 +187,7 @@
     private DateTime? _to;
     private bool _authorizedOnly;
     private bool _includeVoided;
+    private bool _notCountedOnly;
     private List<PeakHourBucket>? _peakHours;
     private List<ChartSeries> _series = [];
     private string[] _labels = [];
@@ -210,6 +222,7 @@
                 _authorizedOnly ? true : null,
                 null,
                 _includeVoided ? true : null,
+                _notCountedOnly ? true : null,
                 page, pageSize, cancellationToken);
             return new ServerTablePage<AttendanceListItem>(result.Items.ToList(), result.Total);
         }
@@ -235,6 +248,12 @@
     private async Task OnIncludeVoidedChangedAsync(bool value)
     {
         _includeVoided = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task OnNotCountedChangedAsync(bool value)
+    {
+        _notCountedOnly = value;
         await _table.RefreshAsync();
     }
 

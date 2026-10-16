@@ -26,7 +26,7 @@ public sealed class ListAttendanceHandler(
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
         var (items, total) = await attendance.GetPageAsync(
-            new AttendancePageQuery(query.MemberId, query.From, query.To, page, pageSize, query.AuthorizedOnly, query.IncludeVoided, query.DocumentOnly),
+            new AttendancePageQuery(query.MemberId, query.From, query.To, page, pageSize, query.AuthorizedOnly, query.IncludeVoided, query.DocumentOnly, query.NotCountedOnly),
             cancellationToken);
 
         var names = await ResolveNamesAsync(members, items.Select(a => a.MemberId), cancellationToken);
@@ -49,7 +49,9 @@ public sealed class ListAttendanceHandler(
             VoidedAt: a.VoidedAt,
             VoidedBy: a.VoidedBy,
             VoidedByName: a.VoidedBy is { } vb ? authorizers.GetValueOrDefault(vb) : null,
-            VoidReason: a.VoidReason);
+            VoidReason: a.VoidReason,
+            LocationCheck: a.LocationCheck?.ToString(),
+            CountsForProgress: a.CountsForProgress);
 
     internal static async Task<IReadOnlyDictionary<Guid, string>> ResolveAuthorizersAsync(
         IIdentityReader identity, IEnumerable<AttendanceEntity> items, CancellationToken cancellationToken)
@@ -109,7 +111,10 @@ public sealed class GetMemberAttendanceHandler(
         return new PagedResult<AttendanceListItem>(
             items.Select(a => isStaff
                 ? ListAttendanceHandler.ToItem(a, name, authorizers)
-                : new AttendanceListItem(a.Id, a.MemberId, name, a.CheckedInAt, a.AttendanceDate, a.Method.ToString())).ToList(),
+                : new AttendanceListItem(
+                    a.Id, a.MemberId, name, a.CheckedInAt, a.AttendanceDate, a.Method.ToString(),
+                    LocationCheck: a.LocationCheck?.ToString(),
+                    CountsForProgress: a.CountsForProgress)).ToList(),
             p, size, total);
     }
 }

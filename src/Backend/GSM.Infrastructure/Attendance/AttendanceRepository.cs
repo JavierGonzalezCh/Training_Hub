@@ -62,6 +62,13 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
             q = q.Where(a => a.Method == GSM.Domain.Attendance.AttendanceMethod.Document);
         }
 
+        if (query.NotCountedOnly)
+        {
+            // A6: entradas con QR fijo fuera del radio o sin ubicación (no cuentan para logros ni racha).
+            q = q.Where(a => a.LocationCheck == GSM.Domain.Attendance.LocationCheck.Outside
+                || a.LocationCheck == GSM.Domain.Attendance.LocationCheck.Denied);
+        }
+
         var total = await q.CountAsync(cancellationToken);
 
         var items = await q
@@ -82,7 +89,7 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
             .ToListAsync(cancellationToken);
 
     public Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default)
-        => Attendances.Where(a => a.MemberId == memberId && a.VoidedAt == null).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
+        => Attendances.Where(a => a.MemberId == memberId && a.VoidedAt == null && (a.LocationCheck == null || a.LocationCheck == GSM.Domain.Attendance.LocationCheck.Inside)).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
 
     public Task<int> GetTodayCountAsync(
         Guid gymId, DateOnly today, CancellationToken cancellationToken = default)

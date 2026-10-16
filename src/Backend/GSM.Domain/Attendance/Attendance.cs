@@ -42,6 +42,17 @@ public sealed class Attendance : BaseEntity, ITenantEntity
 
     public bool IsVoided => VoidedAt is not null;
 
+    /// <summary>
+    /// Comprobación de ubicación con el QR fijo (A6). Nulo = no se pidió. Solo el resultado; nunca las coordenadas.
+    /// </summary>
+    public LocationCheck? LocationCheck { get; private set; }
+
+    /// <summary>
+    /// ¿Cuenta para logros y racha? No cuenta si el miembro estaba fuera del radio o no compartió su ubicación
+    /// (sigue contando para el acceso, la tiquetera y la ocupación).
+    /// </summary>
+    public bool CountsForProgress => LocationCheck is null or GSM.Domain.Attendance.LocationCheck.Inside;
+
     /// <summary>Borrado lógico con motivo obligatorio: la fila queda como traza y deja de contar.</summary>
     public void Void(Guid voidedBy, string reason, DateTimeOffset now)
     {
@@ -63,7 +74,7 @@ public sealed class Attendance : BaseEntity, ITenantEntity
 
     public static Attendance Create(
         Guid gymId, Guid memberId, AttendanceMethod method, DateTimeOffset checkedInAt, DateOnly attendanceDate,
-        Guid? authorizedBy = null, string? authorizationReason = null)
+        Guid? authorizedBy = null, string? authorizationReason = null, LocationCheck? locationCheck = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty)
         {
@@ -79,6 +90,7 @@ public sealed class Attendance : BaseEntity, ITenantEntity
             AttendanceDate = attendanceDate,
             AuthorizedBy = authorizedBy,
             AuthorizationReason = authorizedBy is null ? null : authorizationReason?.Trim(),
+            LocationCheck = locationCheck,
         };
     }
 }

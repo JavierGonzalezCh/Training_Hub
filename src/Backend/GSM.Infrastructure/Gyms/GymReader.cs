@@ -38,6 +38,12 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
             .Select(g => g.Capacity)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public Task<GymGeofence?> GetGeofenceAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<Gym>().IgnoreQueryFilters()
+            .Where(g => g.Id == gymId && g.Latitude != null && g.Longitude != null)
+            .Select(g => new GymGeofence(g.Latitude!.Value, g.Longitude!.Value, g.GeofenceRadiusMeters))
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<GymFeatureFlagsView?> GetFeatureFlagsAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<GymFeatureFlags>().IgnoreQueryFilters()
             .Where(f => f.GymId == gymId)

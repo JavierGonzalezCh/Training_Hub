@@ -94,7 +94,8 @@ public class KioskDeviceUiTests : TestContext
         public Task<EntryRuleResponse> SetEntryRuleAsync(Guid memberId, SetEntryRuleRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task RemoveEntryRuleAsync(Guid memberId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task VoidCheckInAsync(Guid id, VoidCheckInRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<PagedResultOfAttendanceListItem> AttendanceGETAsync(Guid? memberId = null, DateOnly? from = null, DateOnly? to = null, bool? authorizedOnly = null, bool? documentOnly = null, bool? includeVoided = null, int? page = null, int? pageSize = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PagedResultOfAttendanceListItem> AttendanceGETAsync(Guid? memberId = null, DateOnly? from = null, DateOnly? to = null, bool? authorizedOnly = null, bool? documentOnly = null, bool? includeVoided = null, bool? notCountedOnly = null, int? page = null, int? pageSize = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CheckinLocationPolicyResponse> GetCheckinLocationPolicyAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<ICollection<PeakHourBucket>> PeakHoursAsync(DateOnly? from = null, DateOnly? to = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<OccupancyResponse> GetOccupancyAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<CheckinSettingsResponse> SettingsGETAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
