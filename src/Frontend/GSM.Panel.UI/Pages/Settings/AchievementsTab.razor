@@ -25,7 +25,7 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Nombre">@context.Name</MudTd>
-            <MudTd DataLabel="Condición">@AchievementConditionLabels.Label(context.ConditionType) · @context.ConditionValue</MudTd>
+            <MudTd DataLabel="Condición">@AchievementConditionLabels.Label(context.ConditionType)@(context.ConditionType == "Manual" ? "" : $" · {context.ConditionValue}")</MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                     @(context.IsActive ? "ACTIVO" : "INACTIVO")

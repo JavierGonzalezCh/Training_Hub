@@ -25,4 +25,10 @@ public enum AchievementConditionType
 
     /// <summary>Amigos referidos que ya tienen su primera membresía pagada (L2). Label: <c>referrals</c>.</summary>
     Referrals,
+
+    /// <summary>
+    /// Lo otorga el staff a mano (L4): sin condición automática, nunca se evalúa ni se otorga de forma
+    /// retroactiva. Label: <c>manual</c>.
+    /// </summary>
+    Manual,
 }

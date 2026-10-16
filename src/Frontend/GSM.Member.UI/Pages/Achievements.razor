@@ -32,10 +32,19 @@ else
                              Size="Size.Large" Class="mb-2"
                              Style="@($"color:{(achievement.Unlocked ? "var(--gsm-red)" : "var(--gsm-muted)")}")" />
                     <MudText Typo="Typo.body1" Style="@(achievement.Unlocked ? null : "color:var(--gsm-silver)")">@achievement.Name</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @AchievementConditionLabels.Label(achievement.ConditionType) · @achievement.Progress/@achievement.ConditionValue
-                    </MudText>
-                    @if (!achievement.Unlocked && achievement.ConditionValue > 0)
+                    @if (achievement.IsManual)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="manual-caption">
+                            @(achievement.Unlocked && !string.IsNullOrWhiteSpace(achievement.GrantReason) ? achievement.GrantReason : AchievementConditionLabels.Label(achievement.ConditionType))
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @AchievementConditionLabels.Label(achievement.ConditionType) · @achievement.Progress/@achievement.ConditionValue
+                        </MudText>
+                    }
+                    @if (!achievement.Unlocked && !achievement.IsManual && achievement.ConditionValue > 0)
                     {
                         <div class="gsm-achievement-progress"
                              role="progressbar"

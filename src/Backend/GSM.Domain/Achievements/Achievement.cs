@@ -43,7 +43,7 @@ public sealed class Achievement : BaseEntity, ITenantEntity
             Description = Clean(description),
             IconUrl = Clean(iconUrl),
             ConditionType = conditionType,
-            ConditionValue = RequirePositive(conditionValue),
+            ConditionValue = NormalizeValue(conditionType, conditionValue),
         };
     }
 
@@ -53,8 +53,10 @@ public sealed class Achievement : BaseEntity, ITenantEntity
         Description = Clean(description);
         IconUrl = Clean(iconUrl);
         ConditionType = conditionType;
-        ConditionValue = RequirePositive(conditionValue);
+        ConditionValue = NormalizeValue(conditionType, conditionValue);
     }
+
+    public bool IsManual => ConditionType == AchievementConditionType.Manual;
 
     public void Deactivate() => IsActive = false;
 
@@ -100,6 +102,10 @@ public sealed class Achievement : BaseEntity, ITenantEntity
 
         return value;
     }
+
+    /// <summary>Un logro manual no tiene condición: el valor se fija en 1 (la columna es obligatoria).</summary>
+    private static int NormalizeValue(AchievementConditionType type, int value)
+        => type == AchievementConditionType.Manual ? 1 : RequirePositive(value);
 
     private static int RequirePositive(int value)
         => value > 0 ? value : throw new ValidationDomainException("La condición debe ser mayor que cero.");

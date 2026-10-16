@@ -27,6 +27,10 @@ public interface IAchievementRepository
 
     void AddUnlock(MemberAchievement unlock);
 
+    /// <summary>La fila de desbloqueo del miembro para ese logro (incluida una retirada). Nulo si nunca lo tuvo.</summary>
+    Task<MemberAchievement?> GetUnlockAsync(
+        Guid memberId, Guid achievementId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<StreakFreeze>> ListStreakFreezesAsync(
         Guid memberId, CancellationToken cancellationToken = default);
 

@@ -75,6 +75,12 @@ public sealed class RetroactiveAchievementGrant(
     private async Task<IReadOnlyList<Guid>> FindEligibleAsync(
         Achievement achievement, Guid? alreadyUnlockedFor, CancellationToken cancellationToken)
     {
+        // Un logro manual no tiene condición automática: nunca se otorga de forma retroactiva (L4).
+        if (achievement.ConditionType == AchievementConditionType.Manual)
+        {
+            return [];
+        }
+
         var gymId = currentUser.RequireGymId();
         var active = await members.GetActiveMemberIdsAsync(gymId, cancellationToken);
         var have = alreadyUnlockedFor is { } id

@@ -33,8 +33,8 @@ public sealed class AchievementReader(
             .ToListAsync(cancellationToken);
 
         var unlocked = await dbContext.Set<MemberAchievement>()
-            .Where(u => u.MemberId == memberId)
-            .ToDictionaryAsync(u => u.AchievementId, u => u.UnlockedAt, cancellationToken);
+            .Where(u => u.MemberId == memberId && u.RevokedAt == null)
+            .ToDictionaryAsync(u => u.AchievementId, u => new { u.UnlockedAt, u.GrantReason }, cancellationToken);
 
         var (visits, streak, sessions, classAttendance, tenure, referrals) = await AchievementMetrics.ComputeAsync(
             memberId, clock.Today, attendance, routines, classes, members, memberships,
@@ -46,8 +46,11 @@ public sealed class AchievementReader(
             .Select(a => new MemberAchievementView(
                 a.Id, a.Name, a.Description, a.IconUrl, a.ConditionType, a.ConditionValue,
                 unlocked.ContainsKey(a.Id),
-                unlocked.TryGetValue(a.Id, out var at) ? at : null,
-                a.ProgressOf(visits, streak, sessions, classAttendance, tenure, referrals)))
+                unlocked.TryGetValue(a.Id, out var row) ? row.UnlockedAt : null,
+                a.IsManual ? (unlocked.ContainsKey(a.Id) ? 1 : 0)
+                    : a.ProgressOf(visits, streak, sessions, classAttendance, tenure, referrals),
+                a.IsManual,
+                unlocked.TryGetValue(a.Id, out var reasonRow) ? reasonRow.GrantReason : null))
             .ToList();
     }
 }

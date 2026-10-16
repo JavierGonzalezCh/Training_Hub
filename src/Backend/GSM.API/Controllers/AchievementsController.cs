@@ -71,6 +71,32 @@ public sealed class AchievementsController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
 
+    /// <summary>Otorga a mano un logro de tipo manual a un miembro, con motivo (L4). 409 si ya lo tiene.</summary>
+    [HttpPost("{id:guid}/grant-manual")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType<MemberAchievementItem>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MemberAchievementItem>> GrantManual(
+        Guid id,
+        GrantManualAchievementRequest request,
+        [FromServices] GrantManualAchievementHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
+    /// <summary>Retira un logro manual otorgado por error, con motivo (L4).</summary>
+    [HttpPost("{id:guid}/revoke-manual/{memberId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RevokeManual(
+        Guid id,
+        Guid memberId,
+        RevokeManualAchievementRequest request,
+        [FromServices] RevokeManualAchievementHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, memberId, request, cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("member/{memberId:guid}")]
     [ProducesResponseType<IReadOnlyList<MemberAchievementItem>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<MemberAchievementItem>>> ForMember(

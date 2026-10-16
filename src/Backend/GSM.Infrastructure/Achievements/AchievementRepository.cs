@@ -35,7 +35,7 @@ public sealed class AchievementRepository(GsmDbContext dbContext) : IAchievement
         var unlockedIds = Unlocks.Where(u => u.MemberId == memberId).Select(u => u.AchievementId);
 
         return await Achievements
-            .Where(a => a.IsActive && !unlockedIds.Contains(a.Id))
+            .Where(a => a.IsActive && a.ConditionType != AchievementConditionType.Manual && !unlockedIds.Contains(a.Id))
             .ToListAsync(cancellationToken);
     }
 
@@ -51,6 +51,11 @@ public sealed class AchievementRepository(GsmDbContext dbContext) : IAchievement
             .ToListAsync(cancellationToken)).ToHashSet();
 
     public void AddUnlock(MemberAchievement unlock) => Unlocks.Add(unlock);
+
+    public Task<MemberAchievement?> GetUnlockAsync(
+        Guid memberId, Guid achievementId, CancellationToken cancellationToken = default)
+        => Unlocks.FirstOrDefaultAsync(
+            u => u.MemberId == memberId && u.AchievementId == achievementId, cancellationToken);
 
     private DbSet<StreakFreeze> StreakFreezes => dbContext.Set<StreakFreeze>();
 
