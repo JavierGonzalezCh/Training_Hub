@@ -1,4 +1,5 @@
-using System.Reflection;
+using Microsoft.AspNetCore.Components;
+﻿using System.Reflection;
 using Bunit;
 using Bunit.TestDoubles;
 using GSM.Client;
@@ -63,7 +64,9 @@ public class GeofenceCheckinUiTests : TestContext
     {
         var (fake, device) = Setup(true, new DeviceLocation(4.5981, -74.0760), Response());
 
-        var cut = RenderComponent<CheckIn>(p => p.Add(c => c.Code, "s1.abc"));
+        var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        nav.NavigateTo(nav.GetUriWithQueryParameter("t", "s1.abc"));
+        var cut = RenderComponent<CheckIn>();
 
         cut.WaitForAssertion(() => Assert.Equal(1, device.Calls));
         var request = SentRequest(fake);
@@ -77,7 +80,9 @@ public class GeofenceCheckinUiTests : TestContext
     {
         var (fake, device) = Setup(false, new DeviceLocation(1, 1), Response());
 
-        var cut = RenderComponent<CheckIn>(p => p.Add(c => c.Code, "r1.abc"));
+        var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        nav.NavigateTo(nav.GetUriWithQueryParameter("t", "r1.abc"));
+        var cut = RenderComponent<CheckIn>();
 
         cut.WaitForAssertion(() => Assert.Contains(fake.Calls, c => c.Method == "CheckinAsync"));
         Assert.Equal(0, device.Calls);
@@ -92,7 +97,9 @@ public class GeofenceCheckinUiTests : TestContext
         const string notice = "Registramos tu entrada, pero sin tu ubicación no suma a tu racha ni a tus logros.";
         var (fake, _) = Setup(true, null, Response(notice, counts: false));
 
-        var cut = RenderComponent<CheckIn>(p => p.Add(c => c.Code, "s1.abc"));
+        var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        nav.NavigateTo(nav.GetUriWithQueryParameter("t", "s1.abc"));
+        var cut = RenderComponent<CheckIn>();
 
         cut.WaitForAssertion(() => Assert.Contains(notice, cut.Find("#checkin-location-notice").TextContent));
         var request = SentRequest(fake);

@@ -46,6 +46,7 @@ public class ClassWaitlistUiTests : TestContext
         // Tras anotarse, la página ofrece activar los avisos: un dispositivo que ya los tiene no muestra nada.
         Services.AddSingleton<GSM.UI.Shared.Push.IPushNotifications>(new GrantedPushDevice());
         Services.AddSingleton(DispatchProxy.Create<IPushClient, FakeClient>());
+        Services.AddSingleton(DispatchProxy.Create<IMemberClassAttendanceClient, FakeClient>());
         Services.AddScoped<GSM.UI.Shared.Push.PushRegistrationService>();
         RenderComponent<MudPopoverProvider>();
         RenderComponent<MudDialogProvider>();
