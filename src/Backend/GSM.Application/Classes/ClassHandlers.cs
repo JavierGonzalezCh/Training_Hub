@@ -1,6 +1,8 @@
 using GSM.Application.Classes.Abstractions;
 using GSM.Application.Classes.Contracts;
+using GSM.Application.Classes.Events;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Events;
 using GSM.Application.Equipment.Public;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Identity.Public;
@@ -109,6 +111,7 @@ public sealed class CreateClassHandler(
     IClassRepository classes,
     IClassEquipmentRepository equipmentLinks,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<CreateClassHandler> logger)
 {
     public async Task<ClassResponse> HandleAsync(SaveClassRequest request, CancellationToken cancellationToken)
@@ -132,6 +135,16 @@ public sealed class CreateClassHandler(
         logger.LogInformation(
             "Clase {ClassId} creada en el gym {GymId} (recurrente: {IsRecurring})",
             gymClass.Id, gymId, gymClass.IsRecurring);
+
+        // C8: aviso de clase nueva, solo al crear y si el staff no lo desmarcó. Si el manejador falla, la clase queda creada.
+        if (request.NotifyMembers)
+        {
+            await events.PublishAsync(
+                new ClassCreated(
+                    gymId, gymClass.Id, gymClass.Name, gymClass.InstructorName, gymClass.StartTime,
+                    gymClass.IsRecurring, gymClass.DaysOfWeek.ToList(), gymClass.ScheduledDate, currentUser.UserId),
+                cancellationToken);
+        }
 
         return ClassMapper.ToResponse(gymClass, equipmentItemIds: machineIds);
     }

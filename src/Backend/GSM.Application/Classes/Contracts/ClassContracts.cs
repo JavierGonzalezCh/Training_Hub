@@ -27,7 +27,12 @@ public sealed record SaveClassRequest(
     /// C6: las máquinas del inventario a las que se liga el cupo (ids de <c>GET api/equipment</c>). <c>null</c> en una edición
     /// = no tocar las ligas actuales; vacío = quitarlas todas. Exige cupo (una clase de entrada libre no se liga).
     /// </summary>
-    IReadOnlyList<Guid>? EquipmentItemIds = null);
+    IReadOnlyList<Guid>? EquipmentItemIds = null,
+    /// <summary>
+    /// C8: al crear, avisar a los miembros activos (publicación en Novedades y push). Por defecto sí; el staff lo
+    /// desmarca si está armando el horario de la temporada. Se ignora al editar: editar nunca avisa.
+    /// </summary>
+    bool NotifyMembers = true);
 
 public sealed record ClassResponse(
     Guid Id,

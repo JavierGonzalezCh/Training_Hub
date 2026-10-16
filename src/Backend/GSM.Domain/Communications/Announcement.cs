@@ -105,6 +105,19 @@ public sealed class Announcement : BaseEntity, ITenantEntity
     }
 
     /// <summary>
+    /// C8: anuncio automático de "clase nueva". Su id es el que se pasa (derivado de la clase), así que repetir el
+    /// evento no publica dos veces: el manejador busca primero por ese id.
+    /// </summary>
+    public static Announcement CreateForNewClass(
+        Guid id, Guid gymId, Guid authorUserId, string title, string body, DateOnly? expiresOn)
+    {
+        var announcement = CreateDraft(
+            gymId, authorUserId, title, body, pinned: false, expiresOn, sendEmail: false, AnnouncementCategory.GymNews);
+        announcement.Id = id;
+        return announcement;
+    }
+
+    /// <summary>
     /// Marca o desmarca el anuncio como importante, solo mientras es borrador: ya publicado, decidió a quién
     /// se le avisó y cómo, y no se cambia. El permiso (solo Owner) lo comprueba el caso de uso.
     /// </summary>

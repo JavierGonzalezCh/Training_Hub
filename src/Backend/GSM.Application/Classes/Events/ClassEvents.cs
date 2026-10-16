@@ -1,4 +1,5 @@
 using GSM.Application.Common.Events;
+using GSM.Domain.Classes;
 
 namespace GSM.Application.Classes.Events;
 
@@ -66,3 +67,18 @@ public sealed record WaitlistOfferExpired(
 /// </summary>
 public sealed record ClassSelfAttended(
     Guid GymId, Guid MemberId, Guid ClassId, DateOnly SessionDate) : IDomainEvent;
+
+/// <summary>
+/// C8: se creó una clase y el staff quiere avisar a los miembros (<c>NotifyMembers</c>). Solo al crear, nunca al
+/// editar. Comunicaciones publica el aviso en Novedades y Notifications manda el push al consumir el anuncio.
+/// </summary>
+public sealed record ClassCreated(
+    Guid GymId,
+    Guid ClassId,
+    string Name,
+    string? InstructorName,
+    TimeOnly StartTime,
+    bool IsRecurring,
+    IReadOnlyList<ClassDayOfWeek> DaysOfWeek,
+    DateOnly? ScheduledDate,
+    Guid? CreatedByUserId) : IDomainEvent;
