@@ -96,6 +96,12 @@ public sealed class ExerciseRepository(GsmDbContext dbContext, ICurrentUserServi
                  && (excludeExerciseId == null || e.Id != excludeExerciseId),
             cancellationToken);
 
+    public Task<bool> IsMediaUrlInUseAsync(
+        string url, Guid excludeExerciseId, CancellationToken cancellationToken = default)
+        => Exercises.AnyAsync(
+            e => e.Id != excludeExerciseId && (e.ImageUrl == url || e.VideoUrl == url),
+            cancellationToken);
+
     public async Task<IReadOnlySet<Guid>> FilterVisibleIdsAsync(
         IReadOnlyCollection<Guid> exerciseIds, CancellationToken cancellationToken = default)
     {

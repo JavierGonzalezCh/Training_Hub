@@ -65,5 +65,13 @@ public interface IExerciseRepository
 
     void RemoveHidden(GymHiddenExercise hidden);
 
+    /// <summary>
+    /// ¿Algún ejercicio distinto de <paramref name="excludeExerciseId"/> usa esta URL como imagen o video?
+    /// Un ejercicio duplicado comparte los archivos del original, así que no se borran mientras alguien los use.
+    /// Mira todos los gyms (el archivo es el mismo), por eso no pasa por el filtro de visibilidad.
+    /// </summary>
+    Task<bool> IsMediaUrlInUseAsync(
+        string url, Guid excludeExerciseId, CancellationToken cancellationToken = default);
+
     void Add(Exercise exercise);
 }

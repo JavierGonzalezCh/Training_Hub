@@ -87,6 +87,18 @@ public sealed class AdminCatalogController : ControllerBase
         Guid id, IFormFile file, [FromServices] UploadExerciseImageHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
 
+    /// <summary>Video corto del ejercicio (MP4, hasta 50 MB).</summary>
+    [HttpPost("exercises/{id:guid}/video")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(ExerciseVideoRequestLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ExerciseVideoRequestLimits.MaxRequestBytes)]
+    [ProducesResponseType<ExerciseResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("AdminCatalogUploadExerciseVideo")]
+    public async Task<ActionResult<ExerciseResponse>> UploadExerciseVideo(
+        Guid id, IFormFile file, [FromServices] UploadExerciseVideoHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
+
     // --- Alternativas recomendadas del sistema ---
 
     /// <summary>Alternativas del ejercicio: las recomendadas del sistema van primero (<c>Source = recommended</c>).</summary>

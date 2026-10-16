@@ -1,5 +1,6 @@
 using GSM.Domain.Equipment;
 using GSM.API.Auth;
+using GSM.API.Uploads;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Abstractions;
 using GSM.Application.Routines.Contracts;
@@ -69,6 +70,35 @@ public sealed class ExercisesController : ControllerBase
         [FromServices] UpdateExerciseHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
+    /// <summary>
+    /// Imagen del ejercicio (JPEG, PNG o WEBP, hasta 5 MB). El staff sube las de los ejercicios de su gym; sobre uno
+    /// del sistema, 403 (las sube el SuperAdmin).
+    /// </summary>
+    [HttpPost("{id:guid}/image")]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType<ExerciseResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("ExercisesUploadImage")]
+    public async Task<ActionResult<ExerciseResponse>> UploadImage(
+        Guid id, IFormFile file, [FromServices] UploadExerciseImageHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
+
+    /// <summary>Video corto del ejercicio (MP4, hasta 50 MB). Mismas reglas de quién puede que la imagen.</summary>
+    [HttpPost("{id:guid}/video")]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(ExerciseVideoRequestLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ExerciseVideoRequestLimits.MaxRequestBytes)]
+    [ProducesResponseType<ExerciseResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("ExercisesUploadVideo")]
+    public async Task<ActionResult<ExerciseResponse>> UploadVideo(
+        Guid id, IFormFile file, [FromServices] UploadExerciseVideoHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
 
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
