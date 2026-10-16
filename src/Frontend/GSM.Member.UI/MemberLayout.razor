@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject GymContext GymCtx
+@inject GSM.UI.Shared.Components.ViewportState Viewport
 @inject MemberContext MemberCtx
 @inject SessionService Session
 @inject MemberBootstrapService Bootstrap
@@ -14,7 +15,7 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
+<MudLayout Class="@(Viewport.IsNarrow ? null : "gsm-m-desktop")">
     <MudAppBar Elevation="0" Class="gsm-m-bar">
         @if (GymCtx.Gym is { } gym)
         {
@@ -46,9 +47,30 @@
         <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" aria-label="Cerrar sesión" />
     </MudAppBar>
 
+    @* Escritorio (>= 960 px): menú lateral en lugar de la barra inferior y contenido más ancho. *@
+    @if (!Viewport.IsNarrow)
+    {
+        <MudDrawer Open="true" Variant="DrawerVariant.Persistent" Elevation="0" ClipMode="DrawerClipMode.Always" Class="gsm-m-drawer">
+            <nav class="gsm-m-sidenav" aria-label="Navegación principal" data-testid="member-sidenav">
+                @foreach (var item in Destinations)
+                {
+                    <NavLink class="gsm-nav-link" href="@item.Href" Match="@(item.MatchAll ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                        <MudIcon Icon="@item.Icon" Size="Size.Small" /><span>@item.Title</span>
+                    </NavLink>
+                }
+                @if (!_loading && GymCtx.FeatureFlags?.ShowCommunity == true)
+                {
+                    <NavLink class="gsm-nav-link" href="/app/novedades">
+                        <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Small" /><span>Novedades</span>
+                    </NavLink>
+                }
+            </nav>
+        </MudDrawer>
+    }
+
     <MudMainContent>
         <SubscriptionBanner />
-        <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4 pb-16">
+        <MudContainer MaxWidth="@(Viewport.IsNarrow ? MaxWidth.Small : MaxWidth.ExtraLarge)" Class="mt-4 pb-16">
             @if (_loading)
             {
                 <div class="d-flex justify-center mt-8">
@@ -67,6 +89,8 @@
     @* NavLink de Blazor, no MudBottomNavigation: ese componente no existe en MudBlazor y
        Razor lo emitía como etiqueta HTML desconocida, así que los destinos salían como
        texto suelto y no navegaban. *@
+    @if (Viewport.IsNarrow)
+    {
     <nav class="gsm-tabbar" aria-label="Navegación principal">
         <NavLink href="/app" Match="NavLinkMatch.All">
             <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />
@@ -89,16 +113,30 @@
             <NewsTabLink />
         }
     </nav>
+    }
 </MudLayout>
 
 @code {
     private bool _loading = true;
+
+    private sealed record Destination(string Href, string Title, string Icon, bool MatchAll = false);
+
+    private static readonly Destination[] Destinations =
+    [
+        new("/app", "Inicio", Icons.Material.Filled.Home, true),
+        new("/app/logros", "Logros", Icons.Material.Filled.EmojiEvents),
+        new("/app/rutina", "Rutina", Icons.Material.Filled.FitnessCenter),
+        new("/app/progreso", "Mi progreso", Icons.Material.Filled.TrendingUp),
+        new("/app/clases", "Clases", Icons.Material.Filled.CalendarMonth),
+        new("/app/ranking", "Ranking", Icons.Material.Filled.Leaderboard),
+    ];
     private IReadOnlyList<GymAccessOption> _accesses = [];
 
     protected override async Task OnInitializedAsync()
     {
         GymCtx.Changed += OnChanged;
         MemberCtx.Changed += OnChanged;
+        Viewport.Changed += OnChanged;
 
         try
         {
@@ -133,6 +171,14 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Viewport.EnsureStartedAsync();
+        }
+    }
+
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
     private async Task SwitchGymAsync()
@@ -152,5 +198,6 @@
     {
         GymCtx.Changed -= OnChanged;
         MemberCtx.Changed -= OnChanged;
+        Viewport.Changed -= OnChanged;
     }
 }

@@ -9,11 +9,15 @@
 @inject IMeConsentsClient Consents
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@inject GSM.UI.Shared.Components.ViewportState Viewport
+@implements IDisposable
 
 <PageTitle>Mi gimnasio — GSM</PageTitle>
 
 @if (MemberCtx.Detail is { } member)
 {
+    <div class="gsm-m-home">
+    <div class="gsm-m-home__main">
     <section class="gsm-m-hero">
         <div class="gsm-m-hero__top">
             <MudAvatar Class="gsm-m-hero__avatar">
@@ -92,15 +96,24 @@
             <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" /></span>
             <div class="gsm-m-card__body">
                 <h2 class="gsm-m-card__title">Registrar entrada</h2>
-                <p class="gsm-m-card__text">Escanea el QR de la entrada del gimnasio con la cámara de tu teléfono.</p>
+                @if (Viewport.IsNarrow)
+                {
+                    <p class="gsm-m-card__text">Escanea el QR de la entrada del gimnasio con la cámara de tu teléfono.</p>
+                }
+                else
+                {
+                    <p class="gsm-m-card__text" id="checkin-desktop-hint">Registra tu entrada desde tu celular o en recepción.</p>
+                }
             </div>
-            @if (Scanner.IsSupported)
+            @if (Viewport.IsNarrow && Scanner.IsSupported)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ScanAsync">Escanear</MudButton>
             }
         </section>
     }
 
+    </div>
+    <div class="gsm-m-home__side">
     <div class="gsm-m-stats">
         <div class="gsm-m-stat">
             <span class="gsm-m-stat__label">Racha</span>
@@ -150,6 +163,8 @@
             </ol>
         }
     </section>
+    </div>
+    </div>
 }
 
 @code {
@@ -169,8 +184,13 @@
         Navigation.NavigateTo(GymCodeLink.PathFor(code));
     }
 
+    public void Dispose() => Viewport.Changed -= OnViewportChanged;
+
+    private void OnViewportChanged() => InvokeAsync(StateHasChanged);
+
     protected override async Task OnInitializedAsync()
     {
+        Viewport.Changed += OnViewportChanged;
         if (MemberCtx.MemberId is not { } memberId)
         {
             return;
