@@ -65,8 +65,36 @@
                         <MudSelectItem Value="value">@label</MudSelectItem>
                     }
                 </MudSelect>
-                <MudTextField T="string" @bind-Value="_model.VideoUrl" Label="Video (URL)" Class="mb-3" />
-                <MudTextField T="string" @bind-Value="_model.ImageUrl" Label="Imagen (URL)" />
+                <MudTextField T="string" @bind-Value="_model.VideoUrl" Label="Video (URL)" Class="mb-1" />
+                <div class="mb-3" data-testid="video-upload">
+                    @if (_pendingVideo is not null)
+                    {
+                        <p class="gsm-editor__hint" data-testid="video-pending">Se subirá al guardar: @_pendingVideo.Name</p>
+                    }
+                    <MudFileUpload T="IBrowserFile" FilesChanged="OnVideoChosen" Accept=".mp4,video/mp4" Class="ma-0">
+                        <ActivatorContent>
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.VideoFile">
+                                Subir video
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <p class="gsm-editor__hint">MP4, hasta 50 MB. Subirlo reemplaza el enlace.</p>
+                </div>
+                <MudTextField T="string" @bind-Value="_model.ImageUrl" Label="Imagen (URL)" Class="mb-1" />
+                <div data-testid="image-upload">
+                    @if (_pendingImage is not null)
+                    {
+                        <p class="gsm-editor__hint" data-testid="image-pending">Se subirá al guardar: @_pendingImage.Name</p>
+                    }
+                    <MudFileUpload T="IBrowserFile" FilesChanged="OnImageChosen" Accept=".jpg,.jpeg,.png,.webp" Class="ma-0">
+                        <ActivatorContent>
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Image">
+                                Subir imagen
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <p class="gsm-editor__hint">JPG, PNG o WebP, hasta 5 MB. Subirla reemplaza el enlace.</p>
+                </div>
             </MudForm>
         }
     </DialogContent>
@@ -92,6 +120,17 @@
     private bool _loading;
     private bool _submitting;
     private string? _error;
+    /// <summary>Id del ejercicio recién creado: si la subida de un medio falla, reintentar edita este y no crea otro.</summary>
+    private Guid? _createdId;
+    private IBrowserFile? _pendingImage;
+    private IBrowserFile? _pendingVideo;
+
+    private const long MaxImageBytes = 5 * 1024 * 1024;
+    private const long MaxVideoBytes = 50 * 1024 * 1024;
+
+    private void OnImageChosen(IBrowserFile? file) => _pendingImage = file;
+
+    private void OnVideoChosen(IBrowserFile? file) => _pendingVideo = file;
 
     /// <summary>
     /// Una vez que la persona elige "qué se mide" a mano, cambiar el tipo ya no lo pisa. Al editar un ejercicio
@@ -181,8 +220,10 @@
         _submitting = true;
         try
         {
-            if (ExerciseId is { } id)
+            Guid savedId;
+            if ((ExerciseId ?? _createdId) is { } id)
             {
+                savedId = id;
                 await Exercises.ExercisesPUTAsync(id, new UpdateExerciseRequest
                 {
                     Name = _model.Name,
@@ -200,7 +241,7 @@
             }
             else
             {
-                await Exercises.ExercisesPOSTAsync(new CreateExerciseRequest
+                var created = await Exercises.ExercisesPOSTAsync(new CreateExerciseRequest
                 {
                     Name = _model.Name,
                     Description = _model.Description,
@@ -214,9 +255,17 @@
                     IsUnilateral = _model.IsUnilateral,
                     Difficulty = _model.Difficulty,
                 });
+                savedId = created.Id;
+                _createdId = created.Id;
             }
 
+            await UploadPendingMediaAsync(savedId);
             MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500 && (_pendingImage is not null || _pendingVideo is not null))
+        {
+            // El ejercicio ya quedó guardado; solo falló la subida (R2 sin configurar, ver CLAUDE.md).
+            _error = "El ejercicio se guardó, pero la subida de archivos no está disponible todavía: falta configurar el almacenamiento.";
         }
         catch (GsmApiException ex)
         {
@@ -225,6 +274,27 @@
         finally
         {
             _submitting = false;
+        }
+    }
+
+    /// <summary>
+    /// Sube la imagen y el video elegidos una vez guardado el ejercicio (necesita su id). Si la subida falla (R2 sin
+    /// configurar, archivo rechazado) el ejercicio ya quedó guardado: se avisa y el diálogo sigue abierto para reintentar.
+    /// </summary>
+    private async Task UploadPendingMediaAsync(Guid exerciseId)
+    {
+        if (_pendingImage is { } image)
+        {
+            await using var stream = image.OpenReadStream(maxAllowedSize: MaxImageBytes);
+            await Exercises.ExercisesUploadImageAsync(exerciseId, new FileParameter(stream, image.Name, image.ContentType));
+            _pendingImage = null;
+        }
+
+        if (_pendingVideo is { } video)
+        {
+            await using var stream = video.OpenReadStream(maxAllowedSize: MaxVideoBytes);
+            await Exercises.ExercisesUploadVideoAsync(exerciseId, new FileParameter(stream, video.Name, video.ContentType));
+            _pendingVideo = null;
         }
     }
 
