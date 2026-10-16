@@ -356,6 +356,41 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **E4-4:** un reporte `unsafe` nunca se agrupa con otros. Confirmar.
 - **Encontrado al integrar (corregido):** `IMemberWaitlistClient` (C4) no estaba registrado en el cliente; `/app/clases` habría fallado en la app real (los tests registran sus propios falsos).
 
+- **C7-1:** "ya entró al gym hoy" se lee con `IAttendanceReader` (Classes → Attendance en lectura; Attendance ya consume eventos de Classes). ¿Aceptable o se prefiere otra vía?
+- **C7-2:** con reserva cancelada o marcada `no_show` por el staff, el miembro no puede marcarse (409, "habla con recepción"). Confirmar.
+- **C7-3:** en clase con cupo, sin reserva no se puede marcar; una oferta de lista de espera sin confirmar no cuenta. Ventana ±15 min del inicio. Confirmar.
+- **C7-4:** "Estoy en clase" cancela el recordatorio de 10 min del miembro (C8 aún no existe).
+- **S3-1:** "se inhabilitará pronto" en pruebas solo sale si `trial_grace_days > 3` (con 3 coincide con "tu prueba terminó"). Confirmar.
+- **S3-2:** el aviso de límite de miembros solo va a los Owners; el SuperAdmin no recibe aviso propio (su cartera ya muestra usados/límite). ¿Hace falta?
+- **S3-3:** "pago registrado" no avisa en la renovación sin pago ni en el primer pago del alta. El motivo de la suspensión no se muestra al Owner. Enlace de los avisos = "/" (no hay pantalla de suscripción en el panel). ¿Se crea una?
+- **S3-4:** avisos de calendario una vez por periodo; un gym inhabilitado que sigue sin pagar no recibe más.
+- **L6-1:** sin fecha de nacimiento cuenta como menor y no puede participar en el ranking. Confirmar.
+- **L6-2:** el ranking exige `ShowRanking` (nuevo, por defecto encendido) y `ShowGamification`.
+- **L6-3:** alias único por gym sin distinguir mayúsculas (409), sin foto ni apellido. Salirse borra la participación y retira también del podio del mes anterior.
+- **L6-4:** empates: gana quien llegó antes al número de días, luego antigüedad en el ranking; sin posiciones compartidas.
+- **L6-5:** cuando exista A6, las entradas fuera del radio no deben contar en el ranking (revisar al unir A6).
+
+- **MS7-1:** en un plan de grupo la matrícula la paga solo el titular (si es su primera membresía); los beneficiarios no pagan matrícula ni precio.
+- **MS7-2:** cada renovación crea un grupo nuevo con el mismo titular; conserva a los beneficiarios por defecto.
+- **MS7-3:** un grupo no admite cambio de plan (409): se cancela y se asigna otro. El titular no se puede transferir; cancelar al titular cancela el grupo, cancelar a un beneficiario lo saca.
+- **MS7-4:** solo planes por tiempo pueden ser de grupo (cupos 1..500). No se agrega beneficiario con congelamiento abierto/programado.
+- **MS7-5:** al congelar, cada integrante valida su límite; si uno no cabe, no se congela nadie.
+
+- **R7-1:** la primera marca de un ejercicio es línea base, no récord (el "primer récord" de L3 sale con la segunda sesión que mejora).
+- **R7-2:** el evento `PersonalRecordSet` solo se publica para ejercicios `RepsWeight` (peso, volumen de serie, volumen de sesión); los demás tipos tienen récords visibles pero sin evento. Las rutinas auto-asignadas cuentan para el progreso, no para logros.
+- **R7-3:** el progreso lo ve cualquier staff, sin permiso especial. ¿Debería exigir `Trainer`?
+
+- **A6-1:** cuentan para racha/logros/ranking las entradas `inside` y las sin dato (historial, QR rotativo, documento, recepción); se excluyen `outside` y `denied`. Ocupación y tiqueteras cuentan todas. Ubicación inválida = `denied`; el servidor nunca rechaza por ubicación.
+- **A6-2:** se añadió `GET /api/attendance/checkin/location-policy` para no pedir permiso de ubicación con el QR rotativo.
+- **A6-3:** si la entrada del día no cuenta (fuera del radio), volver a escanear da `already_checked_in` (salvo entradas múltiples). ¿Se permite reintentar?
+- **A6-4:** la parte Android (`MauiDeviceLocation`) está sin probar en dispositivo.
+
+- **G5-1:** Gyms lee de Equipment, Memberships, Members e Identity para los pasos (solo lecturas; hay ciclo de namespaces con Equipment/Members). ¿Se mueve a un compositor aparte, como `MemberStreak`?
+- **G5-2:** el paso de dirección exige dirección y ciudad, no el pin del mapa. ¿Condicionar el pin al QR fijo?
+- **G5-3:** las plantillas de planes (Día, Mensual, Trimestral, Anual) viven en el cliente; matrícula y gracia quedan fuera del asistente.
+- **G5-4:** completado es definitivo (no vuelve a bloquear). Los gyms existentes quedan marcados como completos. El bloqueo solo está en el frontend y falla abierto. El SuperAdmin impersonando no se bloquea.
+- **G5-5:** la omisión desde SuperAdmin se audita en `gym_onboarding` y en el log, no en `impersonation_actions`.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):

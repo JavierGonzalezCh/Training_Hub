@@ -1,4 +1,4 @@
-using GSM.Application.Attendance.Events;
+﻿using GSM.Application.Attendance.Events;
 using GSM.Application.Common.Events;
 using GSM.Application.Notifications;
 using GSM.Application.Notifications.Contracts;
@@ -29,8 +29,8 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
         var checkedInAt = AtLocal(Today, 6, 12);
         var evt = new DocumentCheckInRegistered(attendanceId, world.GymId, world.MemberId, checkedInAt);
 
-        await PublishAsync(world.GymId, evt);
-        await PublishAsync(world.GymId, evt); // el evento se repite: no duplica
+        await PublishAtAsync(world.GymId, evt, checkedInAt);
+        await PublishAtAsync(world.GymId, evt, checkedInAt); // el evento se repite: no duplica
 
         using (var scope = System())
         {
@@ -70,7 +70,7 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
 
         var push = factory.Services.GetRequiredService<CapturingPushSender>();
         var night = AtLocal(Today, 3);
-        await PublishAsync(world.GymId, new DocumentCheckInRegistered(Guid.CreateVersion7(), world.GymId, world.MemberId, night));
+        await PublishAtAsync(world.GymId, new DocumentCheckInRegistered(Guid.CreateVersion7(), world.GymId, world.MemberId, night), night);
         await RunDispatcherAtAsync(night.AddMinutes(1));
 
         Assert.Single(push.SentTo(token));
@@ -121,6 +121,15 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
         => new GSM.Infrastructure.Common.SystemClock(
                 Microsoft.Extensions.Options.Options.Create(new GSM.Infrastructure.Common.ClockOptions { TimeZone = "America/Bogota" }))
             .BusinessDayRange(day).Start.AddHours(hour).AddMinutes(minute);
+
+    // El aviso se programa con la hora del reloj: se fija al instante del evento.
+    private async Task PublishAtAsync<TEvent>(Guid gymId, TEvent evt, DateTimeOffset instant) where TEvent : IDomainEvent
+    {
+        using var scope = Scope(gymId, Guid.CreateVersion7(), UserRole.Staff);
+        scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(
+            instant, DateOnly.FromDateTime(instant.ToOffset(TimeSpan.FromHours(-5)).DateTime));
+        await scope.ServiceProvider.GetRequiredService<IDomainEventPublisher>().PublishAsync(evt, default);
+    }
 
     private async Task PublishAsync<TEvent>(Guid gymId, TEvent evt) where TEvent : IDomainEvent
     {

@@ -1,4 +1,4 @@
-using GSM.Application.Achievements.Public;
+﻿using GSM.Application.Achievements.Public;
 using GSM.Application.Attendance.Public;
 using GSM.Application.Classes.Public;
 using GSM.Application.Common.Abstractions;
@@ -86,11 +86,16 @@ public sealed class AchievementReader(
     private IQueryable<RewardRow> RewardQuery()
         => from row in dbContext.Set<MemberAchievement>()
            join achievement in dbContext.Set<Achievement>() on row.AchievementId equals achievement.Id
-           select new RewardRow(row, achievement.Name);
+           select new RewardRow { Row = row, AchievementName = achievement.Name };
 
     private static PendingRewardView ToView(RewardRow x) => new(
         x.Row.Id, x.Row.MemberId, x.Row.GymId, x.Row.AchievementId, x.AchievementName,
         x.Row.RewardDescription ?? string.Empty, x.Row.RewardExpiresAt);
 
-    private sealed record RewardRow(MemberAchievement Row, string AchievementName);
+    // Inicializador de objeto, no constructor: EF no traduce filtros sobre un record posicional.
+    private sealed class RewardRow
+    {
+        public required MemberAchievement Row { get; init; }
+        public required string AchievementName { get; init; }
+    }
 }
