@@ -17,11 +17,15 @@ internal static class AchievementMetrics
     /// <summary>Días de una membresía que hacen un "mes" de antigüedad (spec §3.1: días cubiertos entre 30).</summary>
     public const int DaysPerTenureMonth = 30;
 
+    /// <summary>Kilos enteros hacia abajo (la condición es un entero), sin desbordar.</summary>
+    public static int ToWholeKg(decimal kg) => kg >= int.MaxValue ? int.MaxValue : (int)Math.Floor(kg);
+
     public static int TenureMonthsOf(int coveredDays) => coveredDays / DaysPerTenureMonth;
 
     /// <param name="needTenure">Solo se consultan Memberships si hay un logro de antigüedad pendiente.</param>
+    /// <param name="needLifting">Solo se leen los registros de series si hay un logro de récords o volumen pendiente.</param>
     /// <param name="needReferrals">Solo se consultan Members y Memberships si hay un logro de referidos pendiente.</param>
-    public static async Task<(int Visits, int Streak, int RoutineSessions, int ClassAttendance, int TenureMonths, int Referrals)> ComputeAsync(
+    public static async Task<(int Visits, int Streak, int RoutineSessions, int ClassAttendance, int TenureMonths, int Referrals, int PersonalRecords, int LiftedVolumeKg)> ComputeAsync(
         Guid memberId,
         DateOnly today,
         IAttendanceReader attendance,
@@ -31,6 +35,7 @@ internal static class AchievementMetrics
         IMembershipReader memberships,
         bool needTenure,
         bool needReferrals,
+        bool needLifting,
         CancellationToken cancellationToken)
     {
         var visits = await attendance.GetVisitCountAsync(memberId, cancellationToken);
@@ -44,7 +49,12 @@ internal static class AchievementMetrics
             : 0;
         var referrals = needReferrals ? await CountReferralsAsync(memberId, members, memberships, cancellationToken) : 0;
 
-        return (visits, streak, sessions, classAttendance, tenure, referrals);
+        var lifting = needLifting
+            ? await routines.GetLiftingStatsAsync(memberId, onlyAssigned: true, cancellationToken)
+            : new GSM.Application.Routines.LiftingStats(0, 0m);
+
+        return (visits, streak, sessions, classAttendance, tenure, referrals,
+            lifting.PersonalRecords, ToWholeKg(lifting.LiftedVolumeKg));
     }
 
     /// <summary>Referidos de este miembro que ya tienen su primera membresía pagada (spec §3.3).</summary>

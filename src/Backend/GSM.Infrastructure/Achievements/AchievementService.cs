@@ -41,15 +41,16 @@ public sealed class AchievementService(
             return [];
         }
 
-        var (visits, streak, sessions, classAttendance, tenure, referrals) = await AchievementMetrics.ComputeAsync(
+        var (visits, streak, sessions, classAttendance, tenure, referrals, records, volume) = await AchievementMetrics.ComputeAsync(
             memberId, clock.Today, attendance, routines, classes, members, memberships,
             needTenure: pending.Any(a => a.ConditionType == AchievementConditionType.TenureMonths),
             needReferrals: pending.Any(a => a.ConditionType == AchievementConditionType.Referrals),
+            needLifting: pending.Any(a => a.ConditionType is AchievementConditionType.PersonalRecords or AchievementConditionType.LiftedVolume),
             cancellationToken);
         var now = clock.UtcNow;
 
         var newlyUnlocked = new List<(MemberAchievement Row, Achievement Achievement)>();
-        foreach (var achievement in pending.Where(a => a.IsMetBy(visits, streak, sessions, classAttendance, tenure, referrals)))
+        foreach (var achievement in pending.Where(a => a.IsMetBy(visits, streak, sessions, classAttendance, tenure, referrals, records, volume)))
         {
             var row = MemberAchievement.Unlock(
                 achievement.GymId, memberId, achievement.Id, now, achievement.RewardDescription, achievement.RewardValidDays);

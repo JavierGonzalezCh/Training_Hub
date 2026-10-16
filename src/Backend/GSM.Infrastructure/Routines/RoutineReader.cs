@@ -138,4 +138,33 @@ public sealed class RoutineReader(GsmDbContext dbContext) : IRoutineReader
 
         return await logs.Select(l => l.PerformedOn).Distinct().CountAsync(cancellationToken);
     }
+
+    public async Task<LiftingStats> GetLiftingStatsAsync(
+        Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default)
+    {
+        // Las series son una colección JSON propia: proyectarla exige no rastrear.
+        var rows = await (from log in dbContext.Set<RoutineExerciseLog>().AsNoTracking()
+                          where log.MemberId == memberId
+                          join ex in dbContext.Set<RoutineExercise>() on log.RoutineExerciseId equals ex.Id
+                          join day in dbContext.Set<RoutineDay>() on ex.RoutineDayId equals day.Id
+                          join routine in dbContext.Set<Routine>() on day.RoutineId equals routine.Id
+                          where !onlyAssigned || !routine.SelfAssigned
+                          select new { log.ExerciseId, log.PerformedOn, routine.SelfAssigned, log.Sets })
+            .ToListAsync(cancellationToken);
+        if (rows.Count == 0)
+        {
+            return new LiftingStats(0, 0m);
+        }
+
+        var ids = rows.Select(r => r.ExerciseId).Distinct().ToList();
+        var repsWeight = (await dbContext.Set<Exercise>()
+                .Where(e => ids.Contains(e.Id) && e.TrackingType == TrackingType.RepsWeight)
+                .Select(e => e.Id)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+
+        return LiftingStatsCalculator.Compute(rows
+            .Where(r => repsWeight.Contains(r.ExerciseId))
+            .Select(r => (r.ExerciseId, new ProgressLog(r.PerformedOn, r.SelfAssigned, r.Sets))));
+    }
 }

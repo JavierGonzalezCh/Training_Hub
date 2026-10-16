@@ -31,4 +31,16 @@ public enum AchievementConditionType
     /// retroactiva. Label: <c>manual</c>.
     /// </summary>
     Manual,
+
+    /// <summary>
+    /// Días con un récord personal batido en ejercicios de repeticiones con peso (L3), solo de rutinas asignadas.
+    /// Label: <c>personal_records</c>.
+    /// </summary>
+    PersonalRecords,
+
+    /// <summary>
+    /// Volumen total levantado en kg: suma de peso × repeticiones de las series (sin calentamiento) de ejercicios
+    /// de repeticiones con peso, solo de rutinas asignadas (L3). Label: <c>lifted_volume</c>.
+    /// </summary>
+    LiftedVolume,
 }
