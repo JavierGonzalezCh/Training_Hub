@@ -41,7 +41,41 @@ public interface IAttendanceReader
         CancellationToken cancellationToken = default);
 
     Task<DateOnly?> GetLastVisitAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    // --- Lecturas del dashboard del panel (D1). Siempre sobre el gym en contexto. ---
+
+    /// <summary>Personas adentro ahora (estimación), aforo y % del aforo (A5).</summary>
+    Task<OccupancyView> GetOccupancyAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Intentos de entrada rechazados del día de negocio de hoy (los más recientes primero, hasta
+    /// <paramref name="limit"/>), con el total del día y cuántos siguen sin verse.
+    /// </summary>
+    Task<RejectedTodayView> GetRejectedTodayAsync(int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>Las últimas entradas válidas de hoy (más reciente primero), hasta <paramref name="limit"/>.</summary>
+    Task<IReadOnlyList<RecentEntryView>> GetRecentEntriesTodayAsync(int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Entradas por hora de negocio de los últimos <paramref name="days"/> días (hoy incluido). Solo las horas con
+    /// al menos una entrada; el llamador rellena los huecos.
+    /// </summary>
+    Task<IReadOnlyList<HourlyCountView>> GetHourlyCountsAsync(int days, CancellationToken cancellationToken = default);
 }
+
+/// <param name="Level"><c>calm</c>, <c>moderate</c> o <c>full</c>; nulo si el gym no configuró aforo.</param>
+public sealed record OccupancyView(int PeopleInside, int? Capacity, int? Percent, string? Level, int AssumedStayMinutes);
+
+public sealed record RejectedAttemptView(
+    Guid AttemptId, Guid MemberId, DateTimeOffset AttemptedAt, int AttemptCount, string Reason, bool Seen);
+
+/// <param name="Total">Intentos rechazados hoy (todos).</param>
+/// <param name="Unseen">Los que nadie del staff ha atendido todavía.</param>
+public sealed record RejectedTodayView(int Total, int Unseen, IReadOnlyList<RejectedAttemptView> Items);
+
+public sealed record RecentEntryView(Guid AttendanceId, Guid MemberId, DateTimeOffset CheckedInAt, string Method);
+
+public sealed record HourlyCountView(int Hour, int Count);
 
 /// <summary>Días con entrada de un miembro en un rango y el último de esos días (cuándo llegó a esa cantidad).</summary>
 public sealed record MemberDaysInRange(Guid MemberId, int Days, DateOnly LastDay);

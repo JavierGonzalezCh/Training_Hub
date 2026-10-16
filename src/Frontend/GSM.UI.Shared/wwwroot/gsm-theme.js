@@ -4,3 +4,6 @@ document.documentElement.setAttribute('data-gsm-theme', 'forja');
 
 // Datos del navegador para el reporte de errores del cliente (logs.client_errors).
 window.gsmClientInfo = { userAgent: function () { return navigator.userAgent; } };
+
+// El panel solo refresca el aforo y la caja mientras la página está visible (Dashboards §4).
+window.gsmVisibility = { isHidden: function () { return document.hidden === true; } };

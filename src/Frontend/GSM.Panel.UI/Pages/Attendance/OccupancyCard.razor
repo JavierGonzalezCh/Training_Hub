@@ -2,7 +2,7 @@
    la permanencia configurada y no se registra la salida. Sin aforo configurado solo se muestra el número. *@
 @inject IAttendanceClient Attendance
 
-@if (_occupancy is { } occupancy)
+@if ((Value ?? _occupancy) is { } occupancy)
 {
     <div data-testid="occupancy-card">
         <StatCard Label="Ahora en el gym"
@@ -16,8 +16,21 @@
 @code {
     private OccupancyResponse? _occupancy;
 
+    /// <summary>Valor ya leído por quien dibuja el panel (D1: viaja en <c>GET /api/dashboard</c> y se refresca cada 60 s).</summary>
+    [Parameter]
+    public OccupancyResponse? Value { get; set; }
+
+    /// <summary>Con <c>false</c> la tarjeta no consulta nada por su cuenta: solo muestra <see cref="Value"/>.</summary>
+    [Parameter]
+    public bool AutoLoad { get; set; } = true;
+
     protected override async Task OnInitializedAsync()
     {
+        if (!AutoLoad || Value is not null)
+        {
+            return;
+        }
+
         try
         {
             _occupancy = await Attendance.GetOccupancyAsync();

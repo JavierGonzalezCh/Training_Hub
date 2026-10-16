@@ -1,4 +1,7 @@
 using GSM.Application.Attendance;
+using GSM.Application.Attendance.Abstractions;
+using GSM.Application.Gyms.Public;
+using GSM.Domain.Members;
 using GSM.Application.Attendance.Public;
 using GSM.Application.Common.Abstractions;
 using GSM.Infrastructure.Persistence;
@@ -7,7 +10,12 @@ using AttendanceEntity = GSM.Domain.Attendance.Attendance;
 
 namespace GSM.Infrastructure.Attendance;
 
-public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAttendanceReader
+public sealed class AttendanceReader(
+    GsmDbContext dbContext,
+    IClock clock,
+    IGymReader gyms,
+    ICheckinSettingsRepository checkinSettings,
+    IAttendanceRepository attendanceRepository) : IAttendanceReader
 {
     // Las entradas anuladas no cuentan para nada (visitas, racha, mes, último día).
     private IQueryable<AttendanceEntity> Attendances => dbContext.Set<AttendanceEntity>().Where(a => a.VoidedAt == null);
@@ -110,5 +118,66 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
             .FirstOrDefaultAsync(cancellationToken);
 
         return dates;
+    }
+    // --- Lecturas del dashboard del panel (D1) ---
+
+    public async Task<OccupancyView> GetOccupancyAsync(Guid gymId, CancellationToken cancellationToken = default)
+    {
+        var estimate = await OccupancyEstimator.EstimateAsync(
+            gymId, clock, gyms, checkinSettings, attendanceRepository, cancellationToken);
+        return new OccupancyView(
+            estimate.PeopleInside, estimate.Capacity, estimate.Percent, estimate.Level, estimate.AssumedStayMinutes);
+    }
+
+    public async Task<RejectedTodayView> GetRejectedTodayAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        var attempts = dbContext.Set<GSM.Domain.Attendance.CheckinAttempt>().Where(a => a.AttemptDate == today);
+
+        var total = await attempts.CountAsync(cancellationToken);
+        var unseen = await attempts.CountAsync(a => a.AcknowledgedAt == null, cancellationToken);
+        var rows = await attempts
+            .OrderByDescending(a => a.AttemptedAt)
+            .Take(Math.Clamp(limit, 1, 50))
+            .ToListAsync(cancellationToken);
+
+        return new RejectedTodayView(
+            total,
+            unseen,
+            rows.Select(a => new RejectedAttemptView(
+                a.Id, a.MemberId, a.AttemptedAt, a.AttemptCount, EnumText.Snake(a.Reason)!, a.AcknowledgedAt is not null)).ToList());
+    }
+
+    public async Task<IReadOnlyList<RecentEntryView>> GetRecentEntriesTodayAsync(
+        int limit, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        var rows = await Attendances
+            .Where(a => a.AttendanceDate == today)
+            .OrderByDescending(a => a.CheckedInAt)
+            .Take(Math.Clamp(limit, 1, 50))
+            .Select(a => new { a.Id, a.MemberId, a.CheckedInAt, a.Method })
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(r => new RecentEntryView(r.Id, r.MemberId, r.CheckedInAt, r.Method.ToString())).ToList();
+    }
+
+    public async Task<IReadOnlyList<HourlyCountView>> GetHourlyCountsAsync(
+        int days, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        var from = clock.BusinessDayRange(today.AddDays(-(Math.Max(days, 1) - 1))).Start;
+        var to = clock.BusinessDayRange(today).End;
+
+        var instants = await Attendances
+            .Where(a => a.CheckedInAt >= from && a.CheckedInAt < to)
+            .Select(a => a.CheckedInAt)
+            .ToListAsync(cancellationToken);
+
+        return instants
+            .GroupBy(i => clock.ToBusinessLocal(i).Hour)
+            .OrderBy(g => g.Key)
+            .Select(g => new HourlyCountView(g.Key, g.Count()))
+            .ToList();
     }
 }

@@ -10,8 +10,12 @@ namespace GSM.API.Controllers;
 [Authorize(Policy = AuthPolicies.RequireStaff)]
 public sealed class DashboardController : ControllerBase
 {
-    /// <summary>Panel del gym: una sola llamada, un solo response.</summary>
+    /// <summary>
+    /// Panel del gym por bloques (D1). Un bloque que quien consulta no puede ver, o cuyo lector falló, viaja
+    /// <c>null</c>; no recibe filtros. Cliente: <c>GetGymDashboardAsync</c>.
+    /// </summary>
     [HttpGet]
+    [EndpointName("GetGymDashboard")]
     [ProducesResponseType<DashboardResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<DashboardResponse>> Get(
         [FromServices] GetDashboardHandler handler, CancellationToken cancellationToken)

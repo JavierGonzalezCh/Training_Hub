@@ -1,4 +1,6 @@
 ﻿using GSM.Application.Common.Abstractions;
+using GSM.Application.Payments;
+using GSM.Application.Payments.Abstractions;
 using GSM.Application.Payments.Public;
 using GSM.Domain.Payments;
 using GSM.Infrastructure.Persistence;
@@ -7,7 +9,12 @@ using Microsoft.EntityFrameworkCore;
 namespace GSM.Infrastructure.Payments;
 
 /// <summary>Lectura para otros módulos. Respeta el Global Query Filter (datos de tenant).</summary>
-public sealed class PaymentReader(GsmDbContext dbContext, IClock clock) : IPaymentReader
+public sealed class PaymentReader(
+    GsmDbContext dbContext,
+    IClock clock,
+    ICashShiftRepository cashShifts,
+    IVoidRequestRepository voidRequests,
+    CashDrawerService drawer) : IPaymentReader
 {
     private IQueryable<Payment> Payments => dbContext.Set<Payment>();
 
@@ -67,4 +74,23 @@ public sealed class PaymentReader(GsmDbContext dbContext, IClock clock) : IPayme
             .Take(Math.Clamp(limit, 1, 50))
             .Select(p => new MemberPaymentView(p.Id, p.Amount, p.Method, p.Concept, p.PaidAt))
             .ToListAsync(cancellationToken);
+
+    public async Task<OpenCashShiftView?> GetOpenCashShiftAsync(CancellationToken cancellationToken = default)
+    {
+        var open = await cashShifts.GetOpenAsync(cancellationToken);
+        if (open is null)
+        {
+            return null;
+        }
+
+        var response = await drawer.ToResponseAsync(open, cancellationToken);
+        return new OpenCashShiftView(
+            response.Id, response.OpenedBy, response.OpenedByName, response.OpenedAt, response.ExpectedCash ?? 0m, response.IsStale);
+    }
+
+    public async Task<int> GetPendingVoidRequestCountAsync(CancellationToken cancellationToken = default)
+    {
+        var (_, total) = await voidRequests.GetPageAsync(VoidRequestStatus.Pending, 1, 1, cancellationToken);
+        return total;
+    }
 }

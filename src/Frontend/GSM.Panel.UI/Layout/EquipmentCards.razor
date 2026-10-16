@@ -2,7 +2,7 @@
    lectura no se muestra nada: no es motivo para romper el resumen. *@
 @inject IEquipmentClient Equipment
 
-@if (_summary is { } summary)
+@if ((Summary ?? _summary) is { } summary)
 {
     <div data-testid="equipment-out">
         <StatCard Label="Máquinas fuera de servicio" Value="@summary.OutOfService.ToString()"
@@ -19,6 +19,14 @@
 @code {
     private EquipmentSummaryResponse? _summary;
 
+    /// <summary>Resumen ya leído por quien dibuja el panel (D1: viaja en <c>GET /api/dashboard</c>).</summary>
+    [Parameter]
+    public EquipmentSummaryResponse? Summary { get; set; }
+
+    /// <summary>Con <c>false</c> la tarjeta no consulta nada por su cuenta: solo muestra <see cref="Summary"/>.</summary>
+    [Parameter]
+    public bool AutoLoad { get; set; } = true;
+
     public static string OutHint(EquipmentSummaryResponse s)
         => s.InMaintenance == 1 ? "1 en mantenimiento" : $"{s.InMaintenance} en mantenimiento";
 
@@ -29,6 +37,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!AutoLoad || Summary is not null)
+        {
+            return;
+        }
+
         try
         {
             _summary = await Equipment.GetEquipmentSummaryAsync();

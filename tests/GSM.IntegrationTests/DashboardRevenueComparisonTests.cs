@@ -28,8 +28,8 @@ public sealed class DashboardRevenueComparisonTests(ApiFactory factory) : IClass
 
         var dash = await DashboardAsync(gymId, staffId, today);
 
-        Assert.Equal(40_000m, dash.RevenueThisMonth);
-        Assert.Equal(35_000m, dash.RevenueLastMonth);
+        Assert.Equal(40_000m, dash.Finances!.RevenueThisMonth);
+        Assert.Equal(35_000m, dash.Finances.RevenueLastMonth);
     }
 
     [Fact]
@@ -43,8 +43,8 @@ public sealed class DashboardRevenueComparisonTests(ApiFactory factory) : IClass
 
         var dash = await DashboardAsync(gymId, staffId, today);
 
-        Assert.Equal(15_000m, dash.RevenueLastMonth);
-        Assert.Equal(70_000m, dash.RevenueThisMonth);
+        Assert.Equal(15_000m, dash.Finances!.RevenueLastMonth);
+        Assert.Equal(70_000m, dash.Finances.RevenueThisMonth);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class DashboardRevenueComparisonTests(ApiFactory factory) : IClass
 
         var dash = await DashboardAsync(gymId, staffId, today);
 
-        Assert.Equal(20_000m, dash.RevenueLastMonth);
+        Assert.Equal(20_000m, dash.Finances!.RevenueLastMonth);
     }
 
     private async Task<DashboardResponse> DashboardAsync(Guid gymId, Guid staffId, DateOnly today)

@@ -29,13 +29,13 @@ public sealed class DashboardTests(ApiFactory factory) : IClassFixture<ApiFactor
         var dash = await scope.ServiceProvider.GetRequiredService<GetDashboardHandler>()
             .HandleAsync(default);
 
-        Assert.Equal(2, dash.ActiveMembers);          // 2 activos, 1 inactivo
-        Assert.Equal(1, dash.CheckInsToday);
-        Assert.Equal(120_000m, dash.RevenueThisMonth); // 80k + 40k en junio
-        Assert.Equal(50_000m, dash.RevenueLastMonth);  // 50k en mayo (del 1 al 15)
-        Assert.Equal(1, dash.ExpiredMemberships);       // una venció hace días
-        Assert.Equal(1, dash.ExpiringSoon);             // una vence en 3 días
-        Assert.Single(dash.ExpiringMemberships);
+        Assert.Equal(2, dash.Indicators!.ActiveMembers);          // 2 activos, 1 inactivo
+        Assert.Equal(1, dash.Indicators.CheckInsToday);
+        Assert.Equal(120_000m, dash.Finances!.RevenueThisMonth); // 80k + 40k en junio
+        Assert.Equal(50_000m, dash.Finances.RevenueLastMonth);  // 50k en mayo (del 1 al 15)
+        Assert.Equal(1, dash.Expiring!.ExpiredCount);            // una venció hace días
+        Assert.Equal(1, dash.Expiring.ExpiringCount);            // una vence en 3 días
+        Assert.Single(dash.Expiring.Items);
     }
 
     private async Task<(Guid GymId, Guid StaffId)> SeedAsync(DateOnly today)

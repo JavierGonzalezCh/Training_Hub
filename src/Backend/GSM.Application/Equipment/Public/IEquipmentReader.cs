@@ -22,7 +22,24 @@ public interface IEquipmentReader
     /// <summary>Modelos del catálogo del sistema que existen entre los <paramref name="modelIds"/> (para validar ligas).</summary>
     Task<IReadOnlyList<EquipmentModelInfo>> GetModelsAsync(
         IReadOnlyCollection<Guid> modelIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lo que pide atención en el dashboard (D1): máquinas fuera de servicio y reportes de falla sin cerrar. Las
+    /// fuera de servicio con un reporte inseguro abierto van primero. Hasta <paramref name="itemLimit"/> máquinas.
+    /// </summary>
+    Task<EquipmentAttentionView> GetAttentionAsync(
+        Guid gymId, int itemLimit, CancellationToken cancellationToken = default);
 }
+
+public sealed record EquipmentAttentionView(
+    int OutOfService,
+    int InMaintenance,
+    int OpenIssues,
+    int UrgentIssues,
+    IReadOnlyList<OutOfServiceItemView> OutOfServiceItems);
+
+public sealed record OutOfServiceItemView(
+    Guid Id, string Name, string? Zone, DateOnly? ExpectedBackOn, bool HasUnsafeIssue);
 
 /// <summary>
 /// Una máquina del gym vista desde otro módulo. <c>PhotoUrl</c> ya resuelve la cadena foto propia → imagen del
