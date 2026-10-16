@@ -1,0 +1,57 @@
+@* "Pasar a modo miembro" / "Pasar a modo staff" (apps y vistas §4). Solo aparece si la persona tiene, en este
+   mismo gym, un acceso de equipo y uno de miembro. Emite el token del otro acceso sin pedir contraseña y
+   recarga la app en el área de ese rol (staff en "/", miembro en "/app"). *@
+@inject SessionService Session
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+@if (_other is not null)
+{
+    @if (Compact)
+    {
+        <MudIconButton Icon="@Icons.Material.Filled.SwitchAccount" Color="Color.Inherit" Disabled="_busy"
+                       OnClick="SwitchAsync" aria-label="@AccessModes.SwitchLabel(_other.Role)" data-testid="mode-switch" />
+    }
+    else
+    {
+        <MudMenuItem Icon="@Icons.Material.Filled.SwitchAccount" Disabled="_busy" OnClick="SwitchAsync"
+                     data-testid="mode-switch">@AccessModes.SwitchLabel(_other.Role)</MudMenuItem>
+    }
+}
+
+@code {
+    private GymAccessOption? _other;
+    private bool _busy;
+
+    /// <summary>Los accesos de la persona (<c>auth/accesses</c>), con el actual marcado.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<GymAccessOption> Accesses { get; set; } = [];
+
+    /// <summary>Botón de icono (barra del miembro) en lugar de ítem de menú.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    protected override void OnParametersSet() => _other = AccessModes.OtherMode(Accesses);
+
+    private async Task SwitchAsync()
+    {
+        if (_other is null || _busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var me = await Session.SwitchGymAsync(_other.AccessId);
+
+            // forceLoad: el estado de las páginas y los contextos es del modo anterior.
+            Navigation.NavigateTo(GsmRoles.HomeFor(me.Role), forceLoad: true);
+        }
+        catch (ApiErrorException ex)
+        {
+            Snackbar.Add(ex.Error.DisplayMessage, Severity.Error);
+            _busy = false;
+        }
+    }
+}

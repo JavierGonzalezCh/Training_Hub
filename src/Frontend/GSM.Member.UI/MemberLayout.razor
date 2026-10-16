@@ -35,6 +35,7 @@
             <span class="gsm-wordmark" style="font-size:1.3rem">GS<span class="accent">M</span></span>
         }
         <MudSpacer />
+        <ModeSwitch Accesses="_accesses" Compact="true" />
         @if (_accesses.Count > 1)
         {
             <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Color="Color.Inherit" OnClick="SwitchGymAsync" aria-label="Cambiar de gimnasio" />
