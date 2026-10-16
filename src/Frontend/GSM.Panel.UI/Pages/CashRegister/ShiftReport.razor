@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject ICashShiftsClient CashShifts
 @inject IJSRuntime JS
+@inject IServiceProvider Services
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
@@ -182,5 +183,15 @@ else if (_report is { } report)
         }
     }
 
-    private async Task PrintAsync() => await JS.InvokeVoidAsync("print");
+    // En la app nativa «imprimir» es el visor de impresión de Android (guardar/compartir PDF); en la web, el del navegador.
+    private async Task PrintAsync()
+    {
+        if (Services.GetService(typeof(GSM.UI.Shared.IPrintService)) is GSM.UI.Shared.IPrintService printer
+            && await printer.PrintAsync("Reporte de caja"))
+        {
+            return;
+        }
+
+        await JS.InvokeVoidAsync("print");
+    }
 }

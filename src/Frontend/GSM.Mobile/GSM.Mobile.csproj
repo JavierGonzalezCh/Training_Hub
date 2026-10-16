@@ -44,10 +44,19 @@
         <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.10.4" />
     </ItemGroup>
 
+    <!-- Push en Android (N3): Firebase Cloud Messaging nativo. SIN VERIFICAR: la versión exacta del paquete la
+         confirma el integrador al compilar (dotnet build -f net10.0-android). No se usa google-services.json: la
+         configuración de Firebase llega de la API (GET /api/push/config) y se inicializa por código; ver
+         Platforms/Android/AndroidFirebase.cs. -->
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+        <PackageReference Include="Xamarin.Firebase.Messaging" Version="124.1.2.2" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\GSM.Client\GSM.Client.csproj" />
         <ProjectReference Include="..\GSM.UI.Shared\GSM.UI.Shared.csproj" />
         <ProjectReference Include="..\GSM.Member.UI\GSM.Member.UI.csproj" />
+        <ProjectReference Include="..\GSM.Panel.UI\GSM.Panel.UI.csproj" />
     </ItemGroup>
 
 </Project>

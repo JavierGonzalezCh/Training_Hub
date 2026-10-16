@@ -8,6 +8,9 @@ public static class PushPlatforms
 {
     public const string WebMember = "web_member";
     public const string WebPanel = "web_panel";
+
+    /// <summary>App nativa de Android (FCM nativo).</summary>
+    public const string Android = "android";
 }
 
 public enum PushEnableResult
@@ -70,7 +73,7 @@ public sealed class PushRegistrationService(IPushNotifications push, IPushClient
             }
 
             await client.RegisterPushDeviceAsync(
-                new RegisterPushDeviceRequest { Token = token, Platform = platform }, cancellationToken);
+                new RegisterPushDeviceRequest { Token = token, Platform = push.PlatformOverride ?? platform }, cancellationToken);
             return PushEnableResult.Enabled;
         }
         catch (GsmApiException)
@@ -102,7 +105,7 @@ public sealed class PushRegistrationService(IPushNotifications push, IPushClient
             if (!string.IsNullOrWhiteSpace(token))
             {
                 await client.RegisterPushDeviceAsync(
-                    new RegisterPushDeviceRequest { Token = token, Platform = platform }, cancellationToken);
+                    new RegisterPushDeviceRequest { Token = token, Platform = push.PlatformOverride ?? platform }, cancellationToken);
             }
         }
         catch (Exception ex) when (ex is GsmApiException or InvalidOperationException)

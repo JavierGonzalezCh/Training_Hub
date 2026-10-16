@@ -1,8 +1,13 @@
 <CascadingAuthenticationState>
-    <Router AppAssembly="typeof(MauiProgram).Assembly" AdditionalAssemblies="new[] { typeof(GSM.Member.UI.MemberLayout).Assembly }"
+    <GSM.UI.Shared.Push.PushLinkListener />
+    @* Dos áreas en un solo router: el miembro (GSM.Member.UI, /app) y el panel del gym (GSM.Panel.UI, staff y
+       Owner, AP3). Las páginas del miembro declaran su propio layout; las del panel no, así que el layout por
+       defecto es el del panel. Quien no tenga acceso a una ruta va a su propia área (RoleRedirect). *@
+    <Router AppAssembly="typeof(MauiProgram).Assembly"
+            AdditionalAssemblies="new[] { typeof(GSM.Member.UI.MemberLayout).Assembly, typeof(GSM.Panel.UI.Layout.MainLayout).Assembly }"
             NotFoundPage="typeof(Pages.NotFound)">
         <Found Context="routeData">
-            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(GSM.Member.UI.MemberLayout)">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(GSM.Panel.UI.Layout.MainLayout)">
                 <NotAuthorized>
                     <RoleRedirect />
                 </NotAuthorized>

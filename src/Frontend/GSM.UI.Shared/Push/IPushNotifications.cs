@@ -48,6 +48,13 @@ public interface IPushNotifications
     Task<bool> IsPromptDismissedAsync(CancellationToken cancellationToken = default);
 
     Task DismissPromptAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Plataforma con la que este host registra el dispositivo en la API (<see cref="PushPlatforms"/>). La web
+    /// la deja en <c>null</c> y cada pantalla pasa la suya (<c>web_member</c> / <c>web_panel</c>); la app nativa
+    /// devuelve <c>android</c> sin importar qué pantalla lo pida, porque el token es de FCM nativo (N3).
+    /// </summary>
+    string? PlatformOverride => null;
 }
 
 /// <summary>Host sin push: nada que ofrecer.</summary>
