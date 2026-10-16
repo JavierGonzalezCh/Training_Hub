@@ -1,0 +1,252 @@
+@page "/app/perfil"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject IMeProfileClient ProfileApi
+@inject MemberBootstrapService Bootstrap
+@inject ISnackbar Snackbar
+
+@* "Mi perfil" (Members v2, M5). Contacto, emergencia, salud y foto se guardan al instante; nombres, documento y
+   fecha de nacimiento los cambia el staff; el correo y la contraseña pasan por /app/cuenta/contrasena. La salud
+   y las mediciones están bloqueadas sin la autorización de tratamiento de datos, y un menor no las edita. *@
+
+<PageTitle>Mi perfil — GSM</PageTitle>
+
+<h1 class="gsm-m-section">Mi perfil</h1>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_profile is null)
+{
+    <MudAlert Severity="Severity.Normal">No pudimos cargar tu perfil.</MudAlert>
+}
+else
+{
+    <section class="gsm-m-card gsm-profile__identity" style="display:block">
+        <div class="d-flex align-center" style="gap:1rem">
+            <MudAvatar Size="Size.Large">
+                @if (!string.IsNullOrEmpty(_profile.PhotoUrl))
+                {
+                    <MudImage Src="@_profile.PhotoUrl" />
+                }
+                else
+                {
+                    @($"{_profile.FirstName[0]}{_profile.LastName[0]}".ToUpperInvariant())
+                }
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.h6" Class="gsm-profile__name">@_profile.FirstName @_profile.LastName</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @MemberLabels.DocumentShort(_profile.DocumentType) @_profile.DocumentNumber
+                    @if (_profile.BirthDate is { } birth)
+                    {
+                        <span> · Nació el @GsmFormat.Day(birth)</span>
+                    }
+                </MudText>
+                @if (!string.IsNullOrWhiteSpace(_profile.TrainerName))
+                {
+                    <MudText Typo="Typo.body2" Class="gsm-profile__trainer">Tu entrenador: @_profile.TrainerName</MudText>
+                }
+            </div>
+        </div>
+
+        <div class="mt-3 gsm-profile__photo">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block">
+                @(_uploading ? "Subiendo foto..." : "Cambiar foto")
+            </MudText>
+            <InputFile id="profile-photo" OnChange="UploadPhotoAsync" accept="image/*" disabled="@_uploading" />
+        </div>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2" Style="display:block">
+            Tu nombre, documento y fecha de nacimiento los cambia el staff del gimnasio.
+        </MudText>
+    </section>
+
+    <section class="gsm-m-card gsm-profile__account" style="display:block">
+        <h2 class="gsm-m-card__title">Cuenta</h2>
+        <MudText Typo="Typo.body2" Class="gsm-profile__email">Correo: @(_profile.Email ?? "sin correo")</MudText>
+        <MudButton Href="/app/cuenta/contrasena" Variant="Variant.Text" Size="Size.Small" Class="gsm-profile__account-link">
+            Cambiar correo o contraseña
+        </MudButton>
+        <MudButton Href="/app/autorizaciones" Variant="Variant.Text" Size="Size.Small">Mis autorizaciones</MudButton>
+    </section>
+
+    <section class="gsm-m-card gsm-profile__contact" style="display:block">
+        <h2 class="gsm-m-card__title">Contacto y emergencia</h2>
+        <MudTextField T="string" @bind-Value="_form.Phone" Label="Celular" Immediate="true" Class="mb-2 gsm-profile__phone"
+                      HelperText="Con o sin +57, por ejemplo 3001234567" />
+        <MudTextField T="string" @bind-Value="_form.Address" Label="Dirección" Immediate="true" Class="mb-2" />
+        <MudTextField T="string" @bind-Value="_form.City" Label="Ciudad" Immediate="true" Class="mb-2" />
+        <MudText Typo="Typo.subtitle2" Class="mt-2">Contacto de emergencia</MudText>
+        <MudTextField T="string" @bind-Value="_form.EmergencyContactName" Label="Nombre" Immediate="true" Class="mb-2 gsm-profile__emergency-name" />
+        <MudTextField T="string" @bind-Value="_form.EmergencyContactRelationship" Label="Parentesco" Immediate="true" Class="mb-2" />
+        <MudTextField T="string" @bind-Value="_form.EmergencyContactPhone" Label="Celular de emergencia" Immediate="true" Class="mb-2" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_saving" OnClick="SaveContactAsync" Class="gsm-profile__save-contact">
+            @(_saving ? "Guardando..." : "Guardar")
+        </MudButton>
+    </section>
+
+    <section class="gsm-m-card gsm-profile__health" style="display:block">
+        <h2 class="gsm-m-card__title">Salud</h2>
+        @if (_profile.HealthConsentRequired)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="gsm-profile__health-locked">
+                Para guardar tus datos de salud y tus mediciones primero acepta la autorización de tratamiento de datos.
+            </MudAlert>
+            <MudButton Href="/app/autorizaciones" Variant="Variant.Text" Size="Size.Small" Class="mt-2">Ir a autorizaciones</MudButton>
+        }
+        else
+        {
+            @if (_profile.IsMinor)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2 gsm-profile__health-minor">
+                    Eres menor de edad: tus datos de salud los actualiza el staff o tu acudiente en recepción.
+                </MudAlert>
+            }
+
+            <MudTextField T="string" @bind-Value="_form.MedicalConditions" Label="Condiciones médicas" Lines="2" Immediate="true"
+                          Disabled="!_profile.CanEditHealth" Class="mb-2 gsm-profile__conditions" MaxLength="1000" />
+            <MudTextField T="string" @bind-Value="_form.Medications" Label="Medicamentos" Lines="2" Immediate="true"
+                          Disabled="!_profile.CanEditHealth" Class="mb-2" MaxLength="1000" />
+            <MudTextField T="string" @bind-Value="_form.TrainingRestrictions" Label="Restricciones de entrenamiento" Lines="2"
+                          Immediate="true" Disabled="!_profile.CanEditHealth" Class="mb-2" MaxLength="1000" />
+            <MudTextField T="DateTime?" InputType="InputType.Date" Format="yyyy-MM-dd" Label="Fecha del apto médico"
+                          @bind-Value="_form.MedicalClearanceDate" Disabled="!_profile.CanEditHealth" Class="mb-2"
+                          InputAttributes="@(new Dictionary<string, object> { ["max"] = DateTime.Today.ToString("yyyy-MM-dd") })" />
+            @if (_profile.CanEditHealth)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_saving" OnClick="SaveHealthAsync" Class="gsm-profile__save-health">
+                    @(_saving ? "Guardando..." : "Guardar salud")
+                </MudButton>
+            }
+        }
+    </section>
+
+    <ProfileMeasurements CanEdit="_profile.CanEditHealth" ConsentRequired="_profile.HealthConsentRequired" />
+}
+
+@code {
+    private MyProfile? _profile;
+    private readonly FormModel _form = new();
+    private bool _loading = true;
+    private bool _saving;
+    private bool _uploading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Apply(await ProfileApi.GetMyProfileAsync());
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Apply(MyProfile profile)
+    {
+        _profile = profile;
+        _form.Phone = profile.Phone;
+        _form.Address = profile.Address;
+        _form.City = profile.City;
+        _form.EmergencyContactName = profile.EmergencyContactName;
+        _form.EmergencyContactRelationship = profile.EmergencyContactRelationship;
+        _form.EmergencyContactPhone = profile.EmergencyContactPhone;
+        _form.MedicalConditions = profile.Health?.MedicalConditions;
+        _form.Medications = profile.Health?.Medications;
+        _form.TrainingRestrictions = profile.Health?.TrainingRestrictions;
+        _form.MedicalClearanceDate = profile.Health?.MedicalClearanceDate is { } d ? d.ToDateTime(TimeOnly.MinValue) : null;
+    }
+
+    private Task SaveContactAsync() => SaveAsync(includeHealth: false, "Datos guardados.");
+
+    private Task SaveHealthAsync() => SaveAsync(includeHealth: true, "Datos de salud guardados.");
+
+    private async Task SaveAsync(bool includeHealth, string successMessage)
+    {
+        if (_profile is null)
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var request = new UpdateMyProfileRequest
+            {
+                Phone = _form.Phone,
+                Address = _form.Address,
+                City = _form.City,
+                EmergencyContactName = _form.EmergencyContactName,
+                EmergencyContactRelationship = _form.EmergencyContactRelationship,
+                EmergencyContactPhone = _form.EmergencyContactPhone,
+                Health = includeHealth
+                    ? new UpdateMemberHealthRequest
+                    {
+                        MedicalConditions = _form.MedicalConditions,
+                        Medications = _form.Medications,
+                        TrainingRestrictions = _form.TrainingRestrictions,
+                        MedicalClearanceDate = _form.MedicalClearanceDate is { } d ? DateOnly.FromDateTime(d) : null,
+                    }
+                    : null,
+            };
+
+            Apply(await ProfileApi.UpdateMyProfileAsync(request));
+            await Bootstrap.LoadAsync();
+            Snackbar.Add(successMessage, Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task UploadPhotoAsync(InputFileChangeEventArgs e)
+    {
+        _uploading = true;
+        try
+        {
+            // 5 MB de tope: solo para no mandar archivos absurdos a la API.
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            Apply(await ProfileApi.UploadMyPhotoAsync(new FileParameter(stream, e.File.Name, e.File.ContentType)));
+            await Bootstrap.LoadAsync();
+            Snackbar.Add("Foto actualizada.", Severity.Success);
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 500)
+        {
+            // R2 no está configurado todavía (ver CLAUDE.md): la subida falla siempre con 500.
+            Snackbar.Add("Las fotos no están disponibles todavía: falta configurar el almacenamiento.", Severity.Warning);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+
+    private sealed class FormModel
+    {
+        public string? Phone { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? EmergencyContactName { get; set; }
+        public string? EmergencyContactRelationship { get; set; }
+        public string? EmergencyContactPhone { get; set; }
+        public string? MedicalConditions { get; set; }
+        public string? Medications { get; set; }
+        public string? TrainingRestrictions { get; set; }
+        public DateTime? MedicalClearanceDate { get; set; }
+    }
+}

@@ -12,6 +12,7 @@ public static class MembersModuleRegistration
 
         services.AddScoped<GSM.Application.Members.MemberChangeRecorder>();
         services.AddScoped<GSM.Application.Members.ConsentService>();
+        services.AddScoped<GSM.Application.Members.MyProfileComposer>();
 
         return services;
     }

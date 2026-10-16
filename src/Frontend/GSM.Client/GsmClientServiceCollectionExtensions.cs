@@ -49,6 +49,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IGymsClient, GymsClient>(services, baseUri);
         AddApiClient<IHealthClient, HealthClient>(services, baseUri);
         AddApiClient<IMeClient, MeClient>(services, baseUri);
+        AddApiClient<IMeProfileClient, MeProfileClient>(services, baseUri);
         AddApiClient<IMemberAttendanceClient, MemberAttendanceClient>(services, baseUri);
         AddApiClient<IMemberClassesClient, MemberClassesClient>(services, baseUri);
         AddApiClient<IMemberClassAttendanceClient, MemberClassAttendanceClient>(services, baseUri);

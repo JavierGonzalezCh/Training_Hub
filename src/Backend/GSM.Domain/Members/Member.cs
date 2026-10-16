@@ -225,6 +225,29 @@ public sealed class Member : BaseEntity, ITenantEntity
         return changes;
     }
 
+    /// <summary>
+    /// Autoedición del miembro (M5): solo contacto y emergencia. Nombres, documento, fecha de nacimiento,
+    /// email (que pasa por la verificación de Identity), foto (que se sube aparte), acudiente y los datos
+    /// de gestión del staff no se tocan. Devuelve un cambio por cada campo que de verdad cambió.
+    /// </summary>
+    public IReadOnlyList<MemberFieldChange> UpdateContact(
+        string? phone,
+        string? address,
+        string? city,
+        string? emergencyContactName,
+        string? emergencyContactRelationship,
+        string? emergencyContactPhone,
+        DateOnly today)
+        => UpdateProfile(
+            new MemberProfile(
+                FirstName, LastName, DocumentType, DocumentNumber, BirthDate, Gender, PhotoUrl,
+                phone, Email, address, city,
+                emergencyContactName, emergencyContactRelationship, emergencyContactPhone,
+                Source, ReferredByMemberId, Goal, Tags,
+                GuardianName, GuardianDocumentType, GuardianDocumentNumber, GuardianPhone, GuardianRelationship),
+            joinedAt: null,
+            today);
+
     public const int HealthTextMaxLength = 1000;
 
     /// <summary>
