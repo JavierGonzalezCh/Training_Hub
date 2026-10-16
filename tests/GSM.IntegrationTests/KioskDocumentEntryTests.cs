@@ -55,6 +55,12 @@ public sealed class KioskDocumentEntryTests(ApiFactory factory) : IClassFixture<
         var saved = await db.Set<GSM.Domain.Attendance.Attendance>().SingleAsync(a => a.MemberId == w.MemberId);
         Assert.Equal(GSM.Domain.Attendance.AttendanceMethod.Document, saved.Method);
 
+        // A7: el miembro recibe el aviso de seguridad de su entrada con documento (una sola vez).
+        var notice = await db.Set<GSM.Domain.Notifications.Notification>().SingleAsync(n =>
+            n.RecipientMemberId == w.MemberId && n.Type == GSM.Domain.Notifications.NotificationType.DocumentCheckIn);
+        Assert.Equal(saved.Id, notice.ReferenceId);
+        Assert.Equal(GSM.Domain.Notifications.NotificationCategory.Security, notice.Category);
+
         // Una entrada por día: la segunda es el mismo rechazo genérico.
         var again = await kiosk.PostAsJsonAsync(Path, new { document = w.Document });
         Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
