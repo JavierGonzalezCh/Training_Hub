@@ -391,6 +391,15 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **G5-4:** completado es definitivo (no vuelve a bloquear). Los gyms existentes quedan marcados como completos. El bloqueo solo está en el frontend y falla abierto. El SuperAdmin impersonando no se bloquea.
 - **G5-5:** la omisión desde SuperAdmin se audita en `gym_onboarding` y en el log, no en `impersonation_actions`.
 
+- **M5-1:** en "Mi perfil" el miembro no edita objetivo ni género (solo contacto, emergencia, salud y foto). ¿Debe poder fijar su objetivo?
+- **M5-2:** campos de identidad en el PUT: distinto a lo guardado → 403, igual → se acepta. Email distinto → 422 (va por el cambio con código de I6). El miembro no borra mediciones.
+- **M5-3:** sin autorización de datos, la salud tampoco se muestra (no solo no se edita). Un menor ve su salud pero no la edita.
+- **S4-1:** en el catálogo del sistema nada se borra: ejercicios y modelos de máquina solo se desactivan; desactivar un modelo no toca las máquinas ya creadas por los gyms.
+- **S4-2:** no hay "ejercicios que usan este modelo" ni ligado desde la pestaña de Máquinas (exigiría que Equipment lea Routines).
+- **LG5-1:** las alertas del SuperAdmin no pasan por `notifications.notifications` (exige `gym_id`): viven en `logs.platform_alerts` y Notifications solo da el canal (correo y push). ¿O una campana propia del SuperAdmin?
+- **LG5-2:** `/admin` todavía no registra push: hasta entonces el push de las alertas queda `skipped` y solo llega el correo.
+- **LG5-3:** "5 fallas seguidas" del proveedor = 5 o más en 10 min (no se guardan los éxitos). Un grupo resuelto que reaparece no vuelve a dar "error nuevo". Toda tarea `*_job` se asume al menos cada 30 min.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
@@ -424,6 +433,8 @@ Las del plan §4 (ninguna se hace esta noche):
 
 ## 5. Registro cronológico
 
+- 2026-10-16: suite de la tanda A7/MS6/C6/L5: 21 fallos de integración + 2 bUnit. Causas: `RewardRow` era un record posicional y EF no traducía el filtro de premios pendientes (tumbaba la tarjeta de recepción); los tests de A7 publicaban con el reloj fijado a mediodía y despachaban antes; un test de MS6 esperaba "Total a cobrar" con devolución. Corregidos (300607f y siguiente). `KioskDeviceUiTests.The_typed_number_is_masked...` falla de forma intermitente.
+- 2026-10-16: unidas MS7, C7, L6, S3, A6, R7, G5, M5, S4 y LG5 (dos tandas de agentes que solo escriben código). Un conflicto (dos métodos nuevos en `IIdentityReader`). Migración única `V2_MS7_L6_S3_A6_G5_LG5` con `SqlScript` MS7, L6, G5, LG5. Al integrar: `using GSM.Application.Common` (3), `[EndpointName]` para el onboarding (NSwag numeraba `Onboarding2Async`), **12 clientes sin `ReadResponseAsString`** (8 de tandas anteriores: `CashShifts`, `Owners`, `ClassSettings`, `AdminLogs`… — sus 409/422 llegaban con el mensaje genérico), 2 bUnit (query `t` de A6, cliente de C7 en lista de espera). bUnit 543 en verde. Lanzada la tanda C8, L3, M6 y G6.
 - 2026-10-15: L4, CO4, MS5 y E4 unidas (MS5 y L4 combinadas solas en `Detail.razor`). Migración `V2_MS5_E4_L4_CO4` con `SqlScript` MS5, E4, L4, CO4. Al integrar: cliente de la lista de espera sin registrar (hueco de C4), `EndpointName` para `ScheduleAnnouncement` (chocaba con Clases), namespace en un test de E4; un bUnit del kiosco intermitente (pasa 3 de 3). **Suite (en dos mitades): 902 integración + 463 bUnit, todo verde.**
 - 2026-10-15: A5, L2, C4 y MS4 unidas (MS4 y C4 se quedaron detenidos una vez y se reanudaron). Conflicto MS4 ↔ L2 en `Membership.cs`: queda el modelo de congelamientos; `CoveredDaysThrough` descuenta los tramos. Migración `V2_MS4_A5_C4_L2` **reordenada**: `SqlScript` MS4/C4/L2 antes de soltar `paused_on`. La primera suite la cortó Claude Code por memoria baja; se corrió en dos mitades. Al integrar: un falso de push en bUnit, `Input` en un campo `Immediate`, conteo de logros por defecto (5 → 7), una fila de logs de corridas anteriores, y **un defecto real de C4**: `UpdateClassSettingsHandler` agregaba la fila antes de validar (un 422 dejaba la fila rastreada). B4 marcado corregido. **Suite: 850 integración + 416 bUnit, todo verde.**
 - 2026-10-15: MS3, A4, R5 y LG4 unidas sin conflictos (se cortaron una vez por el límite de uso y se reanudaron). Migraciones `V2_MS3_A4_R5` (EF detectó el renombrado de `duration_days`; `SqlScript` MS3, A4, R5) y `V2_LG4_PanelErrores`. Al integrar: 1 `using` (R5), `AlternativesAllAsync`, el parámetro `documentOnly` en medio de `AttendanceGETAsync`, 5 bUnit y 1 test de A4 con planes duplicados. **Suite: 800 integración + 390 bUnit, todo verde.** Lanzada la tanda MS4, A5, C4 y L2.
