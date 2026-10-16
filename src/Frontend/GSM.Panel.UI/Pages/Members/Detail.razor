@@ -109,6 +109,10 @@ else if (_member is not null)
                 {
                     <MudText Typo="Typo.h6">@membership.PlanName</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">Vence @GsmFormat.Day(membership.EndDate)</MudText>
+                    @if (membership.EntriesTotal is { } passTotal)
+                    {
+                        <MudText Typo="Typo.body2" data-testid="pass-balance">@PlanDurationLabels.Balance(membership.EntriesLeft ?? 0, passTotal)</MudText>
+                    }
                 }
                 else
                 {
@@ -197,6 +201,12 @@ else if (_member is not null)
                     <RowTemplate>
                         <MudTd DataLabel="Plan">
                             @context.PlanName
+                            @if (context.EntriesTotal is { } passTotal)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block" data-testid="pass-row-balance">
+                                    Tiquetera: @PlanDurationLabels.Balance(context.EntriesLeft ?? 0, passTotal)
+                                </MudText>
+                            }
                             @if (context.CancellationReason is { } cancelReason)
                             {
                                 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@cancelReason</MudText>

@@ -16,19 +16,44 @@
                 <MudTextField T="string" @bind-Value="_model.Name" Label="Nombre" Required="true" Class="mb-3" />
                 <MudTextField T="string" @bind-Value="_model.Description" Label="Descripción" Class="mb-3" />
                 <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_model.Price" Label="Precio (COP)" Required="true" Min="0" Class="mb-3" />
-                <MudGrid Spacing="2">
-                    <MudItem xs="5">
-                        <MudNumericField T="int" @bind-Value="_model.DurationValue" Label="Duración" Required="true" Min="1" Max="@MaxValue" />
-                    </MudItem>
-                    <MudItem xs="7">
-                        <MudSelect T="string" @bind-Value="_model.DurationUnit" Label="Unidad" Required="true">
-                            @foreach (var (value, label) in PlanDurationLabels.Units)
-                            {
-                                <MudSelectItem Value="value">@label</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-                </MudGrid>
+                <MudSelect T="string" @bind-Value="_model.Kind" Label="Tipo de plan" Required="true" Class="mb-3"
+                           Disabled="@(PlanId is not null)" id="plan-kind"
+                           HelperText="@(PlanId is not null ? "El tipo de un plan no se puede cambiar." : null)">
+                    @foreach (var (value, label) in PlanDurationLabels.Kinds)
+                    {
+                        <MudSelectItem Value="value">@label</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (IsPass)
+                {
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_model.Entries" Label="Entradas" Required="true" Min="1" Max="1000" id="plan-entries" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_model.ValidityDays" Label="Vigencia (días)" Required="true" Min="1" Max="3650" id="plan-validity" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1" id="pass-help">
+                        Cada entrada gasta una. Empieza el día de la compra, no tiene gracia y las entradas que sobren al vencer se pierden.
+                    </MudText>
+                }
+                else
+                {
+                    <MudGrid Spacing="2">
+                        <MudItem xs="5">
+                            <MudNumericField T="int" @bind-Value="_model.DurationValue" Label="Duración" Required="true" Min="1" Max="@MaxValue" />
+                        </MudItem>
+                        <MudItem xs="7">
+                            <MudSelect T="string" @bind-Value="_model.DurationUnit" Label="Unidad" Required="true">
+                                @foreach (var (value, label) in PlanDurationLabels.Units)
+                                {
+                                    <MudSelectItem Value="value">@label</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                }
                 <MudGrid Spacing="2" Class="mt-1">
                     <MudItem xs="6">
                         <MudNumericField T="int" @bind-Value="_model.MaxFreezeDays" Label="Máx. días de congelamiento" Min="0" Max="365" id="plan-max-freeze"
@@ -38,7 +63,7 @@
                         <MudNumericField T="int" @bind-Value="_model.MinFreezeDays" Label="Mínimo por congelamiento (días)" Min="1" Max="365" id="plan-min-freeze" />
                     </MudItem>
                 </MudGrid>
-                @if (_model.DurationUnit == PlanDurationLabels.Months)
+                @if (!IsPass && _model.DurationUnit == PlanDurationLabels.Months)
                 {
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
                         Un plan de 1 mes que empieza el 8 de septiembre cubre hasta el 7 de octubre.
@@ -85,6 +110,9 @@
             _model.Price = (decimal)plan.Price;
             _model.DurationValue = plan.DurationValue;
             _model.DurationUnit = plan.DurationUnit;
+            _model.Kind = plan.Kind ?? PlanDurationLabels.KindTime;
+            _model.Entries = plan.Entries ?? 10;
+            _model.ValidityDays = plan.ValidityDays ?? plan.DurationValue;
             _model.MaxFreezeDays = plan.MaxFreezeDays;
             _model.MinFreezeDays = plan.MinFreezeDays;
         }
@@ -117,10 +145,13 @@
                     Name = _model.Name,
                     Description = _model.Description,
                     Price = (double)_model.Price,
-                    DurationValue = _model.DurationValue,
-                    DurationUnit = _model.DurationUnit,
+                    DurationValue = IsPass ? _model.ValidityDays : _model.DurationValue,
+                    DurationUnit = IsPass ? PlanDurationLabels.Days : _model.DurationUnit,
                     MaxFreezeDays = _model.MaxFreezeDays,
                     MinFreezeDays = _model.MinFreezeDays,
+                    Kind = _model.Kind,
+                    Entries = IsPass ? _model.Entries : null,
+                    ValidityDays = IsPass ? _model.ValidityDays : null,
                 });
             }
             else
@@ -130,10 +161,13 @@
                     Name = _model.Name,
                     Description = _model.Description,
                     Price = (double)_model.Price,
-                    DurationValue = _model.DurationValue,
-                    DurationUnit = _model.DurationUnit,
+                    DurationValue = IsPass ? _model.ValidityDays : _model.DurationValue,
+                    DurationUnit = IsPass ? PlanDurationLabels.Days : _model.DurationUnit,
                     MaxFreezeDays = _model.MaxFreezeDays,
                     MinFreezeDays = _model.MinFreezeDays,
+                    Kind = _model.Kind,
+                    Entries = IsPass ? _model.Entries : null,
+                    ValidityDays = IsPass ? _model.ValidityDays : null,
                 });
             }
 
@@ -160,7 +194,12 @@
         public string DurationUnit { get; set; } = PlanDurationLabels.Days;
         public int MaxFreezeDays { get; set; }
         public int MinFreezeDays { get; set; } = 1;
+        public string Kind { get; set; } = PlanDurationLabels.KindTime;
+        public int Entries { get; set; } = 10;
+        public int ValidityDays { get; set; } = 30;
     }
+
+    private bool IsPass => PlanDurationLabels.IsPass(_model.Kind);
 
     private int MaxValue => _model.DurationUnit == PlanDurationLabels.Months ? 120 : 3650;
 }

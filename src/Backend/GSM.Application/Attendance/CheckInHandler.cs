@@ -173,10 +173,23 @@ public sealed class CheckInHandler(
             authorizationReason);
         attendance.Add(record);
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        await events.PublishAsync(new CheckInRegistered(record.Id, gymId, member.Id), cancellationToken);
+        await events.PublishAsync(new CheckInRegistered(record.Id, gymId, member.Id, record.AttendanceDate), cancellationToken);
         logger.LogInformation(
             "Check-in {AttendanceId} de miembro {MemberId}{Authorized}",
             record.Id, member.Id, record.AuthorizedBy is null ? string.Empty : " (entrada autorizada)");
+
+        // Tiquetera (MS5): el evento ya descontó esta entrada; el saldo y el letrero deben reflejarlo
+        // ("Te quedan 2 entradas" tras entrar, no antes). Si el manejador falló, queda el saldo anterior.
+        var notice = access.Notice;
+        var entriesLeft = access.EntriesLeft;
+        if (access.EntriesLeft is not null && access.Kind != AccessKind.Blocked)
+        {
+            var after = await memberships.GetAccessStatusAsync(member.Id, cancellationToken);
+            entriesLeft = after.EntriesLeft ?? 0;
+            notice = after.Kind == AccessKind.Blocked && after.BlockReason == AccessBlockReason.PassExhausted
+                ? "Usaste la última entrada de tu tiquetera."
+                : after.Notice;
+        }
 
         var unlocked = await achievements.EvaluateForMemberAsync(member.Id, cancellationToken);
 
@@ -191,10 +204,12 @@ public sealed class CheckInHandler(
             unlocked,
             MembershipEndsOn: covered ? null : access.EndsOn,
             GraceDaysLeft: access.GraceDaysLeft,
-            Notice: access.Notice,
+            Notice: notice,
             DaysLeft: access.DaysLeft,
             Authorized: record.AuthorizedBy is not null,
-            MissingWaiver: !await members.HasLiabilityWaiverAsync(member.Id, cancellationToken));
+            MissingWaiver: !await members.HasLiabilityWaiverAsync(member.Id, cancellationToken),
+            EntriesLeft: entriesLeft,
+            EntriesTotal: access.EntriesTotal);
 
         return (response, true);
     }
@@ -235,6 +250,9 @@ public sealed class CheckInHandler(
                 // Sin valor propio en el enum de Postgres (evita migrar): se guarda como "sin membresía".
                 CheckinRejectionReason.NoMembership, null,
                 $"Tu plan empieza el {starts:dd/MM/yyyy}. Pasa por recepción."),
+            AccessBlockReason.PassExhausted => (
+                CheckinRejectionReason.PassExhausted, null,
+                "Ya usaste todas las entradas de tu tiquetera. Pasa por recepción para renovarla."),
             AccessBlockReason.Expired when access.EndsOn is { } ended => (
                 CheckinRejectionReason.MembershipExpired, ended,
                 $"Tu membresía venció el {ended:dd/MM/yyyy}. Pasa por recepción para renovarla."),

@@ -63,7 +63,8 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
     public async Task<IReadOnlyList<Membership>> GetActiveStartingAfterAsync(
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
         => await Memberships
-            .Where(m => m.MemberId == memberId && m.Status == MembershipStatus.Active && m.StartDate > date)
+            .Where(m => m.MemberId == memberId && m.Status == MembershipStatus.Active && m.StartDate > date
+                && m.EntriesTotal == null)
             .OrderBy(m => m.StartDate)
             .ToListAsync(cancellationToken);
 
@@ -109,6 +110,49 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
     public void Add(MembershipFreeze freeze) => Freezes.Add(freeze);
 
     public void Remove(MembershipFreeze freeze) => Freezes.Remove(freeze);
+
+    private DbSet<PassUsage> PassUsages => dbContext.Set<PassUsage>();
+
+    public Task<PassUsage?> GetPassUsageByAttendanceAsync(Guid attendanceId, CancellationToken cancellationToken = default)
+        => PassUsages.FirstOrDefaultAsync(u => u.AttendanceId == attendanceId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, int>> GetPassUsedCountsAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default)
+    {
+        if (membershipIds.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await PassUsages
+            .Where(u => membershipIds.Contains(u.MembershipId))
+            .GroupBy(u => u.MembershipId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Membership>> GetPassesCoveringAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
+        => await Memberships
+            .Where(m => m.MemberId == memberId && m.Status == MembershipStatus.Active
+                && m.EntriesTotal != null && m.StartDate <= date && date <= m.EndDate)
+            .OrderBy(m => m.EndDate)
+            .ToListAsync(cancellationToken);
+
+    public Task<bool> HasTimeMembershipCoveringAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
+    {
+        var freezes = Freezes;
+        return Memberships.AnyAsync(
+            m => m.MemberId == memberId && m.Status == MembershipStatus.Active && m.EntriesTotal == null
+                && m.StartDate <= date && date <= m.EndDate
+                && !freezes.Any(f => f.MembershipId == m.Id && f.StartsOn <= date && (f.EndsOn == null || f.EndsOn >= date)),
+            cancellationToken);
+    }
+
+    public void Add(PassUsage usage) => PassUsages.Add(usage);
+
+    public void Remove(PassUsage usage) => PassUsages.Remove(usage);
 
     public Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<MembershipSettings>().FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);

@@ -46,6 +46,10 @@
                 <div class="gsm-m-plan__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@pct" aria-label="Tiempo restante de la membresía">
                     <span class="gsm-m-plan__fill" style="width:@(pct.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span>
                 </div>
+                @if (membership.EntriesTotal is { } passTotal)
+                {
+                    <span class="gsm-m-plan__until" id="pass-balance">@PlanDurationLabels.Balance(membership.EntriesLeft ?? 0, passTotal)</span>
+                }
                 <span class="gsm-m-plan__until">Vigente hasta el @GsmFormat.Day(membership.EndDate)</span>
             </div>
         }

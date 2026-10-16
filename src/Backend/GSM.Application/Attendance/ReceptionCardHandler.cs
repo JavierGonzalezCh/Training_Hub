@@ -62,11 +62,12 @@ public sealed class GetReceptionCardHandler(
                 AccessBlockReason.Frozen => "membership_frozen",
                 AccessBlockReason.Expired => "membership_expired",
                 AccessBlockReason.Scheduled => "membership_scheduled",
+                AccessBlockReason.PassExhausted => "pass_exhausted",
                 _ => "no_membership",
             };
         }
 
-        var blockedByMembership = rejection is "membership_frozen" or "membership_expired" or "membership_scheduled" or "no_membership";
+        var blockedByMembership = rejection is "membership_frozen" or "membership_expired" or "membership_scheduled" or "no_membership" or "pass_exhausted";
 
         return new ReceptionCardResponse(
             member.Id,
@@ -92,6 +93,8 @@ public sealed class GetReceptionCardHandler(
             MaxDailyEntries: allowance.AllowedToday,
             MultipleEntries: allowance.MultipleEntries,
             NextEntryAt: allowance.NextEntryAt,
-            BirthdayToday: await members.IsBirthdayAsync(memberId, clock.Today, cancellationToken));
+            BirthdayToday: await members.IsBirthdayAsync(memberId, clock.Today, cancellationToken),
+            EntriesLeft: access.EntriesLeft,
+            EntriesTotal: access.EntriesTotal);
     }
 }

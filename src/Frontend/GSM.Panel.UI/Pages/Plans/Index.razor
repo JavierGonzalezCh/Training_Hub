@@ -49,7 +49,7 @@ else
                 }
             </MudTd>
             <MudTd DataLabel="Precio" Class="gsm-mono">@GsmFormat.Money((decimal)context.Price)</MudTd>
-            <MudTd DataLabel="Duración">@PlanDurationLabels.Format(context.DurationUnit, context.DurationValue)</MudTd>
+            <MudTd DataLabel="Duración">@PlanDurationLabels.FormatPlan(context.Kind, context.DurationUnit, context.DurationValue, context.Entries)</MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                     @(context.IsActive ? "ACTIVO" : "INACTIVO")

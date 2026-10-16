@@ -53,6 +53,26 @@ public interface IMembershipRepository
 
     void Remove(MembershipFreeze freeze);
 
+    // Tiqueteras (MS5)
+    /// <summary>El consumo de la entrada de asistencia, si ya lo hay (consumir es idempotente por entrada).</summary>
+    Task<PassUsage?> GetPassUsageByAttendanceAsync(Guid attendanceId, CancellationToken cancellationToken = default);
+
+    /// <summary>Entradas consumidas de cada tiquetera pedida (las que no tienen consumo no aparecen).</summary>
+    Task<IReadOnlyDictionary<Guid, int>> GetPassUsedCountsAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default);
+
+    /// <summary>Tiqueteras Active del miembro cuya vigencia cubre <paramref name="date"/> (con o sin entradas).</summary>
+    Task<IReadOnlyList<Membership>> GetPassesCoveringAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default);
+
+    /// <summary>¿Hay una membresía por tiempo, Active y no congelada, que cubre ese día?</summary>
+    Task<bool> HasTimeMembershipCoveringAsync(
+        Guid memberId, DateOnly date, CancellationToken cancellationToken = default);
+
+    void Add(PassUsage usage);
+
+    void Remove(PassUsage usage);
+
     // Ajustes del gym (gracia y aviso de vencimiento)
     Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
 

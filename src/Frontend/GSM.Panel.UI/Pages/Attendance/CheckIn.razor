@@ -56,6 +56,10 @@
                         @(daysLeft == 0 ? "Vence hoy" : daysLeft == 1 ? "Le queda 1 día" : $"Le quedan {daysLeft} días")
                     </MudText>
                 }
+                @if (card.EntriesTotal is { } passTotal)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-1" id="pass-balance">@PlanDurationLabels.Balance(card.EntriesLeft ?? 0, passTotal)</MudText>
+                }
                 @if (card.BirthdayToday)
                 {
                     <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Outlined.Cake" Dense="true" Class="mt-3" role="status"
@@ -159,6 +163,10 @@
                 @if (_result.Authorized == true)
                 {
                     <MudAlert Severity="Severity.Info" Dense="true" Class="mt-4">Entrada autorizada por recepción.</MudAlert>
+                }
+                @if (_result.EntriesTotal is { } resultTotal)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2" id="pass-balance-result">@PlanDurationLabels.Balance(_result.EntriesLeft ?? 0, resultTotal)</MudText>
                 }
                 @if (!string.IsNullOrEmpty(_result.Notice))
                 {

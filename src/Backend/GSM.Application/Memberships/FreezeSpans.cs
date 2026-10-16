@@ -9,7 +9,8 @@ internal static class FreezeSpans
     public static MembershipSpan SpanOf(Membership m, IEnumerable<MembershipFreeze> allFreezes)
         => new(
             m.Status, m.StartDate, m.EndDate,
-            allFreezes.Where(f => f.MembershipId == m.Id).Select(f => new FreezeSpan(f.StartsOn, f.EndsOn)).ToList());
+            allFreezes.Where(f => f.MembershipId == m.Id).Select(f => new FreezeSpan(f.StartsOn, f.EndsOn)).ToList(),
+            m.EntriesTotal);
 
     /// <summary>
     /// Corre las membresías activas encadenadas detrás de <paramref name="originalEnd"/> (el fin de la
@@ -17,9 +18,10 @@ internal static class FreezeSpans
     /// </summary>
     public static async Task ShiftFollowingAsync(
         IMembershipRepository memberships, Guid memberId, DateOnly originalEnd, int delta,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool isPass = false)
     {
-        if (delta == 0)
+        // Una tiquetera no encadena nada detrás (empieza siempre el día de la compra): su congelamiento no mueve otras.
+        if (delta == 0 || isPass)
         {
             return;
         }

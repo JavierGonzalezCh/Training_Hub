@@ -30,9 +30,26 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
     /// <summary>Mínimo de días por congelamiento (evita congelar de a un día).</summary>
     public int MinFreezeDays { get; private set; } = DefaultMinFreezeDays;
 
+    /// <summary>Tipo de plan (MS5): por tiempo o tiquetera.</summary>
+    public PlanKind Kind { get; private set; } = PlanKind.Time;
+
+    /// <summary>Cuántas entradas trae. Solo tiqueteras (<see cref="PlanKind.Pass"/>); nulo en planes por tiempo.</summary>
+    public int? Entries { get; private set; }
+
+    /// <summary>
+    /// En cuántos días se deben usar las entradas. Solo tiqueteras. No es una columna aparte: en una
+    /// tiquetera la vigencia es <see cref="DurationValue"/> en días, así el resto del módulo (vista previa,
+    /// asignación) la trata como cualquier plan en días.
+    /// </summary>
+    public int? ValidityDays => Kind == PlanKind.Pass ? DurationValue : null;
+
+    public bool IsPass => Kind == PlanKind.Pass;
+
     public bool IsActive { get; private set; } = true;
 
     public const int DefaultMinFreezeDays = 1;
+
+    public const int MaxEntries = 1000;
 
     public const int MaxFreezeDaysLimit = 365;
 
@@ -42,7 +59,8 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
 
     public static MembershipPlan Create(
         Guid gymId, string name, string? description, decimal price, int durationValue,
-        DurationUnit durationUnit = DurationUnit.Days, int maxFreezeDays = 0, int minFreezeDays = DefaultMinFreezeDays)
+        DurationUnit durationUnit = DurationUnit.Days, int maxFreezeDays = 0, int minFreezeDays = DefaultMinFreezeDays,
+        PlanKind kind = PlanKind.Time, int? entries = null)
     {
         if (gymId == Guid.Empty)
         {
@@ -50,6 +68,7 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
         }
 
         var freeze = RequireFreezeRules(maxFreezeDays, minFreezeDays);
+        var shape = RequireShape(kind, entries, durationUnit);
 
         return new MembershipPlan
         {
@@ -57,28 +76,69 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
             Name = NormalizeName(name),
             Description = Clean(description),
             Price = RequireNonNegative(price),
-            DurationUnit = durationUnit,
-            DurationValue = RequireDuration(durationValue, durationUnit),
+            DurationUnit = shape.Unit,
+            DurationValue = RequireDuration(durationValue, shape.Unit),
             MaxFreezeDays = freeze.Max,
             MinFreezeDays = freeze.Min,
+            Kind = kind,
+            Entries = shape.Entries,
         };
     }
 
     public void Update(
         string name, string? description, decimal price, int durationValue,
-        DurationUnit durationUnit = DurationUnit.Days, int? maxFreezeDays = null, int? minFreezeDays = null)
+        DurationUnit durationUnit = DurationUnit.Days, int? maxFreezeDays = null, int? minFreezeDays = null,
+        PlanKind? kind = null, int? entries = null)
     {
+        if (kind is { } requested && requested != Kind)
+        {
+            throw new ValidationDomainException(
+                "El tipo de un plan no se puede cambiar. Crea otro plan o desactiva este.");
+        }
+
+        // En una edición de un plan por tiempo no se mandan entradas; en una tiquetera se conservan si faltan.
+        var shape = RequireShape(Kind, Kind == PlanKind.Pass ? entries ?? Entries : null, durationUnit);
         Name = NormalizeName(name);
         Description = Clean(description);
         Price = RequireNonNegative(price);
-        DurationUnit = durationUnit;
-        DurationValue = RequireDuration(durationValue, durationUnit);
+        DurationUnit = shape.Unit;
+        Entries = shape.Entries;
+        DurationValue = RequireDuration(durationValue, shape.Unit);
         (MaxFreezeDays, MinFreezeDays) = RequireFreezeRules(maxFreezeDays ?? MaxFreezeDays, minFreezeDays ?? MinFreezeDays);
     }
 
     public void Deactivate() => IsActive = false;
 
     public void Activate() => IsActive = true;
+
+    /// <summary>
+    /// Forma de cada tipo: la tiquetera trae entradas (1..<see cref="MaxEntries"/>) y su vigencia siempre es en
+    /// días; el plan por tiempo no lleva entradas.
+    /// </summary>
+    private static (DurationUnit Unit, int? Entries) RequireShape(PlanKind kind, int? entries, DurationUnit unit)
+    {
+        if (kind == PlanKind.Time)
+        {
+            if (entries is not null)
+            {
+                throw new ValidationDomainException("Un plan por tiempo no lleva entradas.");
+            }
+
+            return (unit, null);
+        }
+
+        if (unit != DurationUnit.Days)
+        {
+            throw new ValidationDomainException("La vigencia de una tiquetera se expresa en días.");
+        }
+
+        if (entries is not { } count || count < 1 || count > MaxEntries)
+        {
+            throw new ValidationDomainException($"Una tiquetera necesita entre 1 y {MaxEntries} entradas.");
+        }
+
+        return (DurationUnit.Days, count);
+    }
 
     private static (int Max, int Min) RequireFreezeRules(int max, int min)
     {

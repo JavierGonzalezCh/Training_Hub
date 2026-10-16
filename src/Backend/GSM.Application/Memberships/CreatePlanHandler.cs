@@ -23,8 +23,11 @@ public sealed class CreatePlanHandler(
             throw new ConflictException($"Ya existe un plan con el nombre '{name}'.");
         }
 
-        var plan = MembershipPlan.Create(gymId, name, request.Description, request.Price, request.DurationValue,
-            PlanDuration.ParseUnit(request.DurationUnit), request.MaxFreezeDays ?? 0, request.MinFreezeDays ?? MembershipPlan.DefaultMinFreezeDays);
+        var kind = PlanDuration.ParseKind(request.Kind);
+        var plan = MembershipPlan.Create(gymId, name, request.Description, request.Price,
+            PlanDuration.EffectiveDuration(kind, request.DurationValue, request.ValidityDays),
+            PlanDuration.ParseUnit(request.DurationUnit), request.MaxFreezeDays ?? 0,
+            request.MinFreezeDays ?? MembershipPlan.DefaultMinFreezeDays, kind, request.Entries);
         memberships.Add(plan);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

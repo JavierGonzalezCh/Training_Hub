@@ -28,10 +28,13 @@ public sealed class ListMemberMembershipsHandler(
             history.Select(m => m.PlanId).Distinct().ToList(), cancellationToken);
 
         var freezes = await memberships.GetFreezesAsync(history.Select(m => m.Id).ToList(), cancellationToken);
+        var used = await memberships.GetPassUsedCountsAsync(
+            history.Where(m => m.IsPass).Select(m => m.Id).ToList(), cancellationToken);
 
         return history
             .Select(m => MembershipMapper.ToResponse(
-                m, planNames.GetValueOrDefault(m.PlanId, "(plan eliminado)"), today, freezes))
+                m, planNames.GetValueOrDefault(m.PlanId, "(plan eliminado)"), today, freezes,
+                m.IsPass ? used.GetValueOrDefault(m.Id) : null))
             .ToList();
     }
 }

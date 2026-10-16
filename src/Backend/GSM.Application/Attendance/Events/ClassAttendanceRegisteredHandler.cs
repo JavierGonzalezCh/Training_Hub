@@ -16,6 +16,7 @@ public sealed class ClassAttendanceRegisteredHandler(
     IClock clock,
     IAttendanceRepository attendance,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<ClassAttendanceRegisteredHandler> logger) : IDomainEventHandler<ClassAttendanceRegistered>
 {
     public async Task HandleAsync(ClassAttendanceRegistered domainEvent, CancellationToken cancellationToken = default)
@@ -27,11 +28,17 @@ public sealed class ClassAttendanceRegisteredHandler(
             return;
         }
 
-        attendance.Add(AttendanceEntity.Create(
+        var record = AttendanceEntity.Create(
             domainEvent.GymId, domainEvent.MemberId, AttendanceMethod.Manual,
-            clock.UtcNow, domainEvent.SessionDate));
+            clock.UtcNow, domainEvent.SessionDate);
+        attendance.Add(record);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Como cualquier otra entrada: Memberships descuenta la entrada de una tiquetera (MS5, §7). Si el
+        // miembro ya había fichado ese día no se llega aquí, así que no se consume dos veces.
+        await events.PublishAsync(
+            new CheckInRegistered(record.Id, record.GymId, record.MemberId, record.AttendanceDate), cancellationToken);
         logger.LogInformation(
             "Check-in del día {Date} registrado para el miembro {MemberId} por asistencia a clase",
             domainEvent.SessionDate, domainEvent.MemberId);

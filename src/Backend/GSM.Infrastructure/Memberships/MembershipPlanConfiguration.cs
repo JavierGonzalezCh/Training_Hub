@@ -8,8 +8,6 @@ public sealed class MembershipPlanConfiguration : IEntityTypeConfiguration<Membe
 {
     public void Configure(EntityTypeBuilder<MembershipPlan> builder)
     {
-        builder.ToTable("membership_plans", "memberships");
-
         builder.Property(p => p.Name).HasMaxLength(100).IsRequired();
         builder.Property(p => p.Description).HasMaxLength(500);
         builder.Property(p => p.Price).HasColumnType("decimal(12,2)");
@@ -23,6 +21,15 @@ public sealed class MembershipPlanConfiguration : IEntityTypeConfiguration<Membe
         // MS4: reglas de congelamiento por plan (0 días = no se congela; mínimo por vez).
         builder.Property(p => p.MaxFreezeDays).HasColumnName("max_freeze_days").HasDefaultValue(0);
         builder.Property(p => p.MinFreezeDays).HasColumnName("min_freeze_days").HasDefaultValue(1);
+
+        // MS5: tiqueteras. 'time' por defecto (los planes de antes); la vigencia de una tiquetera es duration_value en días.
+        builder.Property(p => p.Kind).HasColumnName("kind").HasDefaultValue(PlanKind.Time);
+        builder.Property(p => p.Entries).HasColumnName("entries");
+        builder.Ignore(p => p.ValidityDays);
+        builder.Ignore(p => p.IsPass);
+
+        builder.ToTable("membership_plans", "memberships", t =>
+            t.HasCheckConstraint("ck_membership_plans_pass_entries", "(kind = 'pass') = (entries IS NOT NULL)"));
 
         builder.HasIndex(p => new { p.GymId, p.Name }).IsUnique();
     }

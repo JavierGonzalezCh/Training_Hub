@@ -28,8 +28,17 @@
                             <MudSelectItem Value="plan.Id">@PlanLabel(plan.Id)</MudSelectItem>
                         }
                     </MudSelect>
-                    <MudDatePicker Label="Cambiar la fecha de inicio (opcional)" Date="_startDate" DateChanged="OnStartChanged" Class="mb-2"
-                                   Disabled="@(_pendingCharge is not null)" />
+                    @if (SelectedIsPass)
+                    {
+                        <MudAlert Severity="Severity.Normal" Dense="true" Class="mb-2" role="note" id="pass-start-note">
+                            Una tiquetera siempre empieza el día en que se compra. Las entradas que sobren al vencer se pierden.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudDatePicker Label="Cambiar la fecha de inicio (opcional)" Date="_startDate" DateChanged="OnStartChanged" Class="mb-2"
+                                       Disabled="@(_pendingCharge is not null)" />
+                    }
 
                     @if (_preview is { } preview)
                     {
@@ -169,7 +178,7 @@
 
     private string PlanLabel(Guid planId)
         => _plans.FirstOrDefault(p => p.Id == planId) is { } plan
-            ? $"{plan.Name} — {GsmFormat.Money((decimal)plan.Price)} · {PlanDurationLabels.Format(plan.DurationUnit, plan.DurationValue)}"
+            ? $"{plan.Name} — {GsmFormat.Money((decimal)plan.Price)} · {PlanDurationLabels.FormatPlan(plan.Kind, plan.DurationUnit, plan.DurationValue, plan.Entries)}"
             : string.Empty;
 
     private async Task OnPlanChanged(Guid planId)
@@ -177,6 +186,11 @@
         _planId = planId;
         if (_plans.FirstOrDefault(p => p.Id == planId) is { } plan)
         {
+            if (PlanDurationLabels.IsPass(plan.Kind))
+            {
+                _startDate = null; // la tiquetera empieza el día de la compra
+            }
+
             _agreedPrice = (decimal)plan.Price;
             _discountReason = null;
         }
@@ -212,6 +226,8 @@
         "after_grace" => "Venció hace más que la gracia: empieza el día en que paga.",
         _ => "Primera membresía.",
     };
+
+    private bool SelectedIsPass => _plans.FirstOrDefault(p => p.Id == _planId) is { } selected && PlanDurationLabels.IsPass(selected.Kind);
 
     private decimal PlanPrice => _plans.FirstOrDefault(p => p.Id == _planId) is { } plan ? (decimal)plan.Price : 0m;
 

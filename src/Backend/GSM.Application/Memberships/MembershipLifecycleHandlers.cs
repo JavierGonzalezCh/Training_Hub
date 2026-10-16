@@ -21,6 +21,13 @@ internal static class MembershipLookup
             : throw new NotFoundException("Membresía no encontrada.");
     }
 
+    /// <summary>Entradas consumidas si la membresía es una tiquetera (MS5); nulo si es por tiempo.</summary>
+    public static async Task<int?> UsedAsync(
+        IMembershipRepository memberships, Membership membership, CancellationToken cancellationToken)
+        => membership.IsPass
+            ? (await memberships.GetPassUsedCountsAsync([membership.Id], cancellationToken)).GetValueOrDefault(membership.Id)
+            : null;
+
     public static async Task<string> PlanNameAsync(
         IMembershipRepository memberships, Membership membership, CancellationToken cancellationToken)
         => (await memberships.GetPlanByIdAsync(membership.PlanId, cancellationToken))?.Name ?? string.Empty;
@@ -51,7 +58,8 @@ public sealed class CancelMembershipHandler(
         await events.PublishAsync(new MembershipCancelled(membership.Id, memberId, gymId), cancellationToken);
 
         var planName = await MembershipLookup.PlanNameAsync(memberships, membership, cancellationToken);
-        return MembershipMapper.ToResponse(membership, planName, clock.Today);
+        return MembershipMapper.ToResponse(
+            membership, planName, clock.Today, null, await MembershipLookup.UsedAsync(memberships, membership, cancellationToken));
     }
 }
 
@@ -91,7 +99,7 @@ public sealed class CreateFreezeHandler(
             plan, existing, today, request.StartsOn, request.EndsOn, request.Reason, request.OverrideLimit,
             currentUser.UserId);
         memberships.Add(freeze);
-        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, daysAdded, cancellationToken);
+        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, daysAdded, cancellationToken, membership.IsPass);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
@@ -103,7 +111,8 @@ public sealed class CreateFreezeHandler(
 
         var all = await memberships.GetFreezesAsync([membership.Id], cancellationToken);
         return MembershipMapper.ToResponse(
-            membership, await MembershipLookup.PlanNameAsync(memberships, membership, cancellationToken), today, all);
+            membership, await MembershipLookup.PlanNameAsync(memberships, membership, cancellationToken), today, all,
+            await MembershipLookup.UsedAsync(memberships, membership, cancellationToken));
     }
 }
 
@@ -137,7 +146,7 @@ public sealed class ResumeMembershipHandler(
             memberships.Remove(ended.Freeze);
         }
 
-        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, ended.Delta, cancellationToken);
+        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, ended.Delta, cancellationToken, membership.IsPass);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
@@ -146,7 +155,8 @@ public sealed class ResumeMembershipHandler(
 
         var planName = await MembershipLookup.PlanNameAsync(memberships, membership, cancellationToken);
         var remaining = ended.Removed ? freezes.Where(f => f.Id != ended.Freeze.Id).ToList() : freezes;
-        return MembershipMapper.ToResponse(membership, planName, today, remaining);
+        return MembershipMapper.ToResponse(
+            membership, planName, today, remaining, await MembershipLookup.UsedAsync(memberships, membership, cancellationToken));
     }
 }
 
@@ -174,7 +184,7 @@ public sealed class DeleteFreezeHandler(
         var originalEnd = membership.EndDate;
         var delta = membership.RemoveScheduledFreeze(freeze, today);
         memberships.Remove(freeze);
-        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, delta, cancellationToken);
+        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, delta, cancellationToken, membership.IsPass);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Congelamiento {FreezeId} de la membresía {MembershipId} deshecho", freezeId, membership.Id);
@@ -183,7 +193,8 @@ public sealed class DeleteFreezeHandler(
         var remaining = (await memberships.GetFreezesAsync([membership.Id], cancellationToken))
             .Where(f => f.Id != freezeId).ToList();
         return MembershipMapper.ToResponse(
-            membership, await MembershipLookup.PlanNameAsync(memberships, membership, cancellationToken), today, remaining);
+            membership, await MembershipLookup.PlanNameAsync(memberships, membership, cancellationToken), today, remaining,
+            await MembershipLookup.UsedAsync(memberships, membership, cancellationToken));
     }
 }
 

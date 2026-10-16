@@ -11,12 +11,19 @@ public sealed class CreatePlanRequestValidator : AbstractValidator<CreatePlanReq
         RuleFor(x => x.Description).MaximumLength(500);
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
         RuleFor(x => x.DurationUnit).Must(PlanDuration.IsKnown).WithMessage("La unidad debe ser days o months.");
-        RuleFor(x => x.DurationValue).InclusiveBetween(1, 3650);
+        RuleFor(x => x.DurationValue).InclusiveBetween(1, 3650).When(x => !IsPass(x.Kind));
+        RuleFor(x => x.Kind).Must(PlanDuration.IsKnownKind).WithMessage("El tipo debe ser time o pass.");
+        RuleFor(x => x.ValidityDays!.Value).InclusiveBetween(1, 3650).When(x => x.ValidityDays.HasValue)
+            .WithMessage("La vigencia debe estar entre 1 y 3650 días.");
+        RuleFor(x => x.Entries!.Value).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxEntries).When(x => x.Entries.HasValue)
+            .WithMessage("Las entradas deben estar entre 1 y 1000.");
         RuleFor(x => x.MaxFreezeDays!.Value).InclusiveBetween(0, GSM.Domain.Memberships.MembershipPlan.MaxFreezeDaysLimit).When(x => x.MaxFreezeDays.HasValue);
         RuleFor(x => x.MinFreezeDays!.Value).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxFreezeDaysLimit).When(x => x.MinFreezeDays.HasValue);
         RuleFor(x => x.DurationValue).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxMonths)
-            .When(x => PlanDuration.IsKnown(x.DurationUnit) && PlanDuration.ParseUnit(x.DurationUnit) == GSM.Domain.Memberships.DurationUnit.Months);
+            .When(x => PlanDuration.IsKnown(x.DurationUnit) && PlanDuration.ParseUnit(x.DurationUnit) == GSM.Domain.Memberships.DurationUnit.Months && !IsPass(x.Kind));
     }
+
+    private static bool IsPass(string? kind) => PlanDuration.IsKnownKind(kind) && PlanDuration.ParseKind(kind) == GSM.Domain.Memberships.PlanKind.Pass;
 }
 
 public sealed class UpdatePlanRequestValidator : AbstractValidator<UpdatePlanRequest>
@@ -27,12 +34,19 @@ public sealed class UpdatePlanRequestValidator : AbstractValidator<UpdatePlanReq
         RuleFor(x => x.Description).MaximumLength(500);
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
         RuleFor(x => x.DurationUnit).Must(PlanDuration.IsKnown).WithMessage("La unidad debe ser days o months.");
-        RuleFor(x => x.DurationValue).InclusiveBetween(1, 3650);
+        RuleFor(x => x.DurationValue).InclusiveBetween(1, 3650).When(x => !IsPass(x.Kind));
+        RuleFor(x => x.Kind).Must(PlanDuration.IsKnownKind).WithMessage("El tipo debe ser time o pass.");
+        RuleFor(x => x.ValidityDays!.Value).InclusiveBetween(1, 3650).When(x => x.ValidityDays.HasValue)
+            .WithMessage("La vigencia debe estar entre 1 y 3650 días.");
+        RuleFor(x => x.Entries!.Value).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxEntries).When(x => x.Entries.HasValue)
+            .WithMessage("Las entradas deben estar entre 1 y 1000.");
         RuleFor(x => x.MaxFreezeDays!.Value).InclusiveBetween(0, GSM.Domain.Memberships.MembershipPlan.MaxFreezeDaysLimit).When(x => x.MaxFreezeDays.HasValue);
         RuleFor(x => x.MinFreezeDays!.Value).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxFreezeDaysLimit).When(x => x.MinFreezeDays.HasValue);
         RuleFor(x => x.DurationValue).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxMonths)
-            .When(x => PlanDuration.IsKnown(x.DurationUnit) && PlanDuration.ParseUnit(x.DurationUnit) == GSM.Domain.Memberships.DurationUnit.Months);
+            .When(x => PlanDuration.IsKnown(x.DurationUnit) && PlanDuration.ParseUnit(x.DurationUnit) == GSM.Domain.Memberships.DurationUnit.Months && !IsPass(x.Kind));
     }
+
+    private static bool IsPass(string? kind) => PlanDuration.IsKnownKind(kind) && PlanDuration.ParseKind(kind) == GSM.Domain.Memberships.PlanKind.Pass;
 }
 
 public sealed class AssignMembershipRequestValidator : AbstractValidator<AssignMembershipRequest>

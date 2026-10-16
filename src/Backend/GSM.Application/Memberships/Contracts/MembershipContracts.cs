@@ -1,19 +1,27 @@
 namespace GSM.Application.Memberships.Contracts;
 
-/// <param name="DurationValue">Cuántos días o meses dura el plan.</param>
+/// <param name="DurationValue">Cuántos días o meses dura el plan. En una tiquetera, ignorado: manda <c>ValidityDays</c>.</param>
 /// <param name="DurationUnit"><c>days</c> (por defecto si falta) o <c>months</c> (meses del calendario).</param>
 /// <param name="MaxFreezeDays">Total de días que se puede congelar una membresía del plan; 0 o nulo = no se congela (en una edición, nulo = no cambia).</param>
 /// <param name="MinFreezeDays">Mínimo de días por congelamiento (1 por defecto).</param>
+/// <param name="Kind"><c>time</c> (por defecto si falta) o <c>pass</c> (tiquetera). En una edición no puede cambiar.</param>
+/// <param name="Entries">Entradas que trae. Obligatorio en una tiquetera; en un plan por tiempo no se manda.</param>
+/// <param name="ValidityDays">Días en que se deben usar las entradas. Obligatorio en una tiquetera.</param>
 public sealed record CreatePlanRequest(
     string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null,
-    int? MaxFreezeDays = null, int? MinFreezeDays = null);
+    int? MaxFreezeDays = null, int? MinFreezeDays = null, string? Kind = null, int? Entries = null,
+    int? ValidityDays = null);
 
 /// <inheritdoc cref="CreatePlanRequest"/>
 public sealed record UpdatePlanRequest(
     string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null,
-    int? MaxFreezeDays = null, int? MinFreezeDays = null);
+    int? MaxFreezeDays = null, int? MinFreezeDays = null, string? Kind = null, int? Entries = null,
+    int? ValidityDays = null);
 
 /// <param name="DurationUnit"><c>days</c> o <c>months</c>.</param>
+/// <param name="Kind"><c>time</c> o <c>pass</c> (tiquetera).</param>
+/// <param name="Entries">Entradas que trae, solo tiqueteras.</param>
+/// <param name="ValidityDays">Días de vigencia de las entradas, solo tiqueteras (igual a <c>DurationValue</c>).</param>
 public sealed record PlanResponse(
     Guid Id,
     string Name,
@@ -24,7 +32,10 @@ public sealed record PlanResponse(
     bool IsActive,
     DateTimeOffset CreatedAt,
     int MaxFreezeDays,
-    int MinFreezeDays);
+    int MinFreezeDays,
+    string Kind,
+    int? Entries,
+    int? ValidityDays);
 
 /// <summary>
 /// <c>StartDate</c> es opcional: el sistema calcula el inicio según la situación del miembro (§4.1).
@@ -77,7 +88,10 @@ public sealed record MembershipResponse(
     decimal TotalToCharge,
     int? CycleDay,
     MembershipFreezeResponse? ActiveFreeze,
-    MembershipFreezeResponse? NextFreeze);
+    MembershipFreezeResponse? NextFreeze,
+    int? EntriesTotal,
+    int? EntriesUsed,
+    int? EntriesLeft);
 
 /// <summary>
 /// Congela una membresía (§5.2). Sin fechas = abierto desde hoy (termina al reanudar). Con
@@ -115,7 +129,9 @@ public sealed record UpdateMembershipSettingsRequest(int GraceDays, int Expiring
 /// <summary>Estado comercial y veredicto de acceso de un miembro hoy (recepción, ficha).</summary>
 /// <param name="Commercial"><c>no_plan</c>, <c>current</c>, <c>expiring</c>, <c>grace</c>, <c>expired</c>, <c>frozen</c> o <c>scheduled</c>.</param>
 /// <param name="Kind"><c>covered</c>, <c>expiring</c>, <c>grace</c> o <c>blocked</c>.</param>
-/// <param name="BlockReason"><c>no_membership</c>, <c>expired</c>, <c>frozen</c> o <c>scheduled</c> (su membresía empieza el <c>StartsOn</c>). Solo si está bloqueado.</param>
+/// <param name="BlockReason"><c>no_membership</c>, <c>expired</c>, <c>frozen</c>, <c>scheduled</c> (su membresía empieza el <c>StartsOn</c>) o <c>pass_exhausted</c> (tiquetera sin entradas). Solo si está bloqueado.</param>
+/// <param name="EntriesLeft">Entradas que le quedan, si lo cubre una tiquetera (MS5).</param>
+/// <param name="EntriesTotal">Entradas con que empezó esa tiquetera.</param>
 public sealed record AccessStatusResponse(
     string Commercial,
     string Kind,
@@ -127,7 +143,9 @@ public sealed record AccessStatusResponse(
     int? GraceDaysLeft,
     string? Notice,
     string? BlockMessage,
-    DateOnly? StartsOn);
+    DateOnly? StartsOn,
+    int? EntriesLeft,
+    int? EntriesTotal);
 
 public sealed record CancelMembershipRequest(string Reason);
 
