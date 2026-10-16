@@ -3218,3 +3218,39 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     font-family: var(--gsm-font-mono);
     font-size: 0.8rem;
 }
+
+/* ---------- App del miembro en escritorio (>= 960 px, AP6) ---------- */
+
+.gsm-m-sidenav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 1rem 0.75rem;
+}
+
+.gsm-m-home__main,
+.gsm-m-home__side {
+    min-width: 0;
+}
+
+@media (min-width: 960px) {
+    .gsm-m-desktop .gsm-m-drawer {
+        border-right: 1px solid var(--gsm-border);
+    }
+
+    /* Inicio: plan, entrada y entrenamiento a la izquierda; racha y visitas a la derecha. */
+    .gsm-m-home {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    /* Dos paneles lado a lado (rutina del dia y progreso, calendario y logros). */
+    .gsm-m-split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
+}

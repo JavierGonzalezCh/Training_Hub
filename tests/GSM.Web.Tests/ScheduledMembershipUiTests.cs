@@ -34,6 +34,7 @@ public class ScheduledMembershipUiTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        Services.AddScoped<GSM.UI.Shared.Components.ViewportState>();
 
         var me = DispatchProxy.Create<IMeClient, FakeClient>();
         var attendance = DispatchProxy.Create<IMemberAttendanceClient, FakeClient>();
