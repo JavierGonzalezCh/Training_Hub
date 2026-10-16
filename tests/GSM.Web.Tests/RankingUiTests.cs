@@ -186,30 +186,31 @@ public class RankingUiTests : TestContext
     }
 
     [Fact]
-    public void The_achievements_page_links_to_the_ranking_only_when_the_gym_has_it_on()
+    public void My_progress_offers_the_ranking_tab_only_when_the_gym_has_it_on()
     {
         RegisterGym(showRanking: true);
         var me = Register<IMeClient>();
         me.Handlers["AchievementsAll2Async"] = _ => new List<MemberAchievementItem>();
+        me.Handlers["GetMyStreakCalendarAsync"] = _ => new StreakCalendarResponse { Year = 2026, Month = 10, Days = new List<StreakCalendarDay>() };
 
         RenderComponent<MudPopoverProvider>();
         var on = RenderComponent<GSM.Member.UI.Pages.Achievements>();
 
-        on.WaitForAssertion(() =>
-            Assert.Equal("/app/ranking", on.Find("[data-testid='ranking-link']").GetAttribute("href")));
+        on.WaitForAssertion(() => Assert.NotEmpty(on.FindAll("[data-testid='tab-ranking']")));
     }
 
     [Fact]
-    public void The_achievements_page_hides_the_ranking_link_when_the_gym_turned_it_off()
+    public void My_progress_hides_the_ranking_tab_when_the_gym_turned_it_off()
     {
         RegisterGym(showRanking: false);
         var me = Register<IMeClient>();
         me.Handlers["AchievementsAll2Async"] = _ => new List<MemberAchievementItem>();
+        me.Handlers["GetMyStreakCalendarAsync"] = _ => new StreakCalendarResponse { Year = 2026, Month = 10, Days = new List<StreakCalendarDay>() };
 
         RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>();
 
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.Markup));
-        Assert.Empty(cut.FindAll("[data-testid='ranking-link']"));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='tab-logros']")));
+        Assert.Empty(cut.FindAll("[data-testid='tab-ranking']"));
     }
 }

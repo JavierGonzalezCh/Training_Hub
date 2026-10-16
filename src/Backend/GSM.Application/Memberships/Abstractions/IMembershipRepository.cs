@@ -61,6 +61,10 @@ public interface IMembershipRepository
     Task<IReadOnlyDictionary<Guid, int>> GetPassUsedCountsAsync(
         IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default);
 
+    /// <summary>Las entradas consumidas de esas tiqueteras, con su día, de la más antigua a la más reciente (MS8: historial del miembro).</summary>
+    Task<IReadOnlyList<PassUsage>> GetPassUsagesAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default);
+
     /// <summary>Tiqueteras Active del miembro cuya vigencia cubre <paramref name="date"/> (con o sin entradas).</summary>
     Task<IReadOnlyList<Membership>> GetPassesCoveringAsync(
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default);

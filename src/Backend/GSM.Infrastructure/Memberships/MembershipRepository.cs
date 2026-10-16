@@ -131,6 +131,20 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
             .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PassUsage>> GetPassUsagesAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default)
+    {
+        if (membershipIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await PassUsages
+            .Where(u => membershipIds.Contains(u.MembershipId))
+            .OrderBy(u => u.UsedOn)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Membership>> GetPassesCoveringAsync(
         Guid memberId, DateOnly date, CancellationToken cancellationToken = default)
         => await Memberships

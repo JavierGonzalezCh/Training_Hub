@@ -3218,3 +3218,102 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     font-family: var(--gsm-font-mono);
     font-size: 0.8rem;
 }
+
+/* ---- Mi progreso (L7): pestañas y calendario de racha ---- */
+.gsm-streak-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+}
+
+.gsm-streak-tabs__tab {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--gsm-border);
+    border-radius: 999px;
+    background: var(--gsm-surface);
+    color: var(--gsm-text);
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.gsm-streak-tabs__tab.is-active {
+    border-color: var(--gsm-accent);
+    background: var(--gsm-accent-soft);
+}
+
+.gsm-streak-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.gsm-streak-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.gsm-streak-nav__label {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.gsm-streak-cal {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 0.75rem;
+}
+
+.gsm-streak-cal__dow {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--gsm-muted);
+}
+
+.gsm-streak-cal__day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    border: 1px solid var(--gsm-border);
+    border-radius: 8px;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.85rem;
+}
+
+.gsm-streak-cal__day.is-today {
+    outline: 2px solid var(--gsm-accent);
+}
+
+/* Cada estado lleva color y también un patrón de borde, para no depender solo del color. */
+.gsm-streak-cal__day--trained { background: var(--gsm-ok); border-color: var(--gsm-ok); color: var(--gsm-on-accent); }
+.gsm-streak-cal__day--rest { background: var(--gsm-accent-soft); border-style: dotted; }
+.gsm-streak-cal__day--frozen { background: var(--gsm-cyan); border-color: var(--gsm-cyan); color: var(--gsm-on-accent); border-style: double; border-width: 3px; }
+.gsm-streak-cal__day--missed { border-color: var(--gsm-danger); border-style: dashed; color: var(--gsm-danger); }
+.gsm-streak-cal__day--pending { border-color: var(--gsm-warn); }
+.gsm-streak-cal__day--none { color: var(--gsm-muted); }
+
+.gsm-streak-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    font-size: 0.8rem;
+}
+
+.gsm-streak-legend i {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.9rem;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+    border: 1px solid var(--gsm-border);
+    border-radius: 3px;
+}

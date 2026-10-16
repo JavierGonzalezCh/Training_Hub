@@ -76,6 +76,24 @@ public sealed class AttendanceReader(GsmDbContext dbContext, IClock clock) : IAt
             .Distinct()
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<UncountedEntryDay>> GetUncountedEntryDaysAsync(
+        Guid memberId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+    {
+        var rows = await Attendances
+            .Where(a => a.MemberId == memberId && a.AttendanceDate >= from && a.AttendanceDate <= to)
+            .Select(a => new { a.AttendanceDate, a.LocationCheck })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(r => r.AttendanceDate)
+            // Un día con alguna entrada que sí cuenta no necesita explicación.
+            .Where(g => g.All(r => r.LocationCheck is GSM.Domain.Attendance.LocationCheck.Outside or GSM.Domain.Attendance.LocationCheck.Denied))
+            .Select(g => new UncountedEntryDay(
+                g.Key, g.Any(r => r.LocationCheck == GSM.Domain.Attendance.LocationCheck.Outside)))
+            .OrderBy(d => d.Date)
+            .ToList();
+    }
+
     public Task<int> GetTodayCountAsync(Guid gymId, CancellationToken cancellationToken = default)
         => Attendances.CountAsync(
             a => a.GymId == gymId && a.AttendanceDate == clock.Today, cancellationToken);

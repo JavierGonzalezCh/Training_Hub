@@ -1,0 +1,59 @@
+@* Una tarjeta de logro de "Mi progreso" (L7): ganado con su fecha o bloqueado con su barra de progreso; el premio y,
+   en los manuales, el motivo. *@
+<MudPaper Class="@($"pa-4 text-center gsm-achievement{(Item.Unlocked ? "" : " gsm-achievement--locked")}")" Elevation="0"
+          data-testid="@($"achievement-{Item.AchievementId}")">
+    <MudIcon Icon="@(Item.Unlocked ? Icons.Material.Filled.EmojiEvents : Icons.Material.Filled.Lock)"
+             Size="Size.Large" Class="mb-2"
+             Style="@($"color:{(Item.Unlocked ? "var(--gsm-red)" : "var(--gsm-muted)")}")" />
+    <MudText Typo="Typo.body1" Style="@(Item.Unlocked ? null : "color:var(--gsm-silver)")">@Item.Name</MudText>
+    @if (Item.Unlocked)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block" data-testid="earned-date">@EarnedOn</MudText>
+    }
+    @if (Item.IsManual)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block" data-testid="manual-caption">
+            @(Item.Unlocked && !string.IsNullOrWhiteSpace(Item.GrantReason) ? Item.GrantReason : AchievementConditionLabels.Label(Item.ConditionType))
+        </MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block">
+            @AchievementConditionLabels.Label(Item.ConditionType) · @Item.Progress/@Item.ConditionValue
+        </MudText>
+    }
+    @if (!string.IsNullOrWhiteSpace(Item.RewardDescription))
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block" data-testid="@($"reward-line-{Item.AchievementId}")">
+            @RewardLine
+        </MudText>
+    }
+    @if (!Item.Unlocked && !Item.IsManual && Item.ConditionValue > 0)
+    {
+        <div class="gsm-achievement-progress"
+             role="progressbar"
+             aria-valuenow="@Item.Progress"
+             aria-valuemin="0"
+             aria-valuemax="@Item.ConditionValue"
+             aria-label="@($"Progreso de {Item.Name}")">
+            <span style="@($"width:{Math.Min(100, Item.Progress * 100d / Item.ConditionValue).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}%")"></span>
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public MemberAchievementItem Item { get; set; } = default!;
+
+    private string RewardLine => Item.RewardStatus switch
+    {
+        "Pending" => $"Premio pendiente: {Item.RewardDescription}",
+        "Delivered" => $"Premio entregado: {Item.RewardDescription}",
+        "Expired" => $"Premio vencido: {Item.RewardDescription}",
+        _ => $"Premio: {Item.RewardDescription}",
+    };
+
+    private string EarnedOn
+        => Item.UnlockedAt is { } at
+            ? $"Ganado el {GsmFormat.Day(DateOnly.FromDateTime(GsmFormat.GymLocal(at)))}"
+            : "Ganado";
+}
