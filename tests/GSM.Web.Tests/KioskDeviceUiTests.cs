@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Bunit;
 using Bunit.TestDoubles;
@@ -257,10 +257,13 @@ public class KioskDeviceUiTests : TestContext
         var (_, attendance, _) = Setup(GsmRoles.Kiosk);
         attendance.ByDocument = true;
         var cut = RenderComponent<Kiosk>();
+        // La pantalla carga los ajustes en segundo plano: esperar el teclado antes de escribir.
+        cut.WaitForElement("button[data-testid='kiosk-key-enter']");
 
         Type(cut, "123");
-        Assert.True(cut.Find("button[data-testid='kiosk-key-enter']").HasAttribute("disabled"));
+        cut.WaitForAssertion(() => Assert.True(cut.Find("button[data-testid='kiosk-key-enter']").HasAttribute("disabled")));
         Type(cut, "4");
+        cut.WaitForAssertion(() => Assert.Equal("••••", cut.Find("[data-testid='kiosk-doc-display']").TextContent));
 
         var display = cut.Find("[data-testid='kiosk-doc-display']").TextContent;
         Assert.Equal("••••", display);

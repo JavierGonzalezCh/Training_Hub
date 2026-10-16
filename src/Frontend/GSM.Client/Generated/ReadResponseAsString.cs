@@ -284,3 +284,8 @@ public partial class OwnersClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class RoutineSettingsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

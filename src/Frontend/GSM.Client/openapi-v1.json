@@ -20491,6 +20491,126 @@
         }
       }
     },
+    "/api/routines/due-for-review": {
+      "get": {
+        "tags": [
+          "Routines"
+        ],
+        "operationId": "GetRoutinesDueForReview",
+        "parameters": [
+          {
+            "name": "mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DueRoutinesResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DueRoutinesResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DueRoutinesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routines/{id}/review": {
+      "post": {
+        "tags": [
+          "Routines"
+        ],
+        "operationId": "ReviewRoutine",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineReviewResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineReviewResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineReviewResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/members/{memberId}/routines": {
       "get": {
         "tags": [
@@ -20771,6 +20891,84 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routine-settings": {
+      "get": {
+        "tags": [
+          "RoutineSettings"
+        ],
+        "operationId": "GetRoutineSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "RoutineSettings"
+        ],
+        "operationId": "UpdateRoutineSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoutineSettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoutineSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoutineSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSettingsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSettingsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSettingsResponse"
                 }
               }
             }
@@ -25123,6 +25321,33 @@
       },
       "Difficulty": {
         "type": "integer"
+      },
+      "DueRoutinesResponse": {
+        "required": [
+          "items",
+          "mine",
+          "windowDays"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineDueItem"
+            }
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "windowDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
       },
       "DuplicateExerciseRequest": {
         "type": "object",
@@ -33122,6 +33347,49 @@
           }
         }
       },
+      "RoutineDueItem": {
+        "required": [
+          "routineId",
+          "memberId",
+          "memberName",
+          "routineName",
+          "startsOn",
+          "reviewOn",
+          "lastReviewedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "routineId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "routineName": {
+            "type": "string"
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "reviewOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "lastReviewedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "RoutineExerciseInput": {
         "required": [
           "exerciseId",
@@ -33487,6 +33755,51 @@
           },
           "scheduleMode": {
             "type": "string"
+          },
+          "reviewOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "RoutineReviewResponse": {
+        "required": [
+          "routineId",
+          "reviewOn",
+          "lastReviewedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "routineId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reviewOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "lastReviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RoutineSettingsResponse": {
+        "required": [
+          "reviewWeeks"
+        ],
+        "type": "object",
+        "properties": {
+          "reviewWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -36112,6 +36425,22 @@
           }
         }
       },
+      "UpdateRoutineSettingsRequest": {
+        "required": [
+          "reviewWeeks"
+        ],
+        "type": "object",
+        "properties": {
+          "reviewWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "UpdateSaasPlanRequest": {
         "required": [
           "name",
@@ -36784,6 +37113,9 @@
     },
     {
       "name": "MemberRoutines"
+    },
+    {
+      "name": "RoutineSettings"
     },
     {
       "name": "Staff"

@@ -4116,6 +4116,14 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<DateTimeOffset?>("LastReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_reviewed_at");
+
+                    b.Property<Guid?>("LastReviewedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_reviewed_by");
+
                     b.Property<Guid>("MemberId")
                         .HasColumnType("uuid")
                         .HasColumnName("member_id");
@@ -4130,6 +4138,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("notes");
+
+                    b.Property<DateOnly>("ReviewOn")
+                        .HasColumnType("date")
+                        .HasColumnName("review_on");
 
                     b.Property<ScheduleMode>("ScheduleMode")
                         .ValueGeneratedOnAdd()
@@ -4151,6 +4163,9 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_routines");
+
+                    b.HasIndex("GymId", "IsActive", "ReviewOn")
+                        .HasDatabaseName("ix_routines_gym_id_is_active_review_on");
 
                     b.HasIndex("GymId", "MemberId", "IsActive")
                         .HasDatabaseName("ix_routines_gym_id_member_id_is_active");
@@ -4333,6 +4348,39 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_routine_exercise_logs_routine_exercise_id_performed_on");
 
                     b.ToTable("routine_exercise_logs", "routines");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<int>("ReviewWeeks")
+                        .HasColumnType("integer")
+                        .HasColumnName("review_weeks");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_routine_settings");
+
+                    b.HasIndex("GymId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_routine_settings_gym_id");
+
+                    b.ToTable("routine_settings", "routines");
                 });
 
             modelBuilder.Entity("GSM.Domain.SuperAdmin.GymSubscription", b =>
