@@ -60,11 +60,11 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
             await scope.ServiceProvider.GetRequiredService<UpdateMyNotificationPreferencesHandler>().HandleAsync(
                 new UpdateNotificationPreferencesRequest(
                 [
-                    new NotificationPreferenceUpdate("membership", false, false),
-                    new NotificationPreferenceUpdate("classes", false, false),
-                    new NotificationPreferenceUpdate("progress", false, false),
-                    new NotificationPreferenceUpdate("news", false, false),
-                    new NotificationPreferenceUpdate("promotions", false, false),
+                    new NotificationPreferenceUpdate("Membership", false, false),
+                    new NotificationPreferenceUpdate("Classes", false, false),
+                    new NotificationPreferenceUpdate("Progress", false, false),
+                    new NotificationPreferenceUpdate("News", false, false),
+                    new NotificationPreferenceUpdate("Promotions", false, false),
                 ]), default);
         }
 
