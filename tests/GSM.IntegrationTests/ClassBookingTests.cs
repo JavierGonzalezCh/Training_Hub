@@ -67,6 +67,48 @@ public sealed class ClassBookingTests(ApiFactory factory) : IClassFixture<ApiFac
     }
 
     [Fact]
+    public async Task Deactivating_a_class_cancels_its_future_bookings_and_notifies_the_members()
+    {
+        var world = await SeedAsync(members: 2);
+        var classId = await CreateClassAsync(world, capacity: 10);
+
+        foreach (var userId in world.MemberUserIds)
+        {
+            using var scope = AsMember(world, userId);
+            await scope.ServiceProvider.GetRequiredService<BookClassHandler>().HandleAsync(classId, NextMonday, default);
+        }
+
+        using (var scope = Staff(world))
+        {
+            await scope.ServiceProvider.GetRequiredService<DeactivateClassHandler>().HandleAsync(classId, default);
+        }
+
+        // N5-6: la sesión futura queda cancelada con su motivo, las reservas también y cada miembro recibe el aviso.
+        using (var scope = Staff(world))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+            var session = await db.Set<ClassSession>().SingleAsync(s => s.ClassId == classId && s.SessionDate == NextMonday);
+            Assert.True(session.IsCancelled);
+            Assert.Equal(DeactivateClassHandler.CancellationReason, session.CancellationReason);
+            Assert.All(
+                await db.Set<ClassBooking>().Where(b => b.SessionId == session.Id).ToListAsync(),
+                b => Assert.False(b.IsActive));
+
+            var notified = await db.Set<GSM.Domain.Notifications.Notification>()
+                .Where(n => n.GymId == world.GymId && n.Type == GSM.Domain.Notifications.NotificationType.ClassCancelled)
+                .Select(n => n.RecipientMemberId)
+                .ToListAsync();
+            Assert.Equal(world.MemberIds.OrderBy(x => x), notified.Select(x => x!.Value).OrderBy(x => x));
+        }
+
+        // Dar de baja otra vez no repite nada.
+        using (var scope = Staff(world))
+        {
+            await scope.ServiceProvider.GetRequiredService<DeactivateClassHandler>().HandleAsync(classId, default);
+        }
+    }
+
+    [Fact]
     public async Task Class_without_capacity_rejects_booking_but_attendance_still_works()
     {
         var world = await SeedAsync(members: 2);

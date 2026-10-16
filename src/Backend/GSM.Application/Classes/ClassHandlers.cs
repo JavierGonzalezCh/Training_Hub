@@ -212,16 +212,27 @@ public sealed class UpdateClassHandler(
     }
 }
 
+/// <summary>
+/// Da de baja una clase. Sus sesiones futuras ya materializadas con reservas activas se cancelan ("Clase dada de
+/// baja") y se publica <see cref="ClassSessionCancelled"/> por cada una (N5-6): el mismo aviso de una sesión
+/// cancelada, y Notifications retira los recordatorios. Las ocurrencias sin materializar no tienen reservas que
+/// cancelar: dejan de proyectarse solas.
+/// </summary>
 public sealed class DeactivateClassHandler(
     ICurrentUserService currentUser,
     IClock clock,
     IClassRepository classes,
+    IClassSessionRepository sessions,
+    IClassBookingRepository bookings,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<DeactivateClassHandler> logger)
 {
+    public const string CancellationReason = "Clase dada de baja";
+
     public async Task HandleAsync(Guid classId, CancellationToken cancellationToken)
     {
-        _ = currentUser.RequireGymId();
+        var gymId = currentUser.RequireGymId();
 
         var gymClass = await classes.GetAsync(classId, cancellationToken)
             ?? throw new NotFoundException("Clase no encontrada.");
@@ -231,10 +242,42 @@ public sealed class DeactivateClassHandler(
             return;
         }
 
-        gymClass.Deactivate(clock.Today);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        var today = clock.Today;
+        gymClass.Deactivate(today);
 
-        logger.LogInformation("Clase {ClassId} dada de baja el {Date}", gymClass.Id, gymClass.DeactivatedOn);
+        var cancelled = new List<(DateOnly Date, List<Guid> Affected)>();
+        foreach (var session in await sessions.ListFromAsync(classId, today, cancellationToken))
+        {
+            if (session.IsCancelled)
+            {
+                continue;
+            }
+
+            var active = (await bookings.ListForSessionAsync(session.Id, cancellationToken))
+                .Where(b => b.IsActive).ToList();
+            if (active.Count == 0)
+            {
+                continue;
+            }
+
+            session.Cancel(CancellationReason);
+            foreach (var booking in active)
+            {
+                booking.CancelBySessionCancellation(clock.UtcNow);
+            }
+
+            cancelled.Add((session.SessionDate, active.Select(b => b.MemberId).ToList()));
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        logger.LogInformation(
+            "Clase {ClassId} dada de baja el {Date}: {Sessions} sesiones futuras canceladas",
+            gymClass.Id, gymClass.DeactivatedOn, cancelled.Count);
+
+        foreach (var (date, affected) in cancelled)
+        {
+            await events.PublishAsync(new ClassSessionCancelled(classId, gymId, date, affected), cancellationToken);
+        }
     }
 }
 
