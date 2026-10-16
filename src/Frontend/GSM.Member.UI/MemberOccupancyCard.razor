@@ -1,7 +1,7 @@
 @* "¿Qué tan lleno está?" en tres niveles, sin número exacto (A5). Si el gym no tiene aforo no se muestra nada. *@
 @inject IMeClient Me
 
-@if (_level is { } level)
+@if ((Resolved ? Level : _level) is { } level)
 {
     <section class="gsm-m-card" data-testid="member-occupancy" role="status">
         <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Groups" /></span>
@@ -13,6 +13,16 @@
 }
 
 @code {
+    /// <summary>
+    /// Nivel ya resuelto por quien aloja el componente (el inicio lo trae en <c>GET /api/me/home</c>). Con
+    /// <see cref="Resolved"/> en verdadero no se pide nada a la API; con <c>Level</c> nulo, el gym no tiene aforo.
+    /// </summary>
+    [Parameter]
+    public string? Level { get; set; }
+
+    [Parameter]
+    public bool Resolved { get; set; }
+
     private string? _level;
 
     public static string Label(string level) => level switch
@@ -25,6 +35,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (Resolved)
+        {
+            return;
+        }
+
         try
         {
             _level = (await Me.GetMyOccupancyAsync())?.Level;

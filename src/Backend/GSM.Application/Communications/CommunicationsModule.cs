@@ -10,6 +10,7 @@ public static class CommunicationsModuleRegistration
     {
         services.AddScoped<AnnouncementAudienceResolver>();
         services.AddScoped<AnnouncementPublisher>();
+        services.AddScoped<GSM.Application.Communications.Public.IMemberNewsReader, MemberNewsReader>();
         return services;
     }
 }

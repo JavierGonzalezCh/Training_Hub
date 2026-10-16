@@ -137,6 +137,17 @@ public sealed class AttendanceReader(
 
         return dates;
     }
+
+    public async Task<DateTimeOffset?> GetFirstEntryTodayAsync(Guid memberId, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        return await Attendances
+            .Where(a => a.MemberId == memberId && a.AttendanceDate == today)
+            .OrderBy(a => a.CheckedInAt)
+            .Select(a => (DateTimeOffset?)a.CheckedInAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     // --- Lecturas del dashboard del panel (D1) ---
 
     public async Task<OccupancyView> GetOccupancyAsync(Guid gymId, CancellationToken cancellationToken = default)

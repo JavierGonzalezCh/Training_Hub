@@ -36,7 +36,22 @@ public interface IClassReader
     /// espera, para el dashboard del panel (D1). El cupo es el efectivo (limitado por las máquinas ligadas).
     /// </summary>
     Task<IReadOnlyList<TodaySessionView>> GetTodaySessionsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ofertas de la lista de espera que el miembro aún puede confirmar (D2: "Pendientes" del inicio): con el cupo
+    /// apartado, el plazo sin vencer y la sesión sin cancelar ni pasada. La más próxima a vencer primero.
+    /// </summary>
+    Task<IReadOnlyList<WaitlistOfferView>> GetPendingWaitlistOffersAsync(
+        Guid memberId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Una oferta de cupo por confirmar antes de <paramref name="ExpiresAt"/>.</summary>
+public sealed record WaitlistOfferView(
+    Guid ClassId,
+    string ClassName,
+    DateOnly SessionDate,
+    TimeOnly StartTime,
+    DateTimeOffset ExpiresAt);
 
 /// <param name="Status"><c>Scheduled</c> o <c>Cancelled</c>.</param>
 /// <param name="Capacity">Cupo efectivo; nulo = entrada libre.</param>

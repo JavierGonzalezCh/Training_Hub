@@ -119,4 +119,25 @@ public sealed class ClassReader(
                 e.OutsideOpeningHours))
             .ToList();
     }
+
+    public async Task<IReadOnlyList<WaitlistOfferView>> GetPendingWaitlistOffersAsync(
+        Guid memberId, CancellationToken cancellationToken = default)
+    {
+        var now = clock.UtcNow;
+        var today = clock.Today;
+
+        var rows = await (
+            from w in dbContext.Set<WaitlistEntry>()
+                .Where(w => w.MemberId == memberId && w.Status == WaitlistEntryStatus.Offered && w.OfferExpiresAt > now)
+            join s in dbContext.Set<ClassSession>() on w.SessionId equals s.Id
+            join c in dbContext.Set<GymClass>() on s.ClassId equals c.Id
+            where s.Status == ClassSessionStatus.Scheduled && s.SessionDate >= today
+            orderby w.OfferExpiresAt
+            select new { c.Id, c.Name, s.SessionDate, s.StartTime, w.OfferExpiresAt })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(r => new WaitlistOfferView(r.Id, r.Name, r.SessionDate, r.StartTime, r.OfferExpiresAt!.Value))
+            .ToList();
+    }
 }
