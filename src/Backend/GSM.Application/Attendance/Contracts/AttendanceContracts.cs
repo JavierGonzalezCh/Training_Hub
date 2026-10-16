@@ -169,7 +169,15 @@ public sealed record ReceptionCardResponse(
     DateTimeOffset? NextEntryAt,
     bool BirthdayToday,
     int? EntriesLeft,
-    int? EntriesTotal);
+    int? EntriesTotal,
+    IReadOnlyList<ReceptionRewardResponse> PendingRewards);
+
+/// <summary>Premio de un logro que el miembro puede reclamar en recepción (L5). <c>ExpiresAt</c> nulo = no vence.</summary>
+public sealed record ReceptionRewardResponse(
+    Guid AchievementId,
+    string AchievementName,
+    string RewardDescription,
+    DateTimeOffset? ExpiresAt);
 
 /// <summary>Habilita (o cambia) las entradas múltiples de un miembro. Máximo de 2 a 5; motivo obligatorio; vencimiento opcional.</summary>
 public sealed record SetEntryRuleRequest(int MaxDailyEntries, string Reason, DateOnly? ValidUntil);

@@ -68,12 +68,14 @@ public sealed class GrantManualAchievementHandler(
         var row = await achievements.GetUnlockAsync(member.Id, achievementId, cancellationToken);
         if (row is null)
         {
-            row = MemberAchievement.GrantManual(gymId, member.Id, achievementId, staffId, request.Reason, now);
+            row = MemberAchievement.GrantManual(
+                gymId, member.Id, achievementId, staffId, request.Reason, now,
+                achievement.RewardDescription, achievement.RewardValidDays);
             achievements.AddUnlock(row);
         }
         else
         {
-            row.RegrantManual(staffId, request.Reason, now);
+            row.RegrantManual(staffId, request.Reason, now, achievement.RewardDescription, achievement.RewardValidDays);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -86,7 +88,8 @@ public sealed class GrantManualAchievementHandler(
         return new MemberAchievementItem(
             achievement.Id, achievement.Name, achievement.Description, achievement.IconUrl,
             achievement.ConditionType.ToString(), achievement.ConditionValue,
-            true, row.UnlockedAt, 1, true, row.GrantReason);
+            true, row.UnlockedAt, 1, true, row.GrantReason,
+            row.RewardDescription, row.EffectiveRewardStatus(now).ToString(), row.RewardExpiresAt, row.RewardDeliveredAt);
     }
 }
 
@@ -97,6 +100,7 @@ public sealed class RevokeManualAchievementHandler(
     IMemberReader members,
     IAchievementRepository achievements,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<RevokeManualAchievementHandler> logger)
 {
     public async Task HandleAsync(
@@ -117,5 +121,9 @@ public sealed class RevokeManualAchievementHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation(
             "Logro manual {AchievementId} retirado al miembro {MemberId} por {StaffId}", achievementId, memberId, staffId);
+
+        // Un premio pendiente del logro retirado ya no se puede reclamar (L5): cae su aviso de vencimiento.
+        await events.PublishAsync(
+            new AchievementRewardClosed(row.Id, memberId, row.GymId, achievementId), cancellationToken);
     }
 }

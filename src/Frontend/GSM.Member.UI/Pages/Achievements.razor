@@ -23,6 +23,19 @@ else if (_achievements.Count == 0)
 }
 else
 {
+    @if (PendingRewards.Count > 0)
+    {
+        <div class="mb-4" data-testid="pending-rewards">
+            @foreach (var reward in PendingRewards)
+            {
+                <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.CardGiftcard" Class="mb-2"
+                          data-testid="@($"pending-reward-{reward.AchievementId}")">
+                    Premio pendiente: <strong>@reward.RewardDescription</strong> · reclámalo en recepción@(reward.RewardExpiresAt is { } exp ? $" · vence el {exp:d MMM yyyy}" : string.Empty)
+                </MudAlert>
+            }
+        </div>
+    }
+
     <MudGrid>
         @foreach (var achievement in _achievements)
         {
@@ -42,6 +55,12 @@ else
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                             @AchievementConditionLabels.Label(achievement.ConditionType) · @achievement.Progress/@achievement.ConditionValue
+                        </MudText>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(achievement.RewardDescription))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="@($"reward-line-{achievement.AchievementId}")">
+                            @RewardLine(achievement)
                         </MudText>
                     }
                     @if (!achievement.Unlocked && !achievement.IsManual && achievement.ConditionValue > 0)
@@ -64,6 +83,20 @@ else
 @code {
     private List<MemberAchievementItem> _achievements = [];
     private bool _loading = true;
+
+    /// <summary>Premios ganados que aún se pueden reclamar en recepción (L5), los que vencen antes primero.</summary>
+    private List<MemberAchievementItem> PendingRewards => _achievements
+        .Where(a => a.Unlocked && a.RewardStatus == "Pending" && !string.IsNullOrWhiteSpace(a.RewardDescription))
+        .OrderBy(a => a.RewardExpiresAt ?? DateTimeOffset.MaxValue)
+        .ToList();
+
+    private static string RewardLine(MemberAchievementItem a) => a.RewardStatus switch
+    {
+        "Pending" => $"Premio pendiente: {a.RewardDescription}",
+        "Delivered" => $"Premio entregado: {a.RewardDescription}",
+        "Expired" => $"Premio vencido: {a.RewardDescription}",
+        _ => $"Premio: {a.RewardDescription}",
+    };
 
     protected override async Task OnInitializedAsync()
     {

@@ -21,7 +21,8 @@ public sealed class CreateAchievementHandler(
         }
 
         var achievement = Achievement.Create(
-            gymId, name, request.Description, request.IconUrl, request.ConditionType, request.ConditionValue);
+            gymId, name, request.Description, request.IconUrl, request.ConditionType, request.ConditionValue,
+            request.RewardDescription, request.RewardValidDays);
         achievements.Add(achievement);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -47,7 +48,8 @@ public sealed class UpdateAchievementHandler(
         }
 
         achievement.Update(
-            name, request.Description, request.IconUrl, request.ConditionType, request.ConditionValue);
+            name, request.Description, request.IconUrl, request.ConditionType, request.ConditionValue,
+            request.RewardDescription, request.RewardValidDays);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return AchievementMapper.ToResponse(achievement);

@@ -110,6 +110,10 @@
                         Entradas múltiples: @card.MaxDailyEntries por día · lleva @card.EntriesToday hoy
                     </MudText>
                 }
+                @if (card.PendingRewards is { Count: > 0 } pendingRewards)
+                {
+                    <ReceptionRewards MemberId="card.MemberId" Rewards="pendingRewards" OnDelivered="@(() => LoadCardAsync(card.MemberId))" />
+                }
                 @if (card.MissingWaiver)
                 {
                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" role="status" id="missing-waiver">

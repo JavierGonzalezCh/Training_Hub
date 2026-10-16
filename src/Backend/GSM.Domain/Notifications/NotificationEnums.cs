@@ -1,4 +1,4 @@
-namespace GSM.Domain.Notifications;
+﻿namespace GSM.Domain.Notifications;
 
 /// <summary>
 /// Tipo de aviso. Label en Postgres: <c>notifications.notification_type</c> (snake_case). Cada sub-etapa
@@ -58,6 +58,12 @@ public enum NotificationType
     /// Categoría de seguridad: sin preferencia, sin horario sin avisos. Referencia: la asistencia.
     /// </summary>
     DocumentCheckIn,
+
+    /// <summary>
+    /// L5: el premio de un logro vence en 3 días ("reclámalo en recepción"). Programado a las 8:00 al ganar el logro
+    /// y cancelable si el premio se entrega o el logro se retira. Referencia: el desbloqueo (<c>member_achievements</c>).
+    /// </summary>
+    RewardExpiring,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

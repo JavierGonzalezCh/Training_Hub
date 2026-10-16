@@ -57,6 +57,40 @@ public sealed class AchievementRepository(GsmDbContext dbContext) : IAchievement
         => Unlocks.FirstOrDefaultAsync(
             u => u.MemberId == memberId && u.AchievementId == achievementId, cancellationToken);
 
+    public async Task<RewardOverview> GetRewardOverviewAsync(
+        RewardStatus? filter, DateTimeOffset now, int take, CancellationToken cancellationToken = default)
+    {
+        // Los vencidos son pendientes con el plazo cumplido; los de logros retirados sin entregar no cuentan.
+        var rewards = Unlocks.Where(u => u.RewardStatus != RewardStatus.None
+            && (u.RewardStatus == RewardStatus.Delivered || u.RevokedAt == null));
+        var pendingNow = rewards.Where(u => u.RewardStatus == RewardStatus.Pending
+            && (u.RewardExpiresAt == null || u.RewardExpiresAt > now));
+        var expired = rewards.Where(u => u.RewardStatus == RewardStatus.Pending
+            && u.RewardExpiresAt != null && u.RewardExpiresAt <= now);
+        var delivered = rewards.Where(u => u.RewardStatus == RewardStatus.Delivered);
+
+        var pendingCount = await pendingNow.CountAsync(cancellationToken);
+        var expiredCount = await expired.CountAsync(cancellationToken);
+        var deliveredCount = await delivered.CountAsync(cancellationToken);
+
+        var selected = filter switch
+        {
+            RewardStatus.Pending => pendingNow,
+            RewardStatus.Expired => expired,
+            RewardStatus.Delivered => delivered,
+            _ => rewards,
+        };
+
+        var rows = await (from row in selected
+                          join achievement in Achievements on row.AchievementId equals achievement.Id
+                          orderby row.UnlockedAt descending
+                          select new RewardOverviewRow(row, achievement.Name))
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return new RewardOverview(pendingCount, deliveredCount, expiredCount, rows);
+    }
+
     private DbSet<StreakFreeze> StreakFreezes => dbContext.Set<StreakFreeze>();
 
     public async Task<IReadOnlyList<StreakFreeze>> ListStreakFreezesAsync(

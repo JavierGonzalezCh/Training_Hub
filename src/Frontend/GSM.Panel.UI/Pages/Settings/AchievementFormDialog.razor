@@ -55,6 +55,16 @@
                 {
                     <MudNumericField T="int" @bind-Value="_model.ConditionValue" Label="@AchievementConditionLabels.ValueLabel(_model.ConditionType)" Required="true" Min="1" />
                 }
+                <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4">Premio (opcional)</MudText>
+                <MudTextField T="string" @bind-Value="_model.RewardDescription" Label="Premio" MaxLength="200" Class="mb-3"
+                              HelperText="Se canjea en recepción. Vacío = el logro es solo reconocimiento."
+                              data-testid="reward-description" />
+                @if (!string.IsNullOrWhiteSpace(_model.RewardDescription))
+                {
+                    <MudNumericField T="int?" @bind-Value="_model.RewardValidDays" Label="Días para reclamarlo" Min="1" Max="730"
+                                     HelperText="Vacío = no vence. Se cuenta desde que el miembro gana el logro."
+                                     data-testid="reward-valid-days" />
+                }
             </MudForm>
         }
     </DialogContent>
@@ -102,6 +112,8 @@
                 _model.Description = achievement.Description;
                 _model.ConditionType = AchievementConditionLabels.ToValue(achievement.ConditionType);
                 _model.ConditionValue = achievement.ConditionValue;
+                _model.RewardDescription = achievement.RewardDescription;
+                _model.RewardValidDays = achievement.RewardValidDays;
                 _originalType = _model.ConditionType;
                 _originalValue = achievement.ConditionValue;
                 _iconUrl = achievement.IconUrl;
@@ -192,6 +204,8 @@
                     Description = _model.Description,
                     ConditionType = _model.ConditionType,
                     ConditionValue = _model.ConditionValue,
+                    RewardDescription = _model.RewardDescription,
+                    RewardValidDays = string.IsNullOrWhiteSpace(_model.RewardDescription) ? null : _model.RewardValidDays,
                 });
                 savedId = id;
             }
@@ -203,6 +217,8 @@
                     Description = _model.Description,
                     ConditionType = _model.ConditionType,
                     ConditionValue = _model.ConditionValue,
+                    RewardDescription = _model.RewardDescription,
+                    RewardValidDays = string.IsNullOrWhiteSpace(_model.RewardDescription) ? null : _model.RewardValidDays,
                 });
                 savedId = created.Id;
             }
@@ -233,5 +249,7 @@
         public string? Description { get; set; }
         public int ConditionType { get; set; }
         public int ConditionValue { get; set; } = 1;
+        public string? RewardDescription { get; set; }
+        public int? RewardValidDays { get; set; }
     }
 }

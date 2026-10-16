@@ -51,7 +51,8 @@ public sealed class AchievementService(
         var newlyUnlocked = new List<(MemberAchievement Row, Achievement Achievement)>();
         foreach (var achievement in pending.Where(a => a.IsMetBy(visits, streak, sessions, classAttendance, tenure, referrals)))
         {
-            var row = MemberAchievement.Unlock(achievement.GymId, memberId, achievement.Id, now);
+            var row = MemberAchievement.Unlock(
+                achievement.GymId, memberId, achievement.Id, now, achievement.RewardDescription, achievement.RewardValidDays);
             achievements.AddUnlock(row);
             newlyUnlocked.Add((row, achievement));
         }
