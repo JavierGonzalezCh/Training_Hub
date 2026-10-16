@@ -40,6 +40,14 @@ public static class GsmUiSharedServiceCollectionExtensions
         services.TryAddScoped<GSM.UI.Shared.Push.IPushNotifications, GSM.UI.Shared.Push.UnsupportedPushNotifications>();
         services.AddScoped<GSM.UI.Shared.Push.PushRegistrationService>();
 
+        // Bloqueo del modo staff (AP5): cada host nativo registra su IDeviceLock, IAppLifecycle e ISecureValueStore.
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<GSM.UI.Shared.Security.IDeviceLock, GSM.UI.Shared.Security.NullDeviceLock>();
+        services.TryAddSingleton<GSM.UI.Shared.Security.IAppLifecycle, GSM.UI.Shared.Security.NullAppLifecycle>();
+        services.TryAddSingleton<GSM.UI.Shared.Security.StaffLockState>();
+        services.TryAddSingleton<GSM.UI.Shared.Security.ISecureValueStore, GSM.UI.Shared.Security.InMemorySecureValueStore>();
+        services.TryAddSingleton<GSM.UI.Shared.Security.DevicePinService>();
+
         // Errores del cliente (LG3): cada host registra su IClientEnvironment; el reporte alimenta logs.client_errors.
         services.AddScoped<GSM.UI.Shared.Diagnostics.ClientErrorReporter>();
         services.AddSingleton<Microsoft.Extensions.Logging.ILoggerProvider>(
