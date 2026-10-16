@@ -53,6 +53,9 @@ public interface IPushDeviceRepository
 
     Task<IReadOnlyDictionary<Guid, PushDevice>> GetByIdsAsync(
         IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>Borra todos los dispositivos de la persona (su cuenta se eliminó). Escribe al instante; idempotente.</summary>
+    Task DeleteForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 
 public interface IStaffNotificationPreferenceRepository

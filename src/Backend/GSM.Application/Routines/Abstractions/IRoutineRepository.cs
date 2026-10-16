@@ -23,4 +23,11 @@ public interface IRoutineRepository
     /// los daría por existentes; esto los marca como nuevos para que se inserten.
     /// </summary>
     void TrackNewChildren(Routine routine);
+
+    /// <summary>
+    /// R10: vacía las notas (texto libre, pueden traer datos de salud) de las rutinas, las líneas y los registros de
+    /// entrenamiento del miembro. Conserva todo lo demás. Escribe al instante, ignora el filtro de gym (corre sin
+    /// usuario) y es idempotente.
+    /// </summary>
+    Task ClearNotesForMemberAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken = default);
 }

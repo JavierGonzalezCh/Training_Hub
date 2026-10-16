@@ -90,4 +90,11 @@ public interface IEquipmentIssueRepository
 
     /// <summary>E4: reportes sin cerrar y, de ellos, urgentes (para la tarjeta del dashboard).</summary>
     Task<(int Open, int Urgent)> CountUnclosedAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Anonimización de un miembro: deja sin autor (<c>ReportedByUserId = null</c>) los reportes que hizo esa cuenta
+    /// como miembro en ese gym. El reporte, su descripción y su foto se conservan (son el historial de la máquina).
+    /// Escribe al instante, ignora el filtro de gym y es idempotente.
+    /// </summary>
+    Task ClearReporterAsync(Guid gymId, Guid userId, CancellationToken cancellationToken = default);
 }

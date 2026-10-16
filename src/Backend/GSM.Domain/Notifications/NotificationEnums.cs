@@ -1,4 +1,4 @@
-﻿namespace GSM.Domain.Notifications;
+namespace GSM.Domain.Notifications;
 
 /// <summary>
 /// Tipo de aviso. Label en Postgres: <c>notifications.notification_type</c> (snake_case). Cada sub-etapa
@@ -102,6 +102,12 @@ public enum NotificationType
 
     /// <summary>S3: el gym llegó a su límite de miembros. Referencia: gym + límite vigente.</summary>
     MemberLimitReached,
+
+    /// <summary>
+    /// M6: la ficha de un miembro dado de baja se anonimizará en pocos días; a cada Owner, con enlace a la ficha para
+    /// reactivarla si hace falta. Sin el nombre del miembro (el aviso se conserva). Referencia: miembro + día previsto.
+    /// </summary>
+    MemberAnonymizationUpcoming,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

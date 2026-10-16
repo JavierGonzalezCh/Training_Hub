@@ -6,6 +6,7 @@ using GSM.Application.Common.Logs;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
 using GSM.Application.Logs.Alerts;
+using GSM.Application.Members;
 using GSM.Application.Notifications;
 using GSM.Application.SuperAdmin;
 using Microsoft.AspNetCore.Authorization;
@@ -38,6 +39,7 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
         [FromServices] RunMonthlyMetricsHandler monthlyMetrics,
         [FromServices] RunSubscriptionNoticesHandler subscriptionNotices,
         [FromServices] RunWaitlistJobHandler waitlistJob,
+        [FromServices] RunAnonymizationJobHandler anonymizationJob,
         [FromServices] LoggedJobRunner runner,
         [FromServices] PlatformAlertEvaluator alerts,
         CancellationToken cancellationToken)
@@ -63,6 +65,12 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
             () => waitlistJob.HandleAsync(cancellationToken),
             r => (r.OffersMade + r.OffersExpired, 0));
 
+        // M6: aviso a los Owners y anonimizacion de los miembros dados de baja cuyo plazo vencio (idempotente).
+        await runner.RunAsync(
+            "member_anonymization",
+            () => anonymizationJob.HandleAsync(cancellationToken),
+            r => (r.Notices + r.Anonymized, 0));
+
         // S3: avisos de la suscripcion a los Owners (prueba, vencimiento, mora, limite de miembros). Publica eventos
         // idempotentes por hito; Notifications crea los avisos una sola vez.
         await runner.RunAsync(
@@ -79,7 +87,7 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
         // LG5: alertas al SuperAdmin. Esta tarea es la que vigila al dispatcher (y viceversa); no lanza.
         // Los latidos de esta misma ejecución todavía se están escribiendo, así que no se juzgan.
         await alerts.RunOnceAsync(
-            [LoggedJobRunner.HeartbeatName("communications"), LoggedJobRunner.HeartbeatName("waitlist"),
+            [LoggedJobRunner.HeartbeatName("communications"), LoggedJobRunner.HeartbeatName("waitlist"), LoggedJobRunner.HeartbeatName("member_anonymization"),
              LoggedJobRunner.HeartbeatName("monthly_metrics")],
             cancellationToken);
         return Ok(result);

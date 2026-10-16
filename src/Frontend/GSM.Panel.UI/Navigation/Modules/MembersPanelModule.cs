@@ -17,5 +17,6 @@ public sealed class MembersPanelModule : IPanelModule
     public IEnumerable<PanelSettingsSection> SettingsSections =>
     [
         new("Autorizaciones", 35, typeof(Pages.Settings.ConsentDocumentsTab), GsmRoles.Owner),
+        new("Privacidad", 36, typeof(Pages.Settings.AnonymizationTab), GsmRoles.Owner),
     ];
 }

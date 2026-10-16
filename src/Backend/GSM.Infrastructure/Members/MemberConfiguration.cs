@@ -41,6 +41,12 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
         builder.HasIndex(m => new { m.GymId, m.DocumentType, m.DocumentNumber }).IsUnique();
         builder.HasIndex(m => new { m.GymId, m.Status });
         builder.HasIndex(m => m.UserId);
+
+        // M6: la tarea de anonimización busca las bajas sin anonimizar.
+        builder.Ignore(m => m.IsAnonymized);
+        builder.HasIndex(m => new { m.Status, m.DeactivatedOn })
+            .HasFilter("anonymized_at IS NULL AND deactivated_on IS NOT NULL")
+            .HasDatabaseName("ix_members_pending_anonymization");
         builder.HasIndex(m => m.ReferredByMemberId);
 
         // Sin FK: el entrenador es una cuenta de Identity (otro schema). "Mis miembros" filtra por esta columna.
@@ -134,5 +140,18 @@ public sealed class MemberMeasurementConfiguration : IEntityTypeConfiguration<Me
             .WithMany()
             .HasForeignKey(m => m.MemberId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class MemberSettingsConfiguration : IEntityTypeConfiguration<MemberSettings>
+{
+    public void Configure(EntityTypeBuilder<MemberSettings> builder)
+    {
+        builder.ToTable("member_settings", "members", t =>
+            t.HasCheckConstraint(
+                "ck_member_settings_anonymization_months",
+                "anonymization_months >= 6 AND anonymization_months <= 120"));
+
+        builder.HasIndex(s => s.GymId).IsUnique();
     }
 }

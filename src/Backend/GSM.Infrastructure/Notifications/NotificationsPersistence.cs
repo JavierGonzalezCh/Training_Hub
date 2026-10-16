@@ -57,6 +57,9 @@ public sealed class PushDeviceRepository(GsmDbContext dbContext) : IPushDeviceRe
 
     public void Add(PushDevice device) => Devices.Add(device);
 
+    public async Task DeleteForUserAsync(Guid userId, CancellationToken cancellationToken = default)
+        => await Devices.Where(d => d.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+
     public async Task<IReadOnlyList<PushDevice>> GetActiveForUserAsync(
         Guid userId, IReadOnlyCollection<PushPlatform> platforms, CancellationToken cancellationToken = default)
         => await Devices
@@ -225,6 +228,39 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
     private DbSet<NotificationDelivery> Deliveries => dbContext.Set<NotificationDelivery>();
 
     public void Add(Notification notification) => Notifications.Add(notification);
+
+    public async Task ClearMemberDataAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken = default)
+    {
+        var mine = Notifications.IgnoreQueryFilters().Where(n => n.GymId == gymId && n.RecipientMemberId == memberId);
+        var ids = mine.Select(n => n.Id);
+
+        await Deliveries.IgnoreQueryFilters()
+            .Where(d => d.GymId == gymId && ids.Contains(d.NotificationId) && d.Channel == DeliveryChannel.Email)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(d => d.ToAddress, string.Empty)
+                    .SetProperty(d => d.Subject, string.Empty)
+                    .SetProperty(d => d.HtmlBody, string.Empty)
+                    .SetProperty(d => d.TextBody, string.Empty),
+                cancellationToken);
+
+        await Deliveries.IgnoreQueryFilters()
+            .Where(d => d.GymId == gymId && ids.Contains(d.NotificationId) && d.Status == DeliveryStatus.Pending)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(d => d.Status, DeliveryStatus.Skipped)
+                    .SetProperty(d => d.LastError, "member_anonymized")
+                    .SetProperty(d => d.NextAttemptAt, (DateTimeOffset?)null),
+                cancellationToken);
+
+        await mine
+            .Where(n => n.Status == NotificationStatus.Pending || n.Status == NotificationStatus.Held)
+            .ExecuteUpdateAsync(s => s.SetProperty(n => n.Status, NotificationStatus.Cancelled), cancellationToken);
+
+        await mine
+            .Where(n => n.Title != string.Empty || n.Body != string.Empty)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(n => n.Title, string.Empty).SetProperty(n => n.Body, string.Empty),
+                cancellationToken);
+    }
 
     public void AddDelivery(NotificationDelivery delivery) => Deliveries.Add(delivery);
 

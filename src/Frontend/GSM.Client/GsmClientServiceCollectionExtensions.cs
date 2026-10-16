@@ -1,4 +1,4 @@
-﻿using GSM.Client.Generated;
+using GSM.Client.Generated;
 using GSM.Client.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -56,6 +56,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IMemberMembershipsClient, MemberMembershipsClient>(services, baseUri);
         AddApiClient<IMemberPaymentsClient, MemberPaymentsClient>(services, baseUri);
         AddApiClient<IMembersClient, MembersClient>(services, baseUri);
+        AddApiClient<IMemberSettingsClient, MemberSettingsClient>(services, baseUri);
         AddApiClient<IConsentDocumentsClient, ConsentDocumentsClient>(services, baseUri);
         AddApiClient<IMemberConsentsClient, MemberConsentsClient>(services, baseUri);
         AddApiClient<IMeConsentsClient, MeConsentsClient>(services, baseUri);

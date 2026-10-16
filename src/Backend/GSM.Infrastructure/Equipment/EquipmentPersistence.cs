@@ -323,4 +323,9 @@ public sealed class EquipmentIssueRepository(GsmDbContext dbContext) : IEquipmen
         var urgent = await unclosed.CountAsync(i => i.Reason == EquipmentIssueReason.Unsafe, cancellationToken);
         return (open, urgent);
     }
+
+    public async Task ClearReporterAsync(Guid gymId, Guid userId, CancellationToken cancellationToken = default)
+        => await dbContext.Set<EquipmentIssue>().IgnoreQueryFilters()
+            .Where(i => i.GymId == gymId && i.ReportedByUserId == userId && i.ReportedByRole == IssueReporterRole.Member)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.ReportedByUserId, (Guid?)null), cancellationToken);
 }

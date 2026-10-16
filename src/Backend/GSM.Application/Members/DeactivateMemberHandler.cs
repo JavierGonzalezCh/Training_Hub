@@ -11,6 +11,7 @@ namespace GSM.Application.Members;
 /// <summary>Baja de un miembro: soft delete a <c>inactive</c>. Idempotente.</summary>
 public sealed class DeactivateMemberHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IMemberRepository members,
     MemberChangeRecorder changes,
     IUnitOfWork unitOfWork,
@@ -29,7 +30,7 @@ public sealed class DeactivateMemberHandler(
             return;
         }
 
-        member.Deactivate();
+        member.Deactivate(clock.Today);
         changes.RecordStatus(member, MemberStatus.Active, MemberStatus.Inactive);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

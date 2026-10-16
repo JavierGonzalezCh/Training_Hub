@@ -1,4 +1,4 @@
-﻿@page "/members/{Id:guid}"
+@page "/members/{Id:guid}"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Payments
 @using GSM.UI.Shared.Routines
@@ -50,7 +50,11 @@ else if (_member is not null)
         <div style="flex:1; min-width:220px">
             <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
                 <MudText Typo="Typo.h4">@_member.FirstName @_member.LastName</MudText>
-                @if (_member.Status == "Inactive")
+                @if (_member.IsAnonymized == true)
+                {
+                    <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small" Class="gsm-mono" data-testid="anonymized-chip">ANONIMIZADO</MudChip>
+                }
+                else if (_member.Status == "Inactive")
                 {
                     <MudChip T="string" Color="Color.Default" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">DADO DE BAJA</MudChip>
                 }
@@ -69,6 +73,8 @@ else if (_member is not null)
                 @MemberLabels.DocumentShort(_member.DocumentType) @_member.DocumentNumber · ingresó @GsmFormat.Day(_member.JoinedAt)
             </MudText>
         </div>
+        @if (_member.IsAnonymized != true)
+        {
         <div class="d-flex flex-wrap" style="gap:0.5rem">
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" OnClick="InviteAsync">Invitar</MudButton>
             <WhatsAppButton MemberId="Id" />
@@ -94,8 +100,30 @@ else if (_member is not null)
                     Reactivar
                 </MudButton>
             }
+            @if (_isOwner)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteSweep"
+                           OnClick="AnonymizeAsync" data-testid="anonymize-now">
+                    Anonimizar ahora
+                </MudButton>
+            }
         </div>
+        }
     </div>
+
+    @if (_member.IsAnonymized == true)
+    {
+        <MudAlert Severity="Severity.Normal" Dense="true" Class="mb-4" role="status" data-testid="anonymized-alert">
+            Esta ficha se anonimizó: los datos personales y de salud se borraron. Los pagos, asistencias y membresías se conservan.
+            Si la persona vuelve, se registra como un miembro nuevo.
+        </MudAlert>
+    }
+    else if (_member.AnonymizesOn is { } anonymizesOn)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4" role="status" data-testid="anonymizes-on">
+            Dado de baja. La ficha se anonimizará el @GsmFormat.Day(anonymizesOn) y no se podrá deshacer. Reactivarlo antes de esa fecha detiene el plazo.
+        </MudAlert>
+    }
 
     @if (MemberLabels.IncompleteReasons(_member.BirthDate, _member.Phone) is { Count: > 0 } reasons)
     {
@@ -780,6 +808,28 @@ else if (_member is not null)
         {
             _member = await Members.ReactivateMemberAsync(Id);
             Snackbar.Add("Miembro reactivado.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
+
+    private async Task AnonymizeAsync()
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Anonimizar ahora",
+            "Se borrarán los datos personales y de salud de esta ficha, y la cuenta de la app. Los pagos, asistencias y membresías se conservan. No se puede deshacer. Úsalo cuando el miembro pida la supresión de sus datos. ¿Continuar?",
+            yesText: "Anonimizar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            _member = await Members.AnonymizeMemberAsync(Id, new AnonymizeMemberRequest { Confirm = true });
+            Snackbar.Add("Ficha anonimizada.", Severity.Success);
         }
         catch (GsmApiException ex)
         {

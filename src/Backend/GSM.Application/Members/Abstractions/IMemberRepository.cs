@@ -11,6 +11,9 @@ public sealed record MemberPageQuery(
     IReadOnlyCollection<Guid>? Ids = null, bool ExcludeIds = false,
     Guid? TrainerUserId = null, bool WithoutTrainer = false, bool WithHealthAlerts = false);
 
+/// <summary>Un miembro dado de baja y no anonimizado, visto por la tarea periódica de anonimización (M6).</summary>
+public sealed record AnonymizationCandidate(Guid MemberId, Guid GymId, DateOnly DeactivatedOn, bool NoticeSent);
+
 /// <summary>Acceso de escritura/consulta a las entidades del módulo Members. Sin <c>SaveChanges</c>.</summary>
 public interface IMemberRepository
 {
@@ -83,4 +86,31 @@ public interface IMemberRepository
 
     /// <summary>Borra las invitaciones sin canjear de un miembro (al reinvitar).</summary>
     Task RemovePendingInvitationsAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    // --- Anonimización (M6) ---
+
+    /// <summary>Ajustes del gym (plazo de anonimización). Nulo = valen los valores por defecto. Ignora el filtro de gym.</summary>
+    Task<MemberSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    void Add(MemberSettings settings);
+
+    /// <summary>Plazo de anonimización (meses) de los gyms que lo cambiaron. Ignora el filtro de gym.</summary>
+    Task<IReadOnlyDictionary<Guid, int>> GetAnonymizationMonthsByGymAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Miembros de TODOS los gyms dados de baja con día de baja y sin anonimizar, desde el más antiguo. La tarea
+    /// periódica corre sin usuario, así que ignora el filtro de gym. <paramref name="deactivatedOnOrBefore"/> acota la lista.
+    /// </summary>
+    Task<IReadOnlyList<AnonymizationCandidate>> GetAnonymizationCandidatesAsync(
+        DateOnly deactivatedOnOrBefore, CancellationToken cancellationToken = default);
+
+    /// <summary>La ficha (seguida) de ese gym, ignorando el filtro de gym: para la tarea sin usuario.</summary>
+    Task<Member?> GetForGymAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Borra/vacía lo que cuelga de la ficha y es personal (§11): notas internas, registro de consultas de salud e
+    /// invitaciones; vacía <c>OldValue</c>/<c>NewValue</c> del historial. Escribe al instante y es idempotente.
+    /// Las mediciones y las autorizaciones se conservan.
+    /// </summary>
+    Task ClearPersonalRecordsAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken = default);
 }

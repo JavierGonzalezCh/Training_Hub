@@ -13,3 +13,9 @@ public sealed record StaffTrainerRoleLost(Guid GymId, Guid UserId) : IDomainEven
 /// facturación si era él (G4). El handler debe ser idempotente: el evento puede reintentarse.
 /// </summary>
 public sealed record GymOwnerRemoved(Guid GymId, Guid UserId) : IDomainEvent;
+
+/// <summary>
+/// Se eliminó una cuenta (hoy, la de un miembro anonimizado que no tenía otros accesos). Quien guarde datos ligados a la
+/// cuenta (dispositivos de push) los borra. El manejador debe ser idempotente.
+/// </summary>
+public sealed record UserAccountDeleted(Guid UserId) : IDomainEvent;

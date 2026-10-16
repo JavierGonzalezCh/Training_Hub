@@ -1,0 +1,67 @@
+@* Pestaña "Privacidad" de la configuración: plazo de anonimización de los miembros dados de baja (Members §11).
+   Solo Owner. *@
+@inject IMemberSettingsClient MemberSettings
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-4 mb-4">
+        Pasado este plazo desde la baja, la ficha se anonimiza: se borran los datos personales y de salud, y se conservan
+        los pagos, asistencias y membresías, que ya no identifican a nadie. Es irreversible. Siete días antes avisamos a
+        los Owners. Si el miembro vuelve antes, al reactivarlo el plazo deja de correr.
+    </MudAlert>
+
+    <MudNumericField T="int" @bind-Value="_months" Label="Plazo de anonimización (meses)" Min="6" Max="120"
+                     HelperText="Meses desde la baja. Por defecto, 24." Class="mb-4" Style="max-width:420px"
+                     data-testid="anonymization-months" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving" data-testid="anonymization-save">
+        @(_saving ? "Guardando..." : "Guardar cambios")
+    </MudButton>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private int _months = 24;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var settings = await MemberSettings.GetMemberSettingsAsync();
+            _months = settings.AnonymizationMonths;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var saved = await MemberSettings.UpdateMemberSettingsAsync(new UpdateMemberSettingsRequest { AnonymizationMonths = _months });
+            _months = saved.AnonymizationMonths;
+            Snackbar.Add("Plazo de anonimización guardado.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

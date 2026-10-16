@@ -70,6 +70,15 @@ public interface INotificationRepository
     Task<IReadOnlyList<NotificationDelivery>> GetDeliveriesAsync(
         IReadOnlyCollection<Guid> notificationIds, CancellationToken cancellationToken = default);
 
+    // ---- anonimización (M6) ----
+
+    /// <summary>
+    /// Anonimización de un miembro: cancela sus avisos aún sin salir, vacía título y texto de los suyos y borra de sus
+    /// entregas la dirección, el asunto y el cuerpo (las entregas pendientes se cierran como omitidas). Conserva las
+    /// filas. Escribe al instante, ignora el filtro de gym y es idempotente.
+    /// </summary>
+    Task ClearMemberDataAsync(Guid gymId, Guid memberId, CancellationToken cancellationToken = default);
+
     // ---- mantenimiento y lectura pública ----
 
     /// <summary>
