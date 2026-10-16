@@ -289,3 +289,8 @@ public partial class RoutineSettingsClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class MemberSettingsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

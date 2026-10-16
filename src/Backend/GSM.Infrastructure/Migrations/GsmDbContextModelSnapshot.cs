@@ -77,7 +77,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_category", new[] { "membership", "classes", "progress", "news", "promotions", "security" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_priority", new[] { "normal", "urgent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_status", new[] { "pending", "held", "sent", "failed", "cancelled", "skipped" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement", "void_request_rejected", "class_reminder", "instructor_class_reminder", "birthday", "waitlist_offer", "waitlist_offer_expired", "equipment_issue_reported", "equipment_issue_resolved", "document_check_in", "reward_expiring", "subscription_trial_ending", "subscription_trial_ended", "subscription_expiring", "subscription_expires_today", "subscription_overdue", "subscription_disable_soon", "subscription_disabled", "subscription_suspended", "subscription_reactivated", "subscription_payment_registered", "member_limit_near", "member_limit_reached" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement", "void_request_rejected", "class_reminder", "instructor_class_reminder", "birthday", "waitlist_offer", "waitlist_offer_expired", "equipment_issue_reported", "equipment_issue_resolved", "document_check_in", "reward_expiring", "subscription_trial_ending", "subscription_trial_ended", "subscription_expiring", "subscription_expires_today", "subscription_overdue", "subscription_disable_soon", "subscription_disabled", "subscription_suspended", "subscription_reactivated", "subscription_payment_registered", "member_limit_near", "member_limit_reached", "member_anonymization_upcoming" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "push_platform", new[] { "android", "web_member", "web_panel" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "cash_movement_type", new[] { "withdrawal", "deposit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
@@ -2188,6 +2188,14 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("address");
 
+                    b.Property<DateOnly?>("AnonymizationNoticeSentOn")
+                        .HasColumnType("date")
+                        .HasColumnName("anonymization_notice_sent_on");
+
+                    b.Property<DateTimeOffset?>("AnonymizedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("anonymized_at");
+
                     b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("date")
                         .HasColumnName("birth_date");
@@ -2200,6 +2208,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<DateOnly?>("DeactivatedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("deactivated_on");
 
                     b.Property<string>("DocumentNumber")
                         .IsRequired()
@@ -2360,6 +2372,10 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasIndex("GymId", "TrainerUserId")
                         .HasDatabaseName("ix_members_gym_id_trainer_user_id");
+
+                    b.HasIndex("Status", "DeactivatedOn")
+                        .HasDatabaseName("ix_members_pending_anonymization")
+                        .HasFilter("anonymized_at IS NULL AND deactivated_on IS NOT NULL");
 
                     b.HasIndex("GymId", "DocumentType", "DocumentNumber")
                         .IsUnique()
@@ -2720,6 +2736,42 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_notes_member_id_created_at");
 
                     b.ToTable("member_notes", "members");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Members.MemberSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AnonymizationMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("anonymization_months");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_member_settings");
+
+                    b.HasIndex("GymId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_member_settings_gym_id");
+
+                    b.ToTable("member_settings", "members", t =>
+                        {
+                            t.HasCheckConstraint("ck_member_settings_anonymization_months", "anonymization_months >= 6 AND anonymization_months <= 120");
+                        });
                 });
 
             modelBuilder.Entity("GSM.Domain.Memberships.Membership", b =>
