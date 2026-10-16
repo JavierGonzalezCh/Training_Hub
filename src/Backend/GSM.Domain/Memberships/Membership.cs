@@ -56,6 +56,14 @@ public sealed class Membership : BaseEntity, ITenantEntity
     /// <summary>Día del mes en que arranca el ciclo (1–31). Solo en planes en meses del calendario; nulo en planes por días.</summary>
     public int? CycleDay { get; private set; }
 
+    /// <summary>
+    /// Entradas que trae (MS5). Solo tiqueteras; nulo en una membresía por tiempo. Se copia del plan al asignar y
+    /// no cambia aunque el plan cambie. Las usadas se calculan con <see cref="PassUsage"/> (§7).
+    /// </summary>
+    public int? EntriesTotal { get; private set; }
+
+    public bool IsPass => EntriesTotal is not null;
+
     /// <summary>Total que se cobra al asignarla: precio acordado + matrícula (el crédito de un cambio de plan llega en MS6).</summary>
     public decimal TotalToCharge => AgreedPrice + EnrollmentFee;
 
@@ -63,7 +71,7 @@ public sealed class Membership : BaseEntity, ITenantEntity
         Guid gymId, Guid memberId, Guid planId, DateOnly startDate, int durationValue,
         RenewalKind renewalKind = RenewalKind.New, string? startOverrideReason = null,
         MembershipPricing? pricing = null, DurationUnit durationUnit = DurationUnit.Days,
-        int? inheritedCycleDay = null)
+        int? inheritedCycleDay = null, int? entriesTotal = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty || planId == Guid.Empty)
         {
@@ -73,6 +81,11 @@ public sealed class Membership : BaseEntity, ITenantEntity
         if (durationValue < 1)
         {
             throw new ValidationDomainException("La duración debe ser de al menos 1.");
+        }
+
+        if (entriesTotal is < 1)
+        {
+            throw new ValidationDomainException("Una tiquetera necesita al menos una entrada.");
         }
 
         var (endDate, cycleDay) = MembershipCalendar.Resolve(startDate, durationUnit, durationValue, inheritedCycleDay);
@@ -85,6 +98,7 @@ public sealed class Membership : BaseEntity, ITenantEntity
             StartDate = startDate,
             EndDate = endDate,
             CycleDay = cycleDay,
+            EntriesTotal = entriesTotal,
             Status = MembershipStatus.Active,
             RenewalKind = renewalKind,
             StartOverrideReason = string.IsNullOrWhiteSpace(startOverrideReason) ? null : startOverrideReason.Trim(),

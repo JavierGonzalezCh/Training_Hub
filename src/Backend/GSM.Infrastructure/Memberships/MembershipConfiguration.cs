@@ -25,6 +25,10 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
         // MS3: día del mes en que arranca el ciclo, solo en planes en meses del calendario.
         builder.Property(m => m.CycleDay).HasColumnName("cycle_day");
 
+        // MS5: entradas con que empezó una tiquetera (nulo en una membresía por tiempo). Las usadas viven en pass_usages.
+        builder.Property(m => m.EntriesTotal).HasColumnName("entries_total");
+        builder.Ignore(m => m.IsPass);
+
         // L2: días congelados en pausas ya cerradas; la antigüedad no los cuenta.
 
         // Índice requerido por el plan para el dashboard y la renovación.

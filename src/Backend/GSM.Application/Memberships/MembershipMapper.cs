@@ -20,7 +20,10 @@ public static partial class MembershipMapper
             plan.IsActive,
             plan.CreatedAt,
             plan.MaxFreezeDays,
-            plan.MinFreezeDays);
+            plan.MinFreezeDays,
+            EnumText.Snake(plan.Kind)!,
+            plan.Entries,
+            plan.ValidityDays);
 
     public static MembershipFreezeResponse ToResponse(MembershipFreeze freeze, DateOnly today)
         => new(
@@ -36,7 +39,8 @@ public static partial class MembershipMapper
             freeze.CreatedBy);
 
     public static MembershipResponse ToResponse(
-        Membership membership, string planName, DateOnly today, IEnumerable<MembershipFreeze>? freezes = null)
+        Membership membership, string planName, DateOnly today, IEnumerable<MembershipFreeze>? freezes = null,
+        int? entriesUsed = null)
     {
         var own = (freezes ?? []).Where(f => f.MembershipId == membership.Id).ToList();
         var active = membership.Status == MembershipStatus.Active
@@ -45,11 +49,12 @@ public static partial class MembershipMapper
         var next = membership.Status == MembershipStatus.Active
             ? own.Where(f => f.StartsOn > today).OrderBy(f => f.StartsOn).FirstOrDefault()
             : null;
-        return Build(membership, planName, today, active, next);
+        return Build(membership, planName, today, active, next, entriesUsed);
     }
 
     private static MembershipResponse Build(
-        Membership membership, string planName, DateOnly today, MembershipFreeze? active, MembershipFreeze? next)
+        Membership membership, string planName, DateOnly today, MembershipFreeze? active, MembershipFreeze? next,
+        int? entriesUsed)
         => new(
             membership.Id,
             membership.MemberId,
@@ -69,7 +74,10 @@ public static partial class MembershipMapper
             membership.TotalToCharge,
             membership.CycleDay,
             active is null ? null : ToResponse(active, today),
-            next is null ? null : ToResponse(next, today));
+            next is null ? null : ToResponse(next, today),
+            membership.EntriesTotal,
+            membership.EntriesTotal is null ? null : entriesUsed ?? 0,
+            membership.EntriesTotal is null ? null : Math.Max(0, membership.EntriesTotal.Value - (entriesUsed ?? 0)));
 
     public static AccessStatusResponse ToResponse(AccessStatus access)
         => new(
@@ -83,5 +91,7 @@ public static partial class MembershipMapper
             access.GraceDaysLeft,
             access.Notice,
             access.BlockMessage,
-            access.StartsOn);
+            access.StartsOn,
+            access.EntriesLeft,
+            access.EntriesTotal);
 }

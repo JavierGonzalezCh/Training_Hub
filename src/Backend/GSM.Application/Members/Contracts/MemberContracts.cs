@@ -223,12 +223,16 @@ public sealed record MemberDetail(
     public IReadOnlyList<MemberRecentPayment> RecentPayments { get; init; } = [];
 }
 
+/// <param name="EntriesTotal">Entradas con que empezó, si es una tiquetera (MS5); nulo en un plan por tiempo.</param>
+/// <param name="EntriesLeft">Entradas que le quedan (tiquetera).</param>
 public sealed record MemberCurrentMembership(
     Guid MembershipId,
     Guid PlanId,
     string PlanName,
     DateOnly StartDate,
-    DateOnly EndDate);
+    DateOnly EndDate,
+    int? EntriesTotal,
+    int? EntriesLeft);
 
 public sealed record MemberRecentPayment(
     Guid Id,

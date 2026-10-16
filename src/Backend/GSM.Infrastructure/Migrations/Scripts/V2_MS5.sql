@@ -1,0 +1,22 @@
+-- V2_MS5: tiqueteras (Memberships v2, §3, §5.1 y §7).
+--
+-- Orden esperado de la migración V2_MS5_Tiqueteras (el integrador la genera con `dotnet ef`):
+--   1. AlterDatabase: nuevo enum de Postgres memberships.plan_kind ('time','pass'). Es un CREATE TYPE,
+--      no un ALTER TYPE ... ADD VALUE: el valor 'pass' se puede usar en la misma migración.
+--   2. AddColumn memberships.membership_plans.kind memberships.plan_kind NOT NULL default 'time'
+--      (los planes existentes quedan por tiempo).
+--   3. AddColumn memberships.membership_plans.entries integer NULL.
+--   4. AddCheckConstraint ck_membership_plans_pass_entries: (kind = 'pass') = (entries IS NOT NULL).
+--      Va DESPUÉS de las dos columnas; las filas existentes (kind = 'time', entries = NULL) lo cumplen.
+--   5. AddColumn memberships.memberships.entries_total integer NULL (solo tiqueteras).
+--   6. CreateTable memberships.pass_usages (id, gym_id, membership_id FK -> memberships ON DELETE CASCADE,
+--      attendance_id uuid, used_on date, created_at, updated_at)
+--      + ix_pass_usages_attendance_id (ÚNICO: consumir es idempotente) + ix_pass_usages_membership_id.
+--   7. migrationBuilder.SqlScript("MS5")  <- este script (no hace nada hoy; ver abajo).
+--
+-- No hay datos que migrar: no existían tiqueteras. La duración de un plan `pass` se guarda en
+-- duration_value (días) con duration_unit = 'days'; `ValidityDays` es un alias de dominio, no una columna.
+-- Una membresía por tiempo no tiene entradas ni consumos.
+--
+-- Este script existe para que el orden quede escrito junto al resto de la v2; es idempotente.
+SELECT 1;

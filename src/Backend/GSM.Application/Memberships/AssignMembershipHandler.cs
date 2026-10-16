@@ -56,7 +56,7 @@ public sealed class AssignMembershipHandler(
         await EnsureWithinMemberLimitAsync(gymId, memberId, cancellationToken);
 
         var resolved = await renewals.ResolveAsync(
-            gymId, memberId, request.StartDate, request.StartDateReason, cancellationToken);
+            gymId, memberId, request.StartDate, request.StartDateReason, cancellationToken, newPlan: plan);
 
         // Precio acordado (descuento con motivo) y matrícula: las reglas viven en el dominio.
         var pricing = MembershipPricing.Resolve(
@@ -67,7 +67,7 @@ public sealed class AssignMembershipHandler(
         var membership = Membership.Create(
             gymId, memberId, plan.Id, resolved.StartDate, plan.DurationValue,
             resolved.Plan.Kind, resolved.StartOverrideReason, pricing,
-            plan.DurationUnit, resolved.InheritedCycleDay);
+            plan.DurationUnit, resolved.InheritedCycleDay, plan.Entries);
         memberships.Add(membership);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -135,7 +135,7 @@ public sealed class PreviewMembershipHandler(
             ?? throw new NotFoundException("Plan no encontrado.");
 
         var resolved = await renewals.ResolveAsync(
-            gymId, memberId, startDate, startDateReason, cancellationToken, requireReason: false);
+            gymId, memberId, startDate, startDateReason, cancellationToken, requireReason: false, newPlan: plan);
 
         return new RenewalPreviewResponse(
             GSM.Domain.Members.EnumText.Snake(resolved.Plan.Kind)!,

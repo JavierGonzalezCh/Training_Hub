@@ -13,6 +13,8 @@ public sealed record CheckInRequest(Guid? MemberId, string? GymCode, string? Aut
 /// <param name="Notice">Letrero de §5.3 (por vencer o en gracia). Nulo si no hay nada que avisar.</param>
 /// <param name="DaysLeft">Días que le quedan cubiertos (0 = vence hoy). Nulo en gracia o sin cobertura.</param>
 /// <param name="Authorized">La entrada fue autorizada por recepción fuera de la gracia.</param>
+/// <param name="EntriesLeft">Entradas que le quedan en la tiquetera después de esta entrada (MS5). Nulo si no lo cubre una tiquetera.</param>
+/// <param name="EntriesTotal">Entradas con que empezó la tiquetera.</param>
 /// <param name="MissingWaiver">El miembro no tiene la exoneración de responsabilidad aceptada (recepción debe pedirla). Sin más detalle.</param>
 public sealed record CheckInResponse(
     Guid AttendanceId,
@@ -27,7 +29,9 @@ public sealed record CheckInResponse(
     string? Notice = null,
     int? DaysLeft = null,
     bool Authorized = false,
-    bool MissingWaiver = false);
+    bool MissingWaiver = false,
+    int? EntriesLeft = null,
+    int? EntriesTotal = null);
 
 public sealed record CheckinAttemptItem(
     Guid Id,
@@ -129,7 +133,9 @@ public sealed record KioskDocumentEntryResponse(string FirstName, string? PhotoU
 /// </summary>
 /// <param name="Commercial"><c>no_plan</c>, <c>current</c>, <c>expiring</c>, <c>grace</c>, <c>expired</c> o <c>frozen</c>.</param>
 /// <param name="Kind"><c>covered</c>, <c>expiring</c>, <c>grace</c> o <c>blocked</c>.</param>
-/// <param name="RejectionReason"><c>gym_closed</c>, <c>member_inactive</c>, <c>already_checked_in</c>, <c>no_membership</c>, <c>membership_expired</c> o <c>membership_frozen</c>.</param>
+/// <param name="RejectionReason"><c>gym_closed</c>, <c>member_inactive</c>, <c>already_checked_in</c>, <c>no_membership</c>, <c>membership_expired</c>, <c>membership_frozen</c> o <c>pass_exhausted</c> (tiquetera sin entradas).</param>
+/// <param name="EntriesLeft">Entradas que le quedan en la tiquetera (MS5). Nulo si no lo cubre una tiquetera.</param>
+/// <param name="EntriesTotal">Entradas con que empezó la tiquetera.</param>
 /// <param name="CanRegister">Se puede pulsar "Registrar entrada" (abierto, activo, no entró hoy y cubierto o en gracia).</param>
 /// <param name="CanLetThrough">Se puede "Dejar pasar" con motivo: bloqueado por la membresía, con el gym abierto y el miembro activo.</param>
 /// <param name="CheckedInAt">Instante de la última entrada de hoy, si ya entró.</param>
@@ -161,7 +167,9 @@ public sealed record ReceptionCardResponse(
     int MaxDailyEntries,
     bool MultipleEntries,
     DateTimeOffset? NextEntryAt,
-    bool BirthdayToday);
+    bool BirthdayToday,
+    int? EntriesLeft,
+    int? EntriesTotal);
 
 /// <summary>Habilita (o cambia) las entradas múltiples de un miembro. Máximo de 2 a 5; motivo obligatorio; vencimiento opcional.</summary>
 public sealed record SetEntryRuleRequest(int MaxDailyEntries, string Reason, DateOnly? ValidUntil);

@@ -74,7 +74,8 @@ public sealed class MembersController : ControllerBase
             CurrentMembership = active is null
                 ? null
                 : new MemberCurrentMembership(
-                    active.MembershipId, active.PlanId, active.PlanName, active.StartDate, active.EndDate),
+                    active.MembershipId, active.PlanId, active.PlanName, active.StartDate, active.EndDate,
+                    access.EntriesTotal, access.EntriesLeft),
             RecentPayments = recent
                 .Select(p => new MemberRecentPayment(
                     p.Id, p.Amount, p.Method.ToString(), p.Concept, p.PaidAt))

@@ -50,6 +50,9 @@ public enum AccessBlockReason
     Expired,
     Frozen,
     Scheduled,
+
+    /// <summary>Tiquetera vigente a la que ya no le quedan entradas (MS5).</summary>
+    PassExhausted,
 }
 
 /// <summary>
@@ -61,6 +64,8 @@ public enum AccessBlockReason
 /// <param name="GraceEndsOn">Último día de la gracia. Solo en gracia.</param>
 /// <param name="GraceDaysLeft">Días que le quedan de gracia (0 = hoy es el último). Solo en gracia.</param>
 /// <param name="StartsOn">Día en que empieza su próxima membresía. Solo si está programada (<see cref="CommercialStatus.Scheduled"/>).</param>
+/// <param name="EntriesLeft">Entradas que le quedan en la tiquetera (MS5). Nulo si lo que lo cubre no es una tiquetera.</param>
+/// <param name="EntriesTotal">Entradas con que empezó esa tiquetera.</param>
 public sealed record AccessStatus(
     CommercialStatus Commercial,
     AccessKind Kind,
@@ -71,7 +76,9 @@ public sealed record AccessStatus(
     int? GraceDaysLeft,
     string? Notice,
     string? BlockMessage,
-    DateOnly? StartsOn = null)
+    DateOnly? StartsOn = null,
+    int? EntriesLeft = null,
+    int? EntriesTotal = null)
 {
     public bool CanEnter => Kind != AccessKind.Blocked;
 }
