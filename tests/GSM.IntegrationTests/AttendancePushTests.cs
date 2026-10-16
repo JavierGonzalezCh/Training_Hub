@@ -44,7 +44,7 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
                 d => d.NotificationId == notice.Id && d.Channel == DeliveryChannel.Email));
         }
 
-        await RunDispatcherAtAsync(AtLocal(Today, 6, 13));
+        await RunDispatcherAtAsync(AtLocal(Today, 6, 13), world.GymId);
         var sent = Assert.Single(push.SentTo(token));
         Assert.Equal("Se registró tu entrada con tu documento a las 6:12", sent.Title);
     }
@@ -71,7 +71,7 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
         var push = factory.Services.GetRequiredService<CapturingPushSender>();
         var night = AtLocal(Today, 3);
         await PublishAtAsync(world.GymId, new DocumentCheckInRegistered(Guid.CreateVersion7(), world.GymId, world.MemberId, night), night);
-        await RunDispatcherAtAsync(night.AddMinutes(1));
+        await RunDispatcherAtAsync(night.AddMinutes(1), world.GymId);
 
         Assert.Single(push.SentTo(token));
     }
@@ -106,7 +106,7 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
         var push = factory.Services.GetRequiredService<CapturingPushSender>();
         await PublishAsync(world.GymId, new CheckInRejected(
             Guid.CreateVersion7(), world.GymId, world.MemberId, CheckinRejectionReason.NoMembership, 1, null));
-        await RunDispatcherAtAsync(AtLocal(Today, 12));
+        await RunDispatcherAtAsync(AtLocal(Today, 12), world.GymId);
 
         var sent = Assert.Single(push.SentTo(askingToken));
         Assert.Equal("Entrada rechazada", sent.Title);
@@ -137,12 +137,12 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
         await scope.ServiceProvider.GetRequiredService<IDomainEventPublisher>().PublishAsync(evt, default);
     }
 
-    private async Task RunDispatcherAtAsync(DateTimeOffset instant)
+    private async Task RunDispatcherAtAsync(DateTimeOffset instant, Guid gymId)
     {
         using var scope = System();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(
             instant, DateOnly.FromDateTime(instant.ToOffset(TimeSpan.FromHours(-5)).DateTime));
-        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync();
+        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync(onlyGymId: gymId);
     }
 
     private async Task RegisterAsync(Guid gymId, Guid userId, string token, UserRole role, string platform)

@@ -112,7 +112,7 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
         var noon = AtLocal(Today, 12);
 
         await NotifyAsync(world.GymId, person.Id, NotificationType.ClassCancelled, NotificationCategory.Classes, "Clase 1");
-        await RunDispatcherAtAsync(noon, Today);
+        await RunDispatcherAtAsync(noon, Today, world.GymId);
 
         var sent = Assert.Single(push.SentTo(token));
         Assert.Equal("Clase 1", sent.Title);
@@ -123,7 +123,7 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
         // Con el push de "Mis clases" apagado, el aviso llega a la bandeja pero no sale push.
         await SetPushAsync(world.GymId, person.UserId, "Classes", push: false);
         await NotifyAsync(world.GymId, person.Id, NotificationType.ClassCancelled, NotificationCategory.Classes, "Clase 2");
-        await RunDispatcherAtAsync(noon, Today);
+        await RunDispatcherAtAsync(noon, Today, world.GymId);
 
         Assert.Single(push.SentTo(token));
         var deliveries = await PushDeliveriesAsync(person.Id);
@@ -133,7 +133,7 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
 
         // Otra categoría sigue encendida.
         await NotifyAsync(world.GymId, person.Id, NotificationType.AchievementUnlocked, NotificationCategory.Progress, "Logro");
-        await RunDispatcherAtAsync(noon, Today);
+        await RunDispatcherAtAsync(noon, Today, world.GymId);
         Assert.Equal(2, push.SentTo(token).Count);
     }
 
@@ -149,7 +149,7 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
 
         await NotifyAsync(world.GymId, withDevice.Id, NotificationType.ClassCancelled, NotificationCategory.Classes, "Clase");
         await NotifyAsync(world.GymId, world.Members[1].Id, NotificationType.ClassCancelled, NotificationCategory.Classes, "Clase");
-        await RunDispatcherAtAsync(AtLocal(Today, 12), Today);
+        await RunDispatcherAtAsync(AtLocal(Today, 12), Today, world.GymId);
 
         Assert.Empty(push.SentTo(token));
         Assert.False(await IsActiveAsync(token));
@@ -176,17 +176,17 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
         await NotifyAsync(world.GymId, person.Id, NotificationType.ClassCancelled, NotificationCategory.Classes, "Clase");
         await NotifyAsync(world.GymId, person.Id, NotificationType.AchievementUnlocked, NotificationCategory.Progress, "Logro");
 
-        await RunDispatcherAtAsync(night, Today);
+        await RunDispatcherAtAsync(night, Today, world.GymId);
 
         Assert.Equal(["Clase", "Logro"], push.SentTo(token).Select(m => m.Title).Order().ToArray());
         Assert.Equal(1, await CountByStatusAsync(world.GymId, NotificationType.Announcement, NotificationStatus.Held, "Noticia"));
         Assert.Equal(1, await CountByStatusAsync(world.GymId, NotificationType.Announcement, NotificationStatus.Held, "Oferta"));
 
         // 6:59 todavía retenidos; 7:00 salen.
-        await RunDispatcherAtAsync(AtLocal(Today.AddDays(1), 6, 59), Today.AddDays(1));
+        await RunDispatcherAtAsync(AtLocal(Today.AddDays(1), 6, 59), Today.AddDays(1), world.GymId);
         Assert.Equal(2, push.SentTo(token).Count);
 
-        await RunDispatcherAtAsync(AtLocal(Today.AddDays(1), 7), Today.AddDays(1));
+        await RunDispatcherAtAsync(AtLocal(Today.AddDays(1), 7), Today.AddDays(1), world.GymId);
         Assert.Equal(["Clase", "Logro", "Noticia", "Oferta"], push.SentTo(token).Select(m => m.Title).Order().ToArray());
         Assert.Equal(2, await CountByStatusAsync(world.GymId, NotificationType.Announcement, NotificationStatus.Sent));
     }
@@ -293,7 +293,7 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
         var important = await CreateAsync(world.GymId, UserRole.Owner, "Cerrado por emergencia", pinned: false, important: true, expiresOn: expires);
         await PublishAsync(world.GymId, UserRole.Owner, important, night, Today);
 
-        await RunDispatcherAtAsync(night, Today);
+        await RunDispatcherAtAsync(night, Today, world.GymId);
 
         // Salió ya, de noche y con Novedades apagado; el normal quedó retenido sin push.
         var message = Assert.Single(push.SentTo(token));
@@ -353,7 +353,7 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
         {
             scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
             scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(AtLocal(Today, 12), Today);
-            var result = await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync();
+            var result = await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync(onlyGymId: world.GymId);
             Assert.True(result.LockAcquired);
             Assert.Equal(0, result.Failed);
 
@@ -408,7 +408,7 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
         }
 
         var push = factory.Services.GetRequiredService<CapturingPushSender>();
-        await RunDispatcherAtAsync(AtLocal(Today, 12), Today);
+        await RunDispatcherAtAsync(AtLocal(Today, 12), Today, world.GymId);
 
         Assert.Single(push.SentTo(askingToken));
         Assert.Empty(push.SentTo(silentToken));
@@ -430,11 +430,11 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
     private static DateOnly DayOf(DateTimeOffset instant)
         => DateOnly.FromDateTime(instant.ToOffset(TimeSpan.FromHours(-5)).DateTime);
 
-    private async Task RunDispatcherAtAsync(DateTimeOffset instant, DateOnly day)
+    private async Task RunDispatcherAtAsync(DateTimeOffset instant, DateOnly day, Guid gymId)
     {
         using var scope = System();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(instant, day);
-        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync();
+        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync(onlyGymId: gymId);
     }
 
     private async Task PublishEventAtAsync<TEvent>(Guid gymId, DateTimeOffset instant, TEvent evt) where TEvent : IDomainEvent

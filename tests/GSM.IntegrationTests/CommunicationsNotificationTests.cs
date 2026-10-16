@@ -152,13 +152,13 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
         }
 
         sender.Clear();
-        await RunDispatcherAsync();
+        await RunDispatcherAsync(world.GymId);
         var mine = sender.Sent.Where(m => world.Members.Any(x => x.Email == m.To)).ToList();
         Assert.Equal(2, mine.Count);
         Assert.Contains("/api/public/unsubscribe?t=", mine[0].HtmlBody);
 
         sender.Clear();
-        await RunDispatcherAsync();
+        await RunDispatcherAsync(world.GymId);
         Assert.DoesNotContain(sender.Sent, m => world.Members.Any(x => x.Email == m.To));
         Assert.Equal(2, await CountDeliveriesAsync(world.GymId, DeliveryStatus.Sent));
 
@@ -178,17 +178,17 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
             noticeId = notice.Id;
         }
 
-        await RunDispatcherAsync(failFor: "falla@test.local");
+        await RunDispatcherAsync(world.GymId, failFor: "falla@test.local");
         await AssertDeliveryAsync(failingId, DeliveryStatus.Pending, 1);
 
         // Aún dentro de la espera (2 min): no reintenta.
-        await RunDispatcherAsync(failFor: "falla@test.local");
+        await RunDispatcherAsync(world.GymId, failFor: "falla@test.local");
         await AssertDeliveryAsync(failingId, DeliveryStatus.Pending, 1);
 
-        await RunDispatcherAsync(failFor: "falla@test.local", minutesLater: 3);
+        await RunDispatcherAsync(world.GymId, failFor: "falla@test.local", minutesLater: 3);
         await AssertDeliveryAsync(failingId, DeliveryStatus.Pending, 2);
 
-        await RunDispatcherAsync(failFor: "falla@test.local", minutesLater: 10);
+        await RunDispatcherAsync(world.GymId, failFor: "falla@test.local", minutesLater: 10);
         await AssertDeliveryAsync(failingId, DeliveryStatus.Failed, 3);
 
         using (var scope = System())
@@ -452,21 +452,21 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
     }
 
     /// <summary>Una vuelta del dispatcher, a mano. <paramref name="minutesLater"/> adelanta el reloj.</summary>
-    private async Task RunDispatcherAsync(string? failFor = null, int minutesLater = 0)
+    private async Task RunDispatcherAsync(Guid gymId, string? failFor = null, int minutesLater = 0)
     {
         using var scope = System();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(NowOf(Today).AddMinutes(minutesLater), Today);
         var sender = factory.Services.GetRequiredService<CapturingEmailSender>();
         if (failFor is null)
         {
-            await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync();
+            await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync(onlyGymId: gymId);
             return;
         }
 
         // Un remitente que falla solo para una dirección; el resto se comporta como el de captura.
         var runner = ActivatorUtilities.CreateInstance<NotificationDispatchRunner>(
             scope.ServiceProvider, (GSM.Application.Common.Abstractions.IEmailSender)new FailingFor(failFor, sender));
-        await runner.RunOnceAsync();
+        await runner.RunOnceAsync(onlyGymId: gymId);
     }
 
     private async Task AssertDeliveryAsync(Guid id, DeliveryStatus status, int attempts)

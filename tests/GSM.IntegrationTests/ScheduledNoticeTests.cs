@@ -46,12 +46,12 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
 
         // Antes de su hora no está en la bandeja ni el dispatcher lo envía.
         Assert.Empty(await InboxAsync(w, 0, AtLocal(Monday, 13)));
-        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 49), NextMonday);
+        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 49), NextMonday, w.GymId);
         Assert.Equal(NotificationStatus.Pending, (await SingleNoticeAsync(w.GymId, NotificationType.ClassReminder, memberId: w.MemberIds[0])).Status);
         Assert.Empty(await InboxAsync(w, 0, AtLocal(NextMonday, 6, 49)));
 
         // A las 6:50 sale: queda enviado, aparece en la bandeja y no lleva correo (llegaría tarde).
-        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 50), NextMonday);
+        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 50), NextMonday, w.GymId);
         var sent = await SingleNoticeAsync(w.GymId, NotificationType.ClassReminder, memberId: w.MemberIds[0]);
         Assert.Equal(NotificationStatus.Sent, sent.Status);
         Assert.Equal(
@@ -78,7 +78,7 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
         var cancelled = await SingleNoticeAsync(w.GymId, NotificationType.ClassReminder, memberId: w.MemberIds[0]);
         Assert.Equal(NotificationStatus.Cancelled, cancelled.Status);
 
-        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 51), NextMonday);
+        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 51), NextMonday, w.GymId);
         Assert.Equal(
             NotificationStatus.Cancelled,
             (await SingleNoticeAsync(w.GymId, NotificationType.ClassReminder, memberId: w.MemberIds[0])).Status);
@@ -91,7 +91,7 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
         Assert.Equal(NotificationStatus.Pending, again.Status);
         Assert.Equal(AtLocal(NextMonday, 6, 50), again.ScheduledFor);
 
-        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 51), NextMonday);
+        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 51), NextMonday, w.GymId);
         Assert.Equal(
             NotificationStatus.Sent,
             (await SingleNoticeAsync(w.GymId, NotificationType.ClassReminder, memberId: w.MemberIds[0])).Status);
@@ -115,7 +115,7 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
         // El aviso de "clase cancelada" de siempre sigue creándose.
         Assert.Equal(2, await CountNoticesAsync(w.GymId, NotificationType.ClassCancelled));
 
-        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 51), NextMonday);
+        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 51), NextMonday, w.GymId);
         Assert.Equal(0, await CountByStatusAsync(w.GymId, NotificationType.ClassReminder, NotificationStatus.Sent));
         Assert.Equal(0, await CountByStatusAsync(w.GymId, NotificationType.InstructorClassReminder, NotificationStatus.Sent));
     }
@@ -165,11 +165,11 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
         Assert.Equal(NotificationCategory.News, greeting.Category);
         Assert.Equal(sendAt, greeting.ScheduledFor);
 
-        await RunDispatcherAtAsync(AtLocal(birthday, 7, 59), birthday);
+        await RunDispatcherAtAsync(AtLocal(birthday, 7, 59), birthday, w.GymId);
         Assert.Equal(NotificationStatus.Pending, (await SingleNoticeAsync(w.GymId, NotificationType.Birthday, memberId: w.MemberIds[0])).Status);
         Assert.Empty(await InboxAsync(w, 0, AtLocal(birthday, 7, 59)));
 
-        await RunDispatcherAtAsync(sendAt, birthday);
+        await RunDispatcherAtAsync(sendAt, birthday, w.GymId);
         Assert.Equal(NotificationStatus.Sent, (await SingleNoticeAsync(w.GymId, NotificationType.Birthday, memberId: w.MemberIds[0])).Status);
         Assert.Single(await InboxAsync(w, 0, sendAt.AddMinutes(1)));
     }
@@ -190,9 +190,9 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
         var early = await SingleNoticeAsync(w.GymId, NotificationType.MembershipExpiring, memberId: w.MemberIds[0]);
         Assert.Equal(AtLocal(day, 8), early.ScheduledFor);
 
-        await RunDispatcherAtAsync(AtLocal(day, 7, 59), day);
+        await RunDispatcherAtAsync(AtLocal(day, 7, 59), day, w.GymId);
         Assert.Equal(NotificationStatus.Pending, (await SingleNoticeAsync(w.GymId, NotificationType.MembershipExpiring, memberId: w.MemberIds[0])).Status);
-        await RunDispatcherAtAsync(AtLocal(day, 8), day);
+        await RunDispatcherAtAsync(AtLocal(day, 8), day, w.GymId);
         Assert.Equal(NotificationStatus.Sent, (await SingleNoticeAsync(w.GymId, NotificationType.MembershipExpiring, memberId: w.MemberIds[0])).Status);
 
         // Generado ya pasadas las 8:00: sale en el acto, como hasta ahora.
@@ -259,11 +259,11 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
         await scope.ServiceProvider.GetRequiredService<IDomainEventPublisher>().PublishAsync(evt, default);
     }
 
-    private async Task RunDispatcherAtAsync(DateTimeOffset instant, DateOnly day)
+    private async Task RunDispatcherAtAsync(DateTimeOffset instant, DateOnly day, Guid gymId)
     {
         using var scope = System();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(instant, day);
-        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync();
+        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync(onlyGymId: gymId);
     }
 
     private IServiceScope System()

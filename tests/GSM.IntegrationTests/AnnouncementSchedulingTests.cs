@@ -225,7 +225,7 @@ public sealed class AnnouncementSchedulingTests(ApiFactory factory) : IClassFixt
         Assert.Equal("Published", await StatusAsync(id));
 
         // ...pero sus avisos (y con ellos el push y el correo) quedan retenidos hasta las 7:00 locales.
-        await RunDispatcherAtAsync(jobAt);
+        await RunDispatcherAtAsync(jobAt, w.GymId);
         var sevenNextDay = BogotaClock
             .BusinessDayRange(DateOnly.FromDateTime(BogotaClock.ToBusinessLocal(chosen)).AddDays(1)).Start.AddHours(7);
         using (var scope = SystemScope(jobAt))
@@ -238,7 +238,7 @@ public sealed class AnnouncementSchedulingTests(ApiFactory factory) : IClassFixt
             Assert.All(notices, n => Assert.Equal(sevenNextDay, n.ReleaseAt));
         }
 
-        await RunDispatcherAtAsync(sevenNextDay);
+        await RunDispatcherAtAsync(sevenNextDay, w.GymId);
         using (var scope = SystemScope(sevenNextDay))
         {
             var statuses = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
@@ -249,11 +249,11 @@ public sealed class AnnouncementSchedulingTests(ApiFactory factory) : IClassFixt
         }
     }
 
-    private async Task RunDispatcherAtAsync(DateTimeOffset instant)
+    private async Task RunDispatcherAtAsync(DateTimeOffset instant, Guid gymId)
     {
         using var scope = SystemScope(instant);
         await scope.ServiceProvider.GetRequiredService<GSM.Application.Notifications.NotificationDispatchRunner>()
-            .RunOnceAsync();
+            .RunOnceAsync(onlyGymId: gymId);
     }
 
     // ---------- imagen ----------

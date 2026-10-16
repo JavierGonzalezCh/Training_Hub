@@ -60,10 +60,10 @@ public sealed class BirthdayGreetingTests(ApiFactory factory) : IClassFixture<Ap
 
         await RunJobAtAsync(AtLocal(Birthday, 6), Birthday);
 
-        await RunDispatcherAtAsync(AtLocal(Birthday, 7, 59), Birthday);
+        await RunDispatcherAtAsync(AtLocal(Birthday, 7, 59), Birthday, w.GymId);
         Assert.Equal(NotificationStatus.Pending, Assert.Single(await NoticesAsync(w.GymId)).Status);
 
-        await RunDispatcherAtAsync(AtLocal(Birthday, 8), Birthday);
+        await RunDispatcherAtAsync(AtLocal(Birthday, 8), Birthday, w.GymId);
         Assert.Equal(NotificationStatus.Sent, Assert.Single(await NoticesAsync(w.GymId)).Status);
         Assert.NotEqual(Guid.Empty, ana);
     }
@@ -261,11 +261,11 @@ public sealed class BirthdayGreetingTests(ApiFactory factory) : IClassFixture<Ap
         await scope.ServiceProvider.GetRequiredService<RunCommunicationsJobHandler>().HandleAsync(default);
     }
 
-    private async Task RunDispatcherAtAsync(DateTimeOffset instant, DateOnly day)
+    private async Task RunDispatcherAtAsync(DateTimeOffset instant, DateOnly day, Guid gymId)
     {
         using var scope = System();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(instant, day);
-        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync();
+        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync(onlyGymId: gymId);
     }
 
     private async Task<List<Notification>> NoticesAsync(Guid gymId)

@@ -38,20 +38,22 @@ public sealed class NotificationDispatchRunner(
 
     public const int BatchSize = 100;
 
-    public async Task<DispatchRoundResult> RunOnceAsync(CancellationToken cancellationToken = default)
+    /// <param name="onlyGymId">Solo para tests: limita la ronda a un gym y no toma el candado, para que pruebas en
+    /// paralelo con relojes distintos no se liberen ni se bloqueen los avisos entre sí. En producción es nulo.</param>
+    public async Task<DispatchRoundResult> RunOnceAsync(CancellationToken cancellationToken = default, Guid? onlyGymId = null)
     {
         var startedAt = clock.UtcNow;
         try
         {
-            var held = await dispatchLock.TryAcquireAsync(cancellationToken);
-            if (held is null)
+            var held = onlyGymId is null ? await dispatchLock.TryAcquireAsync(cancellationToken) : null;
+            if (onlyGymId is null && held is null)
             {
                 return new DispatchRoundResult(false, 0, 0);
             }
 
             await using var lockScope = held;
 
-            var (processed, failed) = await ProcessAsync(cancellationToken);
+            var (processed, failed) = await ProcessAsync(cancellationToken, onlyGymId);
             if (processed > 0)
             {
                 logStore.RecordJobRun(new JobRunLogEntry(
@@ -105,10 +107,10 @@ public sealed class NotificationDispatchRunner(
         }
     }
 
-    private async Task<(int Processed, int Failed)> ProcessAsync(CancellationToken cancellationToken)
+    private async Task<(int Processed, int Failed)> ProcessAsync(CancellationToken cancellationToken, Guid? onlyGymId)
     {
         var now = clock.UtcNow;
-        var due = await notifications.GetDueAsync(now, BatchSize, cancellationToken);
+        var due = await notifications.GetDueAsync(now, BatchSize, cancellationToken, onlyGymId);
         if (due.Count == 0)
         {
             return (0, 0);

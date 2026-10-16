@@ -93,7 +93,7 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
 
         var sender = factory.Services.GetRequiredService<CapturingEmailSender>();
         sender.Clear();
-        await RunDispatcherAtAsync(AtLocal(Today, 12), Today);
+        await RunDispatcherAtAsync(AtLocal(Today, 12), Today, world.GymId);
         Assert.Null(sender.LastTo(muted.Email!));
         var mail = sender.LastTo(other.Email!);
         Assert.NotNull(mail);
@@ -116,7 +116,7 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
         }
 
         sender.Clear();
-        await RunDispatcherAtAsync(AtLocal(Today, 12), Today);
+        await RunDispatcherAtAsync(AtLocal(Today, 12), Today, world.GymId);
         var security = sender.LastTo(muted.Email!);
         Assert.NotNull(security);
         Assert.DoesNotContain("unsubscribe", security.HtmlBody);
@@ -188,7 +188,7 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
         await PublishAtAsync(world.GymId, night, new ClassSessionCancelled(classId, world.GymId, Today.AddDays(2), ids));
 
         sender.Clear();
-        await RunDispatcherAtAsync(night, Today);
+        await RunDispatcherAtAsync(night, Today, world.GymId);
 
         // El anuncio queda retenido (con su aviso ya en el sistema); la clase cancelada sale en el acto.
         Assert.Equal(2, await CountByStatusAsync(world.GymId, NotificationType.Announcement, NotificationStatus.Held));
@@ -199,12 +199,12 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
 
         // 6:59: todavía dentro del horario sin avisos.
         sender.Clear();
-        await RunDispatcherAtAsync(AtLocal(Today.AddDays(1), 6, 59), Today.AddDays(1));
+        await RunDispatcherAtAsync(AtLocal(Today.AddDays(1), 6, 59), Today.AddDays(1), world.GymId);
         Assert.DoesNotContain(sender.Sent, m => world.Members.Any(x => x.Email == m.To));
         Assert.Equal(2, await CountByStatusAsync(world.GymId, NotificationType.Announcement, NotificationStatus.Held));
 
         // 7:00: el dispatcher libera y envía.
-        await RunDispatcherAtAsync(AtLocal(Today.AddDays(1), 7), Today.AddDays(1));
+        await RunDispatcherAtAsync(AtLocal(Today.AddDays(1), 7), Today.AddDays(1), world.GymId);
         Assert.Equal(2, sender.Sent.Count(m => world.Members.Any(x => x.Email == m.To) && m.Subject.Contains("Festivo")));
         Assert.Equal(2, await CountByStatusAsync(world.GymId, NotificationType.Announcement, NotificationStatus.Sent));
     }
@@ -217,7 +217,7 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
         var night = AtLocal(Today, 23);
 
         await PublishAtAsync(world.GymId, night, Announcement(world, sendEmail: true, AnnouncementCategory.Promotions));
-        await RunDispatcherAtAsync(night, Today);
+        await RunDispatcherAtAsync(night, Today, world.GymId);
         Assert.Equal(1, await CountByStatusAsync(world.GymId, NotificationType.Announcement, NotificationStatus.Held));
 
         // Un aviso al staff (sin categoría de miembro) no se retiene en el horario sin avisos.
@@ -232,7 +232,7 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
             staffNoticeId = notice.Id;
         }
 
-        await RunDispatcherAtAsync(night, Today);
+        await RunDispatcherAtAsync(night, Today, world.GymId);
         using (var scope = System())
         {
             var notice = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
@@ -265,7 +265,7 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
         var night = AtLocal(Today, 22);
         await PublishAtAsync(world.GymId, night, Announcement(world, sendEmail: true));
         sender.Clear();
-        await RunDispatcherAtAsync(night, Today);
+        await RunDispatcherAtAsync(night, Today, world.GymId);
         Assert.Equal(1, await CountByStatusAsync(world.GymId, NotificationType.Announcement, NotificationStatus.Sent));
         Assert.Single(sender.Sent, m => m.To == world.Members[0].Email);
 
@@ -279,7 +279,7 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
 
         var dawn = AtLocal(Today, 3);
         await PublishAtAsync(other.GymId, dawn, Announcement(other, sendEmail: false));
-        await RunDispatcherAtAsync(dawn, Today);
+        await RunDispatcherAtAsync(dawn, Today, other.GymId);
         Assert.Equal(1, await CountByStatusAsync(other.GymId, NotificationType.Announcement, NotificationStatus.Sent));
     }
 
@@ -302,11 +302,11 @@ public sealed class NotificationPreferencesTests(ApiFactory factory) : IClassFix
         await scope.ServiceProvider.GetRequiredService<IDomainEventPublisher>().PublishAsync(evt, default);
     }
 
-    private async Task RunDispatcherAtAsync(DateTimeOffset instant, DateOnly day)
+    private async Task RunDispatcherAtAsync(DateTimeOffset instant, DateOnly day, Guid gymId)
     {
         using var scope = System();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(instant, day);
-        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync();
+        await scope.ServiceProvider.GetRequiredService<NotificationDispatchRunner>().RunOnceAsync(onlyGymId: gymId);
     }
 
     private static DateOnly DayOf(DateTimeOffset instant)

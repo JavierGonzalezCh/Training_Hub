@@ -399,8 +399,9 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
     }
 
     public async Task<IReadOnlyList<Notification>> GetDueAsync(
-        DateTimeOffset now, int take, CancellationToken cancellationToken = default)
+        DateTimeOffset now, int take, CancellationToken cancellationToken = default, Guid? onlyGymId = null)
         => await Notifications
+            .Where(n => onlyGymId == null || n.GymId == onlyGymId)
             .Where(n => (n.Status == NotificationStatus.Pending && n.ScheduledFor <= now)
                 || (n.Status == NotificationStatus.Held && n.ReleaseAt <= now))
             .OrderBy(n => n.ScheduledFor)
