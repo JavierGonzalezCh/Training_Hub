@@ -108,6 +108,15 @@ public enum NotificationType
     /// reactivarla si hace falta. Sin el nombre del miembro (el aviso se conserva). Referencia: miembro + día previsto.
     /// </summary>
     MemberAnonymizationUpcoming,
+
+    /// <summary>
+    /// C3-5: el miembro llegó al límite de inasistencias y no puede reservar clases hasta una fecha. Categoría Clases.
+    /// Referencia: miembro + fecha de fin del bloqueo.
+    /// </summary>
+    BookingPenaltyApplied,
+
+    /// <summary>C3-5: el staff levantó la penalización; ya puede reservar. Referencia: miembro + día en que se levantó.</summary>
+    BookingPenaltyLifted,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

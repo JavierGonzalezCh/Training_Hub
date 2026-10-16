@@ -6,6 +6,7 @@ using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
+using GSM.Domain.Notifications;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -331,6 +332,11 @@ public sealed class ClassBookingRulesTests(ApiFactory factory) : IClassFixture<A
         await MarkNoShowAsync(w, classId, NextMonday, w.MemberIds[0]);
         await MarkNoShowAsync(w, classId, NextTuesday, w.MemberIds[0]);
 
+        // C3-5: el miembro recibe el aviso de que no puede reservar, con la fecha.
+        var applied = Assert.Single(await PenaltyNoticesAsync(w, NotificationType.BookingPenaltyApplied));
+        Assert.Contains("Podrás volver a reservar después del", applied.Body);
+        Assert.Equal(NotificationCategory.Classes, applied.Category);
+
         Guid blockId;
         using (var scope = Owner(w))
         {
@@ -350,6 +356,9 @@ public sealed class ClassBookingRulesTests(ApiFactory factory) : IClassFixture<A
         {
             Assert.Empty(await scope.ServiceProvider.GetRequiredService<ListBookingBlocksHandler>().HandleAsync(default));
         }
+
+        // C3-5: y el aviso de que ya puede reservar.
+        Assert.Single(await PenaltyNoticesAsync(w, NotificationType.BookingPenaltyLifted));
 
         // Puede reservar de nuevo...
         var friday = await CreateClassAsync(w, [ClassDayOfWeek.Friday]);
@@ -472,4 +481,12 @@ public sealed class ClassBookingRulesTests(ApiFactory factory) : IClassFixture<A
         };
 
     private sealed record World(Guid GymId, Guid StaffId, IReadOnlyList<Guid> MemberIds, IReadOnlyList<Guid> MemberUserIds);
+
+    private async Task<List<GSM.Domain.Notifications.Notification>> PenaltyNoticesAsync(World w, NotificationType type)
+    {
+        using var scope = Owner(w);
+        return await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<GSM.Domain.Notifications.Notification>()
+            .Where(n => n.GymId == w.GymId && n.RecipientMemberId == w.MemberIds[0] && n.Type == type)
+            .ToListAsync();
+    }
 }

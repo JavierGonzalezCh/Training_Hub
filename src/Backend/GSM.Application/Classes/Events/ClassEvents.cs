@@ -13,11 +13,11 @@ public sealed record ClassAttendanceRegistered(
 
 /// <summary>
 /// C3: el miembro alcanzó el límite de inasistencias y no puede reservar hasta <paramref name="BlockedUntil"/>
-/// (inclusive). Lo consume Notifications para avisarle; sin consumidores aún.
+/// (inclusive). Lo consume Notifications para avisarle (C3-5).
 /// </summary>
 public sealed record BookingPenaltyApplied(Guid MemberId, Guid GymId, DateOnly BlockedUntil) : IDomainEvent;
 
-/// <summary>C3: el staff levantó la penalización de reservas de un miembro.</summary>
+/// <summary>C3: el staff levantó la penalización de reservas de un miembro. Notifications le avisa (C3-5).</summary>
 public sealed record BookingPenaltyLifted(Guid MemberId, Guid GymId) : IDomainEvent;
 
 /// <summary>
