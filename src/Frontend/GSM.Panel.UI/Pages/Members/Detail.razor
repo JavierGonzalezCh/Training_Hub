@@ -298,7 +298,11 @@ else if (_member is not null)
             }
         </MudTabPanel>
         <MudTabPanel Text="Rutina">
-            <div class="d-flex justify-end mb-3 mt-4">
+            <div class="d-flex justify-end mb-3 mt-4" style="gap:.5rem">
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.ContentCopy"
+                           OnClick="AssignFromTemplateAsync" data-testid="routine-from-template">
+                    Desde plantilla
+                </MudButton>
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add"
                            OnClick="@(() => Navigation.NavigateTo($"/members/{Id}/routines/new"))">
                     Nueva rutina
@@ -692,6 +696,21 @@ else if (_member is not null)
                 : "Plan cambiado, pero el movimiento de dinero no se registró: regístralo desde la pestaña Pagos.",
             outcome.PaymentError is null ? Severity.Success : Severity.Warning);
         await RefreshMembershipsAsync();
+    }
+
+    // R11: asigna una plantilla de rutina del gym al miembro (copia su contenido).
+    private async Task AssignFromTemplateAsync()
+    {
+        var parameters = new DialogParameters<AssignFromTemplateDialog> { { x => x.MemberId, Id } };
+        var dialog = await Dialogs.ShowAsync<AssignFromTemplateDialog>("Asignar desde plantilla", parameters);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false })
+        {
+            return;
+        }
+
+        Snackbar.Add("Rutina asignada desde la plantilla.", Severity.Success);
+        await LoadAsync();
     }
 
     private async Task CancelMembershipAsync(MembershipResponse membership)

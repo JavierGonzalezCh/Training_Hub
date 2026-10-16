@@ -1,0 +1,117 @@
+@page "/routine-templates"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IRoutineTemplatesClient Templates
+@inject NavigationManager Navigation
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Plantillas de rutina — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Plantillas de rutina</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => Navigation.NavigateTo("/routine-templates/new"))" data-testid="template-new">
+        Nueva plantilla
+    </MudButton>
+</div>
+
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+    Rutinas listas para reutilizar. Al asignar una a un miembro se copia: editar o borrar la plantilla después no cambia las rutinas ya asignadas.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="templates-empty">
+        Todavía no hay plantillas. Crea una, o guarda como plantilla una rutina ya armada desde su editor.
+    </MudText>
+}
+else
+{
+    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0" data-testid="templates-table">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Calendario</MudTh>
+            <MudTh>Días</MudTh>
+            <MudTh>Ejercicios</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre">
+                <MudLink OnClick="@(() => Edit(context))" Underline="Underline.None">@context.Name</MudLink>
+                @if (!string.IsNullOrWhiteSpace(context.Description))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Calendario">@(context.ScheduleMode == "weekly" ? "Semanal" : "Rotativo")</MudTd>
+            <MudTd DataLabel="Días">@context.DayCount</MudTd>
+            <MudTd DataLabel="Ejercicios">@context.ExerciseCount</MudTd>
+            <MudTd Style="text-align:right">
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => Edit(context))"
+                           data-testid="@($"template-edit-{context.Id}")">Editar</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Disabled="_busy.Contains(context.Id)"
+                           OnClick="@(() => DeleteAsync(context))" data-testid="@($"template-delete-{context.Id}")">Eliminar</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private readonly HashSet<Guid> _busy = [];
+    private List<RoutineTemplateListItem> _items = [];
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private void Edit(RoutineTemplateListItem item) => Navigation.NavigateTo($"/routine-templates/{item.Id}");
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = (await Templates.ListRoutineTemplatesAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task DeleteAsync(RoutineTemplateListItem item)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            "Eliminar plantilla",
+            $"¿Eliminar «{item.Name}»? Las rutinas que ya se asignaron con ella no cambian.",
+            yesText: "Eliminar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        _busy.Add(item.Id);
+        try
+        {
+            await Templates.DeleteRoutineTemplateAsync(item.Id);
+            Snackbar.Add("Plantilla eliminada.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy.Remove(item.Id);
+        }
+    }
+}

@@ -6,6 +6,7 @@
 @inject IMemberRoutinesClient MemberRoutines
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@inject IDialogService Dialogs
 
 <PageTitle>Rutina — GSM</PageTitle>
 
@@ -28,6 +29,13 @@ else
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
             @(_saving ? "Guardando..." : "Guardar rutina")
         </MudButton>
+        @if (RoutineId is { } savedId)
+        {
+            <MudButton Variant="Variant.Outlined" Class="ml-2" OnClick="@(() => SaveAsTemplateAsync(savedId))"
+                       data-testid="routine-save-as-template">
+                Guardar como plantilla
+            </MudButton>
+        }
     </div>
 }
 
@@ -62,6 +70,22 @@ else
         finally
         {
             _loading = false;
+        }
+    }
+
+    // R11: la plantilla toma la rutina guardada (no los cambios sin guardar del formulario).
+    private async Task SaveAsTemplateAsync(Guid routineId)
+    {
+        var parameters = new DialogParameters<SaveAsTemplateDialog>
+        {
+            { x => x.RoutineId, routineId },
+            { x => x.SuggestedName, _draft.Name },
+        };
+        var dialog = await Dialogs.ShowAsync<SaveAsTemplateDialog>("Guardar como plantilla", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Plantilla creada. La encuentras en Entrenamiento → Plantillas de rutina.", Severity.Success);
         }
     }
 

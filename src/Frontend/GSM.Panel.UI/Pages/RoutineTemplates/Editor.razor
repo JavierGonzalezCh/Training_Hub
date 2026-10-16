@@ -1,0 +1,132 @@
+@page "/routine-templates/new"
+@page "/routine-templates/{TemplateId:guid}"
+@using GSM.UI.Shared.Routines
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IRoutineTemplatesClient Templates
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Plantilla de rutina — GSM</PageTitle>
+
+<MudLink OnClick="@(() => Navigation.NavigateTo("/routine-templates"))" Class="mb-4 d-inline-block">← Volver a las plantillas</MudLink>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="template-error">@_error</MudAlert>
+    }
+
+    @if (_unavailable > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4" data-testid="template-unavailable">
+            @(_unavailable == 1 ? "Un ejercicio de esta plantilla" : $"{_unavailable} ejercicios de esta plantilla") ya no está disponible
+            para el gym (aparece como «?»). Reemplázalo antes de guardar o no se podrá asignar.
+        </MudAlert>
+    }
+
+    <MudPaper Elevation="0" Class="pa-4 mb-4" Outlined="true">
+        <MudTextField T="string" @bind-Value="_templateName" Label="Nombre de la plantilla" Required="true"
+                      MaxLength="120" Class="mb-3" data-testid="template-name" />
+        <MudTextField T="string" @bind-Value="_description" Label="Descripción (opcional)" Lines="2"
+                      MaxLength="500" data-testid="template-description" />
+    </MudPaper>
+
+    <RoutineForm Draft="_draft" />
+
+    <div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
+                   data-testid="template-save">
+            @(_saving ? "Guardando..." : "Guardar plantilla")
+        </MudButton>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid? TemplateId { get; set; }
+
+    private RoutineDraft _draft = RoutineDraft.Empty();
+    private string _templateName = string.Empty;
+    private string? _description;
+    private int _unavailable;
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TemplateId is not { } id)
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            var template = await Templates.GetRoutineTemplateAsync(id);
+            _templateName = template.Name;
+            _description = template.Description;
+            _unavailable = template.UnavailableExerciseCount;
+            _draft = RoutineDraft.From(template.Routine);
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = _draft.Validate();
+        if (_error is null && string.IsNullOrWhiteSpace(_templateName))
+        {
+            // Sin nombre propio, la plantilla toma el de la rutina.
+            _templateName = _draft.Name;
+        }
+
+        if (_error is not null)
+        {
+            return;
+        }
+
+        var request = new SaveRoutineTemplateRequest
+        {
+            Name = _templateName.Trim(),
+            Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
+            Routine = _draft.ToRequest(),
+        };
+
+        _saving = true;
+        try
+        {
+            if (TemplateId is { } id)
+            {
+                await Templates.UpdateRoutineTemplateAsync(id, request);
+            }
+            else
+            {
+                await Templates.CreateRoutineTemplateAsync(request);
+            }
+
+            Snackbar.Add("Plantilla guardada.", Severity.Success);
+            Navigation.NavigateTo("/routine-templates");
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}
