@@ -1,4 +1,4 @@
-using GSM.Application.Members;
+﻿using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Equipment;
@@ -103,7 +103,7 @@ public sealed class MemberAnonymizationTests(ApiFactory factory) : IClassFixture
         var w = await SeedAsync();
         var seeded = await SeedFullMemberAsync(w);
 
-        await RunJobOnAsync(Baja.AddMonths(24));
+        await RunJobOnAsync(w.GymId, Baja.AddMonths(24));
 
         using var scope = System();
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
@@ -156,14 +156,14 @@ public sealed class MemberAnonymizationTests(ApiFactory factory) : IClassFixture
         var w = await SeedAsync();
         var memberId = await AddInactiveMemberAsync(w, Baja);
 
-        await RunJobOnAsync(Baja.AddMonths(24).AddDays(-8));
+        await RunJobOnAsync(w.GymId, Baja.AddMonths(24).AddDays(-8));
         Assert.False(await IsAnonymizedAsync(memberId));
 
-        await RunJobOnAsync(Baja.AddMonths(24));
+        await RunJobOnAsync(w.GymId, Baja.AddMonths(24));
         Assert.True(await IsAnonymizedAsync(memberId));
 
         // Una segunda ejecución no falla ni cambia nada.
-        await RunJobOnAsync(Baja.AddMonths(24).AddDays(1));
+        await RunJobOnAsync(w.GymId, Baja.AddMonths(24).AddDays(1));
         Assert.True(await IsAnonymizedAsync(memberId));
     }
 
@@ -173,7 +173,7 @@ public sealed class MemberAnonymizationTests(ApiFactory factory) : IClassFixture
         var w = await SeedAsync();
         var memberId = await AddInactiveMemberAsync(w, Baja);
 
-        await RunJobOnAsync(Baja.AddMonths(24).AddDays(40));
+        await RunJobOnAsync(w.GymId, Baja.AddMonths(24).AddDays(40));
 
         Assert.True(await IsAnonymizedAsync(memberId));
     }
@@ -184,10 +184,10 @@ public sealed class MemberAnonymizationTests(ApiFactory factory) : IClassFixture
         var w = await SeedAsync(months: 6);
         var memberId = await AddInactiveMemberAsync(w, Baja);
 
-        await RunJobOnAsync(Baja.AddMonths(6).AddDays(-1));
+        await RunJobOnAsync(w.GymId, Baja.AddMonths(6).AddDays(-1));
         Assert.False(await IsAnonymizedAsync(memberId));
 
-        await RunJobOnAsync(Baja.AddMonths(6));
+        await RunJobOnAsync(w.GymId, Baja.AddMonths(6));
         Assert.True(await IsAnonymizedAsync(memberId));
     }
 
@@ -204,7 +204,7 @@ public sealed class MemberAnonymizationTests(ApiFactory factory) : IClassFixture
             await db.SaveChangesAsync();
         }
 
-        await RunJobOnAsync(Baja.AddMonths(60));
+        await RunJobOnAsync(w.GymId, Baja.AddMonths(60));
 
         Assert.False(await IsAnonymizedAsync(active));
         Assert.False(await IsAnonymizedAsync(reactivated));
@@ -221,11 +221,11 @@ public sealed class MemberAnonymizationTests(ApiFactory factory) : IClassFixture
         var memberId = await AddInactiveMemberAsync(w, Baja);
         var anonymizesOn = Baja.AddMonths(24);
 
-        await RunJobOnAsync(anonymizesOn.AddDays(-8));
+        await RunJobOnAsync(w.GymId, anonymizesOn.AddDays(-8));
         Assert.Empty(await NoticesAsync(w.GymId));
 
-        await RunJobOnAsync(anonymizesOn.AddDays(-7));
-        await RunJobOnAsync(anonymizesOn.AddDays(-6));
+        await RunJobOnAsync(w.GymId, anonymizesOn.AddDays(-7));
+        await RunJobOnAsync(w.GymId, anonymizesOn.AddDays(-6));
 
         var notices = await NoticesAsync(w.GymId);
         Assert.Equal(2, notices.Count);
@@ -286,12 +286,12 @@ public sealed class MemberAnonymizationTests(ApiFactory factory) : IClassFixture
 
     // ---------- helpers ----------
 
-    private async Task RunJobOnAsync(DateOnly day)
+    private async Task RunJobOnAsync(Guid gymId, DateOnly day)
     {
         using var scope = System();
-        var at = new DateTimeOffset(day.ToDateTime(new TimeOnly(15, 0)), TimeSpan.FromHours(-5));
+        var at = new DateTimeOffset(day.ToDateTime(new TimeOnly(15, 0)), TimeSpan.FromHours(-5)).ToUniversalTime();
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinTo(at, day);
-        await scope.ServiceProvider.GetRequiredService<RunAnonymizationJobHandler>().HandleAsync(default);
+        await scope.ServiceProvider.GetRequiredService<RunAnonymizationJobHandler>().HandleAsync(default, gymId);
     }
 
     private async Task<bool> IsAnonymizedAsync(Guid memberId)

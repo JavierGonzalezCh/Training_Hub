@@ -1,4 +1,4 @@
-using GSM.Application.Common.Abstractions;
+﻿using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Application.Members.Abstractions;
 using GSM.Application.Members.Contracts;
@@ -126,11 +126,16 @@ public sealed class UpdateMemberSettingsHandler(
         var current = await members.GetSettingsAsync(gymId, cancellationToken);
         if (current is null)
         {
+            // Validar antes de añadir: si el plazo no vale, nada queda en el contexto para un guardado posterior.
             current = MemberSettings.Default(gymId);
+            current.Update(request.AnonymizationMonths);
             members.Add(current);
         }
+        else
+        {
+            current.Update(request.AnonymizationMonths);
+        }
 
-        current.Update(request.AnonymizationMonths);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
@@ -155,14 +160,17 @@ public sealed class RunAnonymizationJobHandler(
     /// <summary>Tope por ejecución: el resto queda para la siguiente.</summary>
     public const int BatchSize = 200;
 
-    public async Task<AnonymizationJobResult> HandleAsync(CancellationToken cancellationToken)
+    /// <param name="onlyGymId">Solo para tests: limita la ejecución a un gym. En producción es nulo (todos).</param>
+    public async Task<AnonymizationJobResult> HandleAsync(CancellationToken cancellationToken, Guid? onlyGymId = null)
     {
         var today = clock.Today;
         var monthsByGym = await members.GetAnonymizationMonthsByGymAsync(cancellationToken);
 
         // El plazo mínimo es el piso para acotar la consulta; el de cada gym se aplica en memoria.
         var floor = today.AddMonths(-MemberSettings.MinAnonymizationMonths).AddDays(MemberSettings.NoticeDays);
-        var candidates = await members.GetAnonymizationCandidatesAsync(floor, cancellationToken);
+        var candidates = (await members.GetAnonymizationCandidatesAsync(floor, cancellationToken))
+            .Where(c => onlyGymId is null || c.GymId == onlyGymId)
+            .ToList();
 
         var notices = 0;
         var anonymized = 0;

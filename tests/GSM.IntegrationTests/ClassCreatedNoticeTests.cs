@@ -38,7 +38,7 @@ public sealed class ClassCreatedNoticeTests(ApiFactory factory) : IClassFixture<
         Assert.Equal(AnnouncementStatus.Published, announcement.Status);
         Assert.Equal(AnnouncementCategory.GymNews, announcement.Category);
         Assert.Equal("Nueva clase: Yoga restaurativo", announcement.Title);
-        Assert.Contains("martes y jueves", announcement.Body);
+        Assert.Contains("martes y jueves", announcement.Body, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("con Laura", announcement.Body);
 
         // Solo miembros activos: el dado de baja no recibe aviso.

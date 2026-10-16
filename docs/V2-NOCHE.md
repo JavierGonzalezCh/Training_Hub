@@ -408,6 +408,28 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **L3-1:** el récord cuenta por día y ejercicio (no por tipo de marca); el volumen excluye calentamientos (la spec dice "todas las series") y solo rutinas asignadas.
 - **L3-2:** el volumen se evalúa al primer registro del día o al batir un récord; registros posteriores del mismo día esperan al siguiente evento. Los gyms existentes no reciben el logro "Primer récord" (solo los nuevos).
 
+- **R8-1:** "marcar revisada" corre la fecha a hoy + N semanas (no a la fecha anterior + N); cambiar el ajuste no recalcula rutinas ya asignadas. Ventana de la lista: atrasadas y próximos 7 días (fija).
+- **R8-2:** las rutinas auto-asignadas no entran a "por revisar". Cualquier staff puede marcar revisada (el entrenador es referencia, no candado). El entrenador ve por defecto solo sus miembros.
+- **M6-1:** las bajas que ya existían toman "hoy" como fecha de baja (nada se anonimiza de golpe). ¿Usar la fecha real del historial?
+- **M6-2:** se conservan etiquetas (texto libre), mediciones, autorizaciones, género, objetivo y fuente; no se tocan textos libres de otros módulos (motivos de "Dejar pasar", notas de pagos, motivos de cancelación). ¿Se limpian también?
+- **M6-3:** también se vacían título y texto de los avisos del miembro y sus correos (desvío más amplio que la spec). La cuenta sin otros accesos se elimina y libera el email.
+- **M6-4:** documento anonimizado = `ANON-` + 20 hex (la columna admite 30). Aviso al Owner fijo a 7 días. El staff aún puede añadir notas o mediciones a una ficha anonimizada (sin guarda).
+- **R9-1:** el aviso de salud en el editor solo existe en el editor del staff; con `ViewMemberHealth` muestra condiciones y restricciones (no medicamentos) y cada apertura queda en el registro de consultas. ¿Botón "Ver detalle" para no inflar el registro?
+
+- **AP6-1:** solo se adaptó Inicio y el menú lateral a escritorio; Rutina, Clases y Mi progreso funcionan con el contenedor ancho pero sin los dos paneles de la spec (queda `.gsm-m-split` listo). Inicio en escritorio no ofrece escanear ("regístrate desde el celular o en recepción").
+
+- **D3-1:** gym inactivo = no suspendido ni inhabilitado, con 7+ días de vida y 7+ días sin entradas (o nunca). "Arranque" usa el onboarding persistido: un gym cuyo Owner nunca abrió el asistente figura "sin terminar". Solo los bloques nuevos llegan en `null` si fallan.
+- **D3-2:** el conteo para "Límites" hace una consulta por gym (N+1); aceptable con pocos gyms.
+
+- **R11-1:** plantillas de rutina solo por gym (sin plantillas del sistema), copia sin vínculo con las rutinas asignadas; el cuerpo se guarda como JSON. Borrado físico. Cualquier staff las crea y borra (¿limitar a Owner/`Trainer`?). Al asignar no se renombra.
+
+- **D1-1:** el límite de miembros del plan sigue como tarjeta aparte (no viaja en el bloque); la afluencia no se filtra por el horario del gym (rango 5–21 h); "por vencer y en gracia" máx. 10 filas, los vencidos pasada la gracia solo como conteo.
+- **D1-2:** "Mis miembros" solo para quien tiene `Trainer` (clases de hoy, rutinas por revisar, miembros sin rutina). La caja: con `ViewFinances` se ven todas las abiertas; el resto, solo la suya.
+- **MS8-1:** "Mi membresía" (`/app/membresia`) no muestra dinero ni motivos internos; solo se llega desde el perfil (Inicio no enlaza todavía).
+- **L7-1:** "Mi progreso" vive en `/app/logros` (pestañas Racha, Logros, Ranking) y `/app/progreso` pasa a llamarse "Mis récords". La barra inferior sigue diciendo "Logros". La mejor racha se recalcula (aproximada, no se guarda); los días futuros de la rutina no se marcan en el calendario.
+- **AP4-1:** el cambio de modo usa el `switch-gym` de I2 (sin backend nuevo). En la app nativa, un staff en modo staff verá "no encontrado" hasta AP3 (panel en la app).
+- **AP7-1:** las tablas de planes, ejercicios y equipos se apilan en celular con `DataLabel` (no tarjetas de `ServerTable`). Falta mirarlas a 375 px en el navegador.
+
 ## 3. Gestiones operativas pendientes
 
 Las del plan §4 (ninguna se hace esta noche):
