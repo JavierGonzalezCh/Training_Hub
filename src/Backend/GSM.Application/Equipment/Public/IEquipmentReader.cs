@@ -37,7 +37,8 @@ public sealed record EquipmentItemInfo(
     string? Zone,
     string? Instructions,
     EquipmentStatus Status,
-    DateOnly? ExpectedBackOn);
+    DateOnly? ExpectedBackOn,
+    int Quantity = 1);
 
 public sealed record EquipmentModelInfo(Guid Id, string Name, EquipmentType Type);
 

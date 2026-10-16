@@ -17,6 +17,19 @@
                 </MudChip>
             </MudText>
 
+            @* C6: clase ligada a máquinas. Si hay más reservas que máquinas disponibles no se cancela a nadie: el staff decide. *@
+            @if (roster.LinkedMachines is not null)
+            {
+                <MudAlert Severity="@(roster.BookedCount > (roster.EffectiveCapacity ?? int.MaxValue) ? Severity.Warning : Severity.Info)"
+                          Dense="true" Class="mb-3 roster-machines" id="roster-machines">
+                    @MachinesText(roster)
+                    @if (roster.BookedCount > (roster.EffectiveCapacity ?? int.MaxValue))
+                    {
+                        <span class="roster-machines-warning"> Hay más reservas que máquinas: nadie se cancela solo, decide quién se queda.</span>
+                    }
+                </MudAlert>
+            }
+
             @if (roster.Entries.Count == 0)
             {
                 <MudText Color="Color.Secondary">Sin reservas para esta sesión.</MudText>
@@ -94,6 +107,13 @@
 
     [Parameter, EditorRequired]
     public DateOnly SessionDate { get; set; }
+
+    private static string MachinesText(RosterResponse roster)
+    {
+        var booked = roster.BookedCount == 1 ? "1 reserva" : $"{roster.BookedCount} reservas";
+        var available = roster.AvailableMachines == 1 ? "1 máquina disponible" : $"{roster.AvailableMachines} máquinas disponibles";
+        return $"{booked} y {available} ese día (de {roster.LinkedMachines} ligadas al cupo).";
+    }
 
     private RosterResponse? _roster;
     private readonly Dictionary<Guid, string> _desired = new();

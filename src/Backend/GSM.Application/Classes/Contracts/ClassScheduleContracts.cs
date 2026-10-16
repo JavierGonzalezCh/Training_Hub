@@ -33,7 +33,13 @@ public sealed record ScheduleEntry(
     /// <summary>C4: su lugar en la lista (1 = el primero).</summary>
     int? MyWaitlistPosition = null,
     /// <summary>C4: hora límite para confirmar la oferta de cupo.</summary>
-    DateTimeOffset? MyOfferExpiresAt = null);
+    DateTimeOffset? MyOfferExpiresAt = null,
+    /// <summary>C6 (solo clases ligadas a máquinas): el menor entre el cupo y las máquinas disponibles ese día.</summary>
+    int? EffectiveCapacity = null,
+    /// <summary>C6: unidades de las máquinas ligadas que sirven ese día.</summary>
+    int? AvailableMachines = null,
+    /// <summary>C6: unidades de las máquinas ligadas que siguen en el inventario.</summary>
+    int? LinkedMachines = null);
 
 public sealed record ScheduleResponse(
     DateOnly From,

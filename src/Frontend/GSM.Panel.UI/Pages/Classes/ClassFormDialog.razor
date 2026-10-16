@@ -1,4 +1,5 @@
 @inject IClassesClient Classes
+@inject IEquipmentClient EquipmentApi
 
 <MudDialog>
     <DialogContent>
@@ -30,6 +31,19 @@
                                   Class="mb-3" id="class-instructor-other" MaxLength="120" />
                 }
                 <MudNumericField T="int?" @bind-Value="_model.Capacity" Label="Cupo (vacío = entrada libre)" Min="1" Class="mb-3" />
+
+                @* C6: el cupo de cada sesión no pasa de las máquinas ligadas que estén disponibles ese día. Solo con cupo. *@
+                @if (_model.Capacity is not null && _machines.Count > 0)
+                {
+                    <MudSelect T="Guid" MultiSelection="true" @bind-SelectedValues="_selectedMachines"
+                               Label="Máquinas del cupo (opcional)" Class="mb-3" id="class-machines"
+                               HelperText="El cupo de cada sesión no pasará de las máquinas disponibles ese día.">
+                        @foreach (var machine in _machines)
+                        {
+                            <MudSelectItem Value="machine.Id">@MachineLabel(machine)</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
 
                 <MudGrid Class="mb-3">
                     <MudItem xs="6">
@@ -81,6 +95,8 @@
 
     private readonly FormModel _model = new();
     private List<ClassInstructorOption> _trainers = [];
+    private List<EquipmentItemResponse> _machines = [];
+    private IEnumerable<Guid> _selectedMachines = [];
     private string _instructorChoice = NoInstructor;
     private IEnumerable<int> _daysOfWeek = [];
     private DateTime? _scheduledDate;
@@ -100,6 +116,15 @@
         catch (GsmApiException ex)
         {
             _error = ApiError.FromException(ex).DisplayMessage;
+        }
+
+        try
+        {
+            _machines = ((await EquipmentApi.ListEquipmentAsync()) ?? []).Where(m => m.IsActive).ToList();
+        }
+        catch (GsmApiException)
+        {
+            _machines = []; // sin inventario legible la clase se guarda sin máquinas; no estorba el resto del formulario
         }
 
         if (ClassId is not { } id)
@@ -140,6 +165,7 @@
             _daysOfWeek = gymClass.DaysOfWeek.Select(ClassLabels.ToValue).ToList();
             _scheduledDate = gymClass.ScheduledDate?.ToDateTime(TimeOnly.MinValue);
             _endsOn = gymClass.EndsOn?.ToDateTime(TimeOnly.MinValue);
+            _selectedMachines = (gymClass.EquipmentItemIds ?? []).ToList();
         }
         catch (GsmApiException ex)
         {
@@ -185,6 +211,10 @@
             DaysOfWeek = _model.IsRecurring ? _daysOfWeek.ToList() : null,
             ScheduledDate = _model.IsRecurring ? null : DateOnly.FromDateTime(_scheduledDate!.Value),
             EndsOn = _model.IsRecurring && _endsOn is { } endsOn ? DateOnly.FromDateTime(endsOn) : null,
+            // Siempre se manda la lista: vacía (o sin cupo) quita las ligas que la clase tuviera.
+            EquipmentItemIds = _model.Capacity is null
+                ? []
+                : _selectedMachines.Where(id => _machines.Any(m => m.Id == id)).ToList(),
         };
 
         _submitting = true;
@@ -212,6 +242,18 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private static string MachineLabel(EquipmentItemResponse m)
+    {
+        var units = m.Quantity > 1 ? $" ({m.Quantity})" : "";
+        var state = m.Status switch
+        {
+            "Maintenance" => " · en mantenimiento",
+            "OutOfService" => " · fuera de servicio",
+            _ => "",
+        };
+        return $"{m.Name}{units}{state}";
+    }
 
     private sealed class FormModel
     {

@@ -32,7 +32,13 @@ public sealed record RosterResponse(
     int BookedCount,
     IReadOnlyList<RosterEntry> Entries,
     /// <summary>C4: la lista de espera en su orden (esperando y con oferta en curso); nula si la sesión no tiene.</summary>
-    IReadOnlyList<WaitlistRosterEntry>? Waitlist = null);
+    IReadOnlyList<WaitlistRosterEntry>? Waitlist = null,
+    /// <summary>C6 (solo clases ligadas a máquinas): cupo efectivo de la sesión = menor entre el cupo y las máquinas disponibles ese día.</summary>
+    int? EffectiveCapacity = null,
+    /// <summary>C6: unidades de las máquinas ligadas que sirven ese día ("18 reservas y 17 bicicletas disponibles").</summary>
+    int? AvailableMachines = null,
+    /// <summary>C6: unidades de las máquinas ligadas que siguen en el inventario.</summary>
+    int? LinkedMachines = null);
 
 /// <summary>Una persona de la lista de espera. <see cref="Position"/> es su lugar en la lista (1 = la primera).</summary>
 public sealed record WaitlistRosterEntry(

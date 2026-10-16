@@ -14,6 +14,7 @@ public static class ClassesModuleRegistration
         services.AddScoped<ClosedSessionCanceller>();
         services.AddScoped<BookingPenaltyService>();
         services.AddScoped<WaitlistService>();
+        services.AddScoped<ClassCapacityService>();
 
         return services;
     }
