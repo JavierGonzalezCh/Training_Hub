@@ -41,7 +41,7 @@ public sealed class AndroidPrintService : IPrintService
         }
     }
 
-    private static Android.Webkit.WebView? FindWebView(View view)
+    private static Android.Webkit.WebView? FindWebView(Android.Views.View view)
     {
         if (view is Android.Webkit.WebView webView)
         {
