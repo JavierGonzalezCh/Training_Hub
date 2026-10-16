@@ -6,7 +6,7 @@ namespace GSM.Application.Classes;
 /// <summary>Mapeo manual entidad → DTO, en línea con <c>RoutineMapper</c>.</summary>
 public static class ClassMapper
 {
-    public static ClassResponse ToResponse(GymClass c, bool noActiveInstructor = false)
+    public static ClassResponse ToResponse(GymClass c, bool noActiveInstructor = false, IReadOnlyList<Guid>? equipmentItemIds = null)
         => new(
             c.Id,
             c.Name,
@@ -23,7 +23,8 @@ public static class ClassMapper
             c.DeactivatedOn,
             c.EndsOn,
             c.InstructorUserId,
-            noActiveInstructor);
+            noActiveInstructor,
+            equipmentItemIds ?? []);
 
     public static ClassListItem ToListItem(GymClass c, bool noActiveInstructor = false)
         => new(

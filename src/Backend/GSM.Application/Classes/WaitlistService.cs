@@ -28,6 +28,7 @@ public sealed class WaitlistService(
     IClassBookingRepository bookings,
     IWaitlistRepository waitlist,
     IClassSettingsRepository settings,
+    ClassCapacityService capacityService,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<WaitlistService> logger)
@@ -102,7 +103,11 @@ public sealed class WaitlistService(
 
         var booked = await bookings.CountActiveAsync(session.Id, cancellationToken);
         var offered = open.Count(e => e.Status == WaitlistEntryStatus.Offered);
-        var free = session.Capacity.Value - booked - offered;
+        // C6: el cupo que se ofrece es el efectivo (menor entre el cupo y las máquinas disponibles ese día). Si una máquina
+        // vuelve o se agrega, la próxima pasada ofrece los cupos nuevos al primero de la lista.
+        var capacity = await capacityService.ForAsync(
+            session.GymId, session.ClassId, session.Capacity, session.SessionDate, cancellationToken);
+        var free = (capacity.Effective ?? session.Capacity.Value) - booked - offered;
         if (free <= 0)
         {
             return raised;

@@ -32,6 +32,7 @@ public sealed class JoinWaitlistHandler(
     IClassSettingsRepository classSettings,
     IBookingBlockRepository blocks,
     WaitlistService service,
+    ClassCapacityService capacityService,
     IUnitOfWork unitOfWork,
     ILogger<JoinWaitlistHandler> logger)
 {
@@ -54,10 +55,17 @@ public sealed class JoinWaitlistHandler(
         var session = await sessions.GetAsync(classId, date, cancellationToken);
         ClassBookingSupport.EnsureOccurrence(gymClass, date, session);
 
-        // Una ocurrencia sin materializar no tiene reservas: no puede estar llena.
+        // Una ocurrencia sin materializar no tiene reservas: no puede estar llena... salvo que las máquinas ligadas
+        // disponibles ese día sean cero (C6), y entonces nadie puede reservar y la lista es el único camino.
         if (session is null)
         {
-            throw new ConflictException("La sesión tiene cupo; reserva directamente.");
+            var open = await capacityService.ForAsync(gymId, classId, gymClass.Capacity, date, cancellationToken);
+            if (open.Effective is not 0)
+            {
+                throw new ConflictException("La sesión tiene cupo; reserva directamente.");
+            }
+
+            session = await ClassSessionMaterializer.GetOrCreateAsync(sessions, unitOfWork, gymClass, date, cancellationToken);
         }
 
         if (session.IsCancelled)
@@ -100,7 +108,8 @@ public sealed class JoinWaitlistHandler(
 
             var booked = await bookings.CountActiveAsync(session.Id, ct);
             var offers = await waitlist.CountOffersAsync(session.Id, ct);
-            if (session.Capacity is not { } cap || booked + offers < cap)
+            var capacity = await capacityService.ForAsync(gymId, classId, session.Capacity, session.SessionDate, ct);
+            if (capacity.Effective is not { } cap || booked + offers < cap)
             {
                 throw new ConflictException("La sesión tiene cupo; reserva directamente.");
             }

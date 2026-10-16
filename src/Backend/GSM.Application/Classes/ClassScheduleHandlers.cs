@@ -41,7 +41,8 @@ public sealed class GetScheduleHandler(
     IGymReader gyms,
     IClassRepository classes,
     IClassSessionRepository sessions,
-    ClosedSessionCanceller closedSessions)
+    ClosedSessionCanceller closedSessions,
+    ClassCapacityService capacityService)
 {
     public async Task<ScheduleResponse> HandleAsync(
         DateOnly from, DateOnly to, CancellationToken cancellationToken)
@@ -61,7 +62,8 @@ public sealed class GetScheduleHandler(
             entries = ClassSchedule.Project(defs, mat, from, to);
         }
 
-        return new ScheduleResponse(from, to, ClassOpeningHours.Annotate(entries, schedule));
+        var annotated = await capacityService.EnrichAsync(gymId, ClassOpeningHours.Annotate(entries, schedule), cancellationToken);
+        return new ScheduleResponse(from, to, annotated);
     }
 }
 
@@ -73,7 +75,8 @@ public sealed class GetMyInstructorClassesHandler(
     ICurrentUserService currentUser,
     IGymReader gyms,
     IClassRepository classes,
-    IClassSessionRepository sessions)
+    IClassSessionRepository sessions,
+    ClassCapacityService capacityService)
 {
     public async Task<ScheduleResponse> HandleAsync(
         DateOnly from, DateOnly to, CancellationToken cancellationToken)
@@ -90,7 +93,8 @@ public sealed class GetMyInstructorClassesHandler(
             .Where(e => e.InstructorUserId == userId)
             .ToList();
 
-        return new ScheduleResponse(from, to, ClassOpeningHours.Annotate(mine, schedule));
+        var annotated = await capacityService.EnrichAsync(gymId, ClassOpeningHours.Annotate(mine, schedule), cancellationToken);
+        return new ScheduleResponse(from, to, annotated);
     }
 }
 
@@ -103,7 +107,8 @@ public sealed class GetMyClassesHandler(
     IClassSessionRepository sessions,
     IClassBookingRepository bookings,
     IWaitlistRepository waitlist,
-    WaitlistService waitlistService)
+    WaitlistService waitlistService,
+    ClassCapacityService capacityService)
 {
     public async Task<ScheduleResponse> HandleAsync(
         DateOnly from, DateOnly to, CancellationToken cancellationToken)
@@ -118,7 +123,8 @@ public sealed class GetMyClassesHandler(
         var defs = await classes.ListAsync(new ClassFilter(IncludeInactive: true), cancellationToken);
         var mat = await sessions.ListInRangeAsync(from, to, cancellationToken);
         var schedule = await gyms.GetOpeningScheduleAsync(gymId, from, to, cancellationToken);
-        var entries = ClassOpeningHours.Annotate(ClassSchedule.Project(defs, mat, from, to), schedule);
+        var entries = await capacityService.EnrichAsync(
+            gymId, ClassOpeningHours.Annotate(ClassSchedule.Project(defs, mat, from, to), schedule), cancellationToken);
 
         var myBookings = await bookings.ListForMemberAsync(self.Id, from, to, cancellationToken);
         var byOccurrence = myBookings.ToDictionary(
@@ -156,7 +162,8 @@ public sealed class GetMyClassesHandler(
                     var open = openBySession.GetValueOrDefault(sid) ?? [];
                     var booked = bookedBySession.GetValueOrDefault(sid);
                     var offers = open.Count(w => w.Status == WaitlistEntryStatus.Offered);
-                    result = result with { IsFull = booked + offers >= cap };
+                    // C6: "llena" se mide contra el cupo efectivo cuando la clase tiene máquinas ligadas.
+                    result = result with { IsFull = booked + offers >= (e.EffectiveCapacity ?? cap) };
 
                     if (myWaits.TryGetValue((e.ClassId, e.SessionDate), out var mine))
                     {
@@ -167,6 +174,12 @@ public sealed class GetMyClassesHandler(
                             MyOfferExpiresAt = mine.Entry.OfferExpiresAt,
                         };
                     }
+                }
+
+                // C6: sin máquinas disponibles ese día una ocurrencia aún sin reservas ya está llena (la lista de espera la materializa).
+                if (e.SessionId is null && e.Capacity is not null && e.EffectiveCapacity == 0)
+                {
+                    result = result with { IsFull = true };
                 }
 
                 return result;

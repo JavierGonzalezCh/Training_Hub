@@ -1,6 +1,7 @@
 using GSM.Application.Classes.Abstractions;
 using GSM.Application.Classes.Contracts;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Equipment.Public;
 using GSM.Application.Gyms.Public;
 using GSM.Application.Identity.Public;
 using GSM.Domain.Classes;
@@ -69,7 +70,8 @@ public sealed class ListClassesHandler(
 }
 
 public sealed class GetClassHandler(
-    ICurrentUserService currentUser, IClassRepository classes, IIdentityReader identity)
+    ICurrentUserService currentUser, IClassRepository classes, IIdentityReader identity,
+    IClassEquipmentRepository equipmentLinks)
 {
     public async Task<ClassResponse> HandleAsync(Guid classId, CancellationToken cancellationToken)
     {
@@ -81,7 +83,9 @@ public sealed class GetClassHandler(
         var trainers = gymClass.InstructorUserId is not null
             ? await ClassInstructor.ActiveTrainerIdsAsync(identity, gymId, cancellationToken)
             : [];
-        return ClassMapper.ToResponse(gymClass, ClassInstructor.HasNoActiveInstructor(gymClass, trainers));
+        var machineIds = (await equipmentLinks.ListForClassAsync(classId, cancellationToken))
+            .Select(l => l.EquipmentItemId).ToList();
+        return ClassMapper.ToResponse(gymClass, ClassInstructor.HasNoActiveInstructor(gymClass, trainers), machineIds);
     }
 }
 
@@ -101,7 +105,9 @@ public sealed class CreateClassHandler(
     IClock clock,
     IGymReader gyms,
     IIdentityReader identity,
+    IEquipmentReader equipment,
     IClassRepository classes,
+    IClassEquipmentRepository equipmentLinks,
     IUnitOfWork unitOfWork,
     ILogger<CreateClassHandler> logger)
 {
@@ -115,14 +121,19 @@ public sealed class CreateClassHandler(
         // C1: la clase solo se agenda dentro del horario del gym.
         await ClassOpeningHours.EnsureDefinitionFitsAsync(gyms, clock, gymId, request, cancellationToken);
 
+        // C6: las máquinas ligadas se validan contra el inventario (Equipment) y exigen cupo.
+        var machineIds = await ClassEquipmentLinks.ValidateAsync(
+            equipment, gymId, request.EquipmentItemIds, gymClass.Capacity, cancellationToken);
+
         classes.Add(gymClass);
+        ClassEquipmentLinks.Sync(equipmentLinks, gymId, gymClass.Id, [], machineIds);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
             "Clase {ClassId} creada en el gym {GymId} (recurrente: {IsRecurring})",
             gymClass.Id, gymId, gymClass.IsRecurring);
 
-        return ClassMapper.ToResponse(gymClass);
+        return ClassMapper.ToResponse(gymClass, equipmentItemIds: machineIds);
     }
 }
 
@@ -131,8 +142,10 @@ public sealed class UpdateClassHandler(
     IClock clock,
     IGymReader gyms,
     IIdentityReader identity,
+    IEquipmentReader equipment,
     IClassRepository classes,
     IClassSessionRepository sessions,
+    IClassEquipmentRepository equipmentLinks,
     IUnitOfWork unitOfWork,
     ILogger<UpdateClassHandler> logger)
 {
@@ -165,10 +178,24 @@ public sealed class UpdateClassHandler(
             }
         }
 
+        // C6: sin lista en la petición las ligas no se tocan; con lista (aunque vacía) quedan exactamente esas. Si la clase
+        // pasa a entrada libre con máquinas ligadas, se rechaza (quitar las ligas es explícito).
+        var existingLinks = await equipmentLinks.ListForClassAsync(classId, cancellationToken);
+        var desired = request.EquipmentItemIds is null
+            ? existingLinks.Select(l => l.EquipmentItemId).ToList()
+            : await ClassEquipmentLinks.ValidateAsync(
+                equipment, gymId, request.EquipmentItemIds, gymClass.Capacity, cancellationToken);
+        if (request.EquipmentItemIds is null && desired.Count > 0 && gymClass.Capacity is null)
+        {
+            throw new ValidationDomainException(
+                "La clase está ligada a máquinas: quítalas antes de pasarla a entrada libre.");
+        }
+
+        ClassEquipmentLinks.Sync(equipmentLinks, gymId, classId, existingLinks, desired);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Clase {ClassId} actualizada", gymClass.Id);
-        return ClassMapper.ToResponse(gymClass);
+        return ClassMapper.ToResponse(gymClass, equipmentItemIds: desired);
     }
 }
 

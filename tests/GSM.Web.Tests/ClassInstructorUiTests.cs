@@ -30,6 +30,8 @@ public class ClassInstructorUiTests : TestContext
         };
         _fake.Handlers["OutsideHoursAsync"] = _ => new List<ClassOutsideHoursItem>();
         Services.AddSingleton(_client);
+        // C6: el formulario de clase lee el inventario para ofrecer las máquinas del cupo.
+        Services.AddSingleton(DispatchProxy.Create<IEquipmentClient, FakeClient>());
         RenderComponent<MudPopoverProvider>();
     }
 

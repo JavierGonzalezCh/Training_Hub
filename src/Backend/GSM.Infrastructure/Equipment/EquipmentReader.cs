@@ -55,7 +55,8 @@ public sealed class EquipmentReader(GsmDbContext dbContext) : IEquipmentReader
                 i.Zone,
                 i.Instructions,
                 i.Status,
-                i.ExpectedBackOn))
+                i.ExpectedBackOn,
+                i.Quantity))
             .ToList();
     }
 

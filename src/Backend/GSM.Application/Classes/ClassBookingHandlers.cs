@@ -79,6 +79,7 @@ public sealed class BookClassHandler(
     IBookingBlockRepository blocks,
     IWaitlistRepository waitlist,
     WaitlistService waitlistService,
+    ClassCapacityService capacityService,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<BookClassHandler> logger)
@@ -158,9 +159,13 @@ public sealed class BookClassHandler(
 
             var active = await bookings.CountActiveAsync(session.Id, ct);
             var offers = await waitlist.CountOffersAsync(session.Id, ct);
-            if (session.Capacity is { } cap && active + offers >= cap)
+            // C6: el cupo efectivo sale de las máquinas ligadas disponibles ese día (perezoso, no se guarda).
+            var capacity = await capacityService.ForAsync(gymId, classId, session.Capacity, session.SessionDate, ct);
+            if (capacity.Effective is { } cap && active + offers >= cap)
             {
-                throw new ConflictException("La sesión está completa.");
+                throw new ConflictException(capacity.LimitedByMachines
+                    ? $"La sesión está completa: hay {capacity.AvailableMachines} máquinas disponibles ese día."
+                    : "La sesión está completa.");
             }
 
             if (mine is null)
@@ -265,12 +270,13 @@ public sealed class GetRosterHandler(
     IClassSessionRepository sessions,
     IClassBookingRepository bookings,
     IWaitlistRepository waitlist,
-    WaitlistService waitlistService)
+    WaitlistService waitlistService,
+    ClassCapacityService capacityService)
 {
     public async Task<RosterResponse> HandleAsync(
         Guid classId, DateOnly date, CancellationToken cancellationToken)
     {
-        _ = currentUser.RequireGymId();
+        var gymId = currentUser.RequireGymId();
 
         var gymClass = await classes.GetAsync(classId, cancellationToken)
             ?? throw new NotFoundException("Clase no encontrada.");
@@ -309,6 +315,10 @@ public sealed class GetRosterHandler(
                 b.Status.ToString(), b.BookedAt, b.AttendedAt));
         }
 
+        // C6: con máquinas ligadas el roster dice cuántas hay disponibles ese día, para que el staff decida si sobran reservas.
+        var capacity = await capacityService.ForAsync(
+            gymId, classId, session?.Capacity ?? gymClass.Capacity, date, cancellationToken);
+
         return new RosterResponse(
             gymClass.Id, gymClass.Name, date,
             session?.StartTime ?? gymClass.StartTime,
@@ -316,7 +326,10 @@ public sealed class GetRosterHandler(
             (session?.Status ?? ClassSessionStatus.Scheduled).ToString(),
             rows.Count(b => b.Status == ClassBookingStatus.Booked),
             entries,
-            waitlistRows);
+            waitlistRows,
+            capacity.IsLinked ? capacity.Effective : null,
+            capacity.IsLinked ? capacity.AvailableMachines : null,
+            capacity.IsLinked ? capacity.LinkedMachines : null);
     }
 }
 
