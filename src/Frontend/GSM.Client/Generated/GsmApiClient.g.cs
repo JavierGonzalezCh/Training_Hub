@@ -43996,9 +43996,6 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("checkinQr")]
         public bool CheckinQr { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("communityComments")]
-        public bool CommunityComments { get; set; } = default!;
-
         [System.Text.Json.Serialization.JsonPropertyName("membersCanCreateRoutines")]
         public bool MembersCanCreateRoutines { get; set; } = default!;
 
@@ -44748,9 +44745,6 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("checkinQr")]
         public bool CheckinQr { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("communityComments")]
-        public bool CommunityComments { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("membersCanCreateRoutines")]
         public bool MembersCanCreateRoutines { get; set; } = default!;
@@ -49039,6 +49033,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("equipmentItemIds")]
         public System.Collections.Generic.ICollection<System.Guid>? EquipmentItemIds { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("notifyMembers")]
+        public bool? NotifyMembers { get; set; } = true;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -50466,9 +50463,6 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("checkinQr")]
         public bool CheckinQr { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("communityComments")]
-        public bool CommunityComments { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("membersCanCreateRoutines")]
         public bool MembersCanCreateRoutines { get; set; } = default!;

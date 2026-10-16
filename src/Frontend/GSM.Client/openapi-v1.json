@@ -26576,7 +26576,6 @@
           "showGamification",
           "showCommunity",
           "checkinQr",
-          "communityComments",
           "membersCanCreateRoutines",
           "membersCanReportEquipment",
           "showRanking"
@@ -26599,9 +26598,6 @@
             "type": "boolean"
           },
           "checkinQr": {
-            "type": "boolean"
-          },
-          "communityComments": {
             "type": "boolean"
           },
           "membersCanCreateRoutines": {
@@ -27488,7 +27484,6 @@
           "showGamification",
           "showCommunity",
           "checkinQr",
-          "communityComments",
           "membersCanCreateRoutines",
           "membersCanReportEquipment",
           "showRanking"
@@ -27511,9 +27506,6 @@
             "type": "boolean"
           },
           "checkinQr": {
-            "type": "boolean"
-          },
-          "communityComments": {
             "type": "boolean"
           },
           "membersCanCreateRoutines": {
@@ -33629,6 +33621,10 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "notifyMembers": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -35461,7 +35457,6 @@
           "showGamification",
           "showCommunity",
           "checkinQr",
-          "communityComments",
           "membersCanCreateRoutines",
           "membersCanReportEquipment"
         ],
@@ -35483,9 +35478,6 @@
             "type": "boolean"
           },
           "checkinQr": {
-            "type": "boolean"
-          },
-          "communityComments": {
             "type": "boolean"
           },
           "membersCanCreateRoutines": {

@@ -35,7 +35,7 @@ namespace GSM.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes", "tenure_months", "referrals", "manual" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes", "tenure_months", "referrals", "manual", "personal_records", "lifted_volume" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual", "document" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_mode", new[] { "rotating", "static" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership", "gym_closed", "membership_frozen", "pass_exhausted", "member_inactive", "already_checked_in" });
@@ -1878,12 +1878,6 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("checkin_qr");
-
-                    b.Property<bool>("CommunityComments")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("community_comments");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
