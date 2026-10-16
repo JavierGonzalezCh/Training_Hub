@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.UI.Shared.Auth;
@@ -94,7 +94,9 @@ public class MyProgressUiTests : TestContext
         me.Handlers["AchievementsAll2Async"] = _ => new List<MemberAchievementItem>();
 
         RenderComponent<MudPopoverProvider>();
-        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>(p => p.Add(x => x.Tab, "logros"));
+        var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        nav.NavigateTo(Microsoft.AspNetCore.Components.NavigationManagerExtensions.GetUriWithQueryParameter(nav, "tab", "logros"));
+        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>();
 
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='panel-logros']")));
         Assert.DoesNotContain(me.Calls, c => c.Method == "GetMyStreakCalendarAsync");

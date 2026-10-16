@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Member.UI;
@@ -27,7 +27,6 @@ public class MemberDesktopUiTests : TestContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
         Services.AddScoped<ViewportState>();
-        Services.GetRequiredService<ViewportState>().Pin(narrow);
 
         var attendance = DispatchProxy.Create<IMemberAttendanceClient, FakeClient>();
         ((FakeClient)(object)attendance).Handlers["AttendanceGET2Async"] = _ => new PagedResultOfAttendanceListItem();
@@ -46,6 +45,8 @@ public class MemberDesktopUiTests : TestContext
         context.Set(new MemberDetail { Id = Guid.NewGuid(), FirstName = "Ana", LastName = "Prueba", Status = "Active" });
         Services.AddSingleton(context);
 
+        // Pedir un servicio cierra el registro: el viewport se fija justo antes de renderizar.
+        Services.GetRequiredService<ViewportState>().Pin(narrow);
         return RenderComponent<Home>();
     }
 

@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Security.Claims;
 using Bunit;
 using Bunit.TestDoubles;
@@ -48,7 +48,6 @@ public class DashboardPanelUiTests : TestContext
                 .Concat(permissions.Select(p => new Claim(GsmAuthenticationStateProvider.PermissionClaim, p)))
                 .ToArray());
 
-        Services.GetRequiredService<ViewportState>().Pin(narrow);
 
         var dash = Proxy<IDashboardClient>(out var dashFake);
         dashFake.Handlers["GetGymDashboardAsync"] = _ => dashboard;
@@ -68,6 +67,8 @@ public class DashboardPanelUiTests : TestContext
         };
         Services.AddSingleton(routines);
 
+        // Pedir un servicio cierra el registro: el viewport se fija justo antes de renderizar.
+        Services.GetRequiredService<ViewportState>().Pin(narrow);
         return RenderComponent<Home>();
     }
 

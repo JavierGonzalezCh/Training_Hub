@@ -307,7 +307,9 @@ public class AchievementRewardUiTests : TestContext
         Services.AddSingleton(gym);
 
         RenderComponent<MudPopoverProvider>();
-        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>(p => p.Add(x => x.Tab, "logros"));
+        var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        nav.NavigateTo(Microsoft.AspNetCore.Components.NavigationManagerExtensions.GetUriWithQueryParameter(nav, "tab", "logros"));
+        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>();
 
         cut.WaitForAssertion(() =>
         {
@@ -335,7 +337,9 @@ public class AchievementRewardUiTests : TestContext
         Services.AddSingleton(gym);
 
         RenderComponent<MudPopoverProvider>();
-        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>(p => p.Add(x => x.Tab, "logros"));
+        var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        nav.NavigateTo(Microsoft.AspNetCore.Components.NavigationManagerExtensions.GetUriWithQueryParameter(nav, "tab", "logros"));
+        var cut = RenderComponent<GSM.Member.UI.Pages.Achievements>();
 
         cut.WaitForAssertion(() => Assert.NotNull(cut.Find($"[data-testid='reward-line-{CapId}']")));
         Assert.Empty(cut.FindAll("[data-testid='pending-rewards']"));
