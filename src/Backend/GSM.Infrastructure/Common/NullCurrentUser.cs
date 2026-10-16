@@ -15,7 +15,7 @@ public sealed class NullCurrentUser : ICurrentUserService
 
     public Guid? UserId => null;
 
-    public Guid? GymId => null;
+    public Guid? GymId => GymExecutionScope.Current;
 
     public UserRole? Role => null;
 

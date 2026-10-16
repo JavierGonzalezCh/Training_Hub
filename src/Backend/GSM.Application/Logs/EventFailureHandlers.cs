@@ -28,6 +28,10 @@ public sealed class EventFailureReplayer(IServiceProvider services, ILogger<Even
 
     public async Task<ReplayResult> ReplayAsync(EventFailureRecord failure, CancellationToken cancellationToken)
     {
+        // El manejador corre en el gym del evento (LG4-4), no como el SuperAdmin que pidió el reintento: con el
+        // filtro de tenant apagado, una consulta sin gym explícito leería datos de todos los gyms.
+        using var gymScope = failure.GymId is { } gymId ? GymExecutionScope.Enter(gymId) : null;
+
         var eventType = ResolveEventType(failure.EventType);
         if (eventType is null)
         {

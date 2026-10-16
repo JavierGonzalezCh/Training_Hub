@@ -13,25 +13,28 @@ public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICur
 {
     private ClaimsPrincipal? Principal => httpContextAccessor.HttpContext?.User;
 
-    public bool IsAuthenticated => Principal?.Identity?.IsAuthenticated ?? false;
+    // Dentro de un GymExecutionScope se informa "sistema en ese gym": sin usuario, sin rol, sin superadmin.
+    private static bool Scoped => GymExecutionScope.Current is not null;
 
-    public Guid? UserId =>
+    public bool IsAuthenticated => !Scoped && (Principal?.Identity?.IsAuthenticated ?? false);
+
+    public Guid? UserId => Scoped ? null :
         Guid.TryParse(Principal?.FindFirstValue(GsmClaims.Subject), out var id) ? id : null;
 
-    public Guid? GymId =>
-        Guid.TryParse(Principal?.FindFirstValue(GsmClaims.GymId), out var id) ? id : null;
+    public Guid? GymId => GymExecutionScope.Current ??
+        (Guid.TryParse(Principal?.FindFirstValue(GsmClaims.GymId), out var id) ? id : null);
 
-    public UserRole? Role =>
+    public UserRole? Role => Scoped ? null :
         RoleName.TryParse(Principal?.FindFirstValue(GsmClaims.Role), out var role) ? role : null;
 
     public bool IsSuperAdmin => Role == UserRole.SuperAdmin;
 
-    public bool IsImpersonating =>
+    public bool IsImpersonating => !Scoped &&
         string.Equals(Principal?.FindFirstValue(GsmClaims.Impersonating), "true", StringComparison.OrdinalIgnoreCase);
 
-    public Guid? ImpersonationSessionId =>
+    public Guid? ImpersonationSessionId => Scoped ? null :
         Guid.TryParse(Principal?.FindFirstValue(GsmClaims.ImpersonationSession), out var id) ? id : null;
 
     public bool HasPermission(StaffPermission permission)
-        => Principal is { } principal && PermissionRules.Has(principal, permission);
+        => !Scoped && Principal is { } principal && PermissionRules.Has(principal, permission);
 }

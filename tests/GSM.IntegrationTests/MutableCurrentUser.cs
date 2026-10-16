@@ -6,19 +6,29 @@ namespace GSM.IntegrationTests;
 /// <summary>Doble de <see cref="ICurrentUserService"/> para los tests: identidad fijada a mano.</summary>
 public sealed class MutableCurrentUser : ICurrentUserService
 {
-    public bool IsAuthenticated { get; private set; }
+    // Respeta GymExecutionScope igual que el CurrentUser real: dentro del ámbito es "sistema en ese gym".
+    private static bool Scoped => GymExecutionScope.Current is not null;
 
-    public Guid? UserId { get; private set; }
+    private bool _isAuthenticated;
+    private Guid? _userId;
+    private Guid? _gymId;
+    private UserRole? _role;
+    private bool _isImpersonating;
+    private Guid? _impersonationSessionId;
 
-    public Guid? GymId { get; private set; }
+    public bool IsAuthenticated { get => !Scoped && _isAuthenticated; private set => _isAuthenticated = value; }
 
-    public UserRole? Role { get; private set; }
+    public Guid? UserId { get => Scoped ? null : _userId; private set => _userId = value; }
+
+    public Guid? GymId { get => GymExecutionScope.Current ?? _gymId; private set => _gymId = value; }
+
+    public UserRole? Role { get => Scoped ? null : _role; private set => _role = value; }
 
     public bool IsSuperAdmin => Role == UserRole.SuperAdmin;
 
-    public bool IsImpersonating { get; private set; }
+    public bool IsImpersonating { get => !Scoped && _isImpersonating; private set => _isImpersonating = value; }
 
-    public Guid? ImpersonationSessionId { get; private set; }
+    public Guid? ImpersonationSessionId { get => Scoped ? null : _impersonationSessionId; private set => _impersonationSessionId = value; }
 
     /// <summary>Permisos de un staff fijado a mano (el owner y el superadmin impersonando los tienen todos).</summary>
     public HashSet<StaffPermission> Permissions { get; } = [];
