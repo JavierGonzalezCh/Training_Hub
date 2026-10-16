@@ -72,6 +72,16 @@
                 {
                     <MudDatePicker Label="Fecha" Date="_scheduledDate" DateChanged="d => _scheduledDate = d" Required="true" />
                 }
+
+                @* C8: solo al crear. Editar nunca avisa; si cambió la hora de una clase existente, el staff publica un anuncio. *@
+                @if (ClassId is null)
+                {
+                    <MudSwitch T="bool" @bind-Value="_notifyMembers" Label="Avisar a los miembros" Color="Color.Primary"
+                               Class="mt-3" id="class-notify-members" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Publica «Nueva clase» en Novedades y manda un aviso. Desmárcalo si estás armando el horario y vas a avisar todo junto.
+                    </MudText>
+                }
             </MudForm>
         }
     </DialogContent>
@@ -103,6 +113,7 @@
     private DateTime? _endsOn;
     private TimeSpan? _startTime = new(6, 0, 0);
     private MudForm _form = null!;
+    private bool _notifyMembers = true;
     private bool _loading;
     private bool _submitting;
     private string? _error;
@@ -215,6 +226,7 @@
             EquipmentItemIds = _model.Capacity is null
                 ? []
                 : _selectedMachines.Where(id => _machines.Any(m => m.Id == id)).ToList(),
+            NotifyMembers = _notifyMembers,
         };
 
         _submitting = true;
