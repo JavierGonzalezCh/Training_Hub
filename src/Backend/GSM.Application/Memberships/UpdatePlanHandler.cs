@@ -35,7 +35,7 @@ public sealed class UpdatePlanHandler(
         plan.Update(name, request.Description, request.Price,
             PlanDuration.EffectiveDuration(plan.Kind, request.DurationValue, request.ValidityDays ?? plan.ValidityDays),
             PlanDuration.ParseUnit(request.DurationUnit), request.MaxFreezeDays, request.MinFreezeDays,
-            requestedKind, request.Entries);
+            requestedKind, request.Entries, request.Seats);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return MembershipMapper.ToResponse(plan);

@@ -53,6 +53,12 @@ public sealed class AssignMembershipHandler(
             throw new ConflictException("El plan está inactivo.");
         }
 
+        if (plan.IsGroup)
+        {
+            throw new ValidationDomainException(
+                "Este plan es de grupo: asígnalo con «Asignar plan de grupo», eligiendo al titular y a los beneficiarios.");
+        }
+
         await EnsureWithinMemberLimitAsync(gymId, memberId, cancellationToken);
 
         var resolved = await renewals.ResolveAsync(

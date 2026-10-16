@@ -62,6 +62,14 @@ public sealed class PlanChangeResolver(
             throw new ConflictException("El plan está inactivo.");
         }
 
+        // MS7: el crédito de un grupo no tiene un dueño claro (paga el titular, usan todos). Por ahora el cambio de
+        // plan no aplica a planes de grupo; se cancela el grupo y se asigna otro.
+        if (current.GroupId is not null || newPlan.IsGroup)
+        {
+            throw new ConflictException(
+                "El cambio de plan no está disponible para planes de grupo: cancela el grupo y asigna el plan nuevo.");
+        }
+
         // La nueva empieza hoy: si hay membresías encadenadas detrás de la vigente quedarían con un hueco o
         // solapadas. Se pide resolverlas antes (cancelarlas o cambiarlas) en vez de moverlas en silencio.
         var following = await memberships.GetActiveStartingAfterAsync(memberId, today, cancellationToken);

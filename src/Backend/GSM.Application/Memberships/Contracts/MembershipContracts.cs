@@ -7,16 +7,17 @@
 /// <param name="Kind"><c>time</c> (por defecto si falta) o <c>pass</c> (tiquetera). En una edición no puede cambiar.</param>
 /// <param name="Entries">Entradas que trae. Obligatorio en una tiquetera; en un plan por tiempo no se manda.</param>
 /// <param name="ValidityDays">Días en que se deben usar las entradas. Obligatorio en una tiquetera.</param>
+/// <param name="Seats">Cupos (MS7): 1 = individual (por defecto); más de 1 = plan de grupo, solo por tiempo. En una edición, nulo = no cambia.</param>
 public sealed record CreatePlanRequest(
     string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null,
     int? MaxFreezeDays = null, int? MinFreezeDays = null, string? Kind = null, int? Entries = null,
-    int? ValidityDays = null);
+    int? ValidityDays = null, int? Seats = null);
 
 /// <inheritdoc cref="CreatePlanRequest"/>
 public sealed record UpdatePlanRequest(
     string Name, string? Description, decimal Price, int DurationValue, string? DurationUnit = null,
     int? MaxFreezeDays = null, int? MinFreezeDays = null, string? Kind = null, int? Entries = null,
-    int? ValidityDays = null);
+    int? ValidityDays = null, int? Seats = null);
 
 /// <param name="DurationUnit"><c>days</c> o <c>months</c>.</param>
 /// <param name="Kind"><c>time</c> o <c>pass</c> (tiquetera).</param>
@@ -35,7 +36,8 @@ public sealed record PlanResponse(
     int MinFreezeDays,
     string Kind,
     int? Entries,
-    int? ValidityDays);
+    int? ValidityDays,
+    int Seats);
 
 /// <summary>
 /// <c>StartDate</c> es opcional: el sistema calcula el inicio según la situación del miembro (§4.1).
@@ -94,7 +96,9 @@ public sealed record MembershipResponse(
     int? EntriesLeft,
     decimal CreditApplied,
     string? CreditAdjustmentReason,
-    Guid? ReplacesMembershipId);
+    Guid? ReplacesMembershipId,
+    Guid? GroupId,
+    bool IsGroupHolder);
 
 /// <summary>
 /// Congela una membresía (§5.2). Sin fechas = abierto desde hoy (termina al reanudar). Con
@@ -208,6 +212,67 @@ public sealed record ChangePlanResponse(
     decimal CreditApplied,
     decimal TotalToCharge,
     decimal RefundAmount);
+
+/// <summary>
+/// Asigna un plan de grupo (MS7, §9): el titular paga y los beneficiarios (hasta <c>Seats - 1</c>, pueden ser menos y
+/// se completan después) reciben su membresía con las mismas fechas. Los demás campos son los de
+/// <see cref="AssignMembershipRequest"/> y valen para el grupo, con el titular como el miembro cuyo historial manda.
+/// </summary>
+/// <param name="HolderMemberId">El que paga: lleva el precio acordado y la matrícula, si aplica.</param>
+/// <param name="BeneficiaryMemberIds">Los demás miembros del grupo. Sin repetidos ni el titular.</param>
+public sealed record AssignGroupMembershipRequest(
+    Guid HolderMemberId,
+    Guid PlanId,
+    IReadOnlyList<Guid> BeneficiaryMemberIds,
+    DateOnly? StartDate,
+    string? StartDateReason = null,
+    decimal? AgreedPrice = null,
+    string? DiscountReason = null,
+    bool WaiveEnrollment = false,
+    string? EnrollmentWaivedReason = null);
+
+/// <summary>
+/// Renueva un grupo (MS7): crea otro grupo que sigue al anterior con el mismo titular. Los beneficiarios por defecto
+/// son los que siguen en el grupo; si <c>BeneficiaryMemberIds</c> viene, esa es la lista nueva.
+/// </summary>
+/// <param name="PlanId">Plan de grupo de la renovación; nulo = el mismo del grupo.</param>
+/// <param name="BeneficiaryMemberIds">Lista nueva de beneficiarios; nulo = los actuales.</param>
+public sealed record RenewGroupMembershipRequest(
+    Guid? PlanId,
+    IReadOnlyList<Guid>? BeneficiaryMemberIds,
+    DateOnly? StartDate,
+    string? StartDateReason = null,
+    decimal? AgreedPrice = null,
+    string? DiscountReason = null);
+
+/// <summary>Mete a otro miembro al grupo mientras haya cupo: hereda las fechas actuales del grupo.</summary>
+public sealed record AddGroupBeneficiaryRequest(Guid MemberId);
+
+/// <param name="Membership">Su membresía dentro del grupo (la del titular lleva el precio; las de los beneficiarios, 0).</param>
+public sealed record MembershipGroupMemberResponse(
+    Guid MemberId,
+    string MemberName,
+    bool IsHolder,
+    MembershipResponse Membership);
+
+/// <summary>
+/// Un grupo (MS7). <c>SeatsUsed</c> cuenta las membresías no canceladas; los cupos libres se llenan con
+/// <c>POST /api/membership-groups/{id}/beneficiaries</c>. <c>StartDate</c>/<c>EndDate</c>/<c>TotalToCharge</c> son los de la
+/// membresía del titular: lo que la UI cobra al asignar o renovar.
+/// </summary>
+public sealed record MembershipGroupResponse(
+    Guid Id,
+    Guid PlanId,
+    string PlanName,
+    int Seats,
+    int SeatsUsed,
+    int SeatsFree,
+    Guid HolderMemberId,
+    Guid HolderMembershipId,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    decimal TotalToCharge,
+    IReadOnlyList<MembershipGroupMemberResponse> Members);
 
 public sealed record ExpiringMembershipItem(
     Guid MembershipId,

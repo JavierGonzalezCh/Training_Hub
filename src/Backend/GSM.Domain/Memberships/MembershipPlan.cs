@@ -45,7 +45,17 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
 
     public bool IsPass => Kind == PlanKind.Pass;
 
+    /// <summary>
+    /// Cupos del plan (MS7, §9): 1 = individual; más de 1 = plan de grupo (familiar, pareja, corporativo). Un
+    /// grupo copia este número al crearse, así que editarlo después no toca a los grupos ya vendidos.
+    /// </summary>
+    public int Seats { get; private set; } = 1;
+
+    public bool IsGroup => Seats > 1;
+
     public bool IsActive { get; private set; } = true;
+
+    public const int MaxSeats = 500;
 
     public const int DefaultMinFreezeDays = 1;
 
@@ -60,7 +70,7 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
     public static MembershipPlan Create(
         Guid gymId, string name, string? description, decimal price, int durationValue,
         DurationUnit durationUnit = DurationUnit.Days, int maxFreezeDays = 0, int minFreezeDays = DefaultMinFreezeDays,
-        PlanKind kind = PlanKind.Time, int? entries = null)
+        PlanKind kind = PlanKind.Time, int? entries = null, int seats = 1)
     {
         if (gymId == Guid.Empty)
         {
@@ -69,6 +79,7 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
 
         var freeze = RequireFreezeRules(maxFreezeDays, minFreezeDays);
         var shape = RequireShape(kind, entries, durationUnit);
+        var planSeats = RequireSeats(seats, kind);
 
         return new MembershipPlan
         {
@@ -82,13 +93,14 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
             MinFreezeDays = freeze.Min,
             Kind = kind,
             Entries = shape.Entries,
+            Seats = planSeats,
         };
     }
 
     public void Update(
         string name, string? description, decimal price, int durationValue,
         DurationUnit durationUnit = DurationUnit.Days, int? maxFreezeDays = null, int? minFreezeDays = null,
-        PlanKind? kind = null, int? entries = null)
+        PlanKind? kind = null, int? entries = null, int? seats = null)
     {
         if (kind is { } requested && requested != Kind)
         {
@@ -98,11 +110,13 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
 
         // En una edición de un plan por tiempo no se mandan entradas; en una tiquetera se conservan si faltan.
         var shape = RequireShape(Kind, Kind == PlanKind.Pass ? entries ?? Entries : null, durationUnit);
+        var planSeats = RequireSeats(seats ?? Seats, Kind);
         Name = NormalizeName(name);
         Description = Clean(description);
         Price = RequireNonNegative(price);
         DurationUnit = shape.Unit;
         Entries = shape.Entries;
+        Seats = planSeats;
         DurationValue = RequireDuration(durationValue, shape.Unit);
         (MaxFreezeDays, MinFreezeDays) = RequireFreezeRules(maxFreezeDays ?? MaxFreezeDays, minFreezeDays ?? MinFreezeDays);
     }
@@ -138,6 +152,22 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
         }
 
         return (DurationUnit.Days, count);
+    }
+
+    /// <summary>Cupos entre 1 y <see cref="MaxSeats"/>; un plan de grupo es siempre por tiempo (una tiquetera no se comparte).</summary>
+    private static int RequireSeats(int seats, PlanKind kind)
+    {
+        if (seats < 1 || seats > MaxSeats)
+        {
+            throw new ValidationDomainException($"Los cupos del plan deben estar entre 1 y {MaxSeats}.");
+        }
+
+        if (seats > 1 && kind == PlanKind.Pass)
+        {
+            throw new ValidationDomainException("Una tiquetera no puede ser un plan de grupo.");
+        }
+
+        return seats;
     }
 
     private static (int Max, int Min) RequireFreezeRules(int max, int min)

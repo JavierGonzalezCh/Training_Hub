@@ -28,6 +28,24 @@ internal static class MembershipLookup
             ? (await memberships.GetPassUsedCountsAsync([membership.Id], cancellationToken)).GetValueOrDefault(membership.Id)
             : null;
 
+    /// <summary>
+    /// Las membresías que se mueven juntas con <paramref name="membership"/> (MS7, §9): las no canceladas de su grupo,
+    /// incluida ella misma. Una membresía individual se mueve sola.
+    /// </summary>
+    public static async Task<IReadOnlyList<Membership>> GroupActiveAsync(
+        IMembershipRepository memberships, Membership membership, CancellationToken cancellationToken)
+    {
+        if (membership.GroupId is not { } groupId)
+        {
+            return [membership];
+        }
+
+        var all = await memberships.GetByGroupAsync(groupId, cancellationToken);
+        var moving = all.Where(m => m.Status == MembershipStatus.Active && m.Id != membership.Id).ToList();
+        moving.Insert(0, membership);
+        return moving;
+    }
+
     public static async Task<string> PlanNameAsync(
         IMembershipRepository memberships, Membership membership, CancellationToken cancellationToken)
         => (await memberships.GetPlanByIdAsync(membership.PlanId, cancellationToken))?.Name ?? string.Empty;
@@ -51,11 +69,28 @@ public sealed class CancelMembershipHandler(
         var gymId = currentUser.RequireGymId();
         var membership = await MembershipLookup.RequireAsync(memberships, memberId, membershipId, cancellationToken);
 
+        // MS7 (§9): cancelar la membresía del titular cancela el grupo entero; cancelar la de un beneficiario es sacarlo
+        // del grupo (libera su cupo) y no toca a los demás.
+        var cancelled = new List<Membership> { membership };
         membership.Cancel(request.Reason, clock.UtcNow);
+        if (membership.IsGroupHolder)
+        {
+            foreach (var sibling in (await MembershipLookup.GroupActiveAsync(memberships, membership, cancellationToken))
+                .Where(m => m.Id != membership.Id))
+            {
+                sibling.Cancel(request.Reason, clock.UtcNow);
+                cancelled.Add(sibling);
+            }
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Membresía {MembershipId} del miembro {MemberId} cancelada", membership.Id, memberId);
-        await events.PublishAsync(new MembershipCancelled(membership.Id, memberId, gymId), cancellationToken);
+        logger.LogInformation(
+            "Membresía {MembershipId} del miembro {MemberId} cancelada ({Count} en total)", membership.Id, memberId, cancelled.Count);
+        foreach (var item in cancelled)
+        {
+            await events.PublishAsync(new MembershipCancelled(item.Id, item.MemberId, gymId), cancellationToken);
+        }
 
         var planName = await MembershipLookup.PlanNameAsync(memberships, membership, cancellationToken);
         return MembershipMapper.ToResponse(
@@ -92,22 +127,33 @@ public sealed class CreateFreezeHandler(
         var membership = await MembershipLookup.RequireAsync(memberships, memberId, membershipId, cancellationToken);
         var plan = await memberships.GetPlanByIdAsync(membership.PlanId, cancellationToken)
             ?? throw new NotFoundException("Plan no encontrado.");
-        var existing = await memberships.GetFreezesAsync([membership.Id], cancellationToken);
 
-        var originalEnd = membership.EndDate;
-        var (freeze, daysAdded) = membership.Freeze(
-            plan, existing, today, request.StartsOn, request.EndsOn, request.Reason, request.OverrideLimit,
-            currentUser.UserId);
-        memberships.Add(freeze);
-        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, daysAdded, cancellationToken, membership.IsPass);
+        // MS7 (§9): un grupo se congela junto. Cada integrante valida el límite del plan con su propio historial y
+        // corre sus propias membresías encadenadas; si uno no cabe, no se congela ninguno.
+        var frozen = new List<(Membership Membership, MembershipFreeze Freeze, int DaysAdded)>();
+        foreach (var moving in await MembershipLookup.GroupActiveAsync(memberships, membership, cancellationToken))
+        {
+            var existing = await memberships.GetFreezesAsync([moving.Id], cancellationToken);
+            var originalEnd = moving.EndDate;
+            var (freeze, daysAdded) = moving.Freeze(
+                plan, existing, today, request.StartsOn, request.EndsOn, request.Reason, request.OverrideLimit,
+                currentUser.UserId);
+            memberships.Add(freeze);
+            await FreezeSpans.ShiftFollowingAsync(memberships, moving.MemberId, originalEnd, daysAdded, cancellationToken, moving.IsPass);
+            frozen.Add((moving, freeze, daysAdded));
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation(
-            "Membresía {MembershipId} del miembro {MemberId} congelada {Start}..{End}; fin corrido {Days} días",
-            membership.Id, memberId, freeze.StartsOn, freeze.EndsOn, daysAdded);
-        await events.PublishAsync(
-            new MembershipFrozen(membership.Id, memberId, gymId, freeze.StartsOn, freeze.EndsOn, daysAdded),
-            cancellationToken);
+        foreach (var (moving, freeze, daysAdded) in frozen)
+        {
+            logger.LogInformation(
+                "Membresía {MembershipId} del miembro {MemberId} congelada {Start}..{End}; fin corrido {Days} días",
+                moving.Id, moving.MemberId, freeze.StartsOn, freeze.EndsOn, daysAdded);
+            await events.PublishAsync(
+                new MembershipFrozen(moving.Id, moving.MemberId, gymId, freeze.StartsOn, freeze.EndsOn, daysAdded),
+                cancellationToken);
+        }
 
         var all = await memberships.GetFreezesAsync([membership.Id], cancellationToken);
         return MembershipMapper.ToResponse(
@@ -139,20 +185,43 @@ public sealed class ResumeMembershipHandler(
             ?? throw new NotFoundException("Plan no encontrado.");
         var freezes = await memberships.GetFreezesAsync([membership.Id], cancellationToken);
 
-        var originalEnd = membership.EndDate;
-        var ended = membership.EndFreeze(plan, freezes, today);
-        if (ended.Removed)
+        // MS7 (§9): un grupo se reanuda junto. La solicitada tiene que estar congelada (si no, EndFreeze lo dice); las
+        // demás se reanudan solo si lo están.
+        var resumed = new List<(Membership Membership, FreezeEnd Ended)>();
+        FreezeEnd? target = null;
+        foreach (var moving in await MembershipLookup.GroupActiveAsync(memberships, membership, cancellationToken))
         {
-            memberships.Remove(ended.Freeze);
+            var own = moving.Id == membership.Id ? freezes : await memberships.GetFreezesAsync([moving.Id], cancellationToken);
+            if (moving.Id != membership.Id && !own.Any(f => f.CoversDate(today)))
+            {
+                continue;
+            }
+
+            var originalEnd = moving.EndDate;
+            var done = moving.EndFreeze(plan, own, today);
+            if (done.Removed)
+            {
+                memberships.Remove(done.Freeze);
+            }
+
+            await FreezeSpans.ShiftFollowingAsync(memberships, moving.MemberId, originalEnd, done.Delta, cancellationToken, moving.IsPass);
+            resumed.Add((moving, done));
+            if (moving.Id == membership.Id)
+            {
+                target = done;
+            }
         }
 
-        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, ended.Delta, cancellationToken, membership.IsPass);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation(
-            "Membresía {MembershipId} del miembro {MemberId} reanudada; fin corrido {Days} días", membership.Id, memberId, ended.Delta);
-        await events.PublishAsync(new MembershipResumed(membership.Id, memberId, gymId, ended.Delta), cancellationToken);
+        foreach (var (moving, done) in resumed)
+        {
+            logger.LogInformation(
+                "Membresía {MembershipId} del miembro {MemberId} reanudada; fin corrido {Days} días", moving.Id, moving.MemberId, done.Delta);
+            await events.PublishAsync(new MembershipResumed(moving.Id, moving.MemberId, gymId, done.Delta), cancellationToken);
+        }
 
+        var ended = target!;
         var planName = await MembershipLookup.PlanNameAsync(memberships, membership, cancellationToken);
         var remaining = ended.Removed ? freezes.Where(f => f.Id != ended.Freeze.Id).ToList() : freezes;
         return MembershipMapper.ToResponse(
@@ -181,14 +250,34 @@ public sealed class DeleteFreezeHandler(
             throw new NotFoundException("Congelamiento no encontrado.");
         }
 
-        var originalEnd = membership.EndDate;
-        var delta = membership.RemoveScheduledFreeze(freeze, today);
-        memberships.Remove(freeze);
-        await FreezeSpans.ShiftFollowingAsync(memberships, memberId, originalEnd, delta, cancellationToken, membership.IsPass);
+        // MS7 (§9): el congelamiento de un grupo se deshace en todos. Cada integrante tiene su fila; se reconoce por tener
+        // las mismas fechas que la solicitada.
+        var removed = new List<(Membership Membership, int Delta)>();
+        foreach (var moving in await MembershipLookup.GroupActiveAsync(memberships, membership, cancellationToken))
+        {
+            var target = moving.Id == membership.Id
+                ? freeze
+                : (await memberships.GetFreezesAsync([moving.Id], cancellationToken))
+                    .FirstOrDefault(f => f.StartsOn == freeze.StartsOn && f.EndsOn == freeze.EndsOn);
+            if (target is null)
+            {
+                continue;
+            }
+
+            var originalEnd = moving.EndDate;
+            var delta = moving.RemoveScheduledFreeze(target, today);
+            memberships.Remove(target);
+            await FreezeSpans.ShiftFollowingAsync(memberships, moving.MemberId, originalEnd, delta, cancellationToken, moving.IsPass);
+            removed.Add((moving, delta));
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Congelamiento {FreezeId} de la membresía {MembershipId} deshecho", freezeId, membership.Id);
-        await events.PublishAsync(new MembershipFreezeRemoved(membership.Id, memberId, gymId, -delta), cancellationToken);
+        foreach (var (moving, delta) in removed)
+        {
+            logger.LogInformation("Congelamiento {FreezeId} de la membresía {MembershipId} deshecho", freezeId, moving.Id);
+            await events.PublishAsync(new MembershipFreezeRemoved(moving.Id, moving.MemberId, gymId, -delta), cancellationToken);
+        }
 
         var remaining = (await memberships.GetFreezesAsync([membership.Id], cancellationToken))
             .Where(f => f.Id != freezeId).ToList();

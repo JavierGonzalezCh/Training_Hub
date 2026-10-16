@@ -6,6 +6,12 @@
             «@Membership.PlanName» (@GsmFormat.DayRange(Membership.StartDate, Membership.EndDate)) deja de dar acceso
             mientras está congelada. Su fin (y el de las renovaciones encadenadas) se corre los días congelados.
         </MudText>
+        @if (Membership.GroupId is not null)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" id="freeze-group-note">
+                Es un plan de grupo: el congelamiento se aplica a todas las personas del grupo, con las mismas fechas.
+            </MudAlert>
+        }
         @if (_rules is { } rules)
         {
             <MudAlert Severity="@(rules.MaxFreezeDays == 0 ? Severity.Warning : Severity.Info)" Dense="true" Class="mb-3" data-testid="freeze-rules">

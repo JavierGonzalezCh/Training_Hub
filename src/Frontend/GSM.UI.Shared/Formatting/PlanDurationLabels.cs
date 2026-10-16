@@ -36,6 +36,12 @@ public static class PlanDurationLabels
             ? $"{Entries(entries ?? 0)} · {(value == 1 ? "1 día" : $"{value} días")}"
             : Format(unit, value);
 
+    /// <summary>Un plan con más de un cupo es de grupo (MS7).</summary>
+    public static bool IsGroup(int seats) => seats > 1;
+
+    /// <summary>"Grupo de 4" para un plan de grupo; vacío para un plan individual.</summary>
+    public static string SeatsLabel(int seats) => seats > 1 ? $"Grupo de {seats}" : string.Empty;
+
     /// <summary>"1 entrada", "12 entradas".</summary>
     public static string Entries(int count) => count == 1 ? "1 entrada" : $"{count} entradas";
 

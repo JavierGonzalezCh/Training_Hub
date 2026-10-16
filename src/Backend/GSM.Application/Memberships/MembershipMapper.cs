@@ -23,7 +23,8 @@ public static partial class MembershipMapper
             plan.MinFreezeDays,
             EnumText.Snake(plan.Kind)!,
             plan.Entries,
-            plan.ValidityDays);
+            plan.ValidityDays,
+            plan.Seats);
 
     public static MembershipFreezeResponse ToResponse(MembershipFreeze freeze, DateOnly today)
         => new(
@@ -80,7 +81,9 @@ public static partial class MembershipMapper
             membership.EntriesTotal is null ? null : Math.Max(0, membership.EntriesTotal.Value - (entriesUsed ?? 0)),
             membership.CreditApplied,
             membership.CreditAdjustmentReason,
-            membership.ReplacesMembershipId);
+            membership.ReplacesMembershipId,
+            membership.GroupId,
+            membership.IsGroupHolder);
 
     public static AccessStatusResponse ToResponse(AccessStatus access)
         => new(

@@ -1,0 +1,24 @@
+-- V2_MS7: planes de grupo (Memberships v2, §9).
+--
+-- Orden esperado de la migración V2_MS7_PlanesDeGrupo (el integrador la genera con `dotnet ef`):
+--   1. AddColumn memberships.membership_plans.seats integer NOT NULL default 1
+--      (cupos; 1 = individual, los planes existentes quedan así).
+--   2. AddCheckConstraint ck_membership_plans_seats: seats >= 1 AND seats <= 500
+--      y ck_membership_plans_group_is_time: seats = 1 OR kind = 'time'
+--      (van DESPUÉS de la columna; las filas existentes con seats = 1 los cumplen).
+--   3. CreateTable memberships.membership_groups (id, gym_id, plan_id, holder_member_id, seats, created_at, updated_at)
+--      + ck_membership_groups_seats (seats >= 2)
+--      + ix_membership_groups_holder_member_id + ix_membership_groups_plan_id.
+--      Sin FK a plans ni a members: plan_id es del mismo schema pero el plan nunca se borra; holder_member_id es de otro módulo.
+--   4. AddColumn memberships.memberships.group_id uuid NULL
+--      + AddColumn memberships.memberships.is_group_holder boolean NOT NULL default false
+--      + ix_memberships_group_id
+--      + AddForeignKey fk_memberships_membership_groups_group_id (group_id -> memberships.membership_groups.id, ON DELETE RESTRICT)
+--      (va DESPUÉS de CreateTable membership_groups).
+--   5. AddCheckConstraint ck_memberships_group_holder: NOT is_group_holder OR group_id IS NOT NULL.
+--   6. migrationBuilder.SqlScript("MS7")  <- este script (no hace nada hoy).
+--
+-- Sin ALTER TYPE ni enums nuevos: el grupo usa membership_status ('active','cancelled') y renewal_kind que ya existen.
+-- No hay datos que migrar: todos los planes y membresías de antes son individuales (seats = 1, group_id nulo).
+-- Se deja el script para que el orden quede escrito junto al resto de la v2; es idempotente.
+SELECT 1;

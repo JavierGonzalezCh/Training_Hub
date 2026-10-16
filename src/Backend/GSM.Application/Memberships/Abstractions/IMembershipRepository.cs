@@ -73,6 +73,21 @@ public interface IMembershipRepository
 
     void Remove(PassUsage usage);
 
+    // Planes de grupo (MS7)
+    Task<MembershipGroup?> GetGroupByIdAsync(Guid groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>Todas las membresías del grupo (también las canceladas), el titular primero.</summary>
+    Task<IReadOnlyList<Membership>> GetByGroupAsync(Guid groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Membresías por tiempo, Active, del miembro que cubren algún día de <paramref name="start"/>..<paramref name="end"/>
+    /// (para no solapar al meter a alguien en un grupo).
+    /// </summary>
+    Task<IReadOnlyList<Membership>> GetActiveOverlappingAsync(
+        Guid memberId, DateOnly start, DateOnly end, CancellationToken cancellationToken = default);
+
+    void Add(MembershipGroup group);
+
     // Ajustes del gym (gracia y aviso de vencimiento)
     Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
