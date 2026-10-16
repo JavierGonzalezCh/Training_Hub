@@ -49,6 +49,12 @@ public interface IAttendanceReader
 
     Task<DateOnly?> GetLastVisitAsync(Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// La primera entrada válida (no anulada) del miembro en el día de negocio de hoy: "Entraste hoy a las 6:12"
+    /// (D2). Nulo si todavía no ha entrado hoy.
+    /// </summary>
+    Task<DateTimeOffset?> GetFirstEntryTodayAsync(Guid memberId, CancellationToken cancellationToken = default);
+
     // --- Lecturas del dashboard del panel (D1). Siempre sobre el gym en contexto. ---
 
     /// <summary>Personas adentro ahora (estimación), aforo y % del aforo (A5).</summary>

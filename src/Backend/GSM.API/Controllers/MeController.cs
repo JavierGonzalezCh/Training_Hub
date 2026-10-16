@@ -6,6 +6,7 @@ using GSM.Application.Attendance.Contracts;
 using GSM.Application.Classes;
 using GSM.Application.Classes.Contracts;
 using GSM.Application.Common;
+using GSM.Application.Dashboard;
 using GSM.Application.Gyms;
 using GSM.Application.Gyms.Contracts;
 using GSM.Application.Communications;
@@ -28,6 +29,17 @@ namespace GSM.API.Controllers;
 [Authorize(Policy = AuthPolicies.RequireMember)]
 public sealed class MeController : ControllerBase
 {
+    /// <summary>
+    /// Inicio del miembro (D2): los ocho bloques de <c>/app</c> en una llamada. Un bloque que el gym apagó, o cuyo lector
+    /// falló, viaja <c>null</c>; el resto llega. Cliente: <c>GetMyHomeAsync</c>.
+    /// </summary>
+    [HttpGet("home")]
+    [EndpointName("GetMyHome")]
+    [ProducesResponseType<MemberHomeResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MemberHomeResponse>> Home(
+        [FromServices] GetMyHomeHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     /// <summary>Datos del gimnasio del miembro: ubicación, contacto y redes ("Mi gimnasio").</summary>
     [HttpGet("gym")]
     [ProducesResponseType<MemberGymResponse>(StatusCodes.Status200OK)]
