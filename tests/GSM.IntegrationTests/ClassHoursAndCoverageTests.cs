@@ -347,7 +347,7 @@ public sealed class ClassHoursAndCoverageTests(ApiFactory factory) : IClassFixtu
     }
 
     [Fact]
-    public async Task Marking_attendance_for_a_member_who_is_not_up_to_date_is_409_without_letting_through()
+    public async Task Marking_attendance_skips_a_member_who_is_not_up_to_date_and_saves_the_rest()
     {
         // Miembro 0 cubierto, 1 vencido fuera de la gracia.
         var w = await SeedAsync(2, coverage: new Dictionary<int, (DateOnly Start, int Days)>
@@ -357,29 +357,32 @@ public sealed class ClassHoursAndCoverageTests(ApiFactory factory) : IClassFixtu
         });
         var created = await CreateAsync(w, new TimeOnly(7, 0), 45, [ClassDayOfWeek.Monday], capacity: null);
 
+        // C1-4: el que está al día queda marcado; el vencido no (sin "Dejar pasar") y sale con el motivo.
         using (var scope = Staff(w))
         {
-            // El lote entero se rechaza: nadie queda marcado ni con entrada del día.
-            var ex = await Assert.ThrowsAsync<ConflictException>(() => scope.ServiceProvider
-                .GetRequiredService<MarkAttendanceHandler>()
+            var roster = await scope.ServiceProvider.GetRequiredService<MarkAttendanceHandler>()
                 .HandleAsync(created.Id, Monday,
-                    new MarkAttendanceRequest([w.MemberIds[0], w.MemberIds[1]], null), default));
-            Assert.Contains("Debe renovar", ex.Message);
+                    new MarkAttendanceRequest([w.MemberIds[0], w.MemberIds[1]], null), default);
+
+            Assert.Equal(ClassBookingStatus.Attended.ToString(), Assert.Single(roster.Entries).Status);
+            var skipped = Assert.Single(roster.NotMarked!);
+            Assert.Equal(w.MemberIds[1], skipped.MemberId);
+            Assert.Contains("Debe renovar", skipped.Reason);
         }
 
         using (var scope = Staff(w))
         {
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
-            Assert.Equal(0, await db.Set<ClassBooking>().CountAsync());
-            Assert.Equal(0, await db.Set<AttendanceEntity>().CountAsync());
+            Assert.Equal(w.MemberIds[0], (await db.Set<ClassBooking>().SingleAsync()).MemberId);
+            Assert.DoesNotContain(await db.Set<ClassBooking>().ToListAsync(), b => b.MemberId == w.MemberIds[1]);
         }
 
-        // Solo el miembro al día sí puede.
+        // Marcar solo a los que están al día no trae NotMarked.
         using (var scope = Staff(w))
         {
             var roster = await scope.ServiceProvider.GetRequiredService<MarkAttendanceHandler>()
                 .HandleAsync(created.Id, Monday, new MarkAttendanceRequest([w.MemberIds[0]], null), default);
-            Assert.Equal(ClassBookingStatus.Attended.ToString(), roster.Entries.Single().Status);
+            Assert.Null(roster.NotMarked);
         }
     }
 
@@ -414,9 +417,10 @@ public sealed class ClassHoursAndCoverageTests(ApiFactory factory) : IClassFixtu
 
         using (var scope = Staff(w))
         {
-            await Assert.ThrowsAsync<ConflictException>(() => scope.ServiceProvider
-                .GetRequiredService<MarkAttendanceHandler>()
-                .HandleAsync(created.Id, NextMonday, new MarkAttendanceRequest([w.MemberIds[0]], null), default));
+            // C1-4: no se marca y sale en NotMarked.
+            var roster = await scope.ServiceProvider.GetRequiredService<MarkAttendanceHandler>()
+                .HandleAsync(created.Id, NextMonday, new MarkAttendanceRequest([w.MemberIds[0]], null), default);
+            Assert.Equal(w.MemberIds[0], Assert.Single(roster.NotMarked!).MemberId);
         }
 
         // La reserva sigue ahí: no se castiga ni se borra.

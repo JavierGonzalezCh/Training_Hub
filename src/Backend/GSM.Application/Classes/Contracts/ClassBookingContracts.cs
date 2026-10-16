@@ -38,7 +38,15 @@ public sealed record RosterResponse(
     /// <summary>C6: unidades de las máquinas ligadas que sirven ese día ("18 reservas y 17 bicicletas disponibles").</summary>
     int? AvailableMachines = null,
     /// <summary>C6: unidades de las máquinas ligadas que siguen en el inventario.</summary>
-    int? LinkedMachines = null);
+    int? LinkedMachines = null,
+    /// <summary>
+    /// C1-4: solo en la respuesta de marcar asistencia. Asistentes que no se marcaron porque no están al día (los
+    /// demás sí quedaron marcados); nula si se marcaron todos.
+    /// </summary>
+    IReadOnlyList<SkippedAttendee>? NotMarked = null);
+
+/// <summary>Un asistente que no se pudo marcar y por qué (p. ej. "Membresía vencida. Debe renovar primero.").</summary>
+public sealed record SkippedAttendee(Guid MemberId, string MemberName, string Reason);
 
 /// <summary>Una persona de la lista de espera. <see cref="Position"/> es su lugar en la lista (1 = la primera).</summary>
 public sealed record WaitlistRosterEntry(

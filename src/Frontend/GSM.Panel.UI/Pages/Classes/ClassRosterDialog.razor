@@ -151,12 +151,24 @@
         {
             var attended = _desired.Where(kv => kv.Value == "Attended").Select(kv => kv.Key).ToList();
             var noShow = _desired.Where(kv => kv.Value == "NoShow").Select(kv => kv.Key).ToList();
-            await Classes.AttendancePOSTAsync(ClassId, SessionDate, new MarkAttendanceRequest
+            var result = await Classes.AttendancePOSTAsync(ClassId, SessionDate, new MarkAttendanceRequest
             {
                 Attended = attended,
                 NoShow = noShow,
             });
-            Snackbar.Add("Asistencia guardada.", Severity.Success);
+            // C1-4: quien no está al día no se marca, pero el resto sí quedó guardado.
+            if (result.NotMarked is { Count: > 0 } notMarked)
+            {
+                Snackbar.Add(
+                    "Asistencia guardada, excepto: "
+                    + string.Join(" · ", notMarked.Select(s => $"{s.MemberName} ({s.Reason})")),
+                    Severity.Warning,
+                    o => o.RequireInteraction = true);
+            }
+            else
+            {
+                Snackbar.Add("Asistencia guardada.", Severity.Success);
+            }
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (GsmApiException ex)

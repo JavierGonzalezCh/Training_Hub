@@ -333,7 +333,10 @@ public sealed class GetRosterHandler(
     }
 }
 
-/// <summary>El staff marca asistentes y ausentes de una sesión. Publica <c>ClassAttendanceRegistered</c> por cada asistente.</summary>
+/// <summary>
+/// El staff marca asistentes y ausentes de una sesión. Publica <c>ClassAttendanceRegistered</c> por cada asistente. Un
+/// asistente que no está al día no se marca, pero no frena a los demás (C1-4): sale en <c>NotMarked</c> con el motivo.
+/// </summary>
 public sealed class MarkAttendanceHandler(
     ICurrentUserService currentUser,
     IClock clock,
@@ -368,12 +371,15 @@ public sealed class MarkAttendanceHandler(
             throw new ConflictException("La sesión está cancelada.");
         }
 
-        var attended = (request.Attended ?? []).Distinct().ToList();
-        var noShow = (request.NoShow ?? []).Distinct().Except(attended).ToList();
+        var requested = (request.Attended ?? []).Distinct().ToList();
+        var attended = new List<Guid>(requested);
+        var skipped = new List<SkippedAttendee>();
+        var noShow = (request.NoShow ?? []).Distinct().Except(requested).ToList();
 
         // Asistir a una clase cuenta como entrada del día: con el gym cerrado (gym_closed) no se registra,
         // sin excepción. Se mide la clase completa en la fecha de la sesión, no la hora en que el staff la marca.
-        // Estar al día también es requisito, y aquí no hay "Dejar pasar": hay que renovar primero.
+        // Estar al día también es requisito, y aquí no hay "Dejar pasar": hay que renovar primero. Quien no lo está se
+        // deja fuera y se informa; el resto del lote se guarda igual (C1-4).
         var now = clock.UtcNow;
         var current = await bookings.ListForSessionAsync(session.Id, cancellationToken);
         var byMember = current.ToDictionary(b => b.MemberId);
@@ -383,7 +389,7 @@ public sealed class MarkAttendanceHandler(
             await ClassOpeningHours.EnsureOccurrenceOpenAsync(
                 gyms, clock, gymId, session.SessionDate, session.StartTime, session.DurationMinutes, cancellationToken);
 
-            foreach (var memberId in attended)
+            foreach (var memberId in requested)
             {
                 var memberView = await members.GetAsync(memberId, cancellationToken)
                     ?? throw new NotFoundException($"Miembro {memberId} no encontrado.");
@@ -397,9 +403,11 @@ public sealed class MarkAttendanceHandler(
                 var access = await memberships.GetAccessStatusOnAsync(memberId, session.SessionDate, cancellationToken);
                 if (!access.CanEnter)
                 {
-                    throw new ConflictException(
-                        $"{memberView.FirstName} {memberView.LastName} no está al día y no puede asistir a la clase: "
-                        + $"{access.BlockMessage ?? "sin membresía vigente"} Debe renovar primero.");
+                    attended.Remove(memberId);
+                    skipped.Add(new SkippedAttendee(
+                        memberId,
+                        $"{memberView.FirstName} {memberView.LastName}",
+                        $"{access.BlockMessage ?? "Sin membresía vigente."} Debe renovar primero."));
                 }
             }
         }
@@ -438,8 +446,8 @@ public sealed class MarkAttendanceHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation(
-            "Sesión {SessionId}: {Attended} asistentes, {NoShow} ausentes marcados",
-            session.Id, attended.Count, noShow.Count);
+            "Sesión {SessionId}: {Attended} asistentes, {NoShow} ausentes marcados, {Skipped} sin marcar por no estar al día",
+            session.Id, attended.Count, noShow.Count, skipped.Count);
 
         foreach (var memberId in struck)
         {
@@ -452,7 +460,8 @@ public sealed class MarkAttendanceHandler(
                 new ClassAttendanceRegistered(memberId, gymId, session.SessionDate), cancellationToken);
         }
 
-        return await roster.HandleAsync(classId, date, cancellationToken);
+        var result = await roster.HandleAsync(classId, date, cancellationToken);
+        return skipped.Count == 0 ? result : result with { NotMarked = skipped };
     }
 }
 
