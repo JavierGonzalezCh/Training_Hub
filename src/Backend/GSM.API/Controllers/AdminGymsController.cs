@@ -33,6 +33,7 @@ public sealed class AdminGymsController : ControllerBase
 
     /// <summary>Dónde va el onboarding del gym: pasos, si se omitió y con qué motivo.</summary>
     [HttpGet("{gymId:guid}/onboarding")]
+    [EndpointName("AdminGymOnboarding")]
     [ProducesResponseType<GSM.Application.Gyms.Contracts.OnboardingResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GSM.Application.Gyms.Contracts.OnboardingResponse>> GetOnboarding(
@@ -41,6 +42,7 @@ public sealed class AdminGymsController : ControllerBase
 
     /// <summary>"Omitir onboarding" (soporte): habilita el panel sin pasar por el asistente. Exige motivo; queda auditado.</summary>
     [HttpPost("{gymId:guid}/onboarding/skip")]
+    [EndpointName("SkipOnboarding")]
     [ProducesResponseType<GSM.Application.Gyms.Contracts.OnboardingResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

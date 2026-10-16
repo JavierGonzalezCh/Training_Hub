@@ -224,3 +224,63 @@ public partial class PushClient
 {
     partial void Initialize() => ReadResponseAsString = true;
 }
+
+public partial class AdminCatalogClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class AdminLogsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class AdminMetricsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class CashShiftsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class ClassBookingBlocksClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class ClassSettingsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class LogsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class MeClassBookingStatusClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class MeProfileClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class MemberClassAttendanceClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class MembershipGroupsClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
+public partial class OwnersClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}

@@ -72,7 +72,7 @@ else
         _loading = true;
         try
         {
-            _state = await AdminGyms.OnboardingAsync(GymId);
+            _state = await AdminGyms.AdminGymOnboardingAsync(GymId);
         }
         catch (GsmApiException)
         {

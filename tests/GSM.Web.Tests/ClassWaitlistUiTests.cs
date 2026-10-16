@@ -240,7 +240,7 @@ public class ClassWaitlistUiTests : TestContext
         });
     }
 
-    private sealed class GrantedPushDevice : GSM.UI.Shared.Push.IPushNotifications
+    internal sealed class GrantedPushDevice : GSM.UI.Shared.Push.IPushNotifications
     {
         public Task<GSM.UI.Shared.Push.PushPermissionState> GetStateAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(GSM.UI.Shared.Push.PushPermissionState.Granted);

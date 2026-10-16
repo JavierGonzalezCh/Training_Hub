@@ -42,7 +42,7 @@ public class ClassSelfAttendanceUiTests : TestContext
         attendFake.Handlers["AttendAsync"] = _ => new SelfAttendanceResponse { Status = "Attended" };
         Services.AddSingleton(attend);
 
-        Services.AddSingleton<GSM.UI.Shared.Push.IPushNotifications>(new GrantedPushDevice());
+        Services.AddSingleton<GSM.UI.Shared.Push.IPushNotifications>(new ClassWaitlistUiTests.GrantedPushDevice());
         Services.AddSingleton(DispatchProxy.Create<IPushClient, FakeClient>());
         Services.AddScoped<GSM.UI.Shared.Push.PushRegistrationService>();
         RenderComponent<MudPopoverProvider>();

@@ -67,6 +67,7 @@ public sealed class GymController : ControllerBase
     /// Lo puede leer el staff (ve "tu gym se está configurando"); lo completa el Owner con las pantallas de cada módulo.
     /// </summary>
     [HttpGet("onboarding")]
+    [EndpointName("Onboarding")]
     [ProducesResponseType<OnboardingResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<OnboardingResponse>> GetOnboarding(
         [FromServices] GetOnboardingHandler handler, CancellationToken cancellationToken)
