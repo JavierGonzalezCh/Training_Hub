@@ -258,12 +258,14 @@ public class KioskDeviceUiTests : TestContext
         attendance.ByDocument = true;
         var cut = RenderComponent<Kiosk>();
         // La pantalla carga los ajustes en segundo plano: esperar el teclado antes de escribir.
-        cut.WaitForElement("button[data-testid='kiosk-key-enter']");
+        // Bajo carga (suite completa en paralelo) el render tarda más que el segundo por defecto de bUnit.
+        var wait = TimeSpan.FromSeconds(10);
+        cut.WaitForElement("button[data-testid='kiosk-key-enter']", wait);
 
         Type(cut, "123");
-        cut.WaitForAssertion(() => Assert.True(cut.Find("button[data-testid='kiosk-key-enter']").HasAttribute("disabled")));
+        cut.WaitForAssertion(() => Assert.True(cut.Find("button[data-testid='kiosk-key-enter']").HasAttribute("disabled")), wait);
         Type(cut, "4");
-        cut.WaitForAssertion(() => Assert.Equal("••••", cut.Find("[data-testid='kiosk-doc-display']").TextContent));
+        cut.WaitForAssertion(() => Assert.Equal("••••", cut.Find("[data-testid='kiosk-doc-display']").TextContent), wait);
 
         var display = cut.Find("[data-testid='kiosk-doc-display']").TextContent;
         Assert.Equal("••••", display);
