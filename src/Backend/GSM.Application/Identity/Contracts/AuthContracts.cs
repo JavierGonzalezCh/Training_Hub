@@ -107,4 +107,5 @@ public sealed record MeFeatureFlags(
     bool ShowCommunity,
     bool CheckinQr,
     bool CommunityComments,
-    bool MembersCanCreateRoutines);
+    bool MembersCanCreateRoutines,
+    bool MembersCanReportEquipment);

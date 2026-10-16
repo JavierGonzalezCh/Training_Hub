@@ -1,0 +1,66 @@
+@inject IEquipmentClient Equipment
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">@Name</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" data-testid="report-error">@_error</MudAlert>
+        }
+        <EquipmentIssueFields @bind-Reason="_reason" @bind-Description="_description" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="report-save">
+            @(_submitting ? "Enviando..." : "Reportar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid EquipmentId { get; set; }
+
+    [Parameter]
+    public string Name { get; set; } = string.Empty;
+
+    private int _reason;
+    private string? _description;
+    private bool _submitting;
+    private string? _error;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (_reason == EquipmentIssueLabels.OtherValue && string.IsNullOrWhiteSpace(_description))
+        {
+            _error = "Cuéntanos qué pasa: el motivo \"otro\" necesita una descripción.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Equipment.ReportEquipmentIssueByStaffAsync(EquipmentId, new ReportEquipmentIssueRequest
+            {
+                Reason = _reason,
+                Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
+            });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

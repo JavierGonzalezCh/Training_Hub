@@ -69,3 +69,67 @@ public sealed record EquipmentStatusChangeResponse(
 public sealed record EquipmentFromModelItem(Guid ModelId, int Quantity, string? Zone);
 
 public sealed record AddEquipmentFromModelsRequest(IReadOnlyList<EquipmentFromModelItem> Items);
+
+// ---- E4: reportes de falla ----
+
+/// <summary>Reportar una falla (miembro o staff). <c>Description</c> es obligatoria si <c>Reason</c> es «otro».</summary>
+public sealed record ReportEquipmentIssueRequest(EquipmentIssueReason Reason, string? Description);
+
+/// <summary>
+/// Cambia el estado de un reporte: <c>InProgress</c>, o <c>Resolved</c>/<c>Dismissed</c> con <c>Resolution</c> obligatoria.
+/// </summary>
+public sealed record UpdateEquipmentIssueRequest(EquipmentIssueStatus Status, string? Resolution);
+
+/// <summary>
+/// Un reporte, para el staff. <c>Reason</c>, <c>Status</c> y <c>ReportedByRole</c> salen como texto. <c>IsSeen</c>
+/// = alguien del staff ya lo abrió. <c>ReportedByName</c> es nulo si la cuenta se anonimizó.
+/// </summary>
+public sealed record EquipmentIssueResponse(
+    Guid Id,
+    Guid ItemId,
+    string ItemName,
+    string? ItemZone,
+    string? ItemPhotoUrl,
+    string Reason,
+    string? Description,
+    string? PhotoUrl,
+    string Status,
+    bool IsUrgent,
+    bool IsSeen,
+    string ReportedByRole,
+    string? ReportedByName,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? ResolvedAt,
+    string? ResolvedByName,
+    string? Resolution);
+
+/// <summary>Un reporte propio del miembro. <c>Resolution</c> solo sale si se resolvió (un descarte no se explica al miembro).</summary>
+public sealed record MyEquipmentIssueResponse(
+    Guid Id,
+    Guid ItemId,
+    string ItemName,
+    string Reason,
+    string? Description,
+    string Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? ResolvedAt,
+    string? Resolution);
+
+/// <summary>
+/// Una máquina vista por el miembro: foto (propia o del modelo), zona, instrucciones y estado, más si puede reportarla
+/// (<c>CanReport</c> = el flag del gym está encendido) y su reporte sin cerrar, si lo tiene.
+/// </summary>
+public sealed record MyEquipmentResponse(
+    Guid Id,
+    string Name,
+    string Type,
+    string? PhotoUrl,
+    string? Zone,
+    string? Instructions,
+    string Status,
+    DateOnly? ExpectedBackOn,
+    bool CanReport,
+    MyEquipmentIssueResponse? OpenIssue);
+
+/// <summary>Tarjeta del dashboard: máquinas fuera de servicio o en mantenimiento y reportes abiertos.</summary>
+public sealed record EquipmentSummaryResponse(int OutOfService, int InMaintenance, int OpenIssues, int UrgentIssues);

@@ -1,0 +1,73 @@
+@inject IEquipmentClient Equipment
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">@ItemName</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" data-testid="resolution-error">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_resolution" Immediate="true" Lines="3" MaxLength="1000"
+                      Label="@(Dismiss ? "Por qué se descarta (obligatorio)" : "Cómo se resolvió (obligatorio)")"
+                      data-testid="resolution-text" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="resolution-save">
+            @(Dismiss ? "Descartar" : "Resolver")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid IssueId { get; set; }
+
+    [Parameter]
+    public string ItemName { get; set; } = string.Empty;
+
+    /// <summary>Descartar (sin aviso al miembro) en lugar de resolver.</summary>
+    [Parameter]
+    public bool Dismiss { get; set; }
+
+    private string? _resolution;
+    private bool _submitting;
+    private string? _error;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_resolution))
+        {
+            _error = Dismiss
+                ? "Indica por qué se descarta el reporte."
+                : "Indica cómo se resolvió el reporte.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await Equipment.UpdateEquipmentIssueAsync(IssueId, new UpdateEquipmentIssueRequest
+            {
+                Status = Dismiss ? 3 : 2,
+                Resolution = _resolution.Trim(),
+            });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

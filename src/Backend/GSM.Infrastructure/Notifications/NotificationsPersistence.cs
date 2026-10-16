@@ -329,6 +329,7 @@ public sealed class NotificationRepository(GsmDbContext dbContext) : INotificati
         var total = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(n => (n.RequiresAction ? n.ResolvedAt : n.ReadAt) != null)
+            .ThenByDescending(n => n.Priority == NotificationPriority.Urgent)
             .ThenByDescending(n => n.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

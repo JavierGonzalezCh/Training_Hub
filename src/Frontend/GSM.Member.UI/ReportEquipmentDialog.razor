@@ -1,0 +1,116 @@
+@using GSM.UI.Shared.Routines
+@inject IMemberEquipmentClient EquipmentApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" data-testid="report-error">@_error</MudAlert>
+        }
+        @if (Machines.Count > 1)
+        {
+            <label class="gsm-native-field mb-3">
+                <span>¿Cuál máquina?</span>
+                <select data-testid="issue-machine" @onchange="@(e => _machineId = Guid.TryParse(e.Value?.ToString(), out var id) ? id : _machineId)">
+                    @foreach (var machine in Machines)
+                    {
+                        <option value="@machine.Id" selected="@(machine.Id == _machineId)">@machine.Name</option>
+                    }
+                </select>
+            </label>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3" data-testid="issue-machine-name">@Machines[0].Name</MudText>
+        }
+        <EquipmentIssueFields @bind-Reason="_reason" @bind-Description="_description" />
+        <MudFileUpload T="IBrowserFile" FilesChanged="OnPhoto" Accept="image/*" Class="mt-2">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Outlined.AddAPhoto" data-testid="issue-photo">
+                    @(_photo is null ? "Agregar una foto (opcional)" : $"Foto: {_photo.Name}")
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting"
+                   data-testid="report-save">
+            @(_submitting ? "Enviando..." : "Enviar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Las máquinas posibles del ejercicio; con más de una, el miembro elige cuál.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<EquipmentMachineInfo> Machines { get; set; } = [];
+
+    private Guid _machineId;
+    private int _reason;
+    private string? _description;
+    private IBrowserFile? _photo;
+    private bool _submitting;
+    private string? _error;
+
+    protected override void OnInitialized()
+        => _machineId = (Machines.FirstOrDefault(m => m.Status == EquipmentNotice.Available) ?? Machines[0]).Id;
+
+    private void OnPhoto(IBrowserFile file) => _photo = file;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (_reason == EquipmentIssueLabels.OtherValue && string.IsNullOrWhiteSpace(_description))
+        {
+            _error = "Cuéntanos qué pasa: el motivo \"otro\" necesita una línea.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var issue = await EquipmentApi.ReportMyEquipmentIssueAsync(_machineId, new ReportEquipmentIssueRequest
+            {
+                Reason = _reason,
+                Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
+            });
+
+            // El reporte ya salió; si la foto falla (p. ej. el almacenamiento aún no está configurado) no se pierde.
+            if (_photo is not null)
+            {
+                await TryUploadPhotoAsync(issue.Id);
+            }
+
+            Snackbar.Add("Gracias, el gym ya fue avisado.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task TryUploadPhotoAsync(Guid issueId)
+    {
+        try
+        {
+            await using var stream = _photo!.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            await EquipmentApi.UploadMyEquipmentIssuePhotoAsync(issueId, new FileParameter(stream, _photo.Name, _photo.ContentType));
+        }
+        catch (Exception ex) when (ex is GsmApiException or IOException)
+        {
+            Snackbar.Add("El reporte se envió, pero la foto no se pudo subir.", Severity.Warning);
+        }
+    }
+}

@@ -43,7 +43,8 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
             .Where(f => f.GymId == gymId)
             .Select(f => new GymFeatureFlagsView(
                 f.ShowRoutines, f.ShowClasses, f.ShowProgress, f.ShowGamification,
-                f.ShowCommunity, f.CheckinQr, f.CommunityComments, f.MembersCanCreateRoutines))
+                f.ShowCommunity, f.CheckinQr, f.CommunityComments, f.MembersCanCreateRoutines,
+                f.MembersCanReportEquipment))
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<GymAdminView?> GetAdminViewAsync(Guid gymId, CancellationToken cancellationToken = default)

@@ -9,6 +9,10 @@
 <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
     <MudText Typo="Typo.h4">Equipos</MudText>
     <MudSpacer />
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.ReportProblem" Href="/equipment/issues"
+               data-testid="open-issues-page">
+        Reportes de fallas
+    </MudButton>
     <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenOwnAsync" data-testid="add-own">
         Máquina propia
     </MudButton>

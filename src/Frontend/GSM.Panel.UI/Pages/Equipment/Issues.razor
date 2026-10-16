@@ -1,0 +1,98 @@
+@page "/equipment/issues"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IEquipmentClient Equipment
+@inject ISnackbar Snackbar
+
+<PageTitle>Reportes de fallas — GSM</PageTitle>
+
+<MudLink Href="/equipment" Class="mb-3 d-inline-block">&larr; Equipos</MudLink>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Reportes de fallas</MudText>
+    <MudSpacer />
+    <MudCheckBox T="bool" Value="_openOnly" ValueChanged="OnOpenOnlyChangedAsync" Label="Solo sin cerrar"
+                 data-testid="filter-open-only" />
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="issues-empty">
+        @(_openOnly ? "No hay reportes abiertos." : "Todavía no hay reportes.")
+    </MudText>
+}
+else
+{
+    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0" data-testid="issues-table">
+        <HeaderContent>
+            <MudTh>Máquina</MudTh>
+            <MudTh>Motivo</MudTh>
+            <MudTh>Reportó</MudTh>
+            <MudTh>Cuándo</MudTh>
+            <MudTh>Estado</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Máquina">
+                <MudLink Href="@($"/equipment/issues/{context.Id}")" data-testid="open-issue">@context.ItemName</MudLink>
+                @if (!string.IsNullOrEmpty(context.ItemZone))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ItemZone</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Motivo">
+                @EquipmentIssueLabels.Reason(context.Reason)
+                @if (context.IsUrgent && EquipmentIssueLabels.IsUnclosed(context.Status))
+                {
+                    <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small" Class="gsm-mono ml-1"
+                             data-testid="urgent-chip">URGENTE</MudChip>
+                }
+                @if (!context.IsSeen)
+                {
+                    <MudChip T="string" Color="Color.Info" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono ml-1"
+                             data-testid="unseen-chip">SIN VER</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Reportó">@(context.ReportedByName ?? "—")</MudTd>
+            <MudTd DataLabel="Cuándo">@GsmFormat.Instant(context.CreatedAt)</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@EquipmentIssueLabels.StatusColor(context.Status)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                    @EquipmentIssueLabels.Status(context.Status).ToUpperInvariant()
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<EquipmentIssueResponse> _items = [];
+    private bool _loading = true;
+    private bool _openOnly = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = (await Equipment.ListEquipmentIssuesAsync(null, null, _openOnly)).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnOpenOnlyChangedAsync(bool value)
+    {
+        _openOnly = value;
+        await LoadAsync();
+    }
+}

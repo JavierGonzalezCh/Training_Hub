@@ -1,0 +1,41 @@
+@* Tarjetas del dashboard de Equipos (E4): máquinas fuera de servicio y reportes de falla abiertos. Si falla la
+   lectura no se muestra nada: no es motivo para romper el resumen. *@
+@inject IEquipmentClient Equipment
+
+@if (_summary is { } summary)
+{
+    <div data-testid="equipment-out">
+        <StatCard Label="Máquinas fuera de servicio" Value="@summary.OutOfService.ToString()"
+                  Accent="@(summary.OutOfService > 0 ? Color.Error : Color.Default)"
+                  Hint="@OutHint(summary)" />
+    </div>
+    <div data-testid="equipment-issues">
+        <StatCard Label="Reportes de fallas abiertos" Value="@summary.OpenIssues.ToString()"
+                  Accent="@(summary.UrgentIssues > 0 ? Color.Error : summary.OpenIssues > 0 ? Color.Warning : Color.Default)"
+                  Hint="@IssuesHint(summary)" />
+    </div>
+}
+
+@code {
+    private EquipmentSummaryResponse? _summary;
+
+    public static string OutHint(EquipmentSummaryResponse s)
+        => s.InMaintenance == 1 ? "1 en mantenimiento" : $"{s.InMaintenance} en mantenimiento";
+
+    public static string IssuesHint(EquipmentSummaryResponse s)
+        => s.UrgentIssues > 0
+            ? (s.UrgentIssues == 1 ? "1 urgente: máquina insegura" : $"{s.UrgentIssues} urgentes: máquinas inseguras")
+            : s.OpenIssues == 0 ? "Nada pendiente" : "Revísalos en Equipos";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _summary = await Equipment.GetEquipmentSummaryAsync();
+        }
+        catch (GsmApiException)
+        {
+            _summary = null;
+        }
+    }
+}

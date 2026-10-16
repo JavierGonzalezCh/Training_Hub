@@ -29,6 +29,24 @@ public sealed class ChangeEquipmentStatusRequestValidator : AbstractValidator<Ch
     }
 }
 
+public sealed class ReportEquipmentIssueRequestValidator : AbstractValidator<ReportEquipmentIssueRequest>
+{
+    public ReportEquipmentIssueRequestValidator()
+    {
+        RuleFor(x => x.Reason).IsInEnum();
+        RuleFor(x => x.Description).MaximumLength(EquipmentIssue.DescriptionMaxLength);
+    }
+}
+
+public sealed class UpdateEquipmentIssueRequestValidator : AbstractValidator<UpdateEquipmentIssueRequest>
+{
+    public UpdateEquipmentIssueRequestValidator()
+    {
+        RuleFor(x => x.Status).IsInEnum();
+        RuleFor(x => x.Resolution).MaximumLength(EquipmentIssue.ResolutionMaxLength);
+    }
+}
+
 public sealed class AddEquipmentFromModelsRequestValidator : AbstractValidator<AddEquipmentFromModelsRequest>
 {
     public AddEquipmentFromModelsRequestValidator()

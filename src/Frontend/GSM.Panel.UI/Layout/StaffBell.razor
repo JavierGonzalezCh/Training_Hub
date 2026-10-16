@@ -2,6 +2,7 @@
    rechazado, e informativos propios). Consulta el contador cada 30 s; el push llega en N2. *@
 @implements IDisposable
 @inject IStaffNotificationsClient Notifications
+@inject ISnackbar Snackbar
 
 <AuthorizeView Policy="@GsmPolicies.RequireStaff">
     <Authorized>
@@ -29,6 +30,7 @@
     private int _count;
     private int _announced;
     private PeriodicTimer? _timer;
+    private readonly HashSet<Guid> _urgentShown = [];
 
     private string Label => $"Avisos sin atender: {_count}";
 
@@ -37,6 +39,11 @@
     protected override async Task OnInitializedAsync()
     {
         await RefreshCountAsync();
+        if (_count > 0)
+        {
+            await AnnounceUrgentAsync();
+        }
+
         _ = PollAsync();
     }
 
@@ -50,10 +57,33 @@
                 var before = _count;
                 await RefreshCountAsync();
                 _announced = _count > before ? _count : 0;
+                if (_count > before)
+                {
+                    await AnnounceUrgentAsync();
+                }
+
                 await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException)
+        {
+        }
+    }
+
+    // Un aviso urgente (p. ej. una máquina insegura) sube además un aviso en pantalla que no se cierra solo.
+    // Cada uno se anuncia una sola vez por sesión del panel.
+    private async Task AnnounceUrgentAsync()
+    {
+        try
+        {
+            var page = await Notifications.Notifications2Async(true, 1, 8);
+            foreach (var item in page.Items.Where(i =>
+                         i.Priority == "Urgent" && i.RequiresAction && i.ResolvedAt is null && _urgentShown.Add(i.Id)))
+            {
+                Snackbar.Add($"{item.Title}. {item.Body}", Severity.Error, config => config.RequireInteraction = true);
+            }
+        }
+        catch (GsmApiException)
         {
         }
     }

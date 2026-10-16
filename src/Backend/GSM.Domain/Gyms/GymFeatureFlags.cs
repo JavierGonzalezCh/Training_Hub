@@ -33,6 +33,12 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
     /// <summary>El miembro puede armarse rutinas él mismo (etapa 9.6). Arranca en <c>false</c>.</summary>
     public bool MembersCanCreateRoutines { get; private set; }
 
+    /// <summary>
+    /// El miembro puede reportar fallas de las máquinas desde la app (Equipment E4). Arranca en <c>true</c>
+    /// ("permitidos por defecto"); el gym lo apaga si no los quiere.
+    /// </summary>
+    public bool MembersCanReportEquipment { get; private set; } = true;
+
     public static GymFeatureFlags Default(Guid gymId) => new() { GymId = gymId };
 
     public void Update(
@@ -43,7 +49,8 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         bool showCommunity,
         bool checkinQr,
         bool communityComments,
-        bool membersCanCreateRoutines)
+        bool membersCanCreateRoutines,
+        bool membersCanReportEquipment = true)
     {
         ShowRoutines = showRoutines;
         ShowClasses = showClasses;
@@ -53,5 +60,6 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         CheckinQr = checkinQr;
         CommunityComments = communityComments;
         MembersCanCreateRoutines = membersCanCreateRoutines;
+        MembersCanReportEquipment = membersCanReportEquipment;
     }
 }

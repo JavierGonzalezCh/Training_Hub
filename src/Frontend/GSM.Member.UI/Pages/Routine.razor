@@ -139,6 +139,10 @@ else
                                     {
                                         <MudAlert Severity="Severity.Warning" Dense="true" data-testid="equipment-warning">@warning</MudAlert>
                                     }
+                                    @if (equipment.Machines is { Count: > 0 } reportable)
+                                    {
+                                        <EquipmentReport Machines="reportable.ToList()" />
+                                    }
                                 </div>
                             }
                             <div class="gsm-m-ex__actions">

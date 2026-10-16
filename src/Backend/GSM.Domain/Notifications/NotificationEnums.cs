@@ -42,6 +42,16 @@ public enum NotificationType
 
     /// <summary>C4: no confirmaste a tiempo; el cupo pasó al siguiente. Referencia: la entrada de la lista de espera.</summary>
     WaitlistOfferExpired,
+
+    /// <summary>
+    /// E4: reporte de falla de una máquina. Aviso de acción para todo el staff (uno por gym y reporte, o uno
+    /// agrupado por máquina mientras haya reportes abiertos); urgente si el motivo es «insegura».
+    /// Referencia: el reporte (el primero del grupo).
+    /// </summary>
+    EquipmentIssueReported,
+
+    /// <summary>E4: al miembro que reportó, su reporte se resolvió ("ya funciona, gracias por avisar"). Referencia: el reporte.</summary>
+    EquipmentIssueResolved,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

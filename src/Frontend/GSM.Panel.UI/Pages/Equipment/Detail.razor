@@ -52,6 +52,10 @@ else
         }
         @if (_item.IsActive)
         {
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.ReportProblem" OnClick="ReportIssueAsync"
+                       data-testid="report-issue">
+                Reportar falla
+            </MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeStatusAsync" data-testid="change-status">
                 Cambiar estado
             </MudButton>
@@ -63,6 +67,29 @@ else
         <MudText Class="mb-3" data-testid="expected-back">
             Se espera de vuelta el @GsmFormat.Day(back).@(_item.IsOverdue ? " Ya pasó esa fecha y sigue sin volver." : string.Empty)
         </MudText>
+    }
+
+    @if (_openIssues.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">Reportes abiertos</MudText>
+        <MudAlert Severity="@(_item.Status == "Available" ? Severity.Info : Severity.Normal)" Dense="true" Class="mb-2" data-testid="open-issues-hint">
+            @(_item.Status == "Available"
+                ? "Esta máquina está disponible pero tiene reportes sin cerrar: revísalos."
+                : "Cuando la máquina vuelva a estar disponible, cierra los reportes que ya se resolvieron.")
+        </MudAlert>
+        <ul class="gsm-list mb-4" data-testid="open-issues">
+            @foreach (var issue in _openIssues)
+            {
+                <li>
+                    <MudLink Href="@($"/equipment/issues/{issue.Id}")">@EquipmentIssueLabels.Reason(issue.Reason)</MudLink>
+                    · @(issue.ReportedByName ?? "alguien") · @GsmFormat.Instant(issue.CreatedAt)
+                    @if (issue.IsUrgent)
+                    {
+                        <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small" Class="gsm-mono ml-1">URGENTE</MudChip>
+                    }
+                </li>
+            }
+        </ul>
     }
 
     <MudText Typo="Typo.h6" Class="mb-2">Historial de estado</MudText>
@@ -101,6 +128,7 @@ else
 
     private EquipmentItemResponse? _item;
     private List<EquipmentStatusChangeResponse> _history = [];
+    private List<EquipmentIssueResponse> _openIssues = [];
     private bool _loading = true;
     private string? _error;
 
@@ -114,6 +142,7 @@ else
         {
             _item = await Equipment.GetEquipmentAsync(Id);
             _history = (await Equipment.GetEquipmentHistoryAsync(Id)).ToList();
+            await LoadOpenIssuesAsync();
         }
         catch (GsmApiException ex)
         {
@@ -123,6 +152,38 @@ else
         finally
         {
             _loading = false;
+        }
+    }
+
+    // Los reportes sin cerrar de esta máquina; si falla, la ficha sigue sirviendo sin ellos.
+    private async Task LoadOpenIssuesAsync()
+    {
+        try
+        {
+            _openIssues = (await Equipment.ListEquipmentIssuesAsync(null, Id, true))
+                .Where(i => i.ItemId == Id && EquipmentIssueLabels.IsUnclosed(i.Status))
+                .ToList();
+        }
+        catch (GsmApiException)
+        {
+            _openIssues = [];
+        }
+    }
+
+    private async Task ReportIssueAsync()
+    {
+        var parameters = new DialogParameters<ReportIssueDialog>
+        {
+            { x => x.EquipmentId, _item!.Id },
+            { x => x.Name, _item.Name },
+        };
+        var dialog = await Dialogs.ShowAsync<ReportIssueDialog>(
+            "Reportar falla", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Reporte enviado.", Severity.Success);
+            await LoadAsync();
         }
     }
 

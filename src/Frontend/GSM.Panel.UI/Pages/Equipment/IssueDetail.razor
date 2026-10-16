@@ -1,0 +1,193 @@
+@page "/equipment/issues/{Id:guid}"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IEquipmentClient Equipment
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>Reporte de falla — GSM</PageTitle>
+
+<MudLink Href="/equipment/issues" Class="mb-3 d-inline-block">&larr; Reportes de fallas</MudLink>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_issue is null)
+{
+    <MudAlert Severity="Severity.Error" data-testid="issue-error">@_error</MudAlert>
+}
+else
+{
+    var unclosed = EquipmentIssueLabels.IsUnclosed(_issue.Status);
+    @if (_issue.IsUrgent && unclosed)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" data-testid="urgent-alert">
+            Este reporte dice que la máquina es insegura (puede lastimar a alguien). Revísala cuanto antes.
+        </MudAlert>
+    }
+
+    <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+        <div>
+            <MudText Typo="Typo.h4">
+                <MudLink Href="@($"/equipment/{_issue.ItemId}")" Color="Color.Inherit" data-testid="issue-item">@_issue.ItemName</MudLink>
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @EquipmentIssueLabels.Reason(_issue.Reason) · reportado por @(_issue.ReportedByName ?? "alguien") · @GsmFormat.Instant(_issue.CreatedAt)
+            </MudText>
+        </div>
+        <MudSpacer />
+        <MudChip T="string" Color="@EquipmentIssueLabels.StatusColor(_issue.Status)" Variant="Variant.Text" Class="gsm-mono" data-testid="issue-status">
+            @EquipmentIssueLabels.Status(_issue.Status).ToUpperInvariant()
+        </MudChip>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_issue.Description))
+    {
+        <MudText Class="mb-3" data-testid="issue-text">@_issue.Description</MudText>
+    }
+
+    @if (!string.IsNullOrEmpty(_issue.PhotoUrl))
+    {
+        <MudImage Src="@_issue.PhotoUrl" Alt="Foto del reporte" Style="max-width:320px" Class="mb-3" />
+    }
+
+    @if (_item is not null)
+    {
+        <MudText Class="mb-3" data-testid="item-state">
+            La máquina está: @EquipmentDisplay.StatusLabel(_item.Status).ToLowerInvariant().
+        </MudText>
+    }
+
+    @if (unclosed)
+    {
+        <div class="d-flex flex-wrap mb-4" style="gap:.75rem">
+            @if (_issue.Status == "Open")
+            {
+                <MudButton Variant="Variant.Outlined" OnClick="StartReviewAsync" Disabled="_busy" data-testid="issue-review">
+                    En revisión
+                </MudButton>
+            }
+            @if (_item is { IsActive: true, Status: "Available" })
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="PutInMaintenanceAsync" Disabled="_busy"
+                           data-testid="issue-maintenance">
+                    Poner en mantenimiento
+                </MudButton>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CloseAsync(false)" Disabled="_busy"
+                       data-testid="issue-resolve">
+                Resolver
+            </MudButton>
+            <MudButton Variant="Variant.Text" OnClick="() => CloseAsync(true)" Disabled="_busy" data-testid="issue-dismiss">
+                Descartar
+            </MudButton>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(_issue.Resolution))
+    {
+        <MudText Typo="Typo.body2" data-testid="issue-resolution">
+            @(_issue.Status == "Resolved" ? "Resuelto" : "Descartado")
+            @(_issue.ResolvedAt is { } at ? $"el {GsmFormat.Instant(at)}" : "")
+            @(_issue.ResolvedByName is { } by ? $"por {by}" : ""): @_issue.Resolution
+        </MudText>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private EquipmentIssueResponse? _issue;
+    private EquipmentItemResponse? _item;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    // Abrir el reporte lo marca como visto: el servidor atiende su aviso de la campana.
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _issue = await Equipment.GetEquipmentIssueAsync(Id);
+            _item = await Equipment.GetEquipmentAsync(_issue.ItemId);
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+            _issue = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task StartReviewAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Equipment.UpdateEquipmentIssueAsync(Id, new UpdateEquipmentIssueRequest { Status = 1 });
+            Snackbar.Add("Reporte en revisión.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Un reporte no cambia solo el estado de la máquina: aquí el staff decide, en el mismo paso.
+    private async Task PutInMaintenanceAsync()
+    {
+        var parameters = new DialogParameters<EquipmentStatusDialog>
+        {
+            { x => x.EquipmentId, _item!.Id },
+            { x => x.Name, _item.Name },
+            { x => x.CurrentStatus, _item.Status },
+        };
+        var dialog = await Dialogs.ShowAsync<EquipmentStatusDialog>(
+            "Poner en mantenimiento", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Estado actualizado.", Severity.Success);
+            if (_issue is { Status: "Open" })
+            {
+                await StartReviewAsync();
+            }
+            else
+            {
+                await LoadAsync();
+            }
+        }
+    }
+
+    private async Task CloseAsync(bool dismiss)
+    {
+        var parameters = new DialogParameters<IssueResolutionDialog>
+        {
+            { x => x.IssueId, Id },
+            { x => x.ItemName, _issue!.ItemName },
+            { x => x.Dismiss, dismiss },
+        };
+        var dialog = await Dialogs.ShowAsync<IssueResolutionDialog>(
+            dismiss ? "Descartar reporte" : "Resolver reporte", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add(dismiss ? "Reporte descartado." : "Reporte resuelto.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+}

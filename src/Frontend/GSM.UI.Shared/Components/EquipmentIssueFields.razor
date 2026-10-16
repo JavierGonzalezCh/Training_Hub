@@ -1,0 +1,28 @@
+@* Campos del reporte de falla (motivo + una línea opcional). Compartido por el panel (el staff reporta) y la app
+   del miembro. Presentacional: no llama a la API. «Otro» exige la descripción; lo valida quien lo usa. *@
+
+<label class="gsm-native-field mb-3">
+    <span>¿Qué pasa?</span>
+    <select data-testid="issue-reason" @onchange="OnReasonChanged">
+        @foreach (var (value, _, label) in EquipmentIssueLabels.Reasons)
+        {
+            <option value="@value" selected="@(Reason == value)">@label</option>
+        }
+    </select>
+</label>
+<MudTextField T="string" Value="Description" ValueChanged="DescriptionChanged" Immediate="true"
+              Label="@(Reason == EquipmentIssueLabels.OtherValue ? "Cuéntanos qué pasa (obligatorio)" : "Una línea más (opcional)")"
+              Lines="2" MaxLength="1000" data-testid="issue-description" />
+
+@code {
+    [Parameter] public int Reason { get; set; }
+
+    [Parameter] public EventCallback<int> ReasonChanged { get; set; }
+
+    [Parameter] public string? Description { get; set; }
+
+    [Parameter] public EventCallback<string?> DescriptionChanged { get; set; }
+
+    private Task OnReasonChanged(ChangeEventArgs e)
+        => ReasonChanged.InvokeAsync(int.TryParse(e.Value?.ToString(), out var value) ? value : 0);
+}
