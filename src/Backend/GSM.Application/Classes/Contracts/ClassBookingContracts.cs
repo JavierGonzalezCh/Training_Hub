@@ -78,3 +78,15 @@ public sealed record ClassHistoryItem(
     DateOnly SessionDate,
     TimeOnly StartTime,
     string Status);
+
+/// <summary>
+/// C7: resultado de "Estoy en clase". <see cref="Status"/> es <c>Attended</c>; <see cref="AttendedAt"/> es el
+/// instante en que quedó marcada (el de la primera vez si el miembro insiste).
+/// </summary>
+public sealed record SelfAttendanceResponse(
+    Guid BookingId,
+    Guid SessionId,
+    Guid ClassId,
+    DateOnly SessionDate,
+    string Status,
+    DateTimeOffset? AttendedAt);

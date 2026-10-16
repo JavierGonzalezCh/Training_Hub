@@ -153,3 +153,19 @@ public sealed class BirthdayGreetingDueSchedulesNotice(
         => new(System.Security.Cryptography.MD5.HashData(
             System.Text.Encoding.UTF8.GetBytes($"{memberId:N}:birthday:{date:yyyy-MM-dd}")));
 }
+
+/// <summary>C7: si el miembro ya marcó "Estoy en clase", el recordatorio programado no tiene sentido. Idempotente.</summary>
+public sealed class ClassSelfAttendedCancelsReminder(
+    ScheduledNoticeService scheduler,
+    IUnitOfWork unitOfWork) : IDomainEventHandler<ClassSelfAttended>
+{
+    public async Task HandleAsync(ClassSelfAttended domainEvent, CancellationToken cancellationToken = default)
+    {
+        var reference = ClassSessionCancelledCreatesNotices.SessionReference(domainEvent.ClassId, domainEvent.SessionDate);
+        if (await scheduler.CancelForMemberAsync(
+                NotificationType.ClassReminder, domainEvent.MemberId, reference, cancellationToken))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+    }
+}

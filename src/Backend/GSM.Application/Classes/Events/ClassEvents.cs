@@ -59,3 +59,10 @@ public sealed record WaitlistOfferMade(
 /// <summary>C4: la oferta venció sin respuesta y el cupo pasó al siguiente. Notifications avisa al miembro.</summary>
 public sealed record WaitlistOfferExpired(
     Guid GymId, Guid MemberId, Guid ClassId, Guid EntryId, DateOnly SessionDate) : IDomainEvent;
+
+/// <summary>
+/// C7: el miembro marcó "Estoy en clase" por sí mismo. Notifications cancela el recordatorio de 10 minutos
+/// que aún no haya salido. Complementa a <see cref="ClassAttendanceRegistered"/>, que también se publica.
+/// </summary>
+public sealed record ClassSelfAttended(
+    Guid GymId, Guid MemberId, Guid ClassId, DateOnly SessionDate) : IDomainEvent;

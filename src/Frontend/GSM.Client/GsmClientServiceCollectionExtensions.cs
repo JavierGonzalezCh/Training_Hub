@@ -50,6 +50,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IMeClient, MeClient>(services, baseUri);
         AddApiClient<IMemberAttendanceClient, MemberAttendanceClient>(services, baseUri);
         AddApiClient<IMemberClassesClient, MemberClassesClient>(services, baseUri);
+        AddApiClient<IMemberClassAttendanceClient, MemberClassAttendanceClient>(services, baseUri);
         AddApiClient<IMemberMembershipsClient, MemberMembershipsClient>(services, baseUri);
         AddApiClient<IMemberPaymentsClient, MemberPaymentsClient>(services, baseUri);
         AddApiClient<IMembersClient, MembersClient>(services, baseUri);
