@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace GSM.Infrastructure.Identity;
 
 /// <summary>
-/// Cambio de email con código (Identity §3.4). Vence a los 10 minutos, un solo uso, 5 intentos; se puede pedir
+/// Cambio de email con dos códigos (Identity §3.4 e I6-1): uno al correo nuevo y otro al actual. Vence a los 10 minutos, un solo uso, 5 intentos; se puede pedir
 /// uno por minuto y 5 por hora. El hash es un HMAC con la clave de firma, el id de la persona y el email nuevo
 /// (un código reutilizado para otro email no sirve). El consumo y el conteo de intentos son <c>UPDATE</c>
 /// atómicos: dos confirmaciones simultáneas con el código bueno no pasan las dos.
@@ -62,14 +62,17 @@ public sealed class EmailChangeService(
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.ConsumedAt, now), cancellationToken);
 
         var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
-        dbContext.EmailChangeRequests.Add(EmailChangeRequest.Issue(user.Id, email, Hash(user.Id, email, code), now));
+        var currentCode = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+        dbContext.EmailChangeRequests.Add(EmailChangeRequest.Issue(
+            user.Id, email, Hash(user.Id, email, code), Hash(user.Id, email, currentCode, CurrentPurpose), now));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new EmailChangeIssue(EmailChangeIssueStatus.Issued, email, user.FullName, code);
+        return new EmailChangeIssue(
+            EmailChangeIssueStatus.Issued, email, user.FullName, code, user.Email, currentCode);
     }
 
     public async Task<EmailChangeConfirmation> ConfirmAsync(
-        Guid userId, string code, CancellationToken cancellationToken = default)
+        Guid userId, string code, string currentCode, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is not { IsActive: true })
@@ -81,7 +84,7 @@ public sealed class EmailChangeService(
         var current = await dbContext.EmailChangeRequests
             .Where(r => r.UserId == user.Id && r.ConsumedAt == null && r.ExpiresAt > now)
             .OrderByDescending(r => r.IssuedAt)
-            .Select(r => new { r.Id, r.NewEmail, r.CodeHash, r.Attempts })
+            .Select(r => new { r.Id, r.NewEmail, r.CodeHash, r.CurrentCodeHash, r.Attempts })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (current is null || current.Attempts >= EmailChangeRequest.MaxAttempts)
@@ -89,9 +92,13 @@ public sealed class EmailChangeService(
             return new EmailChangeConfirmation(EmailChangeConfirmationStatus.InvalidCode);
         }
 
+        // Los dos códigos deben coincidir: el del correo nuevo (es suyo) y el del actual (la cuenta es suya).
         var matches = CryptographicOperations.FixedTimeEquals(
-            Encoding.ASCII.GetBytes(current.CodeHash),
-            Encoding.ASCII.GetBytes(Hash(user.Id, current.NewEmail, code.Trim())));
+                Encoding.ASCII.GetBytes(current.CodeHash),
+                Encoding.ASCII.GetBytes(Hash(user.Id, current.NewEmail, code.Trim())))
+            & CryptographicOperations.FixedTimeEquals(
+                Encoding.ASCII.GetBytes(current.CurrentCodeHash),
+                Encoding.ASCII.GetBytes(Hash(user.Id, current.NewEmail, currentCode.Trim(), CurrentPurpose)));
 
         if (!matches)
         {
@@ -144,11 +151,14 @@ public sealed class EmailChangeService(
             : new EmailChangeConfirmation(EmailChangeConfirmationStatus.EmailTaken);
     }
 
-    private string Hash(Guid userId, string newEmail, string code)
+    private const string NewPurpose = "email-change";
+    private const string CurrentPurpose = "email-change-current";
+
+    private string Hash(Guid userId, string newEmail, string code, string purpose = NewPurpose)
     {
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(jwtOptions.Value.SigningKey));
         return Convert.ToHexString(hmac.ComputeHash(
-                Encoding.UTF8.GetBytes($"email-change:{userId:N}:{newEmail.ToLowerInvariant()}:{code}")))
+                Encoding.UTF8.GetBytes($"{purpose}:{userId:N}:{newEmail.ToLowerInvariant()}:{code}")))
             .ToLowerInvariant();
     }
 }

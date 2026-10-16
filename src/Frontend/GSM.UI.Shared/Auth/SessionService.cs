@@ -148,12 +148,16 @@ public sealed class SessionService(
         }
     }
 
-    /// <summary>Segundo paso: confirma el código y devuelve el email que quedó en la cuenta. 422 si el código no vale.</summary>
-    public async Task<string> ConfirmEmailChangeAsync(string code, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Segundo paso: confirma los dos códigos (el del correo nuevo y el del actual, I6-1) y devuelve el email que quedó
+    /// en la cuenta. 422 si alguno no vale.
+    /// </summary>
+    public async Task<string> ConfirmEmailChangeAsync(
+        string code, string currentEmailCode, CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await auth.ConfirmEmailChangeAsync(new ConfirmEmailChangeRequest { Code = code }, cancellationToken);
+            var response = await auth.ConfirmEmailChangeAsync(new ConfirmEmailChangeRequest { Code = code, CurrentEmailCode = currentEmailCode }, cancellationToken);
             return response.Email;
         }
         catch (GsmApiException ex)

@@ -69,13 +69,13 @@ public sealed record RequestLoginCodeRequest(string Email, string? GymSlug = nul
 public sealed record VerifyLoginCodeRequest(string Email, string Code);
 
 /// <summary>
-/// Pide cambiar el email de la cuenta (Identity §3.4): manda un código de 6 dígitos al correo NUEVO. El email
-/// no cambia hasta confirmarlo con <see cref="ConfirmEmailChangeRequest"/>.
+/// Pide cambiar el email de la cuenta (Identity §3.4): manda un código de 6 dígitos al correo NUEVO y otro al ACTUAL
+/// (I6-1). El email no cambia hasta confirmarlo con <see cref="ConfirmEmailChangeRequest"/>.
 /// </summary>
 public sealed record RequestEmailChangeRequest(string NewEmail);
 
-/// <summary>Confirma el cambio de email con el código recibido en el correo nuevo.</summary>
-public sealed record ConfirmEmailChangeRequest(string Code);
+/// <summary>Confirma el cambio de email con los dos códigos: el del correo nuevo y el del correo actual.</summary>
+public sealed record ConfirmEmailChangeRequest(string Code, string CurrentEmailCode);
 
 /// <summary>El email que quedó en la cuenta tras confirmar el cambio.</summary>
 public sealed record EmailChangedResponse(string Email);

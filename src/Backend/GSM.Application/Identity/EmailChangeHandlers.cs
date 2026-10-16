@@ -16,7 +16,8 @@ public static class EmailChangePolicy
 }
 
 /// <summary>
-/// <c>POST /api/me/request-email-change</c>: manda un código de 6 dígitos al correo NUEVO (Identity §3.4). El email de la
+/// <c>POST /api/me/request-email-change</c>: manda un código de 6 dígitos al correo NUEVO y otro al ACTUAL (Identity
+/// §3.4, I6-1: quien tenga la sesión abierta pero no el correo de la persona no puede quedarse con la cuenta). El email de la
 /// cuenta no cambia hasta confirmarlo. Cualquier rol con sesión; no se permite mientras se impersona. El código
 /// nunca se escribe en el log.
 /// </summary>
@@ -55,12 +56,16 @@ public sealed class RequestEmailChangeHandler(
             EmailTemplates.EmailChangeCode(
                 issue.NewEmail!, issue.FullName!, issue.Code!, EmailChangePolicy.ValidityMinutes),
             cancellationToken);
+        await emailSender.SendAsync(
+            EmailTemplates.EmailChangeCurrentCode(
+                issue.CurrentEmail!, issue.FullName!, issue.NewEmail!, issue.CurrentCode!, EmailChangePolicy.ValidityMinutes),
+            cancellationToken);
         logger.LogInformation("Código de cambio de email enviado para la cuenta {UserId}", userId);
     }
 }
 
 /// <summary>
-/// <c>POST /api/me/confirm-email-change</c>: confirma el código, cambia el email de la cuenta, publica
+/// <c>POST /api/me/confirm-email-change</c>: confirma los dos códigos, cambia el email de la cuenta, publica
 /// <see cref="UserEmailChanged"/> (Members sincroniza las fichas) y avisa al correo viejo. Código malo, vencido o
 /// agotado: 422 (no 401: la sesión sigue siendo válida).
 /// </summary>
@@ -82,13 +87,13 @@ public sealed class ConfirmEmailChangeHandler(
             throw new ForbiddenDomainException("No se puede cambiar el email mientras se impersona un gimnasio.");
         }
 
-        var result = await emailChanges.ConfirmAsync(userId, request.Code, cancellationToken);
+        var result = await emailChanges.ConfirmAsync(userId, request.Code, request.CurrentEmailCode, cancellationToken);
         switch (result.Status)
         {
             case EmailChangeConfirmationStatus.AccountUnavailable:
                 throw new UnauthorizedDomainException("La cuenta no está disponible.");
             case EmailChangeConfirmationStatus.InvalidCode:
-                throw new ValidationDomainException("El código no es válido o venció. Pide uno nuevo.");
+                throw new ValidationDomainException("Algún código no es válido o venció. Pide uno nuevo.");
             case EmailChangeConfirmationStatus.EmailTaken:
                 throw new ConflictException("Ese email ya está en uso por otra cuenta.");
         }

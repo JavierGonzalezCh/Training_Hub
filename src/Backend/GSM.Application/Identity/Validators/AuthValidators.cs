@@ -39,7 +39,10 @@ public sealed class RequestEmailChangeRequestValidator : AbstractValidator<Reque
 public sealed class ConfirmEmailChangeRequestValidator : AbstractValidator<ConfirmEmailChangeRequest>
 {
     public ConfirmEmailChangeRequestValidator()
-        => RuleFor(x => x.Code).NotEmpty().Matches("^[0-9]{6}$").WithMessage("El código tiene 6 dígitos.");
+    {
+        RuleFor(x => x.Code).NotEmpty().Matches("^[0-9]{6}$").WithMessage("El código tiene 6 dígitos.");
+        RuleFor(x => x.CurrentEmailCode).NotEmpty().Matches("^[0-9]{6}$").WithMessage("El código tiene 6 dígitos.");
+    }
 }
 
 public sealed class RefreshRequestValidator: AbstractValidator<RefreshRequest>

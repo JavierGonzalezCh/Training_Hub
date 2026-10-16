@@ -10,7 +10,7 @@ using MudBlazor.Services;
 
 namespace GSM.Web.Tests;
 
-/// <summary>I6: el formulario de cambio de email (dos pasos: correo nuevo y código).</summary>
+/// <summary>I6: el formulario de cambio de email (dos pasos: correo nuevo y los dos códigos, I6-1).</summary>
 public class ChangeEmailUiTests : TestContext
 {
     public class AuthStub : DispatchProxy
@@ -111,13 +111,32 @@ public class ChangeEmailUiTests : TestContext
         cut.Find("input").Input("nuevo@correo.com");
         cut.Find("[data-testid='change-email-request']").Click();
 
-        cut.Find("input").Input("123456");
+        // I6-1: el código del correo nuevo y el del actual.
+        cut.FindAll("input")[0].Input("123456");
+        cut.FindAll("input")[1].Input("654321");
         cut.Find("[data-testid='change-email-confirm']").Click();
 
         Assert.Equal("123456", auth.Confirmations.Single().Code);
+        Assert.Equal("654321", auth.Confirmations.Single().CurrentEmailCode);
         Assert.Contains("nuevo@correo.com", cut.Find("[data-testid='change-email-done']").TextContent);
         // Vuelve al primer paso, listo para otro cambio.
         Assert.Empty(cut.FindAll("[data-testid='change-email-confirm']"));
+    }
+
+    [Fact]
+    public void Without_the_code_of_the_current_email_it_does_not_call_the_api()
+    {
+        var auth = Setup();
+        var cut = RenderComponent<ChangeEmailForm>();
+        cut.Find("input").Input("nuevo@correo.com");
+        cut.Find("[data-testid='change-email-request']").Click();
+        Assert.Contains("correo actual", cut.Find("[data-testid='change-email-sent']").TextContent);
+
+        cut.FindAll("input")[0].Input("123456");
+        cut.Find("[data-testid='change-email-confirm']").Click();
+
+        Assert.Empty(auth.Confirmations);
+        Assert.Contains("6 dígitos", cut.Find("[data-testid='change-email-error']").TextContent);
     }
 
     [Fact]
@@ -128,13 +147,14 @@ public class ChangeEmailUiTests : TestContext
         cut.Find("input").Input("nuevo@correo.com");
         cut.Find("[data-testid='change-email-request']").Click();
 
-        cut.Find("input").Input("12ab");
+        cut.FindAll("input")[0].Input("12ab");
+        cut.FindAll("input")[1].Input("123456");
         cut.Find("[data-testid='change-email-confirm']").Click();
         Assert.Empty(auth.Confirmations);
         Assert.Contains("6 dígitos", cut.Find("[data-testid='change-email-error']").TextContent);
 
         auth.FailsWith = (422, "El código no es válido o venció. Pide uno nuevo.");
-        cut.Find("input").Input("654321");
+        cut.FindAll("input")[0].Input("654321");
         cut.Find("[data-testid='change-email-confirm']").Click();
         Assert.Contains("no es válido", cut.Find("[data-testid='change-email-error']").TextContent);
         Assert.Empty(cut.FindAll("[data-testid='change-email-done']"));

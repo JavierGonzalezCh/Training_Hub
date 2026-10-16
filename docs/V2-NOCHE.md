@@ -163,6 +163,11 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 6. **[DECIDIDA 2026-10-11: (a), (b) y (c) se aceptan; el modo es de la rutina.]** **R2: decisiones del agente para validar.** (a) Cambiar el modo (semanal ↔ rotativa) por `PUT` crea la rutina nueva, desactiva la anterior y **reinicia `starts_on` a hoy**; (b) en semanal no hay filas de descanso y mandar `dayOfWeek` en una rotativa es 422; (c) en semanal, "duración del ciclo" se muestra como "N días de entrenamiento".
 5. **[DECIDIDA 2026-10-11: cada día se juzga con la rutina vigente ese día; PENDIENTE de construir: tarea R2b.]** **R1 → R2: racha y días retirados.** Al retirar un día, deja de contar en el calendario de racha **también hacia atrás** (el calendario solo ve los días vigentes). Para el modo semanal (R2) conviene decidir si la racha se calcula con el calendario vigente en cada fecha.
 
+**Decisiones del 2026-10-16:**
+
+- **MS6-1:** Memberships leía `IPaymentReader` y Payments ya leía Memberships (segundo ciclo entre módulos). Se rompe: Memberships declara el puerto `IMembershipPaidAmountProvider` y Payments lo implementa en Infrastructure. Hecho.
+- **Resto de MS6, C6, L5 y A7** (las preguntas de esa tanda no se habían anotado aquí): MS6 — el crédito se calcula sobre lo pagado sin matrícula, más el crédito heredado; ajuste manual de 0 a lo pagado; los días congelados programados no cuentan como usados; con una membresía programada detrás de la vigente el cambio da 409; no cobra matrícula ni cuenta para el límite del SaaS; se permite cambiar entre tiquetera y plan por tiempo. C6 — una clase de entrada libre no se liga a máquinas (422); la disponibilidad sale del estado actual de la máquina y su `ExpectedBackOn`; si se dan de baja todas las máquinas el cupo queda en 0 sin aviso; una oferta ya hecha se respeta al confirmar. L5 — ¿se entrega un premio vencido?, ¿la entrega necesita permiso propio?, un logro desactivado con premio pendiente se ve en recepción pero no en `/app`, el aviso de vencimiento va solo a la bandeja. A7 — el push de rechazos viene apagado por defecto también para el Owner; sin app el aviso de entrada con documento llega solo a bandeja y correo.
+
 **Decisiones del 2026-10-12 (preguntas de E2, P2, I7 y N2):**
 
 - **E2:** el nivel 1 (filtro "lo que se puede hacer en mi gym") lo conecta **E3**. Alargar el arreglo repitiendo el estado con fecha nueva: **hecho**.
@@ -221,9 +226,9 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **A1b-3:** `valid_until` de la regla es inclusivo. Confirmar.
 - **A1b-5:** asistir a una clase no crea una segunda entrada si ya hubo una ese día, aunque el miembro tenga entradas múltiples. Confirmar.
 - **A1b-6:** "Check-ins hoy" del dashboard y los conteos de SuperAdmin cuentan **entradas**, no personas. ¿Se cambian a personas distintas? (lo aclara A5)
-- **Riesgo A1b:** sin el índice único por miembro y día, dos escaneos simultáneos pueden registrar dos entradas. ¿Se cierra con un candado por miembro?
+- **[DECIDIDA 2026-10-16: el ingreso es idempotente — candado por miembro y un escaneo repetido en 2 min devuelve la misma entrada (200). Hecho, con tests.]** **Riesgo A1b:** sin el índice único por miembro y día, dos escaneos simultáneos pueden registrar dos entradas. ¿Se cierra con un candado por miembro?
 
-- **I6-1:** cambiar el email **no pide la contraseña actual** (el miembro entra con código). Riesgo: una sesión robada puede mover el email. ¿Se exige?
+- **[DECIDIDA 2026-10-16: se pide un código al correo actual además del nuevo (migración `V2_I6b_EmailChangeCurrentCode`). Hecho, con tests.]** **I6-1:** cambiar el email **no pide la contraseña actual** (el miembro entra con código). Riesgo: una sesión robada puede mover el email. ¿Se exige?
 - **I6-2:** si el email nuevo ya es de otra cuenta, 409 con mensaje claro (permite saber si un email existe). ¿O 202 sin enviar nada?
 - **I6-3:** demasiados pedidos = 409 (no hay 429 en el dominio); código malo/vencido = 422. Confirmar.
 - **I6-4:** el formulario quedó en las pantallas de cuenta actuales (`/cuenta/contrasena`, `/app/cuenta/contrasena`); "Mi perfil" va en M5. Confirmar.
@@ -344,7 +349,7 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **LG4-1:** huellas propias para `external` (`proveedor|operación|estado`) y `client` (`plataforma|tipo`). Confirmar.
 - **LG4-2:** `logs.error_groups` solo guarda estado y notas; conteos y gyms se calculan al leer. LG5 puede necesitar contadores escritos.
 - **LG4-3:** `MemberInvited` no es reintentable (el código se limpia): falta el refrescador de Members (decisión del 2026-10-11). ¿Se construye o basta reinvitar?
-- **LG4-4 (riesgo):** el reintento corre el manejador como SuperAdmin (sin gym, filtro apagado). No se auditaron los ~20 manejadores; los que usen `RequireGymId()` fallarían. ¿Contexto de gym para el reintento?
+- **[DECIDIDA 2026-10-16: el reintento corre en el gym del evento (`GymExecutionScope`). Hecho, con test.]** **LG4-4 (riesgo):** el reintento corre el manejador como SuperAdmin (sin gym, filtro apagado). No se auditaron los ~20 manejadores; los que usen `RequireGymId()` fallarían. ¿Contexto de gym para el reintento?
 - **LG4-5:** las vistas de rechazos, seguridad, lentitud y procesos del §7 no se construyeron (la fila LG4 no las pide). ¿Tarea aparte?
 
 **Preguntas de la tanda A5/L2/C4/MS4 (2026-10-15):**

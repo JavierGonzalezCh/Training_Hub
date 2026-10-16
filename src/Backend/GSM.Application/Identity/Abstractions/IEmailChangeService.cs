@@ -7,16 +7,17 @@ namespace GSM.Application.Identity.Abstractions;
 public interface IEmailChangeService
 {
     /// <summary>
-    /// Emite un código para <paramref name="newEmail"/> (anula el pedido anterior de la persona). Límites: uno
+    /// Emite un código para <paramref name="newEmail"/> y otro para el correo actual de la cuenta (anula el pedido anterior de la persona). Límites: uno
     /// por minuto y cinco por hora por persona.
     /// </summary>
     Task<EmailChangeIssue> IssueAsync(Guid userId, string newEmail, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Comprueba el código del pedido vigente. Correcto: lo consume, cambia el email de la cuenta (y su nombre de
+    /// Comprueba los dos códigos del pedido vigente (el del correo nuevo y el del actual). Correcto: lo consume, cambia el email de la cuenta (y su nombre de
     /// usuario) y devuelve el resultado. Incorrecto: suma un intento al pedido (a los 5 se agota).
     /// </summary>
-    Task<EmailChangeConfirmation> ConfirmAsync(Guid userId, string code, CancellationToken cancellationToken = default);
+    Task<EmailChangeConfirmation> ConfirmAsync(
+        Guid userId, string code, string currentCode, CancellationToken cancellationToken = default);
 }
 
 public enum EmailChangeIssueStatus
@@ -36,12 +37,16 @@ public enum EmailChangeIssueStatus
     Throttled,
 }
 
-/// <param name="Code">El código en claro; solo con <see cref="EmailChangeIssueStatus.Issued"/>. Nunca se loguea.</param>
+/// <param name="Code">El código para el correo nuevo, en claro; solo con <see cref="EmailChangeIssueStatus.Issued"/>. Nunca se loguea.</param>
+/// <param name="CurrentEmail">El correo actual de la cuenta, al que va <paramref name="CurrentCode"/>.</param>
+/// <param name="CurrentCode">El código para el correo actual, en claro. Nunca se loguea.</param>
 public sealed record EmailChangeIssue(
     EmailChangeIssueStatus Status,
     string? NewEmail = null,
     string? FullName = null,
-    string? Code = null);
+    string? Code = null,
+    string? CurrentEmail = null,
+    string? CurrentCode = null);
 
 public enum EmailChangeConfirmationStatus
 {

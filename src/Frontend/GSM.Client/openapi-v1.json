@@ -25791,11 +25791,15 @@
       },
       "ConfirmEmailChangeRequest": {
         "required": [
-          "code"
+          "code",
+          "currentEmailCode"
         ],
         "type": "object",
         "properties": {
           "code": {
+            "type": "string"
+          },
+          "currentEmailCode": {
             "type": "string"
           }
         }

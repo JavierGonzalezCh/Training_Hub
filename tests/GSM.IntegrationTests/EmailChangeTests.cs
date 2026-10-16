@@ -47,7 +47,13 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
 
         var message = emails.Sent.Last(m => IsCodeEmailTo(m, w.NewEmail));
         Assert.True(message.Sensitive);
-        Assert.Null(emails.LastTo(w.MemberEmail));
+
+        // I6-1: al correo actual le llega otro código, también sensible, que nombra el correo nuevo.
+        var authorization = emails.LastTo(w.MemberEmail)!;
+        Assert.True(authorization.Sensitive);
+        Assert.StartsWith("Autoriza el cambio", authorization.Subject);
+        Assert.Contains(w.NewEmail, authorization.HtmlBody);
+        Assert.NotEqual(CodeSentTo(emails, w.NewEmail), CurrentCodeSentTo(emails, w.MemberEmail));
 
         // El email de la cuenta no cambia hasta confirmar, y la base solo guarda el hash.
         using var scope = factory.CreateScopeWithMigration();
@@ -59,6 +65,8 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Equal(w.NewEmail, row.NewEmail);
         Assert.NotEqual(CodeSentTo(emails, w.NewEmail), row.CodeHash);
         Assert.Equal(64, row.CodeHash.Length);
+        Assert.Equal(64, row.CurrentCodeHash.Length);
+        Assert.NotEqual(row.CodeHash, row.CurrentCodeHash);
         Assert.Equal(row.IssuedAt + TimeSpan.FromMinutes(10), row.ExpiresAt);
     }
 
@@ -113,10 +121,10 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
             // El primer código ya no sirve; el segundo sí. (Si salieran iguales por azar, el test no distingue.)
             if (first != second)
             {
-                Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, first)).StatusCode);
+                Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, first, CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
             }
 
-            Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, second)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, second, CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
         }
         finally
         {
@@ -135,7 +143,7 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
         var client = await LoggedInAsync(host, w.MemberEmail);
 
         await RequestAsync(client, w.NewEmail);
-        var confirm = await ConfirmAsync(client, CodeSentTo(emails, w.NewEmail));
+        var confirm = await ConfirmAsync(client, CodeSentTo(emails, w.NewEmail), CurrentCodeSentTo(emails, w.MemberEmail));
 
         Assert.Equal(HttpStatusCode.OK, confirm.StatusCode);
         Assert.Equal(w.NewEmail, (await confirm.Content.ReadFromJsonAsync<EmailChangedResponse>())!.Email);
@@ -154,6 +162,36 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
     }
 
     [Fact]
+    public async Task Without_the_code_of_the_current_email_the_change_is_rejected_and_counts_as_a_miss()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var emails = host.Services.GetRequiredService<CapturingEmailSender>();
+        var client = await LoggedInAsync(host, w.MemberEmail);
+
+        await RequestAsync(client, w.NewEmail);
+        var code = CodeSentTo(emails, w.NewEmail);
+        var current = CurrentCodeSentTo(emails, w.MemberEmail);
+        var wrongCurrent = current == "000000" ? "111111" : "000000";
+
+        // Quien tiene la sesión y el correo nuevo, pero no el actual, no puede cambiarlo.
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, code, wrongCurrent)).StatusCode);
+        // Ni cruzando los códigos.
+        if (code != current)
+        {
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, current, code)).StatusCode);
+        }
+
+        using (var scope = factory.CreateScopeWithMigration())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            Assert.Equal(w.MemberEmail, (await users.FindByIdAsync(w.UserId.ToString()))!.Email);
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, code, current)).StatusCode);
+    }
+
+    [Fact]
     public async Task The_code_works_once()
     {
         var w = await SeedAsync();
@@ -164,8 +202,8 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
         await RequestAsync(client, w.NewEmail);
         var code = CodeSentTo(emails, w.NewEmail);
 
-        Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, code)).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, code)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, code, CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, code, CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
     }
 
     [Fact]
@@ -182,10 +220,10 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
 
         for (var i = 0; i < 5; i++)
         {
-            Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, wrong)).StatusCode);
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, wrong, CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
         }
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, code)).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, code, CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
 
         using var scope = factory.CreateScopeWithMigration();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
@@ -207,7 +245,7 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
         try
         {
             clock.PinTo(DateTimeOffset.UtcNow.AddMinutes(11), DateOnly.FromDateTime(DateTime.UtcNow));
-            Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, code)).StatusCode);
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, code, CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
         }
         finally
         {
@@ -222,8 +260,8 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
         await using var host = RealIdentityHost();
         var client = await LoggedInAsync(host, w.MemberEmail);
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, "123456")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await ConfirmAsync(client, "12ab")).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await ConfirmAsync(client, "123456", "123456")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await ConfirmAsync(client, "12ab", "123456")).StatusCode);
     }
 
     [Fact]
@@ -246,7 +284,7 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
             Assert.True((await users.SetEmailAsync(other, w.NewEmail)).Succeeded);
         }
 
-        Assert.Equal(HttpStatusCode.Conflict, (await ConfirmAsync(client, code)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await ConfirmAsync(client, code, CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
     }
 
     [Fact]
@@ -258,7 +296,7 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
         var client = await LoggedInAsync(host, w.StaffEmail);
 
         Assert.Equal(HttpStatusCode.Accepted, (await RequestAsync(client, w.NewEmail)).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, CodeSentTo(emails, w.NewEmail))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, CodeSentTo(emails, w.NewEmail), CurrentCodeSentTo(emails, w.StaffEmail))).StatusCode);
     }
 
     [Fact]
@@ -268,7 +306,7 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
         var anonymous = host.CreateClient();
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await RequestAsync(anonymous, "x@test.local")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await ConfirmAsync(anonymous, "123456")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await ConfirmAsync(anonymous, "123456", "123456")).StatusCode);
     }
 
     // ---- UserEmailChanged → Members ----
@@ -282,7 +320,7 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
         var client = await LoggedInAsync(host, w.MemberEmail);
 
         await RequestAsync(client, w.NewEmail);
-        Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, CodeSentTo(emails, w.NewEmail))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(client, CodeSentTo(emails, w.NewEmail), CurrentCodeSentTo(emails, w.MemberEmail))).StatusCode);
 
         using var scope = factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
@@ -349,8 +387,17 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
     private static Task<HttpResponseMessage> RequestAsync(HttpClient client, string newEmail)
         => client.PostAsJsonAsync("/api/me/request-email-change", new RequestEmailChangeRequest(newEmail));
 
-    private static Task<HttpResponseMessage> ConfirmAsync(HttpClient client, string code)
-        => client.PostAsJsonAsync("/api/me/confirm-email-change", new ConfirmEmailChangeRequest(code));
+    private static Task<HttpResponseMessage> ConfirmAsync(HttpClient client, string code, string currentCode)
+        => client.PostAsJsonAsync("/api/me/confirm-email-change", new ConfirmEmailChangeRequest(code, currentCode));
+
+    private static string CurrentCodeSentTo(CapturingEmailSender emails, string to)
+    {
+        var message = emails.Sent.LastOrDefault(m =>
+                string.Equals(m.To, to, StringComparison.OrdinalIgnoreCase) && m.Subject.StartsWith("Autoriza el cambio"))
+            ?? throw new InvalidOperationException($"No se envió ningún código de autorización a {to}.");
+        var match = Regex.Match(message.TextBody ?? string.Empty, @": (?<code>\d{6}) \(");
+        return match.Success ? match.Groups["code"].Value : throw new InvalidOperationException("Correo sin código.");
+    }
 
     private async Task<HttpClient> LoggedInAsync(WebApplicationFactory<Program> host, string email)
     {

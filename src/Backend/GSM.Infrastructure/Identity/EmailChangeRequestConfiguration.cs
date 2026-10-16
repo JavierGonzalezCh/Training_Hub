@@ -11,6 +11,7 @@ public sealed class EmailChangeRequestConfiguration : IEntityTypeConfiguration<E
 
         builder.Property(r => r.NewEmail).HasMaxLength(256).IsRequired();
         builder.Property(r => r.CodeHash).HasMaxLength(64).IsRequired();
+        builder.Property(r => r.CurrentCodeHash).HasMaxLength(64).IsRequired();
 
         // Los límites de petición y la búsqueda del pedido vigente leen por persona y fecha de emisión.
         // Sin FK a AppUser a propósito (igual que login_codes y refresh_tokens).

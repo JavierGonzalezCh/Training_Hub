@@ -216,7 +216,7 @@ public sealed class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Confirma el cambio de email con el código del correo nuevo. Actualiza el email de la cuenta y de todas las
+    /// Confirma el cambio de email con los dos códigos (el del correo nuevo y el del actual). Actualiza el email de la cuenta y de todas las
     /// fichas de miembro vinculadas a ella, en todos sus gyms. 422 si el código no es válido, venció o se agotó.
     /// </summary>
     [HttpPost("~/api/me/confirm-email-change")]

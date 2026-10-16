@@ -126,6 +126,23 @@ public static class EmailTemplates
             Sensitive: true);
     }
 
+    /// <summary>
+    /// Código al correo ACTUAL para autorizar el cambio de email (I6-1). Si no lo pidió la persona, alguien tiene su
+    /// sesión abierta: sin este código no puede cambiar el correo.
+    /// </summary>
+    public static EmailMessage EmailChangeCurrentCode(string to, string fullName, string newEmail, string code, int minutes)
+    {
+        var html = $"""
+            <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
+            <p>Pidieron cambiar el correo de tu cuenta de GSM a <strong>{WebUtility.HtmlEncode(newEmail)}</strong>. Para autorizarlo, escribe este código:</p>
+            <p><strong style="font-size:28px;letter-spacing:6px">{code}</strong></p>
+            <p>Vence en {minutes} minutos y sirve una sola vez. <strong>Si no fuiste tú, no lo compartas</strong>: sin él no se puede cambiar tu correo. Cambia tu contraseña o avisa a tu gimnasio.</p>
+            """;
+        return new EmailMessage(to, "Autoriza el cambio de tu correo", html,
+            $"Código para autorizar el cambio de tu correo de GSM a {newEmail}: {code} (vence en {minutes} minutos). Si no fuiste tú, no lo compartas.",
+            Sensitive: true);
+    }
+
     /// <summary>Aviso al correo viejo de que el email de la cuenta cambió (por si no fue la persona).</summary>
     public static EmailMessage EmailChangedNotice(string to, string fullName, string newEmail)
     {
