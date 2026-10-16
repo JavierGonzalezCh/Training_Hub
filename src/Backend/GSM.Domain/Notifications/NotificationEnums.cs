@@ -52,6 +52,12 @@ public enum NotificationType
 
     /// <summary>E4: al miembro que reportó, su reporte se resolvió ("ya funciona, gracias por avisar"). Referencia: el reporte.</summary>
     EquipmentIssueResolved,
+
+    /// <summary>
+    /// A7: se registró la entrada del miembro con su documento en el kiosco ("si no fuiste tú, lo sabes de inmediato").
+    /// Categoría de seguridad: sin preferencia, sin horario sin avisos. Referencia: la asistencia.
+    /// </summary>
+    DocumentCheckIn,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

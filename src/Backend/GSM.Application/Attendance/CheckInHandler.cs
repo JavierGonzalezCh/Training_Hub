@@ -174,6 +174,13 @@ public sealed class CheckInHandler(
         attendance.Add(record);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await events.PublishAsync(new CheckInRegistered(record.Id, gymId, member.Id, record.AttendanceDate), cancellationToken);
+        if (method == AttendanceMethod.Document)
+        {
+            // A7: Notifications avisa al miembro dueño del documento (push y correo).
+            await events.PublishAsync(
+                new DocumentCheckInRegistered(record.Id, gymId, member.Id, record.CheckedInAt), cancellationToken);
+        }
+
         logger.LogInformation(
             "Check-in {AttendanceId} de miembro {MemberId}{Authorized}",
             record.Id, member.Id, record.AuthorizedBy is null ? string.Empty : " (entrada autorizada)");
