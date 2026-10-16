@@ -39,6 +39,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual", "document" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_mode", new[] { "rotating", "static" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership", "gym_closed", "membership_frozen", "pass_exhausted", "member_inactive", "already_checked_in" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "location_check", new[] { "inside", "outside", "denied" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_booking_status", new[] { "booked", "cancelled", "attended", "no_show" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_session_status", new[] { "scheduled", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
@@ -76,7 +77,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_category", new[] { "membership", "classes", "progress", "news", "promotions", "security" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_priority", new[] { "normal", "urgent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_status", new[] { "pending", "held", "sent", "failed", "cancelled", "skipped" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement", "void_request_rejected", "class_reminder", "instructor_class_reminder", "birthday", "waitlist_offer", "waitlist_offer_expired", "equipment_issue_reported", "equipment_issue_resolved", "document_check_in", "reward_expiring" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "notification_type", new[] { "class_cancelled", "membership_expiring", "achievement_unlocked", "announcement", "checkin_rejected", "void_requested", "important_announcement", "void_request_rejected", "class_reminder", "instructor_class_reminder", "birthday", "waitlist_offer", "waitlist_offer_expired", "equipment_issue_reported", "equipment_issue_resolved", "document_check_in", "reward_expiring", "subscription_trial_ending", "subscription_trial_ended", "subscription_expiring", "subscription_expires_today", "subscription_overdue", "subscription_disable_soon", "subscription_disabled", "subscription_suspended", "subscription_reactivated", "subscription_payment_registered", "member_limit_near", "member_limit_reached" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notifications", "push_platform", new[] { "android", "web_member", "web_panel" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "cash_movement_type", new[] { "withdrawal", "deposit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "payments", "payment_method", new[] { "cash", "card", "nequi", "daviplata", "breb", "bank_transfer", "bank_deposit", "other" });
@@ -251,6 +252,55 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("member_achievements", "achievements");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Achievements.RankingParticipant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Alias")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("alias");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<bool>("UseAlias")
+                        .HasColumnType("boolean")
+                        .HasColumnName("use_alias");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ranking_participants");
+
+                    b.HasIndex("GymId")
+                        .HasDatabaseName("ix_ranking_participants_gym_id");
+
+                    b.HasIndex("MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ranking_participants_member_id");
+
+                    b.ToTable("ranking_participants", "achievements");
+                });
+
             modelBuilder.Entity("GSM.Domain.Achievements.StreakFreeze", b =>
                 {
                     b.Property<Guid>("Id")
@@ -327,6 +377,10 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
                         .HasColumnName("gym_id");
+
+                    b.Property<LocationCheck?>("LocationCheck")
+                        .HasColumnType("attendance.location_check")
+                        .HasColumnName("location_check");
 
                     b.Property<Guid>("MemberId")
                         .HasColumnType("uuid")
@@ -1875,6 +1929,12 @@ namespace GSM.Infrastructure.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("show_progress");
 
+                    b.Property<bool>("ShowRanking")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("show_ranking");
+
                     b.Property<bool>("ShowRoutines")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -1893,6 +1953,52 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_gym_feature_flags_gym_id");
 
                     b.ToTable("gym_feature_flags", "gyms");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Gyms.GymOnboarding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("SkipReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("skip_reason");
+
+                    b.Property<DateTimeOffset?>("SkippedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("skipped_at");
+
+                    b.Property<Guid?>("SkippedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("skipped_by");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_gym_onboarding");
+
+                    b.HasIndex("GymId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_gym_onboarding_gym_id");
+
+                    b.ToTable("gym_onboarding", "gyms");
                 });
 
             modelBuilder.Entity("GSM.Domain.Gyms.GymOpeningSlot", b =>
@@ -2683,9 +2789,19 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("entries_total");
 
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
                     b.Property<Guid>("GymId")
                         .HasColumnType("uuid")
                         .HasColumnName("gym_id");
+
+                    b.Property<bool>("IsGroupHolder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_group_holder");
 
                     b.Property<Guid>("MemberId")
                         .HasColumnType("uuid")
@@ -2723,6 +2839,9 @@ namespace GSM.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_memberships");
 
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_memberships_group_id");
+
                     b.HasIndex("PlanId")
                         .HasDatabaseName("ix_memberships_plan_id");
 
@@ -2738,6 +2857,8 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("memberships", "memberships", t =>
                         {
                             t.HasCheckConstraint("ck_memberships_credit_applied", "credit_applied >= 0 AND credit_applied <= agreed_price + enrollment_fee");
+
+                            t.HasCheckConstraint("ck_memberships_group_holder", "NOT is_group_holder OR group_id IS NOT NULL");
                         });
                 });
 
@@ -2811,6 +2932,52 @@ namespace GSM.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GSM.Domain.Memberships.MembershipGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("HolderMemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("holder_member_id");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plan_id");
+
+                    b.Property<int>("Seats")
+                        .HasColumnType("integer")
+                        .HasColumnName("seats");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_membership_groups");
+
+                    b.HasIndex("HolderMemberId")
+                        .HasDatabaseName("ix_membership_groups_holder_member_id");
+
+                    b.HasIndex("PlanId")
+                        .HasDatabaseName("ix_membership_groups_plan_id");
+
+                    b.ToTable("membership_groups", "memberships", t =>
+                        {
+                            t.HasCheckConstraint("ck_membership_groups_seats", "seats >= 2");
+                        });
+                });
+
             modelBuilder.Entity("GSM.Domain.Memberships.MembershipPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2879,6 +3046,12 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("decimal(12,2)")
                         .HasColumnName("price");
 
+                    b.Property<int>("Seats")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("seats");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -2892,7 +3065,11 @@ namespace GSM.Infrastructure.Migrations
 
                     b.ToTable("membership_plans", "memberships", t =>
                         {
+                            t.HasCheckConstraint("ck_membership_plans_group_is_time", "seats = 1 OR kind = 'time'");
+
                             t.HasCheckConstraint("ck_membership_plans_pass_entries", "(kind = 'pass') = (entries IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_membership_plans_seats", "seats >= 1 AND seats <= 500");
                         });
                 });
 
@@ -5207,6 +5384,16 @@ namespace GSM.Infrastructure.Migrations
                         .HasConstraintName("fk_gym_feature_flags_gyms_gym_id");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Gyms.GymOnboarding", b =>
+                {
+                    b.HasOne("GSM.Domain.Gyms.Gym", null)
+                        .WithOne()
+                        .HasForeignKey("GSM.Domain.Gyms.GymOnboarding", "GymId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_gym_onboarding_gyms");
+                });
+
             modelBuilder.Entity("GSM.Domain.Gyms.GymOpeningSlot", b =>
                 {
                     b.HasOne("GSM.Domain.Gyms.Gym", null)
@@ -5304,6 +5491,15 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_member_notes_members_member_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Memberships.Membership", b =>
+                {
+                    b.HasOne("GSM.Domain.Memberships.MembershipGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_memberships_membership_group_group_id");
                 });
 
             modelBuilder.Entity("GSM.Domain.Memberships.MembershipFreeze", b =>

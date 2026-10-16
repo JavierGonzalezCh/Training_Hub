@@ -1,3 +1,4 @@
+using GSM.Application.Common;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Equipment.Abstractions;
 using GSM.Application.Equipment.Contracts;
