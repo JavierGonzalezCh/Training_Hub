@@ -210,6 +210,52 @@ public sealed class AnnouncementSchedulingTests(ApiFactory factory) : IClassFixt
         Assert.Equal(0, await RunJobAtAsync(T0.AddHours(3)));
     }
 
+    [Fact]
+    public async Task A_scheduled_announcement_that_goes_out_inside_the_quiet_hours_publishes_now_but_its_notices_wait_until_7h()
+    {
+        var w = await SeedAsync();
+        var id = await CreateAsync(w.GymId, "De noche");
+        // T0 = 10:00 en Bogotá; +12 h son las 22:00 locales.
+        var chosen = T0.AddHours(12);
+        await ScheduleAsync(w.GymId, id, chosen);
+
+        // La tarea lo recoge unos minutos tarde: el anuncio se publica de verdad...
+        var jobAt = chosen.AddMinutes(4);
+        Assert.Equal(1, await RunJobAtAsync(jobAt));
+        Assert.Equal("Published", await StatusAsync(id));
+
+        // ...pero sus avisos (y con ellos el push y el correo) quedan retenidos hasta las 7:00 locales.
+        await RunDispatcherAtAsync(jobAt);
+        var sevenNextDay = BogotaClock
+            .BusinessDayRange(DateOnly.FromDateTime(BogotaClock.ToBusinessLocal(chosen)).AddDays(1)).Start.AddHours(7);
+        using (var scope = SystemScope(jobAt))
+        {
+            var notices = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
+                .Where(n => n.GymId == w.GymId && n.Type == NotificationType.Announcement && n.ReferenceId == id)
+                .ToListAsync();
+            Assert.Equal(w.Active.Count, notices.Count);
+            Assert.All(notices, n => Assert.Equal(NotificationStatus.Held, n.Status));
+            Assert.All(notices, n => Assert.Equal(sevenNextDay, n.ReleaseAt));
+        }
+
+        await RunDispatcherAtAsync(sevenNextDay);
+        using (var scope = SystemScope(sevenNextDay))
+        {
+            var statuses = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<Notification>()
+                .Where(n => n.GymId == w.GymId && n.Type == NotificationType.Announcement && n.ReferenceId == id)
+                .Select(n => n.Status).ToListAsync();
+            Assert.Equal(w.Active.Count, statuses.Count);
+            Assert.All(statuses, st => Assert.Equal(NotificationStatus.Sent, st));
+        }
+    }
+
+    private async Task RunDispatcherAtAsync(DateTimeOffset instant)
+    {
+        using var scope = SystemScope(instant);
+        await scope.ServiceProvider.GetRequiredService<GSM.Application.Notifications.NotificationDispatchRunner>()
+            .RunOnceAsync();
+    }
+
     // ---------- imagen ----------
 
     [Fact]
