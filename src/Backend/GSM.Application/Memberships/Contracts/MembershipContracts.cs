@@ -1,4 +1,4 @@
-namespace GSM.Application.Memberships.Contracts;
+﻿namespace GSM.Application.Memberships.Contracts;
 
 /// <param name="DurationValue">Cuántos días o meses dura el plan. En una tiquetera, ignorado: manda <c>ValidityDays</c>.</param>
 /// <param name="DurationUnit"><c>days</c> (por defecto si falta) o <c>months</c> (meses del calendario).</param>
@@ -91,7 +91,10 @@ public sealed record MembershipResponse(
     MembershipFreezeResponse? NextFreeze,
     int? EntriesTotal,
     int? EntriesUsed,
-    int? EntriesLeft);
+    int? EntriesLeft,
+    decimal CreditApplied,
+    string? CreditAdjustmentReason,
+    Guid? ReplacesMembershipId);
 
 /// <summary>
 /// Congela una membresía (§5.2). Sin fechas = abierto desde hoy (termina al reanudar). Con
@@ -148,6 +151,63 @@ public sealed record AccessStatusResponse(
     int? EntriesTotal);
 
 public sealed record CancelMembershipRequest(string Reason);
+
+/// <summary>
+/// Cambio de plan de la membresía vigente (MS6, §8). <c>AgreedPrice</c>/<c>DiscountReason</c> como al asignar.
+/// <c>CreditOverride</c> ajusta el crédito que calcula el sistema (entre 0 y lo pagado por el plan) y exige
+/// <c>CreditAdjustmentReason</c>.
+/// </summary>
+public sealed record ChangePlanRequest(
+    Guid PlanId,
+    decimal? AgreedPrice = null,
+    string? DiscountReason = null,
+    decimal? CreditOverride = null,
+    string? CreditAdjustmentReason = null);
+
+/// <summary>
+/// Vista previa de un cambio de plan, sin crear nada: crédito de lo no usado, la membresía nueva y qué se cobra o se
+/// devuelve. Con tiquetera, <c>DaysLeft</c>/<c>DaysTotal</c> son nulos y manda <c>EntriesLeft</c>/<c>EntriesTotal</c>.
+/// </summary>
+/// <param name="AmountPaid">Pagos netos ligados a la membresía vigente (las anulaciones ya restan).</param>
+/// <param name="CreditBase">Parte del plan que se considera pagada (sin matrícula).</param>
+/// <param name="CalculatedCredit">Crédito que calcula el sistema.</param>
+/// <param name="Credit">Crédito que se usaría (el ajustado por el staff, si lo hay).</param>
+/// <param name="CreditApplied">Parte del crédito que descuenta de la membresía nueva.</param>
+/// <param name="TotalToCharge">Lo que se cobra: precio acordado − crédito aplicado (nunca negativo).</param>
+/// <param name="RefundAmount">Lo que se devuelve al miembro cuando el crédito supera el precio del plan nuevo.</param>
+public sealed record PlanChangePreviewResponse(
+    Guid CurrentMembershipId,
+    string CurrentPlanName,
+    DateOnly CurrentEndDate,
+    decimal AmountPaid,
+    decimal CreditBase,
+    decimal CalculatedCredit,
+    decimal Credit,
+    decimal CreditApplied,
+    int? DaysLeft,
+    int? DaysTotal,
+    int? EntriesLeft,
+    int? EntriesTotal,
+    Guid NewPlanId,
+    string NewPlanName,
+    decimal PlanPrice,
+    decimal AgreedPrice,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    decimal TotalToCharge,
+    decimal RefundAmount);
+
+/// <summary>
+/// Resultado del cambio: la anterior (cancelada) y la nueva. La UI cobra <c>TotalToCharge</c> o registra la
+/// devolución de <c>RefundAmount</c> en Payments (dos llamadas, no una escritura cruzada). La devolución se liga a
+/// la membresía anterior.
+/// </summary>
+public sealed record ChangePlanResponse(
+    MembershipResponse Previous,
+    MembershipResponse Current,
+    decimal CreditApplied,
+    decimal TotalToCharge,
+    decimal RefundAmount);
 
 public sealed record ExpiringMembershipItem(
     Guid MembershipId,

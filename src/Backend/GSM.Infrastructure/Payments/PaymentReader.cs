@@ -1,4 +1,4 @@
-using GSM.Application.Common.Abstractions;
+﻿using GSM.Application.Common.Abstractions;
 using GSM.Application.Payments.Public;
 using GSM.Domain.Payments;
 using GSM.Infrastructure.Persistence;
@@ -52,6 +52,12 @@ public sealed class PaymentReader(GsmDbContext dbContext, IClock clock) : IPayme
             .Select(g => new { GymId = g.Key, Total = g.Sum(p => p.Amount) })
             .ToDictionaryAsync(x => x.GymId, x => x.Total, cancellationToken);
     }
+
+    public async Task<decimal> GetNetPaidForMembershipAsync(
+        Guid membershipId, CancellationToken cancellationToken = default)
+        => await Payments
+            .Where(p => p.MembershipId == membershipId)
+            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
 
     public async Task<IReadOnlyList<MemberPaymentView>> GetRecentByMemberAsync(
         Guid memberId, int limit, CancellationToken cancellationToken = default)

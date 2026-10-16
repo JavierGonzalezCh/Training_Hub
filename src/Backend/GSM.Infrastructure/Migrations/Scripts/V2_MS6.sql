@@ -1,0 +1,18 @@
+-- V2_MS6: cambio de plan con crédito (Memberships v2, §4 y §8).
+--
+-- Orden esperado de la migración V2_MS6_CambioDePlan (el integrador la genera con `dotnet ef`):
+--   1. AddColumn memberships.memberships.credit_applied numeric(12,2) NOT NULL default 0
+--      (crédito de lo no usado de la membresía anterior; las existentes quedan en 0).
+--   2. AddColumn memberships.memberships.credit_adjustment_reason varchar(500) NULL.
+--   3. AddColumn memberships.memberships.replaces_membership_id uuid NULL
+--      + ix_memberships_replaces_membership_id. Sin FK: es una referencia dentro de la misma tabla que solo sirve
+--      para el historial (MS8); la membresía anterior nunca se borra.
+--   4. AddCheckConstraint ck_memberships_credit_applied:
+--      credit_applied >= 0 AND credit_applied <= agreed_price + enrollment_fee
+--      (va DESPUÉS de la columna; las filas existentes lo cumplen con credit_applied = 0).
+--   5. migrationBuilder.SqlScript("MS6")  <- este script (no hace nada hoy).
+--
+-- Sin ALTER TYPE: el cambio de plan usa renewal_kind 'new' y status 'cancelled', que ya existen.
+-- No hay datos que migrar: no existían cambios de plan. Se deja el script para que el orden quede escrito
+-- junto al resto de la v2; es idempotente.
+SELECT 1;

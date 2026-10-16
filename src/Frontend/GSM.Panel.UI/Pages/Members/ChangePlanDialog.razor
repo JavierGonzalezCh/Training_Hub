@@ -1,0 +1,352 @@
+@inject IMemberMembershipsClient MemberMemberships
+@inject IMembershipPlansClient Plans
+@inject IPaymentsClient Payments
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudText Class="mb-3">
+                Plan actual: <strong>@Membership.PlanName</strong> (@GsmFormat.DayRange(Membership.StartDate, Membership.EndDate)).
+                Se cancela hoy con el motivo «Cambio de plan» y la nueva empieza hoy con el crédito de lo que no se usó.
+            </MudText>
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" id="change-plan-error">@_error</MudAlert>
+            }
+            @if (_plans.Count == 0)
+            {
+                <MudText Color="Color.Secondary">No hay planes activos para cambiar.</MudText>
+            }
+            else
+            {
+                <MudSelect T="Guid" Value="_planId" ValueChanged="OnPlanChanged" ToStringFunc="PlanLabel" Label="Plan nuevo" Required="true" Class="mb-3"
+                           Disabled="@(_pending is not null)">
+                    @foreach (var plan in _plans)
+                    {
+                        <MudSelectItem Value="plan.Id">@PlanLabel(plan.Id)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat"
+                                 Value="_agreedPrice" ValueChanged="OnPriceChanged" Label="Precio acordado (COP)" Min="0" Max="@PlanPrice"
+                                 id="agreed-price" Class="mb-2" Disabled="@(_pending is not null)"
+                                 HelperText="@($"Precio del plan: {GsmFormat.Money(PlanPrice)}. Si es menor, hay descuento.")" />
+                @if (HasDiscount)
+                {
+                    <MudTextField T="string" Value="_discountReason" ValueChanged="OnDiscountReasonChanged" Label="Motivo del descuento" Required="true"
+                                  MaxLength="500" id="discount-reason" Class="mb-3" Disabled="@(_pending is not null)" />
+                }
+
+                @if (_preview is { } preview)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" role="status" id="plan-change-preview">
+                        <div>
+                            <strong>La nueva empieza el @GsmFormat.DayShort(preview.StartDate) · vence el @GsmFormat.DayShort(preview.EndDate)</strong>
+                        </div>
+                        <div id="credit-summary">@CreditText(preview)</div>
+                        <div>Pagado por el plan actual: @GsmFormat.Money((decimal)preview.CreditBase)</div>
+                        <div>Crédito: <strong id="credit-amount">@GsmFormat.Money((decimal)preview.Credit)</strong></div>
+                        <div>Plan nuevo: @GsmFormat.Money((decimal)preview.AgreedPrice)</div>
+                    </MudAlert>
+
+                    <MudSwitch T="bool" Value="_adjustCredit" ValueChanged="OnAdjustToggled" Color="Color.Primary" id="adjust-credit"
+                               Disabled="@(_pending is not null)" Label="Ajustar el crédito" Class="mb-1" />
+                    @if (_adjustCredit)
+                    {
+                        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat"
+                                         Value="_creditOverride" ValueChanged="OnCreditChanged" Label="Crédito (COP)" Min="0" Max="@((decimal)preview.CreditBase)"
+                                         id="credit-override" Class="mb-2" Disabled="@(_pending is not null)"
+                                         HelperText="@($"Calculado: {GsmFormat.Money((decimal)preview.CalculatedCredit)}. Máximo lo pagado por el plan.")" />
+                        <MudTextField T="string" Value="_creditReason" ValueChanged="OnCreditReasonChanged" Label="Motivo del ajuste" Required="true"
+                                      MaxLength="500" id="credit-reason" Class="mb-3" Disabled="@(_pending is not null)" />
+                    }
+
+                    <MudAlert Severity="Severity.Normal" Dense="true" Class="mb-3" role="status" id="total-to-charge">
+                        @if (preview.RefundAmount > 0)
+                        {
+                            <div>El crédito supera el precio del plan nuevo.</div>
+                            <strong id="refund-amount">A devolver al miembro: @GsmFormat.Money((decimal)preview.RefundAmount)</strong>
+                        }
+                        else
+                        {
+                            <strong>Total a cobrar: @GsmFormat.Money((decimal)preview.TotalToCharge)</strong>
+                        }
+                    </MudAlert>
+
+                    @if (_pending is not null)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" id="payment-failed">
+                            El plan se cambió, pero el movimiento de dinero no se registró: @_paymentError
+                        </MudAlert>
+                    }
+
+                    @if (preview.TotalToCharge > 0 || preview.RefundAmount > 0)
+                    {
+                        <MudSelect T="int" @bind-Value="_method" Label="@(preview.RefundAmount > 0 ? "Método de la devolución" : "Método de pago")" Required="true"
+                                   Disabled="@(_pending is not null)">
+                            @foreach (var (value, label) in PaymentMethodLabels.All)
+                            {
+                                <MudSelectItem Value="value">@label</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                }
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_pending is null)
+        {
+            <MudButton OnClick="Cancel">Volver</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync"
+                       Disabled="_loading || _submitting || _preview is null">
+                @(_submitting ? "Guardando..." : SubmitLabel)
+            </MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="CloseWithoutPayment" Disabled="_submitting">Cerrar sin registrarlo</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RetryPaymentAsync" Disabled="_submitting">
+                @(_submitting ? "Registrando..." : "Reintentar")
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    // El servidor exige motivo para un descuento o un crédito ajustado; la vista previa se pide mientras se escribe,
+    // así que se manda este marcador hasta que haya un motivo real. Nunca se usa al confirmar.
+    private const string PreviewReason = "pendiente";
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    [Parameter, EditorRequired]
+    public MembershipResponse Membership { get; set; } = null!;
+
+    private List<PlanResponse> _plans = [];
+    private Guid _planId;
+    private decimal _agreedPrice;
+    private string? _discountReason;
+    private bool _adjustCredit;
+    private decimal _creditOverride;
+    private string? _creditReason;
+    private int _method;
+    private PlanChangePreviewResponse? _preview;
+    private PendingMovement? _pending;
+    private string? _paymentError;
+    private bool _loading = true;
+    private bool _submitting;
+    private string? _error;
+
+    private sealed record PendingMovement(decimal Amount, Guid MembershipId, string Concept);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _plans = (await Plans.MembershipPlansAllAsync(includeInactive: false)).ToList();
+            if (_plans.Count > 0)
+            {
+                var proposed = _plans.FirstOrDefault(p => p.Id != Membership.PlanId) ?? _plans[0];
+                await OnPlanChanged(proposed.Id);
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string PlanLabel(Guid planId)
+        => _plans.FirstOrDefault(p => p.Id == planId) is { } plan
+            ? $"{plan.Name} — {GsmFormat.Money((decimal)plan.Price)} · {PlanDurationLabels.FormatPlan(plan.Kind, plan.DurationUnit, plan.DurationValue, plan.Entries)}"
+            : string.Empty;
+
+    private decimal PlanPrice => _plans.FirstOrDefault(p => p.Id == _planId) is { } plan ? (decimal)plan.Price : 0m;
+
+    private bool HasDiscount => _agreedPrice < PlanPrice;
+
+    private string SubmitLabel => _preview is { RefundAmount: > 0 }
+        ? "Cambiar plan y devolver"
+        : _preview is { TotalToCharge: > 0 } ? "Cambiar plan y cobrar" : "Cambiar plan";
+
+    private static string CreditText(PlanChangePreviewResponse preview)
+        => preview.EntriesTotal is { } total
+            ? $"Le quedan {preview.EntriesLeft} de {total} entradas."
+            : $"Le quedan {preview.DaysLeft} de {preview.DaysTotal} días.";
+
+    private async Task OnPlanChanged(Guid planId)
+    {
+        _planId = planId;
+        _agreedPrice = PlanPrice;
+        _discountReason = null;
+        await LoadPreviewAsync();
+    }
+
+    private async Task OnPriceChanged(decimal value)
+    {
+        _agreedPrice = value;
+        await LoadPreviewAsync();
+    }
+
+    private async Task OnDiscountReasonChanged(string? value)
+    {
+        _discountReason = value;
+        await LoadPreviewAsync();
+    }
+
+    private async Task OnAdjustToggled(bool value)
+    {
+        _adjustCredit = value;
+        if (value && _preview is { } p)
+        {
+            _creditOverride = (decimal)p.CalculatedCredit;
+        }
+
+        await LoadPreviewAsync();
+    }
+
+    private async Task OnCreditChanged(decimal value)
+    {
+        _creditOverride = value;
+        await LoadPreviewAsync();
+    }
+
+    private async Task OnCreditReasonChanged(string? value)
+    {
+        _creditReason = value;
+        await LoadPreviewAsync();
+    }
+
+    private static bool HasReason(string? reason) => (reason?.Trim().Length ?? 0) >= 3;
+
+    private ChangePlanRequest BuildRequest(bool forPreview)
+        => new()
+        {
+            PlanId = _planId,
+            AgreedPrice = (double)_agreedPrice,
+            DiscountReason = HasDiscount ? (HasReason(_discountReason) ? _discountReason!.Trim() : forPreview ? PreviewReason : _discountReason) : null,
+            CreditOverride = _adjustCredit ? (double)_creditOverride : null,
+            CreditAdjustmentReason = _adjustCredit ? (HasReason(_creditReason) ? _creditReason!.Trim() : forPreview ? PreviewReason : _creditReason) : null,
+        };
+
+    private async Task LoadPreviewAsync()
+    {
+        try
+        {
+            _preview = await MemberMemberships.PreviewPlanChangeAsync(MemberId, Membership.Id, BuildRequest(forPreview: true));
+            _error = null;
+        }
+        catch (GsmApiException ex)
+        {
+            _preview = null;
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+
+    // Cambiar el plan y mover el dinero son dos llamadas, no una operación atómica: lo primero es de Memberships y lo
+    // segundo de Payments, y la regla del proyecto es no escribir en otro módulo. Si el cobro (o la devolución) falla,
+    // el cambio ya está hecho: el diálogo no se cierra y ofrece reintentar.
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (HasDiscount && !HasReason(_discountReason))
+        {
+            _error = "El motivo del descuento es obligatorio.";
+            return;
+        }
+
+        if (_adjustCredit && !HasReason(_creditReason))
+        {
+            _error = "El motivo del ajuste del crédito es obligatorio.";
+            return;
+        }
+
+        _submitting = true;
+        ChangePlanResponse result;
+        try
+        {
+            result = await MemberMemberships.ChangePlanAsync(MemberId, Membership.Id, BuildRequest(forPreview: false));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+            return;
+        }
+
+        var refund = (decimal)result.RefundAmount;
+        var total = (decimal)result.TotalToCharge;
+        if (refund > 0)
+        {
+            // La devolución se liga a la membresía anterior (la que se pagó); la nueva no lleva dinero de vuelta.
+            _pending = new PendingMovement(-refund, result.Previous.Id, $"Devolución por cambio de plan ({result.Previous.PlanName} → {result.Current.PlanName})");
+        }
+        else if (total > 0)
+        {
+            _pending = new PendingMovement(
+                total, result.Current.Id, $"Cambio de plan a {result.Current.PlanName} ({GsmFormat.DayRange(result.Current.StartDate, result.Current.EndDate)})");
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(new ChangePlanResult(Recorded: false, PaymentError: null)));
+            return;
+        }
+
+        await RecordMovementAsync();
+    }
+
+    private async Task RecordMovementAsync()
+    {
+        try
+        {
+            await Payments.PaymentsPOST2Async(new RecordPaymentRequest
+            {
+                Amount = (double)_pending!.Amount,
+                Method = _method,
+                Concept = _pending.Concept,
+                MemberId = MemberId,
+                MembershipId = _pending.MembershipId,
+            });
+            MudDialog.Close(DialogResult.Ok(new ChangePlanResult(Recorded: true, PaymentError: null)));
+        }
+        catch (GsmApiException ex)
+        {
+            _paymentError = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+        }
+    }
+
+    private async Task RetryPaymentAsync()
+    {
+        if (_pending is null)
+        {
+            return;
+        }
+
+        _submitting = true;
+        await RecordMovementAsync();
+    }
+
+    private void CloseWithoutPayment()
+        => MudDialog.Close(DialogResult.Ok(new ChangePlanResult(Recorded: false, PaymentError: _paymentError)));
+
+    private void Cancel() => MudDialog.Cancel();
+}
+
+@code {
+    public sealed record ChangePlanResult(bool Recorded, string? PaymentError);
+}

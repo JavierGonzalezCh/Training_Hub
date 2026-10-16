@@ -1,4 +1,4 @@
-using GSM.Application.Common.Events;
+﻿using GSM.Application.Common.Events;
 
 namespace GSM.Application.Memberships.Events;
 
@@ -10,6 +10,14 @@ public sealed record MembershipRenewed(
     Guid MembershipId, Guid MemberId, Guid GymId, Guid PlanId, Guid PreviousMembershipId) : IDomainEvent;
 
 public sealed record MembershipCancelled(Guid MembershipId, Guid MemberId, Guid GymId) : IDomainEvent;
+
+/// <summary>
+/// Cambio de plan (MS6): <paramref name="PreviousMembershipId"/> se canceló y <paramref name="MembershipId"/> la reemplaza.
+/// Se publica además de <see cref="MembershipCancelled"/> y <see cref="MembershipCreated"/>.
+/// </summary>
+public sealed record MembershipPlanChanged(
+    Guid MembershipId, Guid PreviousMembershipId, Guid MemberId, Guid GymId, Guid PlanId, decimal CreditApplied,
+    decimal RefundAmount) : IDomainEvent;
 
 /// <summary>Se creó un congelamiento (abierto desde hoy o programado). <paramref name="EndsOn"/> nulo = abierto.</summary>
 public sealed record MembershipFrozen(
