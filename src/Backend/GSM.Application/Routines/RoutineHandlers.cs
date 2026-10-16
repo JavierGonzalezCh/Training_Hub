@@ -125,7 +125,8 @@ public sealed class AssignRoutineHandler(
         var catalog = await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
 
         var draft = RoutineDrafting.ToDraft(request, catalog, currentUser.UserId ?? Guid.Empty, selfAssigned: false);
-        var routine = Routine.Assign(gymId, memberId, clock.Today, draft);
+        var reviewWeeks = await RoutineSettingsLookup.GetReviewWeeksAsync(routines, gymId, cancellationToken);
+        var routine = Routine.Assign(gymId, memberId, clock.Today, draft, reviewWeeks);
 
         await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
         {
@@ -174,7 +175,8 @@ public sealed class SelfAssignRoutineHandler(
         var catalog = await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
 
         var draft = RoutineDrafting.ToDraft(request, catalog, currentUser.UserId ?? Guid.Empty, selfAssigned: true);
-        var routine = Routine.Assign(gymId, self.Id, clock.Today, draft);
+        var reviewWeeks = await RoutineSettingsLookup.GetReviewWeeksAsync(routines, gymId, cancellationToken);
+        var routine = Routine.Assign(gymId, self.Id, clock.Today, draft, reviewWeeks);
 
         await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
         {
@@ -253,7 +255,8 @@ public sealed class UpdateRoutineHandler(
 
         // Los ids del body son de la rutina anterior y no significan nada en la nueva: se descartan.
         var draft = RoutineDrafting.ToDraft(request, catalog, previous.AssignedBy, previous.SelfAssigned, mode: mode);
-        var replacement = Routine.Assign(gymId, previous.MemberId, clock.Today, draft);
+        var reviewWeeks = await RoutineSettingsLookup.GetReviewWeeksAsync(routines, gymId, cancellationToken);
+        var replacement = Routine.Assign(gymId, previous.MemberId, clock.Today, draft, reviewWeeks);
 
         await unitOfWork.ExecuteInTransactionAsync(async innerToken =>
         {

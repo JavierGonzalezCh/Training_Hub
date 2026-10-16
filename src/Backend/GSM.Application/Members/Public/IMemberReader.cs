@@ -39,6 +39,13 @@ public interface IMemberReader
     Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetReferredMemberIdsAsync(
         IReadOnlyCollection<Guid> referrerIds, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Ids de los miembros activos del gym en contexto cuyo entrenador asignado es <paramref name="trainerUserId"/>
+    /// ("mis miembros"). Para filtrar las rutinas por revisar (Routines R8).
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetActiveMemberIdsByTrainerAsync(
+        Guid trainerUserId, CancellationToken cancellationToken = default);
+
     /// <summary>Ids de los miembros activos del gym (audiencia de un anuncio).</summary>
     Task<IReadOnlyList<Guid>> GetActiveMemberIdsAsync(Guid gymId, CancellationToken cancellationToken = default);
 

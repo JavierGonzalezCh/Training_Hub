@@ -95,6 +95,7 @@ public sealed record RoutineDayResponse(
 /// <summary>
 /// <c>ScheduleMode</c>: <c>"rotating"</c> o <c>"weekly"</c> (texto, no enum: el generador de NSwag tipa los enums
 /// sueltos de un cuerpo como <c>int</c>). <c>CycleLength</c> es el número de días vigentes: en semanal, los de entrenamiento.
+/// <c>ReviewOn</c> es la fecha en que el entrenador revisará la rutina (recordatorio: no la desactiva).
 /// </summary>
 public sealed record RoutineResponse(
     Guid Id,
@@ -108,7 +109,8 @@ public sealed record RoutineResponse(
     DateOnly? DeactivatedOn,
     int CycleLength,
     IReadOnlyList<RoutineDayResponse> Days,
-    string ScheduleMode);
+    string ScheduleMode,
+    DateOnly? ReviewOn = null);
 
 public sealed record RoutineListItem(
     Guid Id,

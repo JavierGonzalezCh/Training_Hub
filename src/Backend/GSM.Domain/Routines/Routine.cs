@@ -39,6 +39,16 @@ public sealed class Routine : BaseEntity, ITenantEntity
 
     public DateOnly? DeactivatedOn { get; private set; }
 
+    /// <summary>
+    /// Fecha de revisión: <c>starts_on</c> más las semanas del gym. Es un recordatorio para el entrenador, no un
+    /// vencimiento: la rutina sigue activa aunque la fecha pase.
+    /// </summary>
+    public DateOnly ReviewOn { get; private set; }
+
+    public DateTimeOffset? LastReviewedAt { get; private set; }
+
+    public Guid? LastReviewedBy { get; private set; }
+
     /// <summary>Días vigentes (los retirados no cuentan).</summary>
     public IReadOnlyList<RoutineDay> Days => _days.Where(d => d.RetiredOn is null).ToList();
 
@@ -46,7 +56,8 @@ public sealed class Routine : BaseEntity, ITenantEntity
     public int CycleLength => _days.Count(d => d.RetiredOn is null);
 
     public static Routine Assign(
-        Guid gymId, Guid memberId, DateOnly startsOn, RoutineDraft draft)
+        Guid gymId, Guid memberId, DateOnly startsOn, RoutineDraft draft,
+        int reviewWeeks = RoutineSettings.DefaultReviewWeeks)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty)
         {
@@ -61,6 +72,7 @@ public sealed class Routine : BaseEntity, ITenantEntity
             SelfAssigned = draft.SelfAssigned,
             StartsOn = startsOn,
             ScheduleMode = draft.ScheduleMode,
+            ReviewOn = startsOn.AddDays(7 * ValidReviewWeeks(reviewWeeks)),
         };
 
         routine.ApplyHeaderAndDays(draft, startsOn);
@@ -82,6 +94,33 @@ public sealed class Routine : BaseEntity, ITenantEntity
 
         ApplyHeaderAndDays(draft, today);
     }
+
+    /// <summary>
+    /// El entrenador revisó la rutina: queda registrado quién y cuándo, y la próxima revisión corre
+    /// <paramref name="reviewWeeks"/> semanas a partir de <paramref name="today"/> (no de la fecha anterior: una
+    /// revisión tardía no puede dejar la siguiente ya vencida). Solo se revisa una rutina activa.
+    /// </summary>
+    public void MarkReviewed(Guid reviewedBy, DateTimeOffset now, DateOnly today, int reviewWeeks)
+    {
+        if (!IsActive)
+        {
+            throw new ConflictException("La rutina está dada de baja: no se puede marcar como revisada.");
+        }
+
+        if (reviewedBy == Guid.Empty)
+        {
+            throw new ValidationDomainException("Falta quién revisó la rutina.");
+        }
+
+        LastReviewedAt = now;
+        LastReviewedBy = reviewedBy;
+        ReviewOn = today.AddDays(7 * ValidReviewWeeks(reviewWeeks));
+    }
+
+    private static int ValidReviewWeeks(int weeks)
+        => weeks is < RoutineSettings.MinReviewWeeks or > RoutineSettings.MaxReviewWeeks
+            ? throw new ValidationDomainException("Las semanas de revisión no son válidas.")
+            : weeks;
 
     public void Deactivate(DateOnly on)
     {

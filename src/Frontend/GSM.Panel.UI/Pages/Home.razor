@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Attendance
 @using GSM.Panel.UI.Pages.Onboarding
+@using GSM.Panel.UI.Pages.RoutineReview
 @implements IDisposable
 @inject GymContext GymContext
 @inject IDashboardClient Dashboard
@@ -45,6 +46,7 @@ else if (_dashboard is { } dashboard)
         <OccupancyCard />
         <MemberLimitCard />
         <EquipmentCards />
+        <RoutinesDueCard />
         <StatCard Label="@($"Por vencer · {dashboard.ExpiringDays} días")" Value="@dashboard.ExpiringSoon.ToString()"
                   Accent="@(dashboard.ExpiringSoon > 0 ? Color.Error : Color.Default)"
                   Hint="@($"{dashboard.ExpiredMemberships} ya vencidas")" />

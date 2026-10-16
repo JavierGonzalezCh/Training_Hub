@@ -43,6 +43,26 @@ public sealed class RoutineRepository(GsmDbContext dbContext) : IRoutineReposito
 
     public void Add(Routine routine) => Routines.Add(routine);
 
+    public Task<RoutineSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<RoutineSettings>().FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);
+
+    public void Add(RoutineSettings settings) => dbContext.Set<RoutineSettings>().Add(settings);
+
+    public async Task<IReadOnlyList<Routine>> ListDueForReviewAsync(
+        DateOnly until, IReadOnlyCollection<Guid>? memberIds, CancellationToken cancellationToken = default)
+    {
+        var query = Routines.Where(r => r.IsActive && !r.SelfAssigned && r.ReviewOn <= until);
+        if (memberIds is not null)
+        {
+            query = query.Where(r => memberIds.Contains(r.MemberId));
+        }
+
+        return await query
+            .OrderBy(r => r.ReviewOn)
+            .ThenBy(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public void TrackNewChildren(Routine routine)
     {
         dbContext.ChangeTracker.DetectChanges();

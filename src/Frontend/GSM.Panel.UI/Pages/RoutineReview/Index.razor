@@ -1,0 +1,116 @@
+@page "/routines/review"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@inject IRoutinesClient Routines
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Rutinas por revisar — GSM</PageTitle>
+
+<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
+    <MudText Typo="Typo.h4">Rutinas por revisar</MudText>
+    <MudSpacer />
+    <MudSwitch T="bool" Value="_mine" ValueChanged="OnMineChangedAsync" Color="Color.Primary"
+               Label="Solo mis miembros" data-testid="review-mine" />
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="review-empty">
+        @(_mine ? "Ninguna rutina de tus miembros está por revisar." : "Ninguna rutina está por revisar.")
+    </MudText>
+}
+else
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+        Rutinas con la revisión vencida o que vencen en los próximos @_windowDays días. La rutina sigue activa aunque la fecha pase.
+    </MudText>
+    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0" data-testid="review-table">
+        <HeaderContent>
+            <MudTh>Miembro</MudTh>
+            <MudTh>Rutina</MudTh>
+            <MudTh>Revisión</MudTh>
+            <MudTh>Última revisión</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Miembro">
+                <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
+                    @context.MemberName
+                </MudLink>
+            </MudTd>
+            <MudTd DataLabel="Rutina">@context.RoutineName</MudTd>
+            <MudTd DataLabel="Revisión">
+                <MudText Color="@(context.ReviewOn < _today ? Color.Error : Color.Default)">
+                    @GsmFormat.Day(context.ReviewOn)@(context.ReviewOn < _today ? $" · {_today.DayNumber - context.ReviewOn.DayNumber} d de atraso" : "")
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Última revisión">
+                @(context.LastReviewedAt is { } at ? GsmFormat.Day(DateOnly.FromDateTime(at.LocalDateTime)) : "Nunca")
+            </MudTd>
+            <MudTd Style="text-align:right">
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.CheckCircle"
+                           Disabled="_busy.Contains(context.RoutineId)" OnClick="@(() => ReviewAsync(context))"
+                           data-testid="@($"review-{context.RoutineId}")">
+                    Marcar revisada
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private readonly DateOnly _today = GsmFormat.Today();
+    private readonly HashSet<Guid> _busy = [];
+    private List<RoutineDueItem> _items = [];
+    private bool _mine;
+    private int _windowDays = 7;
+    private bool _loading = true;
+
+    // Sin filtro explícito, el servidor decide el valor por defecto (entrenador = sus miembros) y lo devuelve.
+    protected override Task OnInitializedAsync() => LoadAsync(null);
+
+    private Task OnMineChangedAsync(bool value) => LoadAsync(value);
+
+    private async Task LoadAsync(bool? mine)
+    {
+        _loading = true;
+        try
+        {
+            var response = await Routines.GetRoutinesDueForReviewAsync(mine);
+            _items = response.Items.ToList();
+            _mine = response.Mine;
+            _windowDays = response.WindowDays;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReviewAsync(RoutineDueItem item)
+    {
+        _busy.Add(item.RoutineId);
+        try
+        {
+            await Routines.ReviewRoutineAsync(item.RoutineId);
+            _items.Remove(item);
+            Snackbar.Add($"Rutina de {item.MemberName} marcada como revisada.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy.Remove(item.RoutineId);
+        }
+    }
+}
