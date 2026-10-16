@@ -9,6 +9,7 @@ public static class LogsModuleRegistration
     {
         // Los casos de uso (*Handler) se registran por assembly scanning.
         services.AddScoped<Logs.EventFailureReplayer>();
+        services.AddScoped<Logs.Alerts.PlatformAlertEvaluator>(); // LG5
 
         return services;
     }

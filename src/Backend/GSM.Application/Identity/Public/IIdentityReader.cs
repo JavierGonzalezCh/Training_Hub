@@ -30,7 +30,16 @@ public interface IIdentityReader
     /// y el contacto de facturación se resuelven contra esta lista.
     /// </summary>
     Task<IReadOnlyList<GymOwnerDto>> ListActiveOwnersAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// LG5: a quién van las alertas de la plataforma: la cuenta del SuperAdmin (una sola, S5) si está activa y tiene
+    /// correo. <c>null</c> si no hay.
+    /// </summary>
+    Task<SuperAdminContactDto?> GetSuperAdminContactAsync(CancellationToken cancellationToken = default);
 }
+
+/// <summary>El SuperAdmin como destinatario de las alertas de la plataforma.</summary>
+public sealed record SuperAdminContactDto(Guid UserId, string Email);
 
 /// <summary>Un Owner activo del gym.</summary>
 public sealed record GymOwnerDto(Guid UserId, string FullName, string Email);

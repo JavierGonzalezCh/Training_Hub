@@ -445,6 +445,9 @@ public sealed class NotificationsTests(ApiFactory factory) : IClassFixture<ApiFa
 
         public Task<IReadOnlyList<GymOwnerDto>> ListActiveOwnersAsync(Guid gymId, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<GymOwnerDto>>([]);
+
+        public Task<SuperAdminContactDto?> GetSuperAdminContactAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<SuperAdminContactDto?>(null);
     }
 
     private async Task PublishAsync<TEvent>(Guid gymId, TEvent evt) where TEvent : IDomainEvent

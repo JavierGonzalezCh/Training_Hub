@@ -1,6 +1,7 @@
 using GSM.API.Auth;
 using GSM.Application.Common;
 using GSM.Application.Logs;
+using GSM.Application.Logs.Alerts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -107,4 +108,18 @@ public sealed class AdminLogsController : ControllerBase
         [FromServices] IgnoreEventFailureHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>
+    /// Historial de las alertas que el sistema le mandó al SuperAdmin (error nuevo, pico, proceso detenido,
+    /// servicio externo caído, seguridad) y si salieron por correo y push. Las más recientes primero.
+    /// </summary>
+    [HttpGet("alerts")]
+    [EndpointName("ListPlatformAlerts")]
+    [ProducesResponseType<PagedResult<PlatformAlertItem>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<PlatformAlertItem>>> ListAlerts(
+        [FromServices] ListPlatformAlertsHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+        => Ok(await handler.HandleAsync(page, pageSize, cancellationToken));
 }

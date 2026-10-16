@@ -5,6 +5,7 @@ using GSM.Application.Classes;
 using GSM.Application.Common.Logs;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
+using GSM.Application.Logs.Alerts;
 using GSM.Application.Notifications;
 using GSM.Application.SuperAdmin;
 using Microsoft.AspNetCore.Authorization;
@@ -37,6 +38,7 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
         [FromServices] RunMonthlyMetricsHandler monthlyMetrics,
         [FromServices] RunWaitlistJobHandler waitlistJob,
         [FromServices] LoggedJobRunner runner,
+        [FromServices] PlatformAlertEvaluator alerts,
         CancellationToken cancellationToken)
     {
         if (!IsAuthorized())
@@ -65,6 +67,13 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
             "monthly_metrics",
             () => monthlyMetrics.HandleAsync(cancellationToken),
             created => (created, 0));
+
+        // LG5: alertas al SuperAdmin. Esta tarea es la que vigila al dispatcher (y viceversa); no lanza.
+        // Los latidos de esta misma ejecución todavía se están escribiendo, así que no se juzgan.
+        await alerts.RunOnceAsync(
+            [LoggedJobRunner.HeartbeatName("communications"), LoggedJobRunner.HeartbeatName("waitlist"),
+             LoggedJobRunner.HeartbeatName("monthly_metrics")],
+            cancellationToken);
         return Ok(result);
     }
 

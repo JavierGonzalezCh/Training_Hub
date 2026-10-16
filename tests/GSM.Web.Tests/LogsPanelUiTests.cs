@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Web.Pages.Admin.Logs;
@@ -96,6 +96,15 @@ public class LogsPanelUiTests : TestContext
             GroupRetried = body;
             return Task.FromResult(new RetryEventGroupResponse { Total = 2, Succeeded = 2 });
         }
+
+        public List<PlatformAlertItem> Alerts { get; } = [];
+
+        public Task<PagedResultOfPlatformAlertItem> ListPlatformAlertsAsync(
+            int? page = null, int? pageSize = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PagedResultOfPlatformAlertItem
+            {
+                Items = Alerts.ToList(), Page = 1, PageSize = 100, Total = Alerts.Count,
+            });
 
         public Task<RetryEventFailureResponse> IgnoreEventFailureAsync(Guid id, CancellationToken cancellationToken = default)
         {
@@ -263,5 +272,44 @@ public class LogsPanelUiTests : TestContext
         cut.WaitForAssertion(() =>
             Assert.Contains("datos que el log no guarda", cut.Find("[data-testid='retry-note']").TextContent));
         Assert.Single(cut.FindAll("[data-testid='event-row']"));
+    }
+
+    [Fact]
+    public void Alerts_panel_lists_each_alert_with_the_delivery_state_of_both_channels()
+    {
+        var client = Setup();
+        client.Alerts.Add(new PlatformAlertItem
+        {
+            Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow, Kind = "new_error",
+            Title = "Falla nueva: System.InvalidOperationException", Body = "Dónde: /api/members/{id}",
+            Link = "/admin/logs", EmailStatus = "sent", PushStatus = "skipped",
+        });
+        client.Alerts.Add(new PlatformAlertItem
+        {
+            Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-40), Kind = "process_stopped",
+            Title = "Proceso detenido: notifications_dispatcher", Body = "Su último latido fue hace 9 minutos.",
+            EmailStatus = "failed", PushStatus = "pending",
+        });
+
+        var cut = RenderComponent<AlertsPanel>();
+
+        var rows = cut.FindAll("[data-testid='alert-row']");
+        Assert.Equal(2, rows.Count);
+        Assert.Contains("Falla nueva", rows[0].TextContent);
+        Assert.Contains("Enviado", rows[0].QuerySelector("[data-testid='alert-email']")!.TextContent);
+        Assert.Contains("No aplica", rows[0].QuerySelector("[data-testid='alert-push']")!.TextContent);
+        Assert.Contains("Proceso detenido", rows[1].TextContent);
+        Assert.Contains("Falló", rows[1].QuerySelector("[data-testid='alert-email']")!.TextContent);
+        Assert.Contains("Pendiente", rows[1].QuerySelector("[data-testid='alert-push']")!.TextContent);
+    }
+
+    [Fact]
+    public void Alerts_panel_says_so_when_nothing_was_ever_raised()
+    {
+        Setup();
+
+        var cut = RenderComponent<AlertsPanel>();
+
+        Assert.NotNull(cut.Find("[data-testid='alerts-empty']"));
     }
 }

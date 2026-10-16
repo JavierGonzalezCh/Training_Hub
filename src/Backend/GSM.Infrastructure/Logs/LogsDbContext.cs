@@ -115,6 +115,30 @@ public sealed class HeartbeatRow
     public DateTimeOffset LastBeatAt { get; set; }
 }
 
+/// <summary>Fila de <c>logs.alert_state</c> (LG5): la última vez que se emitió cada alerta, por clave.</summary>
+public sealed class AlertStateRow
+{
+    public string Key { get; set; } = "";
+    public DateTimeOffset LastAlertedAt { get; set; }
+}
+
+/// <summary>Fila de <c>logs.platform_alerts</c> (LG5): una alerta al SuperAdmin y el estado de su entrega.</summary>
+public sealed class PlatformAlertRow
+{
+    public Guid Id { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public string Key { get; set; } = "";
+    public string Kind { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Body { get; set; } = "";
+    public string? Link { get; set; }
+    public string EmailStatus { get; set; } = "pending";
+    public string PushStatus { get; set; } = "pending";
+    public int Attempts { get; set; }
+    public DateTimeOffset? NextAttemptAt { get; set; }
+    public string? LastError { get; set; }
+}
+
 /// <summary>Columnas comunes de las tablas de logs (docs/GSM-logs.md §4).</summary>
 public abstract class LogRowBase
 {
@@ -147,6 +171,8 @@ public sealed class LogsDbContext(DbContextOptions<LogsDbContext> options) : DbC
     public DbSet<ClientErrorRow> ClientErrors => Set<ClientErrorRow>();
     public DbSet<HeartbeatRow> Heartbeats => Set<HeartbeatRow>();
     public DbSet<ErrorGroupRow> ErrorGroups => Set<ErrorGroupRow>();
+    public DbSet<AlertStateRow> AlertStates => Set<AlertStateRow>();
+    public DbSet<PlatformAlertRow> PlatformAlerts => Set<PlatformAlertRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -173,5 +199,8 @@ public sealed class LogsDbContext(DbContextOptions<LogsDbContext> options) : DbC
         modelBuilder.Entity<HeartbeatRow>().ToTable("heartbeats").HasKey(e => e.Process);
 
         modelBuilder.Entity<ErrorGroupRow>().ToTable("error_groups").HasKey(e => new { e.Kind, e.Fingerprint });
+
+        modelBuilder.Entity<AlertStateRow>().ToTable("alert_state").HasKey(e => e.Key);
+        modelBuilder.Entity<PlatformAlertRow>().ToTable("platform_alerts").HasKey(e => e.Id);
     }
 }

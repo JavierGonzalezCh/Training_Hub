@@ -59,6 +59,12 @@ public sealed class LogMaintenance(IDbContextFactory<LogsDbContext> contextFacto
         rows += await db.Database.ExecuteSqlInterpolatedAsync(
             $"DELETE FROM logs.job_runs WHERE occurred_at < {cutoff}", cancellationToken);
 
+        // LG5: las alertas al SuperAdmin y sus claves de repetición también duran un año.
+        rows += await db.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM logs.platform_alerts WHERE created_at < {cutoff}", cancellationToken);
+        rows += await db.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM logs.alert_state WHERE last_alerted_at < {cutoff}", cancellationToken);
+
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"""
              INSERT INTO logs.heartbeats (process, last_beat_at) VALUES ({PurgeHeartbeat}, {clock.UtcNow})
