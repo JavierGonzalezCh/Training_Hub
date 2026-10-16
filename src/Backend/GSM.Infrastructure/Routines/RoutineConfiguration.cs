@@ -41,7 +41,22 @@ public sealed class RoutineSettingsConfiguration : IEntityTypeConfiguration<Rout
     }
 }
 
-public sealed class RoutineDayConfiguration : IEntityTypeConfiguration<RoutineDay>
+public sealed class RoutineTemplateConfiguration : IEntityTypeConfiguration<RoutineTemplate>
+{
+    public void Configure(EntityTypeBuilder<RoutineTemplate> builder)
+    {
+        builder.ToTable("routine_templates", "routines");
+
+        builder.Property(t => t.Name).HasMaxLength(RoutineTemplate.MaxNameLength).IsRequired();
+        builder.Property(t => t.Description).HasMaxLength(RoutineTemplate.MaxDescriptionLength);
+        builder.Property(t => t.ScheduleMode).HasMaxLength(16).IsRequired();
+        builder.Property(t => t.Content).HasColumnType("jsonb").IsRequired();
+
+        builder.HasIndex(t => new { t.GymId, t.Name });
+    }
+}
+
+public sealed class RoutineDayConfiguration: IEntityTypeConfiguration<RoutineDay>
 {
     public void Configure(EntityTypeBuilder<RoutineDay> builder)
     {

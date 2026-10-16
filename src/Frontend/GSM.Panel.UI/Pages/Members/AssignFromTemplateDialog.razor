@@ -1,0 +1,93 @@
+@* R11: elegir una plantilla de rutina y asignarla al miembro (copia su contenido; reemplaza la rutina activa). *@
+@inject IRoutineTemplatesClient Templates
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_items.Count == 0)
+        {
+            <MudText Color="Color.Secondary" data-testid="assign-template-empty">
+                El gym todavía no tiene plantillas. Créalas en Entrenamiento → Plantillas de rutina.
+            </MudText>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                La rutina activa del miembro, si la tiene, se desactiva y la reemplaza una copia de la plantilla.
+            </MudAlert>
+            <MudSelect T="Guid?" @bind-Value="_selected" Label="Plantilla" Required="true" data-testid="assign-template-select">
+                @foreach (var item in _items)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)item.Id)">
+                        @item.Name · @item.DayCount @(item.DayCount == 1 ? "día" : "días") · @item.ExerciseCount ejercicios
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        }
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3" data-testid="assign-template-error">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync"
+                   Disabled="_submitting || _selected is null" data-testid="assign-template-submit">
+            @(_submitting ? "Asignando..." : "Asignar rutina")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private List<RoutineTemplateListItem> _items = [];
+    private Guid? _selected;
+    private bool _loading = true;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = (await Templates.ListRoutineTemplatesAsync()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_selected is not { } templateId)
+        {
+            return;
+        }
+
+        _error = null;
+        _submitting = true;
+        try
+        {
+            var routine = await Templates.AssignRoutineTemplateAsync(templateId, MemberId);
+            MudDialog.Close(DialogResult.Ok(routine.Id));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+        }
+    }
+}
