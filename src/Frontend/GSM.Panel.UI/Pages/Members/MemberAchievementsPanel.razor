@@ -52,6 +52,7 @@
                     <MudTh>Logro</MudTh>
                     <MudTh>Fecha</MudTh>
                     <MudTh>Origen</MudTh>
+                    <MudTh>Premio</MudTh>
                     <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -65,6 +66,34 @@
                         else
                         {
                             <span>Automático</span>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Premio">
+                        @if (!string.IsNullOrWhiteSpace(context.RewardDescription))
+                        {
+                            <span data-testid="@($"reward-{context.AchievementId}")">
+                                @context.RewardDescription ·
+                                @switch (context.RewardStatus)
+                                {
+                                    case "Pending":
+                                        <span>Pendiente@(context.RewardExpiresAt is { } exp ? $" · vence el {exp:d MMM yyyy}" : string.Empty)</span>
+                                        break;
+                                    case "Delivered":
+                                        <span>Entregado@(context.RewardDeliveredAt is { } at ? $" el {at:d MMM yyyy}" : string.Empty)</span>
+                                        break;
+                                    case "Expired":
+                                        <span>Vencido</span>
+                                        break;
+                                }
+                            </span>
+                            @if (context.RewardStatus == "Pending")
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                           data-testid="@($"deliver-{context.AchievementId}")"
+                                           Disabled="_saving" OnClick="@(() => DeliverAsync(context.AchievementId))">
+                                    Marcar entregado
+                                </MudButton>
+                            }
                         }
                     </MudTd>
                     <MudTd>
@@ -152,6 +181,25 @@
             Snackbar.Add("Logro otorgado. El miembro recibe un aviso.", Severity.Success);
             _selected = null;
             _reason = null;
+            await LoadAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeliverAsync(Guid achievementId)
+    {
+        _saving = true;
+        try
+        {
+            await Achievements.DeliverRewardAsync(achievementId, MemberId);
+            Snackbar.Add("Premio marcado como entregado.", Severity.Success);
             await LoadAsync();
         }
         catch (GsmApiException ex)

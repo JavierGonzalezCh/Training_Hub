@@ -20,12 +20,23 @@ else
         <HeaderContent>
             <MudTh>Nombre</MudTh>
             <MudTh>Condición</MudTh>
+            <MudTh>Premio</MudTh>
             <MudTh>Estado</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Nombre">@context.Name</MudTd>
             <MudTd DataLabel="Condición">@AchievementConditionLabels.Label(context.ConditionType)@(context.ConditionType == "Manual" ? "" : $" · {context.ConditionValue}")</MudTd>
+            <MudTd DataLabel="Premio">
+                @if (!string.IsNullOrWhiteSpace(context.RewardDescription))
+                {
+                    <span data-testid="@($"reward-text-{context.Id}")">@context.RewardDescription@(context.RewardValidDays is { } days ? $" · {days} días" : string.Empty)</span>
+                }
+                else
+                {
+                    <span>—</span>
+                }
+            </MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Color="@(context.IsActive ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
                     @(context.IsActive ? "ACTIVO" : "INACTIVO")
@@ -42,6 +53,8 @@ else
         </RowTemplate>
     </MudTable>
 }
+
+<RewardsOverviewPanel />
 
 @code {
     private List<AchievementResponse> _achievements = [];

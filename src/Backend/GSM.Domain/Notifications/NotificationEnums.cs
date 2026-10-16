@@ -52,6 +52,12 @@ public enum NotificationType
 
     /// <summary>E4: al miembro que reportó, su reporte se resolvió ("ya funciona, gracias por avisar"). Referencia: el reporte.</summary>
     EquipmentIssueResolved,
+
+    /// <summary>
+    /// L5: el premio de un logro vence en 3 días ("reclámalo en recepción"). Programado a las 8:00 al ganar el logro
+    /// y cancelable si el premio se entrega o el logro se retira. Referencia: el desbloqueo (<c>member_achievements</c>).
+    /// </summary>
+    RewardExpiring,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

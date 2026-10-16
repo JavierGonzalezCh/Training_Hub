@@ -1,3 +1,4 @@
+using GSM.Application.Achievements.Public;
 using GSM.Application.Attendance.Abstractions;
 using GSM.Application.Attendance.Contracts;
 using GSM.Application.Common.Abstractions;
@@ -21,7 +22,8 @@ public sealed class GetReceptionCardHandler(
     IMembershipReader memberships,
     IGymReader gyms,
     IAttendanceRepository attendance,
-    IMemberEntryRuleRepository entryRules)
+    IMemberEntryRuleRepository entryRules,
+    IAchievementReader achievements)
 {
     public async Task<ReceptionCardResponse> HandleAsync(Guid memberId, CancellationToken cancellationToken)
     {
@@ -35,6 +37,8 @@ public sealed class GetReceptionCardHandler(
         var allowance = EntryAllowance.Evaluate(entriesToday, rule, clock.Today, clock.UtcNow);
         var open = await gyms.GetOpenStatusAsync(gymId, clock.UtcNow, cancellationToken);
         var missingWaiver = !await members.HasLiabilityWaiverAsync(memberId, cancellationToken);
+
+        var rewards = await achievements.GetPendingRewardsAsync(memberId, cancellationToken);
 
         var active = member.Status == MemberStatus.Active;
         var closedMessage = open.IsOpen
@@ -95,6 +99,9 @@ public sealed class GetReceptionCardHandler(
             NextEntryAt: allowance.NextEntryAt,
             BirthdayToday: await members.IsBirthdayAsync(memberId, clock.Today, cancellationToken),
             EntriesLeft: access.EntriesLeft,
-            EntriesTotal: access.EntriesTotal);
+            EntriesTotal: access.EntriesTotal,
+            PendingRewards: rewards
+                .Select(r => new ReceptionRewardResponse(r.AchievementId, r.AchievementName, r.RewardDescription, r.ExpiresAt))
+                .ToList());
     }
 }

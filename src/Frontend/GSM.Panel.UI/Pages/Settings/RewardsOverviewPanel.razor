@@ -1,0 +1,105 @@
+@* Premios del gym (Achievements L5): el Owner ve cuántos hay pendientes, entregados y vencidos. Se carga al pedirlo. *@
+@inject IAchievementsClient Achievements
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4 mt-6" Elevation="0" Style="border:1px solid var(--gsm-border)">
+    <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">Premios</MudText>
+        <MudSpacer />
+        @if (_overview is null)
+        {
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="LoadAsync" Disabled="_loading" data-testid="rewards-load">
+                Ver premios
+            </MudButton>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_overview is { } overview)
+    {
+        <div class="d-flex flex-wrap mt-2" style="gap:1rem" data-testid="rewards-summary">
+            <span>Pendientes: <strong data-testid="rewards-pending">@overview.Pending</strong></span>
+            <span>Entregados: <strong data-testid="rewards-delivered">@overview.Delivered</strong></span>
+            <span>Vencidos: <strong data-testid="rewards-expired">@overview.Expired</strong></span>
+        </div>
+        <div class="d-flex flex-wrap mt-2" style="gap:0.5rem">
+            @foreach (var (value, label) in Filters)
+            {
+                <MudButton Size="Size.Small" Variant="@(_status == value ? Variant.Filled : Variant.Text)"
+                           data-testid="@($"rewards-filter-{(value ?? "all")}")"
+                           OnClick="@(() => FilterAsync(value))">@label</MudButton>
+            }
+        </div>
+        @if (overview.Items.Count == 0)
+        {
+            <MudText Color="Color.Secondary" Class="mt-2" data-testid="rewards-empty">No hay premios en este estado.</MudText>
+        }
+        else
+        {
+            <MudTable Items="overview.Items" Dense="true" Elevation="0" Hover="true" Class="mt-2">
+                <HeaderContent>
+                    <MudTh>Miembro</MudTh>
+                    <MudTh>Logro</MudTh>
+                    <MudTh>Premio</MudTh>
+                    <MudTh>Estado</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Miembro">@context.MemberName</MudTd>
+                    <MudTd DataLabel="Logro">@context.AchievementName</MudTd>
+                    <MudTd DataLabel="Premio">@context.RewardDescription</MudTd>
+                    <MudTd DataLabel="Estado">
+                        @switch (context.Status)
+                        {
+                            case "Delivered":
+                                <span>Entregado@(context.DeliveredAt is { } at ? $" el {at:d MMM yyyy}" : string.Empty)</span>
+                                break;
+                            case "Expired":
+                                <span>Vencido@(context.ExpiresAt is { } lost ? $" el {lost:d MMM yyyy}" : string.Empty)</span>
+                                break;
+                            default:
+                                <span>Pendiente@(context.ExpiresAt is { } exp ? $" · vence el {exp:d MMM yyyy}" : string.Empty)</span>
+                                break;
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    }
+</MudPaper>
+
+@code {
+    private static readonly (string? Value, string Label)[] Filters =
+    [
+        (null, "Todos"), ("pending", "Pendientes"), ("delivered", "Entregados"), ("expired", "Vencidos"),
+    ];
+
+    private RewardsOverviewResponse? _overview;
+    private string? _status;
+    private bool _loading;
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _overview = await Achievements.ListRewardsAsync(_status);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task FilterAsync(string? status)
+    {
+        _status = status;
+        await LoadAsync();
+    }
+}

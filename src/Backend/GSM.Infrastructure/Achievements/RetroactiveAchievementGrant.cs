@@ -51,7 +51,8 @@ public sealed class RetroactiveAchievementGrant(
 
         var now = clock.UtcNow;
         var rows = eligible
-            .Select(memberId => MemberAchievement.Unlock(achievement.GymId, memberId, achievement.Id, now))
+            .Select(memberId => MemberAchievement.Unlock(
+                achievement.GymId, memberId, achievement.Id, now, achievement.RewardDescription, achievement.RewardValidDays))
             .ToList();
         foreach (var row in rows)
         {

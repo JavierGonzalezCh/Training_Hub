@@ -1,0 +1,58 @@
+@* Premios por reclamar en la tarjeta de recepción (Achievements L5): se entregan desde aquí. *@
+@inject IAchievementsClient Achievements
+@inject ISnackbar Snackbar
+
+<MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.CardGiftcard" Dense="true" Class="mt-3" role="status" id="pending-rewards">
+    <MudText Typo="Typo.body2">Tiene @(_rewards.Count == 1 ? "un premio" : $"{_rewards.Count} premios") por reclamar</MudText>
+    @foreach (var reward in _rewards)
+    {
+        <div class="d-flex flex-wrap align-center mt-2" style="gap:0.5rem" data-testid="@($"reward-{reward.AchievementId}")">
+            <span>
+                <strong>@reward.RewardDescription</strong>
+                <span class="mud-typography-caption"> · @reward.AchievementName@(reward.ExpiresAt is { } exp ? $" · vence el {exp:d MMM yyyy}" : string.Empty)</span>
+            </span>
+            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                       data-testid="@($"deliver-{reward.AchievementId}")"
+                       Disabled="_busy" OnClick="@(() => DeliverAsync(reward))">
+                Marcar entregado
+            </MudButton>
+        </div>
+    }
+</MudAlert>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    [Parameter, EditorRequired]
+    public ICollection<ReceptionRewardResponse> Rewards { get; set; } = [];
+
+    /// <summary>Se dispara cuando se entregó un premio, para que la tarjeta se recargue.</summary>
+    [Parameter]
+    public EventCallback OnDelivered { get; set; }
+
+    private List<ReceptionRewardResponse> _rewards = [];
+    private bool _busy;
+
+    protected override void OnParametersSet() => _rewards = Rewards.ToList();
+
+    private async Task DeliverAsync(ReceptionRewardResponse reward)
+    {
+        _busy = true;
+        try
+        {
+            await Achievements.DeliverRewardAsync(reward.AchievementId, MemberId);
+            Snackbar.Add($"Premio entregado: {reward.RewardDescription}.", Severity.Success);
+            _rewards.Remove(reward);
+            await OnDelivered.InvokeAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

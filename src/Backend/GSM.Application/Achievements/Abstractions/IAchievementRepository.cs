@@ -2,6 +2,10 @@ using GSM.Domain.Achievements;
 
 namespace GSM.Application.Achievements.Abstractions;
 
+public sealed record RewardOverview(int Pending, int Delivered, int Expired, IReadOnlyList<RewardOverviewRow> Rows);
+
+public sealed record RewardOverviewRow(MemberAchievement Row, string AchievementName);
+
 public interface IAchievementRepository
 {
     Task<Achievement?> GetByIdAsync(Guid achievementId, CancellationToken cancellationToken = default);
@@ -30,6 +34,14 @@ public interface IAchievementRepository
     /// <summary>La fila de desbloqueo del miembro para ese logro (incluida una retirada). Nulo si nunca lo tuvo.</summary>
     Task<MemberAchievement?> GetUnlockAsync(
         Guid memberId, Guid achievementId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Totales y filas de premios del gym (L5, vista del Owner). <paramref name="filter"/> acepta Pending,
+    /// Delivered o Expired (el vencido se calcula contra <paramref name="now"/>); nulo trae los tres. Los logros
+    /// retirados sin entregar no cuentan: su premio ya no se puede reclamar.
+    /// </summary>
+    Task<RewardOverview> GetRewardOverviewAsync(
+        RewardStatus? filter, DateTimeOffset now, int take, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<StreakFreeze>> ListStreakFreezesAsync(
         Guid memberId, CancellationToken cancellationToken = default);

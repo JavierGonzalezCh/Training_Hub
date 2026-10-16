@@ -97,6 +97,29 @@ public sealed class AchievementsController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Entrega el premio de un logro ganado por el miembro (L5). 409 si ya se entregó, venció o no hay premio.</summary>
+    [HttpPost("{id:guid}/deliver-reward/{memberId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
+    [EndpointName("DeliverReward")]
+    [ProducesResponseType<RewardDeliveredResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RewardDeliveredResponse>> DeliverReward(
+        Guid id,
+        Guid memberId,
+        [FromServices] DeliverRewardHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, memberId, cancellationToken));
+
+    /// <summary>Premios del gym con totales por estado (L5). Solo el Owner. <c>status</c>: pending, delivered o expired.</summary>
+    [HttpGet("rewards")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [EndpointName("ListRewards")]
+    [ProducesResponseType<RewardsOverviewResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RewardsOverviewResponse>> ListRewards(
+        [FromQuery] string? status,
+        [FromServices] ListRewardsHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(status, cancellationToken));
+
     [HttpGet("member/{memberId:guid}")]
     [ProducesResponseType<IReadOnlyList<MemberAchievementItem>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<MemberAchievementItem>>> ForMember(

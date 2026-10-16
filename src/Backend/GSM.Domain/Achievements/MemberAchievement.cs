@@ -36,39 +36,65 @@ public sealed class MemberAchievement : BaseEntity, ITenantEntity
 
     public bool IsRevoked => RevokedAt is not null;
 
+    /// <summary>Estado guardado del premio (<c>none</c>, <c>pending</c> o <c>delivered</c>); el vencido se calcula con <see cref="EffectiveRewardStatus"/>.</summary>
+    public RewardStatus RewardStatus { get; private set; } = RewardStatus.None;
+
+    /// <summary>Texto del premio al ganar el logro (copia: editar el logro después no cambia lo prometido).</summary>
+    public string? RewardDescription { get; private set; }
+
+    /// <summary>Hasta cuándo se puede reclamar. Nulo = no vence.</summary>
+    public DateTimeOffset? RewardExpiresAt { get; private set; }
+
+    public DateTimeOffset? RewardDeliveredAt { get; private set; }
+
+    /// <summary>Cuenta del staff que entregó el premio.</summary>
+    public Guid? RewardDeliveredBy { get; private set; }
+
     public static MemberAchievement Unlock(
-        Guid gymId, Guid memberId, Guid achievementId, DateTimeOffset unlockedAt)
+        Guid gymId, Guid memberId, Guid achievementId, DateTimeOffset unlockedAt,
+        string? rewardDescription = null, int? rewardValidDays = null)
     {
         if (gymId == Guid.Empty || memberId == Guid.Empty || achievementId == Guid.Empty)
         {
             throw new ValidationDomainException("Datos de desbloqueo incompletos.");
         }
 
-        return new MemberAchievement
+        var row = new MemberAchievement
         {
             GymId = gymId,
             MemberId = memberId,
             AchievementId = achievementId,
             UnlockedAt = unlockedAt,
         };
+        row.IssueReward(rewardDescription, rewardValidDays, unlockedAt);
+        return row;
     }
 
     /// <summary>Otorgamiento manual del staff (L4): el motivo es obligatorio.</summary>
     public static MemberAchievement GrantManual(
-        Guid gymId, Guid memberId, Guid achievementId, Guid grantedBy, string reason, DateTimeOffset at)
+        Guid gymId, Guid memberId, Guid achievementId, Guid grantedBy, string reason, DateTimeOffset at,
+        string? rewardDescription = null, int? rewardValidDays = null)
     {
-        var row = Unlock(gymId, memberId, achievementId, at);
+        var row = Unlock(gymId, memberId, achievementId, at, rewardDescription, rewardValidDays);
         row.GrantedBy = RequireUser(grantedBy);
         row.GrantReason = RequireReason(reason);
         return row;
     }
 
     /// <summary>Vuelve a otorgar un logro manual que se había retirado: reabre la misma fila.</summary>
-    public void RegrantManual(Guid grantedBy, string reason, DateTimeOffset at)
+    public void RegrantManual(
+        Guid grantedBy, string reason, DateTimeOffset at,
+        string? rewardDescription = null, int? rewardValidDays = null)
     {
         if (!IsRevoked)
         {
             throw new ConflictException("El miembro ya tiene este logro.");
+        }
+
+        // Un premio ya entregado no se entrega dos veces; uno pendiente o vencido se vuelve a emitir con el plazo de hoy.
+        if (RewardStatus != RewardStatus.Delivered)
+        {
+            IssueReward(rewardDescription, rewardValidDays, at);
         }
 
         GrantedBy = RequireUser(grantedBy);
@@ -95,6 +121,59 @@ public sealed class MemberAchievement : BaseEntity, ITenantEntity
         RevokedBy = RequireUser(revokedBy);
         RevokeReason = RequireReason(reason);
         RevokedAt = at;
+    }
+
+    /// <summary>
+    /// Estado del premio a la hora <paramref name="now"/> (L5). Un logro retirado no tiene premio que entregar.
+    /// Pendiente con el plazo vencido es <see cref="RewardStatus.Expired"/>: se calcula, no se persiste.
+    /// </summary>
+    public RewardStatus EffectiveRewardStatus(DateTimeOffset now)
+    {
+        if (RewardStatus == RewardStatus.Delivered)
+        {
+            return RewardStatus.Delivered;
+        }
+
+        if (RewardStatus == RewardStatus.None || IsRevoked)
+        {
+            return RewardStatus.None;
+        }
+
+        return RewardExpiresAt is { } expires && now >= expires ? RewardStatus.Expired : RewardStatus.Pending;
+    }
+
+    /// <summary>Recepción entrega el premio (L5). 409 si no hay premio, ya se entregó, venció o el logro fue retirado.</summary>
+    public void DeliverReward(Guid deliveredBy, DateTimeOffset now)
+    {
+        if (deliveredBy == Guid.Empty)
+        {
+            throw new ValidationDomainException("Falta quién entrega el premio.");
+        }
+
+        switch (EffectiveRewardStatus(now))
+        {
+            case RewardStatus.Pending:
+                RewardStatus = RewardStatus.Delivered;
+                RewardDeliveredAt = now;
+                RewardDeliveredBy = deliveredBy;
+                break;
+            case RewardStatus.Delivered:
+                throw new ConflictException("El premio ya fue entregado.");
+            case RewardStatus.Expired:
+                throw new ConflictException("El premio venció y ya no se puede entregar.");
+            default:
+                throw new ConflictException("Este logro no tiene un premio pendiente.");
+        }
+    }
+
+    private void IssueReward(string? description, int? validDays, DateTimeOffset at)
+    {
+        var text = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        RewardDescription = text;
+        RewardStatus = text is null ? RewardStatus.None : RewardStatus.Pending;
+        RewardExpiresAt = text is null || validDays is null ? null : at.AddDays(validDays.Value);
+        RewardDeliveredAt = null;
+        RewardDeliveredBy = null;
     }
 
     private static Guid RequireUser(Guid userId)
