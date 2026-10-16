@@ -1,4 +1,6 @@
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Events;
+using GSM.Application.SuperAdmin.Events;
 using GSM.Application.Gyms.Public;
 using GSM.Application.SuperAdmin.Abstractions;
 using GSM.Application.SuperAdmin.Contracts;
@@ -20,6 +22,7 @@ public sealed class RegisterSubscriptionPaymentHandler(
     ISubscriptionPaymentRepository payments,
     SubscriptionDetailBuilder detailBuilder,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<RegisterSubscriptionPaymentHandler> logger)
 {
     public async Task<RegisterSubscriptionPaymentResponse> HandleAsync(
@@ -56,6 +59,13 @@ public sealed class RegisterSubscriptionPaymentHandler(
         logger.LogInformation(
             "Pago SaaS {PaymentId} del gym {GymId} por {Amount} ({Method}); cobertura hasta {CoversThrough}",
             payment.Id, gymId, payment.Amount, payment.Method, coversThrough);
+
+        // S3: "Recibimos tu pago; tu suscripción va hasta…". Después del commit; la referencia es el pago.
+        await events.PublishAsync(
+            new SubscriptionNoticeDue(
+                gymId, SubscriptionNoticeKind.PaymentRegistered, payment.Id, subscription.PaidThrough, null,
+                payment.Amount, null, null),
+            cancellationToken);
 
         return new RegisterSubscriptionPaymentResponse(
             SubscriptionMapper.ToItem(payment),

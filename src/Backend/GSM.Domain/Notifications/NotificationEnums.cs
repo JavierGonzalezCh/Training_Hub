@@ -64,6 +64,44 @@ public enum NotificationType
     /// y cancelable si el premio se entrega o el logro se retira. Referencia: el desbloqueo (<c>member_achievements</c>).
     /// </summary>
     RewardExpiring,
+
+    // ---- S3: suscripción del gym al SaaS, aviso a los Owners (SuperAdmin §V3). Informativos, a cada Owner. ----
+
+    /// <summary>S3: la prueba termina en 3 días o menos. Referencia: el fin de la prueba del gym.</summary>
+    SubscriptionTrialEnding,
+
+    /// <summary>S3: la prueba terminó; quedan días para confirmar el pago. Referencia: el fin de la prueba del gym.</summary>
+    SubscriptionTrialEnded,
+
+    /// <summary>S3: la suscripción vence en 5 días o menos. Referencia: el último día cubierto.</summary>
+    SubscriptionExpiring,
+
+    /// <summary>S3: hoy es el último día cubierto. Referencia: el último día cubierto.</summary>
+    SubscriptionExpiresToday,
+
+    /// <summary>S3: venció y el gym está en mora. Referencia: el último día cubierto.</summary>
+    SubscriptionOverdue,
+
+    /// <summary>S3: faltan 3 días o menos para que el gym se inhabilite. Referencia: el último día cubierto.</summary>
+    SubscriptionDisableSoon,
+
+    /// <summary>S3: el gym quedó inhabilitado (solo consulta). Urgente. Referencia: el último día cubierto.</summary>
+    SubscriptionDisabled,
+
+    /// <summary>S3: el SuperAdmin suspendió el gym. Urgente. Referencia: el hecho (id propio del evento).</summary>
+    SubscriptionSuspended,
+
+    /// <summary>S3: el SuperAdmin reactivó el gym. Referencia: el hecho (id propio del evento).</summary>
+    SubscriptionReactivated,
+
+    /// <summary>S3: se registró un pago de la suscripción. Referencia: el pago.</summary>
+    SubscriptionPaymentRegistered,
+
+    /// <summary>S3: el gym llegó al 90 % de su límite de miembros. Referencia: gym + límite vigente.</summary>
+    MemberLimitNear,
+
+    /// <summary>S3: el gym llegó a su límite de miembros. Referencia: gym + límite vigente.</summary>
+    MemberLimitReached,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

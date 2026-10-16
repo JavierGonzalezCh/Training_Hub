@@ -35,6 +35,7 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
         [FromServices] RunCommunicationsJobHandler handler,
         [FromServices] PurgeNotificationsHandler purge,
         [FromServices] RunMonthlyMetricsHandler monthlyMetrics,
+        [FromServices] RunSubscriptionNoticesHandler subscriptionNotices,
         [FromServices] RunWaitlistJobHandler waitlistJob,
         [FromServices] LoggedJobRunner runner,
         CancellationToken cancellationToken)
@@ -59,6 +60,13 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
             "waitlist",
             () => waitlistJob.HandleAsync(cancellationToken),
             r => (r.OffersMade + r.OffersExpired, 0));
+
+        // S3: avisos de la suscripcion a los Owners (prueba, vencimiento, mora, limite de miembros). Publica eventos
+        // idempotentes por hito; Notifications crea los avisos una sola vez.
+        await runner.RunAsync(
+            "subscription_notices",
+            () => subscriptionNotices.HandleAsync(cancellationToken),
+            published => (published, 0));
 
         // Foto mensual del SaaS: solo hace algo en la primera ejecucion de cada mes (idempotente por mes).
         await runner.RunAsync(
