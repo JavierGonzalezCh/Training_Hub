@@ -152,7 +152,7 @@
         try
         {
             var plans = await Plans.MembershipPlansAllAsync(includeInactive: false);
-            _plans = plans.ToList();
+            _plans = plans.Where(p => !PlanDurationLabels.IsGroup(p.Seats)).ToList();
             if (_plans.Count > 0)
             {
                 // Se propone el plan que el miembro ya tenía (la última membresía que no se canceló).

@@ -13,6 +13,8 @@ public static class MembershipsModuleRegistration
 
         services.AddScoped<RenewalResolver>();
         services.AddScoped<PlanChangeResolver>();
+        services.AddScoped<MemberLimitGuard>();
+        services.AddScoped<GroupMembershipService>();
 
         return services;
     }

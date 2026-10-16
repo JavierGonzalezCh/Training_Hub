@@ -75,6 +75,9 @@ else if (_member is not null)
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CardMembership" OnClick="AssignMembershipAsync">
                 Asignar membresía
             </MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Groups" OnClick="AssignGroupMembershipAsync" data-testid="assign-group">
+                Plan de grupo
+            </MudButton>
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
                 Registrar pago
             </MudButton>
@@ -207,6 +210,12 @@ else if (_member is not null)
                                     Tiquetera: @PlanDurationLabels.Balance(context.EntriesLeft ?? 0, passTotal)
                                 </MudText>
                             }
+                            @if (context.GroupId is not null)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block" data-testid="group-role">
+                                    Plan de grupo · @(context.IsGroupHolder ? "titular" : "beneficiario")
+                                </MudText>
+                            }
                             @if (context.CancellationReason is { } cancelReason)
                             {
                                 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@cancelReason</MudText>
@@ -232,6 +241,10 @@ else if (_member is not null)
                             {
                                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true"
                                          AriaLabel="@($"Acciones de la membresía {context.PlanName}")">
+                                    @if (context.GroupId is { } groupId)
+                                    {
+                                        <MudMenuItem OnClick="@(() => OpenGroupAsync(groupId))">Ver grupo</MudMenuItem>
+                                    }
                                     @if (context.Status == "Active")
                                     {
                                         <MudMenuItem OnClick="@(() => FreezeMembershipAsync(context))">Congelar</MudMenuItem>
@@ -244,7 +257,7 @@ else if (_member is not null)
                                     {
                                         <MudMenuItem OnClick="@(() => ResumeMembershipAsync(context))">Reanudar</MudMenuItem>
                                     }
-                                    @if ((context.Status == "Active" || context.Status == "Paused") && context.StartDate <= DateOnly.FromDateTime(DateTime.Today))
+                                    @if ((context.Status == "Active" || context.Status == "Paused") && context.GroupId is null && context.StartDate <= DateOnly.FromDateTime(DateTime.Today))
                                     {
                                         <MudMenuItem OnClick="@(() => ChangePlanAsync(context))">Cambiar plan</MudMenuItem>
                                     }
@@ -543,6 +556,38 @@ else if (_member is not null)
             }
 
             await LoadAsync();
+        }
+    }
+
+    // MS7: el miembro de la ficha es el titular del grupo. Se muestra el mismo resultado que al asignar una individual.
+    private async Task AssignGroupMembershipAsync()
+    {
+        var parameters = new DialogParameters<AssignGroupMembershipDialog> { { x => x.MemberId, Id } };
+        var dialog = await Dialogs.ShowAsync<AssignGroupMembershipDialog>("Asignar plan de grupo", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: AssignMembershipDialog.AssignMembershipResult outcome })
+        {
+            if (outcome.Cancelled)
+            {
+                Snackbar.Add("Grupo cancelado: el cobro no se registró.", Severity.Warning);
+            }
+            else
+            {
+                Snackbar.Add(outcome.Charged ? "Plan de grupo asignado y cobrado." : "Plan de grupo asignado sin cobro (total en cero).", Severity.Success);
+            }
+
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenGroupAsync(Guid groupId)
+    {
+        var parameters = new DialogParameters<MembershipGroupDialog> { { x => x.GroupId, groupId } };
+        var dialog = await Dialogs.ShowAsync<MembershipGroupDialog>("Plan de grupo", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await RefreshMembershipsAsync();
         }
     }
 

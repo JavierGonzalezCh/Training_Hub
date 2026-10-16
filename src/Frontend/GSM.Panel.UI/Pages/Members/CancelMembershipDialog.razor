@@ -8,6 +8,18 @@
             «@Membership.PlanName» (@GsmFormat.DayRange(Membership.StartDate, Membership.EndDate)) dejará de dar acceso.
             Queda en el historial como cancelada.
         </MudText>
+        @if (Membership.IsGroupHolder)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" id="cancel-group-warning">
+                Es el titular de un plan de grupo: se cancelan también las membresías de todos los beneficiarios.
+            </MudAlert>
+        }
+        else if (Membership.GroupId is not null)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" id="cancel-group-member-note">
+                Pertenece a un plan de grupo: solo se cancela la suya (sale del grupo y libera su cupo).
+            </MudAlert>
+        }
         @if (_loadingPayments)
         {
             <MudProgressLinear Indeterminate="true" Class="mb-3" />

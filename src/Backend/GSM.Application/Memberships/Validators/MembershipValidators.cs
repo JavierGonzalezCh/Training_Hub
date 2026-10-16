@@ -7,6 +7,7 @@ public sealed class CreatePlanRequestValidator : AbstractValidator<CreatePlanReq
 {
     public CreatePlanRequestValidator()
     {
+        RuleFor(x => x.Seats!.Value).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxSeats).When(x => x.Seats.HasValue);
         RuleFor(x => x.Name).NotEmpty().Length(2, 100);
         RuleFor(x => x.Description).MaximumLength(500);
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
@@ -30,6 +31,7 @@ public sealed class UpdatePlanRequestValidator : AbstractValidator<UpdatePlanReq
 {
     public UpdatePlanRequestValidator()
     {
+        RuleFor(x => x.Seats!.Value).InclusiveBetween(1, GSM.Domain.Memberships.MembershipPlan.MaxSeats).When(x => x.Seats.HasValue);
         RuleFor(x => x.Name).NotEmpty().Length(2, 100);
         RuleFor(x => x.Description).MaximumLength(500);
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
@@ -59,6 +61,40 @@ public sealed class AssignMembershipRequestValidator : AbstractValidator<AssignM
         RuleFor(x => x.DiscountReason).MaximumLength(500);
         RuleFor(x => x.EnrollmentWaivedReason).MaximumLength(500);
     }
+}
+
+public sealed class AssignGroupMembershipRequestValidator : AbstractValidator<AssignGroupMembershipRequest>
+{
+    public AssignGroupMembershipRequestValidator()
+    {
+        RuleFor(x => x.HolderMemberId).NotEmpty();
+        RuleFor(x => x.PlanId).NotEmpty();
+        RuleFor(x => x.BeneficiaryMemberIds).NotNull();
+        RuleFor(x => x.BeneficiaryMemberIds.Count).LessThanOrEqualTo(GSM.Domain.Memberships.MembershipPlan.MaxSeats)
+            .When(x => x.BeneficiaryMemberIds is not null);
+        RuleForEach(x => x.BeneficiaryMemberIds).NotEmpty();
+        RuleFor(x => x.StartDateReason).MaximumLength(500);
+        RuleFor(x => x.AgreedPrice).GreaterThanOrEqualTo(0).When(x => x.AgreedPrice.HasValue);
+        RuleFor(x => x.DiscountReason).MaximumLength(500);
+        RuleFor(x => x.EnrollmentWaivedReason).MaximumLength(500);
+    }
+}
+
+public sealed class RenewGroupMembershipRequestValidator : AbstractValidator<RenewGroupMembershipRequest>
+{
+    public RenewGroupMembershipRequestValidator()
+    {
+        RuleFor(x => x.PlanId!.Value).NotEmpty().When(x => x.PlanId.HasValue);
+        RuleForEach(x => x.BeneficiaryMemberIds).NotEmpty().When(x => x.BeneficiaryMemberIds is not null);
+        RuleFor(x => x.StartDateReason).MaximumLength(500);
+        RuleFor(x => x.AgreedPrice).GreaterThanOrEqualTo(0).When(x => x.AgreedPrice.HasValue);
+        RuleFor(x => x.DiscountReason).MaximumLength(500);
+    }
+}
+
+public sealed class AddGroupBeneficiaryRequestValidator : AbstractValidator<AddGroupBeneficiaryRequest>
+{
+    public AddGroupBeneficiaryRequestValidator() => RuleFor(x => x.MemberId).NotEmpty();
 }
 
 public sealed class UpdateMembershipSettingsRequestValidator : AbstractValidator<UpdateMembershipSettingsRequest>

@@ -8,8 +8,21 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
 {
     public void Configure(EntityTypeBuilder<Membership> builder)
     {
-        builder.ToTable("memberships", "memberships", t => t.HasCheckConstraint(
-            "ck_memberships_credit_applied", "credit_applied >= 0 AND credit_applied <= agreed_price + enrollment_fee"));
+        builder.ToTable("memberships", "memberships", t =>
+        {
+            t.HasCheckConstraint(
+                "ck_memberships_credit_applied", "credit_applied >= 0 AND credit_applied <= agreed_price + enrollment_fee");
+            t.HasCheckConstraint("ck_memberships_group_holder", "NOT is_group_holder OR group_id IS NOT NULL");
+        });
+
+        // MS7: planes de grupo. Cada persona del grupo tiene su membresía con el mismo group_id; el titular lleva el precio.
+        builder.Property(m => m.GroupId).HasColumnName("group_id");
+        builder.Property(m => m.IsGroupHolder).HasColumnName("is_group_holder").HasDefaultValue(false);
+        builder.HasIndex(m => m.GroupId);
+        builder.HasOne<MembershipGroup>()
+            .WithMany()
+            .HasForeignKey(m => m.GroupId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(m => m.Status).HasColumnName("status");
         builder.Property(m => m.CancellationReason).HasMaxLength(500);

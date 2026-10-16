@@ -76,6 +76,15 @@ public sealed class Membership : BaseEntity, ITenantEntity
     /// <summary>Membresía que esta reemplazó en un cambio de plan (quedó cancelada con el motivo "Cambio de plan").</summary>
     public Guid? ReplacesMembershipId { get; private set; }
 
+    /// <summary>
+    /// Grupo al que pertenece (MS7, §9): plan familiar, de pareja o corporativo. Todas las membresías del grupo
+    /// comparten fechas y ciclo; se renuevan, congelan y cancelan juntas. Nulo en una membresía individual.
+    /// </summary>
+    public Guid? GroupId { get; private set; }
+
+    /// <summary>Es la membresía del titular del grupo (la que paga: lleva el precio acordado del grupo).</summary>
+    public bool IsGroupHolder { get; private set; }
+
     /// <summary>Total que se cobra al asignarla: precio acordado + matrícula − crédito de un cambio de plan.</summary>
     public decimal TotalToCharge => AgreedPrice + EnrollmentFee - CreditApplied;
 
@@ -84,8 +93,14 @@ public sealed class Membership : BaseEntity, ITenantEntity
         RenewalKind renewalKind = RenewalKind.New, string? startOverrideReason = null,
         MembershipPricing? pricing = null, DurationUnit durationUnit = DurationUnit.Days,
         int? inheritedCycleDay = null, int? entriesTotal = null,
-        decimal creditApplied = 0m, string? creditAdjustmentReason = null, Guid? replacesMembershipId = null)
+        decimal creditApplied = 0m, string? creditAdjustmentReason = null, Guid? replacesMembershipId = null,
+        Guid? groupId = null, bool isGroupHolder = false)
     {
+        if (isGroupHolder && groupId is null)
+        {
+            throw new ValidationDomainException("El titular de un grupo necesita el grupo.");
+        }
+
         if (gymId == Guid.Empty || memberId == Guid.Empty || planId == Guid.Empty)
         {
             throw new ValidationDomainException("Datos de membresía incompletos.");
@@ -129,6 +144,44 @@ public sealed class Membership : BaseEntity, ITenantEntity
             CreditApplied = decimal.Round(creditApplied, 2),
             CreditAdjustmentReason = string.IsNullOrWhiteSpace(creditAdjustmentReason) ? null : creditAdjustmentReason.Trim(),
             ReplacesMembershipId = replacesMembershipId,
+            GroupId = groupId,
+            IsGroupHolder = isGroupHolder,
+        };
+    }
+
+    /// <summary>
+    /// Membresía de un beneficiario de un plan de grupo (MS7, §9): mismas fechas y ciclo que la del titular, precio 0
+    /// (el grupo lo paga el titular, en su membresía), sin matrícula ni crédito. Las fechas se reciben ya resueltas: un
+    /// beneficiario que entra a mitad de camino hereda el fin actual del grupo, no una duración nueva.
+    /// </summary>
+    public static Membership CreateGroupBeneficiary(
+        Guid gymId, Guid memberId, Guid planId, Guid groupId, DateOnly startDate, DateOnly endDate,
+        int? cycleDay, RenewalKind renewalKind)
+    {
+        if (gymId == Guid.Empty || memberId == Guid.Empty || planId == Guid.Empty || groupId == Guid.Empty)
+        {
+            throw new ValidationDomainException("Datos de membresía incompletos.");
+        }
+
+        if (endDate < startDate)
+        {
+            throw new ValidationDomainException("El fin de la membresía no puede ser anterior a su inicio.");
+        }
+
+        return new Membership
+        {
+            GymId = gymId,
+            MemberId = memberId,
+            PlanId = planId,
+            StartDate = startDate,
+            EndDate = endDate,
+            CycleDay = cycleDay,
+            Status = MembershipStatus.Active,
+            RenewalKind = renewalKind,
+            AgreedPrice = 0m,
+            EnrollmentFee = 0m,
+            GroupId = groupId,
+            IsGroupHolder = false,
         };
     }
 

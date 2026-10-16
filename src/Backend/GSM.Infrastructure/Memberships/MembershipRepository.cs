@@ -154,6 +154,26 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
 
     public void Remove(PassUsage usage) => PassUsages.Remove(usage);
 
+    public Task<MembershipGroup?> GetGroupByIdAsync(Guid groupId, CancellationToken cancellationToken = default)
+        => dbContext.Set<MembershipGroup>().FirstOrDefaultAsync(g => g.Id == groupId, cancellationToken);
+
+    public async Task<IReadOnlyList<Membership>> GetByGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
+        => await Memberships
+            .Where(m => m.GroupId == groupId)
+            .OrderByDescending(m => m.IsGroupHolder)
+            .ThenBy(m => m.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Membership>> GetActiveOverlappingAsync(
+        Guid memberId, DateOnly start, DateOnly end, CancellationToken cancellationToken = default)
+        => await Memberships
+            .Where(m => m.MemberId == memberId && m.Status == MembershipStatus.Active && m.EntriesTotal == null
+                && m.StartDate <= end && m.EndDate >= start)
+            .OrderBy(m => m.StartDate)
+            .ToListAsync(cancellationToken);
+
+    public void Add(MembershipGroup group) => dbContext.Set<MembershipGroup>().Add(group);
+
     public Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<MembershipSettings>().FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);
 

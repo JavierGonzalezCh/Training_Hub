@@ -1,0 +1,257 @@
+@inject IMembershipGroupsClient Groups
+@inject IMembersClient Members
+@inject IPaymentsClient Payments
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+@* Grupo de una membresía (MS7, Memberships v2 §9): integrantes, cupos, agregar, sacar y renovar. *@
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_group is null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true">@(_error ?? "No se encontró el grupo.")</MudAlert>
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+            }
+            <MudText Typo="Typo.h6">@_group.PlanName</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="group-dates">
+                @GsmFormat.DayRange(_group.StartDate, _group.EndDate) · <span data-testid="group-seats">@_group.SeatsUsed de @_group.Seats cupos</span>
+            </MudText>
+
+            <MudSimpleTable Dense="true" Class="mt-3 mb-3" Elevation="0">
+                <thead>
+                    <tr><th>Miembro</th><th>Rol</th><th>Estado</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _group.Members)
+                    {
+                        <tr data-testid="group-member">
+                            <td>@row.MemberName</td>
+                            <td>@(row.IsHolder ? "Titular (paga)" : "Beneficiario")</td>
+                            <td><StatusChip Status="@row.Membership.Status" /></td>
+                            <td>
+                                @if (!row.IsHolder && row.Membership.Status != "Cancelled")
+                                {
+                                    <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text" OnClick="@(() => RemoveAsync(row))">
+                                        Sacar del grupo
+                                    </MudButton>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+
+            @if (HolderIsActive && _group.SeatsFree > 0)
+            {
+                <MudAutocomplete T="MemberListItem" Label="Agregar a una persona" Value="_picked" ValueChanged="OnPickedAsync"
+                                 SearchFunc="SearchMembersAsync"
+                                 ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
+                                 Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" id="group-add-search"
+                                 Disabled="_busy"
+                                 HelperText="@($"Quedan {_group.SeatsFree} cupos. Entra con las fechas actuales del grupo y no paga.")" />
+            }
+
+            @if (_renewed is not null)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" id="group-renew-charge-failed">
+                    El grupo se renovó (@GsmFormat.DayRange(_renewed.StartDate, _renewed.EndDate)), pero el cobro no se registró: @_chargeError
+                </MudAlert>
+            }
+
+            @if (HolderIsActive || _renewed is not null)
+            {
+                <MudSelect T="int" @bind-Value="_method" Label="Método de pago de la renovación" Class="mb-2" id="group-renew-method">
+                    @foreach (var (value, label) in PaymentMethodLabels.All)
+                    {
+                        <MudSelectItem Value="value">@label</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Cerrar</MudButton>
+        @if (_group is not null && _renewed is not null)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RetryChargeAsync" Disabled="_busy">Reintentar el cobro</MudButton>
+        }
+        else if (_group is not null)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RenewAsync" Disabled="_busy" id="group-renew">
+                @(_busy ? "Renovando..." : "Renovar y cobrar")
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid GroupId { get; set; }
+
+    private MembershipGroupResponse? _group;
+    private MembershipGroupResponse? _renewed;
+    private MemberListItem? _picked;
+    private int _method;
+    private string? _error;
+    private string? _chargeError;
+    private bool _loading = true;
+    private bool _busy;
+    private bool _changed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        _loading = false;
+    }
+
+    private bool HolderIsActive => _group?.Members.FirstOrDefault(m => m.IsHolder)?.Membership.Status is "Active" or "Paused";
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _group = await Groups.GetMembershipGroupAsync(GroupId);
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+
+    private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(search) || _group is null)
+        {
+            return [];
+        }
+
+        var inGroup = _group.Members.Where(m => m.Membership.Status != "Cancelled").Select(m => m.MemberId).ToHashSet();
+        var result = await Members.MembersGETAsync(search, null, null, null, 1, 10, null, null, null, cancellationToken);
+        return result.Items.Where(m => !inGroup.Contains(m.Id)).ToList();
+    }
+
+    private async Task OnPickedAsync(MemberListItem? member)
+    {
+        _picked = null;
+        if (member is null || _busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            _group = await Groups.AddGroupBeneficiaryAsync(GroupId, new AddGroupBeneficiaryRequest { MemberId = member.Id });
+            _changed = true;
+            Snackbar.Add($"{member.FirstName} {member.LastName} entró al grupo.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Sacar a alguien es cancelar su membresía (§9): el cupo queda libre y los demás no se tocan.
+    private async Task RemoveAsync(MembershipGroupMemberResponse row)
+    {
+        var parameters = new DialogParameters<CancelMembershipDialog>
+        {
+            { x => x.MemberId, row.MemberId },
+            { x => x.Membership, row.Membership },
+        };
+        var dialog = await Dialogs.ShowAsync<CancelMembershipDialog>($"Sacar a {row.MemberName} del grupo", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            _changed = true;
+            await LoadAsync();
+        }
+    }
+
+    // Renovar crea otro grupo (mismo titular y beneficiarios que siguen); el titular paga el total, en una segunda llamada.
+    private async Task RenewAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            _renewed = await Groups.RenewGroupMembershipAsync(GroupId, new RenewGroupMembershipRequest());
+            _changed = true;
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+            _busy = false;
+            return;
+        }
+
+        await ChargeRenewalAsync();
+    }
+
+    private async Task ChargeRenewalAsync()
+    {
+        if (_renewed is null)
+        {
+            return;
+        }
+
+        if ((decimal)_renewed.TotalToCharge <= 0)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+            return;
+        }
+
+        try
+        {
+            await Payments.PaymentsPOST2Async(new RecordPaymentRequest
+            {
+                Amount = _renewed.TotalToCharge,
+                Method = _method,
+                Concept = $"Renovación del plan de grupo {_renewed.PlanName} ({GsmFormat.DayRange(_renewed.StartDate, _renewed.EndDate)})",
+                MemberId = _renewed.HolderMemberId,
+                MembershipId = _renewed.HolderMembershipId,
+            });
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (GsmApiException ex)
+        {
+            _chargeError = ApiError.FromException(ex).DisplayMessage;
+            _busy = false;
+        }
+    }
+
+    private async Task RetryChargeAsync()
+    {
+        _busy = true;
+        await ChargeRenewalAsync();
+    }
+
+    private void Close()
+    {
+        if (_changed)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            MudDialog.Cancel();
+        }
+    }
+}

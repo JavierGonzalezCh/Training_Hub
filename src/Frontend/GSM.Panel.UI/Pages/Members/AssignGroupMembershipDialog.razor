@@ -1,0 +1,389 @@
+@inject IMemberMembershipsClient MemberMemberships
+@inject IMembershipPlansClient Plans
+@inject IMembershipGroupsClient Groups
+@inject IMembersClient Members
+@inject IPaymentsClient Payments
+
+@* Plan de grupo (MS7, Memberships v2 §9): el miembro de la ficha es el titular y paga; los beneficiarios entran con las mismas fechas. *@
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+            @if (_plans.Count == 0)
+            {
+                <MudText Color="Color.Secondary" id="no-group-plans">
+                    No hay planes de grupo activos. Crea uno en Planes con más de un cupo.
+                </MudText>
+            }
+            else
+            {
+                <MudForm @ref="_form">
+                    <MudSelect T="Guid" Value="_planId" ValueChanged="OnPlanChanged" ToStringFunc="PlanLabel" Label="Plan de grupo" Required="true" Class="mb-3"
+                               Disabled="@(_pendingCharge is not null)" id="group-plan">
+                        @foreach (var plan in _plans)
+                        {
+                            <MudSelectItem Value="plan.Id">@PlanLabel(plan.Id)</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">Beneficiarios (@_beneficiaries.Count de @MaxBeneficiaries)</MudText>
+                    @foreach (var beneficiary in _beneficiaries)
+                    {
+                        <div class="d-flex align-center justify-space-between" data-testid="group-beneficiary">
+                            <MudText Typo="Typo.body2">@beneficiary.FirstName @beneficiary.LastName · @beneficiary.DocumentNumber</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Disabled="@(_pendingCharge is not null)"
+                                           aria-label="@($"Quitar a {beneficiary.FirstName} {beneficiary.LastName}")"
+                                           OnClick="@(() => RemoveBeneficiary(beneficiary))" />
+                        </div>
+                    }
+                    @if (_beneficiaries.Count < MaxBeneficiaries)
+                    {
+                        <MudAutocomplete T="MemberListItem" Label="Agregar beneficiario" Value="_picked" ValueChanged="OnBeneficiaryPicked"
+                                         SearchFunc="SearchMembersAsync"
+                                         ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
+                                         Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" id="group-beneficiary-search"
+                                         Disabled="@(_pendingCharge is not null)"
+                                         HelperText="Pueden quedar cupos libres: se completan después desde la ficha." />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">El grupo está completo.</MudText>
+                    }
+
+                    <MudDatePicker Label="Cambiar la fecha de inicio (opcional)" Date="_startDate" DateChanged="OnStartChanged" Class="mb-2"
+                                   Disabled="@(_pendingCharge is not null)" />
+                    @if (_preview is { } preview)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" role="status" id="group-preview">
+                            <strong>Empieza el @GsmFormat.DayShort(preview.StartDate) · vence el @GsmFormat.DayShort(preview.EndDate)</strong>
+                            <div>El titular manda: las fechas del grupo salen de su historial, y todos los beneficiarios entran con esas mismas fechas.</div>
+                        </MudAlert>
+                        @if (preview.StartDateChanged && preview.Kind != "new")
+                        {
+                            <MudTextField T="string" @bind-Value="_startReason" Label="Motivo del cambio de fecha" Required="true"
+                                          MaxLength="500" Class="mb-3" />
+                        }
+                    }
+
+                    <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat"
+                                     @bind-Value="_agreedPrice" Label="Precio acordado del grupo (COP)" Min="0" Max="@PlanPrice" id="group-agreed-price" Class="mb-2"
+                                     Disabled="@(_pendingCharge is not null)"
+                                     HelperText="@($"Precio del plan: {GsmFormat.Money(PlanPrice)}. Lo paga el titular; los beneficiarios no pagan.")" />
+                    @if (HasDiscount)
+                    {
+                        <MudTextField T="string" @bind-Value="_discountReason" Label="Motivo del descuento" Required="true"
+                                      MaxLength="500" id="group-discount-reason" Class="mb-3" Disabled="@(_pendingCharge is not null)" />
+                    }
+
+                    @if (EnrollmentFee > 0)
+                    {
+                        <MudSwitch T="bool" @bind-Value="_waiveEnrollment" Color="Color.Primary" id="group-waive-enrollment"
+                                   Disabled="@(_pendingCharge is not null)"
+                                   Label="@($"Exonerar la matrícula del titular ({GsmFormat.Money(EnrollmentFee)})")" Class="mb-1" />
+                        @if (_waiveEnrollment)
+                        {
+                            <MudTextField T="string" @bind-Value="_waiveReason" Label="Motivo para exonerar la matrícula" Required="true"
+                                          MaxLength="500" Class="mb-3" Disabled="@(_pendingCharge is not null)" />
+                        }
+                    }
+
+                    <MudAlert Severity="Severity.Normal" Dense="true" Class="mb-3" role="status" id="group-total-to-charge">
+                        <div>Plan: @GsmFormat.Money(_agreedPrice)</div>
+                        @if (EnrollmentFee > 0)
+                        {
+                            <div>Matrícula: @(_waiveEnrollment ? "exonerada" : GsmFormat.Money(EnrollmentFee))</div>
+                        }
+                        <strong>Total a cobrar al titular: @GsmFormat.Money(Total)</strong>
+                    </MudAlert>
+
+                    @if (_pendingCharge is not null)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" id="group-charge-failed">
+                            El grupo quedó creado, pero el cobro no se registró: @_chargeError
+                        </MudAlert>
+                    }
+
+                    @if (Total > 0)
+                    {
+                        <MudSelect T="int" @bind-Value="_method" Label="Método de pago" Required="true">
+                            @foreach (var (value, label) in PaymentMethodLabels.All)
+                            {
+                                <MudSelectItem Value="value">@label</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                </MudForm>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_pendingCharge is null)
+        {
+            <MudButton OnClick="Cancel">Cancelar</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting || _plans.Count == 0">
+                @(_submitting ? "Guardando..." : Total > 0 ? "Asignar y cobrar" : "Asignar")
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Error" OnClick="CancelGroupAsync" Disabled="_submitting">Cancelar el grupo</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RetryChargeAsync" Disabled="_submitting">
+                @(_submitting ? "Cobrando..." : "Reintentar el cobro")
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>El titular: el miembro de la ficha desde la que se abre el diálogo.</summary>
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private List<PlanResponse> _plans = [];
+    private readonly List<MemberListItem> _beneficiaries = [];
+    private MemberListItem? _picked;
+    private Guid _planId;
+    private DateTime? _startDate;
+    private string? _startReason;
+    private RenewalPreviewResponse? _preview;
+    private decimal _agreedPrice;
+    private string? _discountReason;
+    private bool _waiveEnrollment;
+    private string? _waiveReason;
+    private int _method;
+    private MembershipGroupResponse? _pendingCharge;
+    private string? _chargeError;
+    private MudForm _form = null!;
+    private bool _loading = true;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var plans = await Plans.MembershipPlansAllAsync(includeInactive: false);
+            _plans = plans.Where(p => PlanDurationLabels.IsGroup(p.Seats)).ToList();
+            if (_plans.Count > 0)
+            {
+                await OnPlanChanged(_plans[0].Id);
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private PlanResponse? Selected => _plans.FirstOrDefault(p => p.Id == _planId);
+
+    // El titular ocupa un cupo.
+    private int MaxBeneficiaries => Math.Max(0, (Selected?.Seats ?? 1) - 1);
+
+    private string PlanLabel(Guid planId)
+        => _plans.FirstOrDefault(p => p.Id == planId) is { } plan
+            ? $"{plan.Name} — {GsmFormat.Money((decimal)plan.Price)} · {PlanDurationLabels.Format(plan.DurationUnit, plan.DurationValue)} · {PlanDurationLabels.SeatsLabel(plan.Seats)}"
+            : string.Empty;
+
+    private async Task OnPlanChanged(Guid planId)
+    {
+        _planId = planId;
+        if (Selected is { } plan)
+        {
+            _agreedPrice = (decimal)plan.Price;
+            _discountReason = null;
+
+            // Si el plan nuevo tiene menos cupos, sobran beneficiarios: se recorta desde el final.
+            while (_beneficiaries.Count > MaxBeneficiaries)
+            {
+                _beneficiaries.RemoveAt(_beneficiaries.Count - 1);
+            }
+        }
+
+        await LoadPreviewAsync();
+    }
+
+    private async Task OnStartChanged(DateTime? date)
+    {
+        _startDate = date;
+        await LoadPreviewAsync();
+    }
+
+    // La vista previa es la del titular: el mismo cálculo que "asignar", así lo que se muestra es lo que se crea.
+    private async Task LoadPreviewAsync()
+    {
+        try
+        {
+            _preview = await MemberMemberships.PreviewAsync(
+                MemberId, _planId, _startDate is { } d ? DateOnly.FromDateTime(d) : null);
+        }
+        catch (GsmApiException ex)
+        {
+            _preview = null;
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
+
+    private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return [];
+        }
+
+        var result = await Members.MembersGETAsync(search, null, null, null, 1, 10, null, null, null, cancellationToken);
+        return result.Items.Where(m => m.Id != MemberId && _beneficiaries.All(b => b.Id != m.Id)).ToList();
+    }
+
+    private void OnBeneficiaryPicked(MemberListItem? member)
+    {
+        _picked = null;
+        if (member is not null && _beneficiaries.Count < MaxBeneficiaries && _beneficiaries.All(b => b.Id != member.Id))
+        {
+            _beneficiaries.Add(member);
+        }
+    }
+
+    private void RemoveBeneficiary(MemberListItem member) => _beneficiaries.Remove(member);
+
+    private decimal PlanPrice => Selected is { } plan ? (decimal)plan.Price : 0m;
+
+    private bool HasDiscount => _agreedPrice < PlanPrice;
+
+    // Matrícula del titular según el servidor (0 si ya tuvo membresía o el gym no la cobra).
+    private decimal EnrollmentFee => _preview is { } p ? (decimal)p.EnrollmentFee : 0m;
+
+    private decimal Total => _agreedPrice + (_waiveEnrollment ? 0m : EnrollmentFee);
+
+    // Como "asignar" individual: asignar es de Memberships y cobrar de Payments, dos llamadas. Si el cobro falla, el
+    // diálogo no se cierra y ofrece reintentar o cancelar el grupo. Un total de 0 (cortesía) no genera cobro.
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (_agreedPrice > PlanPrice)
+        {
+            _error = "El precio acordado no puede superar el precio del plan.";
+            return;
+        }
+
+        if (HasDiscount && (_discountReason?.Trim().Length ?? 0) < 3)
+        {
+            _error = "El motivo del descuento es obligatorio.";
+            return;
+        }
+
+        if (_waiveEnrollment && EnrollmentFee > 0 && (_waiveReason?.Trim().Length ?? 0) < 3)
+        {
+            _error = "El motivo para exonerar la matrícula es obligatorio.";
+            return;
+        }
+
+        _submitting = true;
+        MembershipGroupResponse group;
+        try
+        {
+            var waive = _waiveEnrollment && EnrollmentFee > 0;
+            group = await Groups.AssignGroupMembershipAsync(new AssignGroupMembershipRequest
+            {
+                HolderMemberId = MemberId,
+                PlanId = _planId,
+                BeneficiaryMemberIds = _beneficiaries.Select(b => b.Id).ToList(),
+                StartDate = _startDate is { } d ? DateOnly.FromDateTime(d) : null,
+                StartDateReason = string.IsNullOrWhiteSpace(_startReason) ? null : _startReason.Trim(),
+                AgreedPrice = (double)_agreedPrice,
+                DiscountReason = HasDiscount ? _discountReason!.Trim() : null,
+                WaiveEnrollment = waive,
+                EnrollmentWaivedReason = waive ? _waiveReason!.Trim() : null,
+            });
+        }
+        catch (GsmApiException ex)
+        {
+            // 409: un beneficiario ya tiene una membresía que se cruza, o se llegó al límite de miembros. 422: datos inválidos.
+            _error = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+            return;
+        }
+
+        if ((decimal)group.TotalToCharge <= 0)
+        {
+            MudDialog.Close(DialogResult.Ok(new AssignMembershipDialog.AssignMembershipResult(Charged: false, ChargeError: null)));
+            return;
+        }
+
+        await ChargeAsync(group);
+    }
+
+    private async Task ChargeAsync(MembershipGroupResponse group)
+    {
+        try
+        {
+            var concept = $"Plan de grupo {group.PlanName} ({GsmFormat.DayRange(group.StartDate, group.EndDate)}, {group.SeatsUsed} personas)";
+            await Payments.PaymentsPOST2Async(new RecordPaymentRequest
+            {
+                Amount = group.TotalToCharge,
+                Method = _method,
+                Concept = concept,
+                MemberId = group.HolderMemberId,
+                MembershipId = group.HolderMembershipId,
+            });
+            MudDialog.Close(DialogResult.Ok(new AssignMembershipDialog.AssignMembershipResult(Charged: true, ChargeError: null)));
+        }
+        catch (GsmApiException ex)
+        {
+            _pendingCharge = group;
+            _chargeError = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+        }
+    }
+
+    private async Task RetryChargeAsync()
+    {
+        if (_pendingCharge is null)
+        {
+            return;
+        }
+
+        _submitting = true;
+        await ChargeAsync(_pendingCharge);
+    }
+
+    // Sin el cobro el grupo no debe quedar: cancelar la membresía del titular cancela a todo el grupo (queda en el historial).
+    private async Task CancelGroupAsync()
+    {
+        if (_pendingCharge is null)
+        {
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            await MemberMemberships.Cancel2Async(
+                _pendingCharge.HolderMemberId, _pendingCharge.HolderMembershipId,
+                new CancelMembershipRequest { Reason = "Cobro no registrado al asignar" });
+            MudDialog.Close(DialogResult.Ok(new AssignMembershipDialog.AssignMembershipResult(Charged: false, ChargeError: null, Cancelled: true)));
+        }
+        catch (GsmApiException ex)
+        {
+            _chargeError = ApiError.FromException(ex).DisplayMessage;
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

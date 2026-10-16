@@ -28,8 +28,16 @@ public sealed class MembershipPlanConfiguration : IEntityTypeConfiguration<Membe
         builder.Ignore(p => p.ValidityDays);
         builder.Ignore(p => p.IsPass);
 
+        // MS7: cupos. 1 = individual (los planes de antes); más de 1 = plan de grupo, siempre por tiempo.
+        builder.Property(p => p.Seats).HasColumnName("seats").HasDefaultValue(1);
+        builder.Ignore(p => p.IsGroup);
+
         builder.ToTable("membership_plans", "memberships", t =>
-            t.HasCheckConstraint("ck_membership_plans_pass_entries", "(kind = 'pass') = (entries IS NOT NULL)"));
+        {
+            t.HasCheckConstraint("ck_membership_plans_pass_entries", "(kind = 'pass') = (entries IS NOT NULL)");
+            t.HasCheckConstraint("ck_membership_plans_seats", "seats >= 1 AND seats <= 500");
+            t.HasCheckConstraint("ck_membership_plans_group_is_time", "seats = 1 OR kind = 'time'");
+        });
 
         builder.HasIndex(p => new { p.GymId, p.Name }).IsUnique();
     }
