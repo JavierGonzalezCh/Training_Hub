@@ -38,7 +38,7 @@ public class CommercialStatusUiTests : TestContext
         }
     }
 
-    private static (T Client, FakeClient Fake) Fake<T>() where T : class
+    internal static (T Client, FakeClient Fake) Fake<T>() where T : class
     {
         var proxy = DispatchProxy.Create<T, FakeClient>();
         return (proxy, (FakeClient)(object)proxy);

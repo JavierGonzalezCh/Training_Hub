@@ -26,7 +26,7 @@ public class MobilePolishUiTests : TestContext
         };
         Services.AddSingleton(plans);
 
-        var cut = RenderComponent<Index>();
+        var cut = RenderComponent<GSM.Panel.UI.Pages.Plans.Index>();
 
         var table = cut.Find("[data-testid=stack-table]");
         Assert.Contains("gsm-table--stack", table.ClassList);

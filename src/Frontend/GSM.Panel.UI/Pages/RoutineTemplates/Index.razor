@@ -89,7 +89,7 @@ else
 
     private async Task DeleteAsync(RoutineTemplateListItem item)
     {
-        var confirmed = await Dialogs.ShowMessageBoxAsync(
+        var confirmed = await Dialogs.ShowMessageBox(
             "Eliminar plantilla",
             $"¿Eliminar «{item.Name}»? Las rutinas que ya se asignaron con ella no cambian.",
             yesText: "Eliminar", cancelText: "Cancelar");

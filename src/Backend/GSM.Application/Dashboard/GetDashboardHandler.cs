@@ -63,7 +63,7 @@ public sealed class GetDashboardHandler(
             if (!sessionsRead)
             {
                 sessionsRead = true;
-                sessions = await RunAsync("classes", () => classes.GetTodaySessionsAsync(gymId, cancellationToken));
+                sessions = await RunAsync<IReadOnlyList<TodaySessionView>>("classes", async () => await classes.GetTodaySessionsAsync(gymId, cancellationToken));
             }
 
             return sessions;

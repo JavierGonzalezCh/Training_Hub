@@ -9533,6 +9533,7 @@
         "tags": [
           "Dashboard"
         ],
+        "operationId": "GetGymDashboard",
         "responses": {
           "200": {
             "description": "OK",
@@ -13367,6 +13368,112 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberStreakResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/streak/calendar": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "operationId": "GetMyStreakCalendar",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakCalendarResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakCalendarResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakCalendarResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/memberships": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "operationId": "GetMyMemberships",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyMembershipsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyMembershipsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyMembershipsResponse"
                 }
               }
             }
@@ -21175,6 +21282,506 @@
         }
       }
     },
+    "/api/routine-templates": {
+      "get": {
+        "tags": [
+          "RoutineTemplates"
+        ],
+        "operationId": "ListRoutineTemplates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineTemplateListItem"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineTemplateListItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineTemplateListItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "RoutineTemplates"
+        ],
+        "operationId": "CreateRoutineTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineTemplateRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineTemplateRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routine-templates/{id}": {
+      "get": {
+        "tags": [
+          "RoutineTemplates"
+        ],
+        "operationId": "GetRoutineTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "RoutineTemplates"
+        ],
+        "operationId": "UpdateRoutineTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineTemplateRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineTemplateRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "RoutineTemplates"
+        ],
+        "operationId": "DeleteRoutineTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routine-templates/from-routine/{routineId}": {
+      "post": {
+        "tags": [
+          "RoutineTemplates"
+        ],
+        "operationId": "SaveRoutineAsTemplate",
+        "parameters": [
+          {
+            "name": "routineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineAsTemplateRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineAsTemplateRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoutineAsTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTemplateListItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routine-templates/{id}/assign/{memberId}": {
+      "post": {
+        "tags": [
+          "RoutineTemplates"
+        ],
+        "operationId": "AssignRoutineTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gym/staff": {
       "get": {
         "tags": [
@@ -22603,12 +23210,38 @@
           }
         }
       },
+      "AdminAttentionBlock": {
+        "required": [
+          "trialEnded",
+          "overdue",
+          "aboutToDisable",
+          "expiringSoon"
+        ],
+        "type": "object",
+        "properties": {
+          "trialEnded": {
+            "$ref": "#/components/schemas/AttentionList"
+          },
+          "overdue": {
+            "$ref": "#/components/schemas/AttentionList"
+          },
+          "aboutToDisable": {
+            "$ref": "#/components/schemas/AttentionList"
+          },
+          "expiringSoon": {
+            "$ref": "#/components/schemas/AttentionList"
+          }
+        }
+      },
       "AdminDashboardResponse": {
         "required": [
           "portfolio",
           "revenue",
           "gymUsage",
-          "platform"
+          "platform",
+          "attention",
+          "startup",
+          "limits"
         ],
         "type": "object",
         "properties": {
@@ -22626,6 +23259,36 @@
           },
           "platform": {
             "$ref": "#/components/schemas/PlatformTotals"
+          },
+          "attention": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AdminAttentionBlock"
+              }
+            ]
+          },
+          "startup": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AdminStartupBlock"
+              }
+            ]
+          },
+          "limits": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AdminLimitsBlock"
+              }
+            ]
           }
         }
       },
@@ -22675,6 +23338,52 @@
           },
           "isActive": {
             "type": "boolean"
+          }
+        }
+      },
+      "AdminLimitsBlock": {
+        "required": [
+          "total",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LimitGymRow"
+            }
+          }
+        }
+      },
+      "AdminStartupBlock": {
+        "required": [
+          "total",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StartupGymRow"
+            }
           }
         }
       },
@@ -23083,6 +23792,125 @@
           }
         }
       },
+      "AttentionBlock": {
+        "required": [
+          "equipment",
+          "rejected",
+          "voidRequests",
+          "cash"
+        ],
+        "type": "object",
+        "properties": {
+          "equipment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EquipmentAttentionBlock"
+              }
+            ]
+          },
+          "rejected": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RejectedTodayBlock"
+              }
+            ]
+          },
+          "voidRequests": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VoidRequestsBlock"
+              }
+            ]
+          },
+          "cash": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CashBlock"
+              }
+            ]
+          }
+        }
+      },
+      "AttentionGymRow": {
+        "required": [
+          "gymId",
+          "name",
+          "effectiveStatus",
+          "paidThrough",
+          "daysUntilDisabled",
+          "daysUntilExpiry"
+        ],
+        "type": "object",
+        "properties": {
+          "gymId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "effectiveStatus": {
+            "type": "string"
+          },
+          "paidThrough": {
+            "type": "string",
+            "format": "date"
+          },
+          "daysUntilDisabled": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "daysUntilExpiry": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AttentionList": {
+        "required": [
+          "total",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttentionGymRow"
+            }
+          }
+        }
+      },
       "AudienceMemberItem": {
         "required": [
           "id",
@@ -23361,6 +24189,47 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CashBlock": {
+        "required": [
+          "shiftId",
+          "openedByName",
+          "openedAt",
+          "expectedCash",
+          "isStale",
+          "isMine"
+        ],
+        "type": "object",
+        "properties": {
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "openedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expectedCash": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "isMine": {
+            "type": "boolean"
           }
         }
       },
@@ -25441,91 +26310,85 @@
       },
       "DashboardResponse": {
         "required": [
-          "activeMembers",
-          "checkInsToday",
-          "revenueThisMonth",
-          "revenueLastMonth",
-          "expiredMemberships",
-          "expiringSoon",
-          "expiringMemberships",
-          "commercialStatus",
-          "expiringDays",
-          "birthdaysToday"
+          "indicators",
+          "finances",
+          "attention",
+          "today",
+          "peakHours",
+          "expiring",
+          "myMembers"
         ],
         "type": "object",
         "properties": {
-          "activeMembers": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+          "indicators": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IndicatorsBlock"
+              }
+            ]
           },
-          "checkInsToday": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+          "finances": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FinancesBlock"
+              }
+            ]
           },
-          "revenueThisMonth": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
+          "attention": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AttentionBlock"
+              }
+            ]
           },
-          "revenueLastMonth": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
+          "today": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TodayBlock"
+              }
+            ]
           },
-          "expiredMemberships": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+          "peakHours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PeakHoursBlock"
+              }
+            ]
           },
-          "expiringSoon": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+          "expiring": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExpiringBlock"
+              }
+            ]
           },
-          "expiringMemberships": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ExpiringMemberRow"
-            }
-          },
-          "commercialStatus": {
-            "$ref": "#/components/schemas/CommercialStatusCounts"
-          },
-          "expiringDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "birthdaysToday": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BirthdayTodayRow"
-            }
+          "myMembers": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MyMembersBlock"
+              }
+            ]
           }
         }
       },
@@ -25694,6 +26557,56 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "EquipmentAttentionBlock": {
+        "required": [
+          "outOfService",
+          "inMaintenance",
+          "openIssues",
+          "urgentIssues",
+          "machines"
+        ],
+        "type": "object",
+        "properties": {
+          "outOfService": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "inMaintenance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "openIssues": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "urgentIssues": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "machines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutOfServiceMachineRow"
+            }
           }
         }
       },
@@ -26759,6 +27672,47 @@
       "ExerciseType": {
         "type": "integer"
       },
+      "ExpiringBlock": {
+        "required": [
+          "expiringCount",
+          "expiredCount",
+          "expiringDays",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "expiringCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expiredCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expiringDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpiringMemberRow"
+            }
+          }
+        }
+      },
       "ExpiringMemberRow": {
         "required": [
           "membershipId",
@@ -26884,6 +27838,31 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "FinancesBlock": {
+        "required": [
+          "revenueThisMonth",
+          "revenueLastMonth"
+        ],
+        "type": "object",
+        "properties": {
+          "revenueThisMonth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "revenueLastMonth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -27309,7 +28288,11 @@
           "activeMembers",
           "checkInsThisMonth",
           "memberRevenueThisMonth",
-          "lastCheckIn"
+          "lastCheckIn",
+          "countedMembers",
+          "memberLimit",
+          "isInactive",
+          "daysSinceLastCheckIn"
         ],
         "type": "object",
         "properties": {
@@ -27353,6 +28336,36 @@
               "string"
             ],
             "format": "date"
+          },
+          "countedMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "memberLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isInactive": {
+            "type": "boolean"
+          },
+          "daysSinceLastCheckIn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -27391,6 +28404,31 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "HourBucket": {
+        "required": [
+          "hour",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "hour": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -27523,6 +28561,55 @@
           "tokenType": {
             "type": "string",
             "default": "Bearer"
+          }
+        }
+      },
+      "IndicatorsBlock": {
+        "required": [
+          "activeMembers",
+          "checkInsToday",
+          "occupancy",
+          "commercialStatus",
+          "expiringDays"
+        ],
+        "type": "object",
+        "properties": {
+          "activeMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "checkInsToday": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "occupancy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OccupancyResponse"
+              }
+            ]
+          },
+          "commercialStatus": {
+            "$ref": "#/components/schemas/CommercialStatusCounts"
+          },
+          "expiringDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -27723,6 +28810,49 @@
         "properties": {
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "LimitGymRow": {
+        "required": [
+          "gymId",
+          "name",
+          "countedMembers",
+          "memberLimit",
+          "usagePercent"
+        ],
+        "type": "object",
+        "properties": {
+          "gymId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "countedMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "memberLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "usagePercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -28930,6 +30060,22 @@
           }
         }
       },
+      "MemberNameRow": {
+        "required": [
+          "memberId",
+          "memberName"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          }
+        }
+      },
       "MemberNoteItem": {
         "required": [
           "id",
@@ -29954,6 +31100,207 @@
           }
         }
       },
+      "MyFreezeItem": {
+        "required": [
+          "startsOn",
+          "endsOn",
+          "reason",
+          "state",
+          "daysCredited"
+        ],
+        "type": "object",
+        "properties": {
+          "startsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "daysCredited": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MyMembersBlock": {
+        "required": [
+          "myClassesToday",
+          "routinesDue",
+          "routinesOverdue",
+          "membersWithoutRoutine",
+          "withoutRoutine"
+        ],
+        "type": "object",
+        "properties": {
+          "myClassesToday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TodayClassRow"
+            }
+          },
+          "routinesDue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "routinesOverdue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "membersWithoutRoutine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "withoutRoutine": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberNameRow"
+            }
+          }
+        }
+      },
+      "MyMembershipItem": {
+        "required": [
+          "id",
+          "planName",
+          "kind",
+          "status",
+          "startDate",
+          "endDate",
+          "entriesTotal",
+          "entriesUsed",
+          "entriesLeft",
+          "isScheduled",
+          "isGroup",
+          "freezes",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "entriesTotal": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "entriesUsed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "entriesLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isScheduled": {
+            "type": "boolean"
+          },
+          "isGroup": {
+            "type": "boolean"
+          },
+          "freezes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyFreezeItem"
+            }
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyPassEntryItem"
+            }
+          }
+        }
+      },
+      "MyMembershipsResponse": {
+        "required": [
+          "access",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/AccessStatusResponse"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyMembershipItem"
+            }
+          }
+        }
+      },
+      "MyPassEntryItem": {
+        "required": [
+          "usedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "usedOn": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
       "MyProfile": {
         "required": [
           "id",
@@ -30491,6 +31838,41 @@
           },
           "status": {
             "$ref": "#/components/schemas/GymOpenStatusDto"
+          }
+        }
+      },
+      "OutOfServiceMachineRow": {
+        "required": [
+          "id",
+          "name",
+          "zone",
+          "expectedBackOn",
+          "hasUnsafeIssue"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "zone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expectedBackOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "hasUnsafeIssue": {
+            "type": "boolean"
           }
         }
       },
@@ -31360,6 +32742,29 @@
           }
         }
       },
+      "PeakHoursBlock": {
+        "required": [
+          "windowDays",
+          "buckets"
+        ],
+        "type": "object",
+        "properties": {
+          "windowDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HourBucket"
+            }
+          }
+        }
+      },
       "PersonalRecordItem": {
         "required": [
           "kind",
@@ -31790,7 +33195,9 @@
         "required": [
           "contracted",
           "collectedThisMonth",
-          "collectedLastMonth"
+          "collectedLastMonth",
+          "mrr",
+          "pending"
         ],
         "type": "object",
         "properties": {
@@ -31811,6 +33218,22 @@
             "format": "double"
           },
           "collectedLastMonth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "mrr": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "pending": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "number",
@@ -32456,6 +33879,31 @@
           }
         }
       },
+      "RecentEntryRow": {
+        "required": [
+          "memberId",
+          "memberName",
+          "checkedInAt",
+          "method"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "checkedInAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "method": {
+            "type": "string"
+          }
+        }
+      },
       "ReceptionCardResponse": {
         "required": [
           "memberId",
@@ -32862,6 +34310,76 @@
           },
           "kind": {
             "type": "string"
+          }
+        }
+      },
+      "RejectedAttemptRow": {
+        "required": [
+          "memberId",
+          "memberName",
+          "attemptedAt",
+          "attemptCount",
+          "reason",
+          "seen"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "attemptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attemptCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "seen": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RejectedTodayBlock": {
+        "required": [
+          "total",
+          "unseen",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unseen": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RejectedAttemptRow"
+            }
           }
         }
       },
@@ -34055,6 +35573,119 @@
           }
         }
       },
+      "RoutineTemplateListItem": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "scheduleMode",
+          "dayCount",
+          "exerciseCount",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scheduleMode": {
+            "type": "string"
+          },
+          "dayCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "exerciseCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RoutineTemplateResponse": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "scheduleMode",
+          "dayCount",
+          "exerciseCount",
+          "unavailableExerciseCount",
+          "routine",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scheduleMode": {
+            "type": "string"
+          },
+          "dayCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "exerciseCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unavailableExerciseCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "routine": {
+            "$ref": "#/components/schemas/RoutineResponse"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "SaasPlanItem": {
         "required": [
           "id",
@@ -34293,6 +35924,24 @@
           }
         }
       },
+      "SaveRoutineAsTemplateRequest": {
+        "required": [
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SaveRoutineRequest": {
         "required": [
           "name",
@@ -34321,6 +35970,28 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SaveRoutineTemplateRequest": {
+        "required": [
+          "name",
+          "description",
+          "routine"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "routine": {
+            "$ref": "#/components/schemas/SaveRoutineRequest"
           }
         }
       },
@@ -35193,6 +36864,168 @@
           }
         }
       },
+      "StartupGymRow": {
+        "required": [
+          "gymId",
+          "name",
+          "daysSinceCreated",
+          "ownerNotActivated",
+          "onboardingPending",
+          "pendingOwnerUserId",
+          "pendingOwnerEmail"
+        ],
+        "type": "object",
+        "properties": {
+          "gymId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "daysSinceCreated": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "ownerNotActivated": {
+            "type": "boolean"
+          },
+          "onboardingPending": {
+            "type": "boolean"
+          },
+          "pendingOwnerUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "pendingOwnerEmail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "StreakCalendarDay": {
+        "required": [
+          "date",
+          "kind",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "StreakCalendarResponse": {
+        "required": [
+          "year",
+          "month",
+          "currentStreak",
+          "bestStreak",
+          "todayKind",
+          "hasRoutine",
+          "freezesAvailable",
+          "nextFreezeOn",
+          "freezesUsedOn",
+          "historyStart",
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "year": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "month": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "currentStreak": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "bestStreak": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "todayKind": {
+            "type": "string"
+          },
+          "hasRoutine": {
+            "type": "boolean"
+          },
+          "freezesAvailable": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nextFreezeOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "freezesUsedOn": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "historyStart": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StreakCalendarDay"
+            }
+          }
+        }
+      },
       "SubscriptionDetail": {
         "required": [
           "plan",
@@ -35433,6 +37266,112 @@
           },
           "closes": {
             "type": "string"
+          }
+        }
+      },
+      "TodayBlock": {
+        "required": [
+          "classes",
+          "birthdays",
+          "recentEntries"
+        ],
+        "type": "object",
+        "properties": {
+          "classes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TodayClassRow"
+            }
+          },
+          "birthdays": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BirthdayTodayRow"
+            }
+          },
+          "recentEntries": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/RecentEntryRow"
+            }
+          }
+        }
+      },
+      "TodayClassRow": {
+        "required": [
+          "classId",
+          "className",
+          "startTime",
+          "durationMinutes",
+          "instructorName",
+          "cancelled",
+          "capacity",
+          "booked",
+          "waiting"
+        ],
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "className": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "time"
+          },
+          "durationMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "instructorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cancelled": {
+            "type": "boolean"
+          },
+          "capacity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "booked": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "waiting": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -37010,6 +38949,22 @@
           }
         }
       },
+      "VoidRequestsBlock": {
+        "required": [
+          "pending"
+        ],
+        "type": "object",
+        "properties": {
+          "pending": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "WaitlistResponse": {
         "required": [
           "entryId",
@@ -37387,6 +39342,9 @@
     },
     {
       "name": "RoutineSettings"
+    },
+    {
+      "name": "RoutineTemplates"
     },
     {
       "name": "Staff"

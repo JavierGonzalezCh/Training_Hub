@@ -4435,6 +4435,68 @@ namespace GSM.Infrastructure.Migrations
                     b.ToTable("routine_settings", "routines");
                 });
 
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("DayCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("day_count");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("ExerciseCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("exercise_count");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("ScheduleMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("schedule_mode");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_routine_templates");
+
+                    b.HasIndex("GymId", "Name")
+                        .HasDatabaseName("ix_routine_templates_gym_id_name");
+
+                    b.ToTable("routine_templates", "routines");
+                });
+
             modelBuilder.Entity("GSM.Domain.SuperAdmin.GymSubscription", b =>
                 {
                     b.Property<Guid>("Id")
