@@ -222,6 +222,33 @@ public class DashboardPanelUiTests : TestContext
     }
 
     [Fact]
+    public void Attention_lists_memberships_pending_payment()
+    {
+        var dashboard = Full();
+        dashboard.Attention!.Unpaid = new UnpaidBlock
+        {
+            Count = 1,
+            TotalDue = 60000,
+            Items = new List<UnpaidMembershipRow>
+            {
+                new() { MemberId = Guid.NewGuid(), MemberName = "Ana Prueba", PlanName = "Mensual", AmountDue = 60000 },
+            },
+        };
+
+        var cut = RenderHome(dashboard);
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("[data-testid='attention-unpaid']").TextContent;
+            Assert.Contains("Pendientes de pago", card);
+            Assert.Contains("60.000", card);
+            var list = cut.Find("[data-testid='attention-unpaid-list']").TextContent;
+            Assert.Contains("Ana Prueba", list);
+            Assert.Contains("Debe", list);
+        });
+    }
+
+    [Fact]
     public void A_forgotten_register_is_flagged_as_such()
     {
         var dashboard = Full();

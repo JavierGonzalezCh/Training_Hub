@@ -43604,6 +43604,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("cash")]
         public CashBlock? Cash { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("unpaid")]
+        public UnpaidBlock? Unpaid { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -48896,6 +48899,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("isGroupHolder")]
         public bool IsGroupHolder { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("amountDue")]
+        public double? AmountDue { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -52115,6 +52121,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("linkedMachines")]
         public int? LinkedMachines { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("notMarked")]
+        public System.Collections.Generic.ICollection<SkippedAttendee>? NotMarked { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -53240,6 +53249,30 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SkippedAttendee
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberId")]
+        public System.Guid MemberId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberName")]
+        public string MemberName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        public string Reason { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SpecialDayResponse
     {
 
@@ -54007,6 +54040,57 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("unlockedAt")]
         public System.DateTimeOffset UnlockedAt { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UnpaidBlock
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("count")]
+        public int Count { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalDue")]
+        public double TotalDue { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public System.Collections.Generic.ICollection<UnpaidMembershipRow> Items { get; set; } = new System.Collections.ObjectModel.Collection<UnpaidMembershipRow>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UnpaidMembershipRow
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberId")]
+        public System.Guid MemberId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberName")]
+        public string MemberName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("planName")]
+        public string PlanName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("amountDue")]
+        public double AmountDue { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

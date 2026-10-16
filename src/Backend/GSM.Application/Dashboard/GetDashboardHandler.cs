@@ -173,8 +173,39 @@ public sealed class GetDashboardHandler(
             : null;
 
         var cash = await RunAsync("attention-cash", () => CashAsync(cancellationToken));
+        var unpaid = await RunAsync("attention-unpaid", () => UnpaidAsync(gymId, cancellationToken));
 
-        return new AttentionBlock(equipmentBlock, rejected, voidRequests, cash);
+        return new AttentionBlock(equipmentBlock, rejected, voidRequests, cash, unpaid);
+    }
+
+    /// <summary>
+    /// MS2-3: membresías con saldo por cobrar. Memberships dice cuánto había que cobrar y Payments cuánto se pagó; el
+    /// dashboard (compositor, como la racha) las cruza. La ve todo el staff: es quien cobra.
+    /// </summary>
+    private async Task<UnpaidBlock?> UnpaidAsync(Guid gymId, CancellationToken cancellationToken)
+    {
+        var chargeable = await memberships.GetChargeableAsync(gymId, cancellationToken);
+        if (chargeable.Count == 0)
+        {
+            return new UnpaidBlock(0, 0m, []);
+        }
+
+        var paid = await payments.GetNetPaidForMembershipsAsync(
+            chargeable.Select(c => c.MembershipId).ToList(), cancellationToken);
+        var due = chargeable
+            .Select(c => (View: c, Due: c.TotalToCharge - paid.GetValueOrDefault(c.MembershipId)))
+            .Where(x => x.Due > 0)
+            .OrderBy(x => x.View.StartDate)
+            .ToList();
+
+        var top = due.Take(ListLimit).ToList();
+        var names = await members.GetFullNamesAsync(top.Select(x => x.View.MemberId).Distinct().ToList(), cancellationToken);
+        return new UnpaidBlock(
+            due.Count,
+            due.Sum(x => x.Due),
+            top.Select(x => new UnpaidMembershipRow(
+                    x.View.MemberId, names.GetValueOrDefault(x.View.MemberId, "?"), x.View.PlanName, x.Due))
+                .ToList());
     }
 
     /// <summary>

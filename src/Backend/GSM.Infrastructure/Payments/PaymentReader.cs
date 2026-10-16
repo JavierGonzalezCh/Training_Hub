@@ -66,6 +66,21 @@ public sealed class PaymentReader(
             .Where(p => p.MembershipId == membershipId)
             .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
 
+    public async Task<IReadOnlyDictionary<Guid, decimal>> GetNetPaidForMembershipsAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default)
+    {
+        if (membershipIds.Count == 0)
+        {
+            return new Dictionary<Guid, decimal>();
+        }
+
+        return await Payments
+            .Where(p => p.MembershipId != null && membershipIds.Contains(p.MembershipId.Value))
+            .GroupBy(p => p.MembershipId!.Value)
+            .Select(g => new { g.Key, Total = g.Sum(p => p.Amount) })
+            .ToDictionaryAsync(x => x.Key, x => x.Total, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<MemberPaymentView>> GetRecentByMemberAsync(
         Guid memberId, int limit, CancellationToken cancellationToken = default)
         => await Payments

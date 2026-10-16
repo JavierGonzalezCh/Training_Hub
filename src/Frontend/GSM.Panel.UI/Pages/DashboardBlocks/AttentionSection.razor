@@ -42,6 +42,13 @@
                     </a>
                 </div>
             }
+            @if (Block.Unpaid is { Count: > 0 } unpaid)
+            {
+                <div data-testid="attention-unpaid">
+                    <StatCard Label="Pendientes de pago" Value="@unpaid.Count.ToString()" Accent="Color.Warning"
+                              Hint="@($"{GsmFormat.Money((decimal)unpaid.TotalDue)} por cobrar")" />
+                </div>
+            }
             @if (Cash is { } cash)
             {
                 <div data-testid="attention-cash">
@@ -77,6 +84,21 @@
                 }
             </ul>
             <a class="gsm-panel__link" href="/equipment/issues">Ver reportes</a>
+        }
+
+        @if (Block.Unpaid is { Items.Count: > 0 } unpaidList)
+        {
+            <ul class="gsm-list" data-testid="attention-unpaid-list" aria-label="Membresías pendientes de pago">
+                @foreach (var row in unpaidList.Items)
+                {
+                    <li class="gsm-identity">
+                        <MudIcon Icon="@Icons.Material.Outlined.Payments" Size="Size.Small" />
+                        <a href="@($"/members/{row.MemberId}")">@row.MemberName</a>
+                        <span class="gsm-panel__meta">@row.PlanName</span>
+                        <span class="gsm-tag">Debe @GsmFormat.Money((decimal)row.AmountDue)</span>
+                    </li>
+                }
+            </ul>
         }
 
         @if (Block.Rejected is { Items.Count: > 0 } rejectedList)
@@ -135,7 +157,8 @@
         => Cash is not null
            || Block.Equipment is { } e && (e.OutOfService > 0 || e.OpenIssues > 0)
            || Block.Rejected is { Total: > 0 }
-           || Block.VoidRequests is { Pending: > 0 };
+           || Block.VoidRequests is { Pending: > 0 }
+           || Block.Unpaid is { Count: > 0 };
 
     private string Meta()
     {
@@ -156,6 +179,11 @@
         }
 
         if (Cash is not null)
+        {
+            count++;
+        }
+
+        if (Block.Unpaid is { Count: > 0 })
         {
             count++;
         }

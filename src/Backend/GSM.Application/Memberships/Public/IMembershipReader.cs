@@ -22,6 +22,13 @@ public interface IMembershipReader
     Task<IReadOnlyList<ReminderMembershipView>> GetReminderCandidatesAsync(
         Guid gymId, int daysBefore, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// MS2-3: membresías no canceladas que siguen vigentes o están por empezar (<c>end_date &gt;= hoy</c>) y tienen algo
+    /// que cobrar. El dashboard las cruza con lo pagado (Payments) para mostrar las pendientes de pago.
+    /// </summary>
+    Task<IReadOnlyList<ChargeableMembershipView>> GetChargeableAsync(
+        Guid gymId, CancellationToken cancellationToken = default);
+
     /// <summary>Membresías Active cuyo <c>end_date</c> ya pasó (vencidas, no renovadas).</summary>
     Task<int> GetExpiredCountAsync(Guid gymId, CancellationToken cancellationToken = default);
 
@@ -112,6 +119,9 @@ public sealed record ActiveMembershipView(
     string PlanName,
     DateOnly StartDate,
     DateOnly EndDate);
+
+public sealed record ChargeableMembershipView(
+    Guid MembershipId, Guid MemberId, string PlanName, decimal TotalToCharge, DateOnly StartDate);
 
 public sealed record ExpiringMembershipView(
     Guid MembershipId,

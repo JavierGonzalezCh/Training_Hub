@@ -40,7 +40,14 @@ public sealed record AttentionBlock(
     EquipmentAttentionBlock? Equipment,
     RejectedTodayBlock? Rejected,
     VoidRequestsBlock? VoidRequests,
-    CashBlock? Cash);
+    CashBlock? Cash,
+    /// <summary>MS2-3: membresías vigentes o por empezar con saldo por cobrar; nulo si falló la lectura.</summary>
+    UnpaidBlock? Unpaid = null);
+
+/// <summary>Membresías pendientes de pago (MS2-3): cuántas, cuánto se debe en total y las primeras filas.</summary>
+public sealed record UnpaidBlock(int Count, decimal TotalDue, IReadOnlyList<UnpaidMembershipRow> Items);
+
+public sealed record UnpaidMembershipRow(Guid MemberId, string MemberName, string PlanName, decimal AmountDue);
 
 public sealed record EquipmentAttentionBlock(
     int OutOfService,

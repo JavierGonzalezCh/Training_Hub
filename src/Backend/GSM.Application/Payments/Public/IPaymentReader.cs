@@ -26,6 +26,10 @@ public interface IPaymentReader
     /// </summary>
     Task<decimal> GetNetPaidForMembershipAsync(Guid membershipId, CancellationToken cancellationToken = default);
 
+    /// <summary>Lo mismo que <see cref="GetNetPaidForMembershipAsync"/> para varias membresías (sin pagos = sin fila).</summary>
+    Task<IReadOnlyDictionary<Guid, decimal>> GetNetPaidForMembershipsAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<MemberPaymentView>> GetRecentByMemberAsync(
         Guid memberId, int limit, CancellationToken cancellationToken = default);
 

@@ -238,6 +238,13 @@ else if (_member is not null)
                                     Tiquetera: @PlanDurationLabels.Balance(context.EntriesLeft ?? 0, passTotal)
                                 </MudText>
                             }
+                            @if (context.AmountDue is { } due && due > 0)
+                            {
+                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small"
+                                         Class="gsm-mono d-block" data-testid="amount-due">
+                                    PENDIENTE DE PAGO · @GsmFormat.Money((decimal)due)
+                                </MudChip>
+                            }
                             @if (context.GroupId is not null)
                             {
                                 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block" data-testid="group-role">

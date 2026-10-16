@@ -9,4 +9,8 @@ namespace GSM.Application.Memberships.Abstractions;
 public interface IMembershipPaidAmountProvider
 {
     Task<decimal> GetNetPaidAsync(Guid membershipId, CancellationToken cancellationToken = default);
+
+    /// <summary>Lo pagado por cada membresía pedida (las que no tienen pagos no aparecen). MS2-3: "pendiente de pago".</summary>
+    Task<IReadOnlyDictionary<Guid, decimal>> GetNetPaidAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default);
 }

@@ -8,4 +8,8 @@ public sealed class PaymentsMembershipPaidAmountProvider(IPaymentReader payments
 {
     public Task<decimal> GetNetPaidAsync(Guid membershipId, CancellationToken cancellationToken = default)
         => payments.GetNetPaidForMembershipAsync(membershipId, cancellationToken);
+
+    public Task<IReadOnlyDictionary<Guid, decimal>> GetNetPaidAsync(
+        IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default)
+        => payments.GetNetPaidForMembershipsAsync(membershipIds, cancellationToken);
 }

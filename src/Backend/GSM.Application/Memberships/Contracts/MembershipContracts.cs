@@ -98,7 +98,12 @@ public sealed record MembershipResponse(
     string? CreditAdjustmentReason,
     Guid? ReplacesMembershipId,
     Guid? GroupId,
-    bool IsGroupHolder);
+    bool IsGroupHolder,
+    /// <summary>
+    /// MS2-3: lo que falta por cobrar (total a cobrar − lo pagado), solo si es mayor que 0 y la membresía no está
+    /// cancelada; nulo si está paga. Solo lo trae la lista de la ficha.
+    /// </summary>
+    decimal? AmountDue = null);
 
 /// <summary>
 /// Congela una membresía (§5.2). Sin fechas = abierto desde hoy (termina al reanudar). Con

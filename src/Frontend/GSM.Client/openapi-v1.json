@@ -24158,6 +24158,16 @@
                 "$ref": "#/components/schemas/CashBlock"
               }
             ]
+          },
+          "unpaid": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UnpaidBlock"
+              }
+            ]
           }
         }
       },
@@ -31391,6 +31401,15 @@
           },
           "isGroupHolder": {
             "type": "boolean"
+          },
+          "amountDue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -35804,6 +35823,15 @@
               "string"
             ],
             "format": "int32"
+          },
+          "notMarked": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SkippedAttendee"
+            }
           }
         }
       },
@@ -37356,6 +37384,26 @@
           }
         }
       },
+      "SkippedAttendee": {
+        "required": [
+          "memberId",
+          "memberName",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "SpecialDayResponse": {
         "required": [
           "date",
@@ -38353,6 +38401,67 @@
           "unlockedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "UnpaidBlock": {
+        "required": [
+          "count",
+          "totalDue",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalDue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnpaidMembershipRow"
+            }
+          }
+        }
+      },
+      "UnpaidMembershipRow": {
+        "required": [
+          "memberId",
+          "memberName",
+          "planName",
+          "amountDue"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "planName": {
+            "type": "string"
+          },
+          "amountDue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },

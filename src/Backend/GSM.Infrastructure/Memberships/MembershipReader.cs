@@ -250,6 +250,21 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ChargeableMembershipView>> GetChargeableAsync(
+        Guid gymId, CancellationToken cancellationToken = default)
+    {
+        var today = clock.Today;
+        return await Memberships
+            .Where(m => m.GymId == gymId
+                && m.Status == MembershipStatus.Active
+                && m.EndDate >= today
+                && m.AgreedPrice + m.EnrollmentFee - m.CreditApplied > 0)
+            .Join(Plans, m => m.PlanId, p => p.Id,
+                (m, p) => new ChargeableMembershipView(
+                    m.Id, m.MemberId, p.Name, m.AgreedPrice + m.EnrollmentFee - m.CreditApplied, m.StartDate))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ReminderMembershipView>> GetReminderCandidatesAsync(
         Guid gymId, int daysBefore, CancellationToken cancellationToken = default)
     {

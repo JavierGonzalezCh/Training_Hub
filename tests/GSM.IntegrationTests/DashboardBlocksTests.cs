@@ -1,4 +1,6 @@
 using GSM.Application.Dashboard;
+using GSM.Application.Memberships;
+using GSM.Domain.Memberships;
 using GSM.Application.Equipment.Public;
 using GSM.Application.Payments.Public;
 using GSM.Domain.Attendance;
@@ -52,6 +54,36 @@ public sealed class DashboardBlocksTests(ApiFactory factory) : IClassFixture<Api
         var cash = Assert.IsType<CashBlock>(owner.Attention.Cash);
         Assert.False(cash.IsMine);
         Assert.Equal(50_000m, cash.ExpectedCash);
+    }
+
+    // ---------- MS2-3: pendientes de pago ----------
+
+    [Fact]
+    public async Task A_membership_with_a_balance_shows_as_unpaid_in_the_member_file_and_the_dashboard()
+    {
+        var w = await SeedAsync();
+        var (partial, paid, cancelled) = await SeedChargeableMembershipsAsync(w);
+
+        // Ficha: la de 100.000 con 40.000 pagados debe 60.000; la paga y la cancelada no deben nada.
+        using (var scope = factory.CreateScopeWithMigration())
+        {
+            Pin(scope, w, w.StaffId, UserRole.Staff, null);
+            var list = await scope.ServiceProvider.GetRequiredService<ListMemberMembershipsHandler>()
+                .HandleAsync(w.MemberId, default);
+            Assert.Equal(60_000m, list.Single(m => m.Id == partial).AmountDue);
+            Assert.Null(list.Single(m => m.Id == paid).AmountDue);
+            Assert.Null(list.Single(m => m.Id == cancelled).AmountDue);
+        }
+
+        // Dashboard: cualquier staff lo ve (es quien cobra).
+        var staff = await RunAsync(w, w.StaffId, UserRole.Staff);
+        var unpaid = Assert.IsType<UnpaidBlock>(staff.Attention!.Unpaid);
+        Assert.Equal(1, unpaid.Count);
+        Assert.Equal(60_000m, unpaid.TotalDue);
+        var row = Assert.Single(unpaid.Items);
+        Assert.Equal(w.MemberId, row.MemberId);
+        Assert.Equal("Ana Prueba", row.MemberName);
+        Assert.Equal(60_000m, row.AmountDue);
     }
 
     [Fact]
@@ -261,6 +293,29 @@ public sealed class DashboardBlocksTests(ApiFactory factory) : IClassFixture<Api
         return new World(gym.Id, owner.Id, staff.Id, otherStaff.Id, member.Id);
     }
 
+    /// <summary>Tres membresías de 100.000: una con 40.000 pagados, una paga entera y una cancelada sin pagar.</summary>
+    private async Task<(Guid Partial, Guid Paid, Guid Cancelled)> SeedChargeableMembershipsAsync(World w)
+    {
+        using var scope = factory.CreateScopeWithMigration();
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+        var clock = scope.ServiceProvider.GetRequiredService<MutableClock>();
+        clock.PinToBusinessDay(Day);
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var at = clock.BusinessDayRange(Day).Start.AddHours(9);
+
+        var plan = MembershipPlan.Create(w.GymId, "Mensual", null, 100_000m, 30);
+        var pricing = MembershipPricing.Resolve(100_000m, null, null, 0m, false, false, null);
+        var partial = Membership.Create(w.GymId, w.MemberId, plan.Id, Day, 30, pricing: pricing);
+        var paid = Membership.Create(w.GymId, w.MemberId, plan.Id, Day.AddDays(30), 30, pricing: pricing);
+        var cancelled = Membership.Create(w.GymId, w.MemberId, plan.Id, Day.AddDays(60), 30, pricing: pricing);
+        cancelled.Cancel("Error", at);
+        db.AddRange(plan, partial, paid, cancelled);
+        db.Add(Payment.Create(w.GymId, w.MemberId, partial.Id, 40_000m, PaymentMethod.Cash, "Mensualidad", null, w.StaffId, at));
+        db.Add(Payment.Create(w.GymId, w.MemberId, paid.Id, 100_000m, PaymentMethod.Card, "Mensualidad", null, w.StaffId, at));
+        await db.SaveChangesAsync();
+        return (partial.Id, paid.Id, cancelled.Id);
+    }
+
     private async Task AssignTrainerAsync(World w, Guid trainerId)
     {
         using var scope = factory.CreateScopeWithMigration();
@@ -343,6 +398,9 @@ public sealed class DashboardBlocksTests(ApiFactory factory) : IClassFixture<Api
             => throw Boom();
 
         public Task<decimal> GetNetPaidForMembershipAsync(Guid membershipId, CancellationToken cancellationToken = default)
+            => throw Boom();
+
+        public Task<IReadOnlyDictionary<Guid, decimal>> GetNetPaidForMembershipsAsync(IReadOnlyCollection<Guid> membershipIds, CancellationToken cancellationToken = default)
             => throw Boom();
 
         public Task<IReadOnlyList<MemberPaymentView>> GetRecentByMemberAsync(Guid memberId, int limit, CancellationToken cancellationToken = default)

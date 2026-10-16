@@ -189,7 +189,7 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **C1-1:** las tiqueteras aún no existen (MS5); la regla de cobertura de clases por entradas queda pendiente para cuando existan.
 - **C1-2:** cuando el gym cambia su horario, las sesiones futuras con reservas que ya no caben se cancelan **de forma perezosa al abrir el horario del staff** (un GET escribe). ¿Se prefiere un evento `OpeningHoursChanged` de Gyms o la tarea periódica?
 - **C1-3:** el aviso al miembro sale por `ClassSessionCancelled` con motivo "Gym cerrado"; revisar el texto.
-- **C1-4:** marcar asistencia con un asistente que no está al día rechaza **el lote entero** nombrando a la persona. ¿O solo a esa persona?
+- **[DECIDIDA 2026-10-16: se guardan los que están al día y la respuesta trae `NotMarked` con quién quedó fuera y por qué. Hecho, con test.]** **C1-4:** marcar asistencia con un asistente que no está al día rechaza **el lote entero** nombrando a la persona. ¿O solo a esa persona?
 - **C1-5:** 409 para "gym cerrado"/"no está al día" al reservar o marcar; 422 al crear/editar fuera de horario. Confirmar.
 - **C1-6:** la cobertura de la asistencia se mide en la fecha de la sesión, no hoy. Confirmar.
 - **C1-7:** el roster no muestra "Gym cerrado" (solo el horario). ¿Hace falta?
@@ -202,7 +202,7 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **I5-7:** el límite de 5 códigos por hora no se le avisa al miembro (solo no le llega). ¿Mensaje explícito?
 - Observación de I5: `RefreshTokenService.IssueAsync` usa `DateTimeOffset.UtcNow` en vez de `IClock` (candidato a `BUGS.md`).
 
-- **P3-1:** la caja "olvidada" = abierta hace más de **16 h**. Antes de eso, cualquier staff cobra en efectivo en la caja abierta de otro. ¿Se bloquea al staff que no abrió la caja?
+- **[DECIDIDA 2026-10-16: caja compartida, como está (una sede, un cajón; cada cobro queda firmado por quien lo hizo). Sin cambios.]** **P3-1:** la caja "olvidada" = abierta hace más de **16 h**. Antes de eso, cualquier staff cobra en efectivo en la caja abierta de otro. ¿Se bloquea al staff que no abrió la caja?
 - **P3-2:** mover dinero y cerrar: solo quien abrió la caja o el Owner (`ViewFinances` no basta). Confirmar.
 - **P3-3:** un retiro mayor al efectivo esperado se permite sin límite. ¿Se bloquea?
 - **P3-4:** la barra de la caja solo está en `/payments`, no en Recepción. ¿Se lleva también a Recepción?
@@ -324,7 +324,7 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **A3-4:** se quitó "Kiosco" del menú (los botones llevan a "Configurar kiosco" en `/settings`). El kiosco es solo web.
 - **MS2-1:** la matrícula se configura en la pestaña Check-in de `/settings` (solo Owner). ¿Otra ubicación?
 - **MS2-2:** se cobra matrícula solo si el miembro nunca tuvo membresía (las canceladas cuentan como historial). Confirmar.
-- **MS2-3:** el servidor no impide una membresía sin pago (el cobro obligatorio lo impone el diálogo). Evitarlo exigiría escritura cruzada o chequeo diferido. ¿Se acepta?
+- **[DECIDIDA 2026-10-16: "pendiente de pago" visible — `AmountDue` en la lista de membresías de la ficha y bloque `Unpaid` en "Requiere atención" del dashboard; no bloquea la entrada. Hecho, con tests.]** **MS2-3:** el servidor no impide una membresía sin pago (el cobro obligatorio lo impone el diálogo). Evitarlo exigiría escritura cruzada o chequeo diferido. ¿Se acepta?
 - **LG3-1:** R2 sin test (el `AmazonS3Client` se crea en el constructor). ¿Inyectar `IAmazonS3`?
 - **LG3-2:** la app Windows (MAUI) no reporta errores (la spec no lista `windows`). ¿Se agrega?
 - **LG3-3 (para LG5):** "5 fallas seguidas del mismo proveedor" no puede saber si hubo un éxito entre medias (no se registran éxitos). Decidir antes de LG5.
@@ -339,7 +339,7 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 - **MS3-2:** la membresía no guarda la unidad ni la duración del plan; si MS5/MS6 las necesitan, habrá que guardarlas.
 - **A4-1:** "Bienvenido/a, Ana" (no hay dato de género). ¿Se queda así?
 - **A4-2:** con el QR apagado, el kiosco muestra "desactivado" aunque el documento esté encendido. ¿Debe funcionar el documento sin QR?
-- **A4-3:** el bloqueo por intentos vive en memoria (un reinicio lo limpia; no sirve con varias instancias).
+- **[DECIDIDA 2026-10-16: se queda en memoria (un solo servidor); revisar si algún día hay varias instancias.]** **A4-3:** el bloqueo por intentos vive en memoria (un reinicio lo limpia; no sirve con varias instancias).
 - **A4-4:** el documento se compara sin tipo: dos miembros con el mismo número y distinto tipo son rechazados los dos.
 - **A4-5:** el ajuste se llama `ByDocument` y vive en `attendance.checkin_settings`, no en `GymFeatureFlags` (la spec dice `CheckinByDocument`). ¿Se acepta?
 - **R5-1:** se agregaron PUT/DELETE de alternativas por gym sin pantalla en el panel (la del SuperAdmin es S4). ¿Hace falta pantalla para el staff?
