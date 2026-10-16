@@ -1,6 +1,7 @@
 ﻿@page "/"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Attendance
+@using GSM.Panel.UI.Pages.Onboarding
 @implements IDisposable
 @inject GymContext GymContext
 @inject IDashboardClient Dashboard
@@ -21,6 +22,8 @@
         </MudButton>
     </Actions>
 </PageHeader>
+
+<ToCompleteCard />
 
 @if (_loading)
 {

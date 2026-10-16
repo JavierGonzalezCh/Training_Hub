@@ -30,7 +30,16 @@ public interface IIdentityReader
     /// y el contacto de facturación se resuelven contra esta lista.
     /// </summary>
     Task<IReadOnlyList<GymOwnerDto>> ListActiveOwnersAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// G5: lo que el gym tiene armado en su equipo, para la lista "Para completar" del onboarding: cuentas de
+    /// staff activas (sin contar Owners) y kioscos emparejados y no revocados.
+    /// </summary>
+    Task<GymTeamSetup> GetTeamSetupAsync(Guid gymId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Staff activo (sin Owners) y kioscos emparejados vigentes de un gym.</summary>
+public sealed record GymTeamSetup(int ActiveStaff, int PairedKiosks);
 
 /// <summary>Un Owner activo del gym.</summary>
 public sealed record GymOwnerDto(Guid UserId, string FullName, string Email);

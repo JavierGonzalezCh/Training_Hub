@@ -1,0 +1,111 @@
+@* Onboarding del gym en la ficha del SuperAdmin (Gyms §5/§9): en qué paso va y "Omitir onboarding" (con motivo,
+   auditado) para casos de soporte, por ejemplo una migración de datos hecha por el equipo. *@
+@inject IAdminGymsClient AdminGyms
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h6" Class="mb-2">Onboarding</MudText>
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_state is null)
+{
+    <MudText Color="Color.Secondary" Class="mb-6">No se pudo leer el estado del onboarding.</MudText>
+}
+else
+{
+    <div class="mb-6" data-testid="admin-onboarding">
+        @if (_state.IsComplete)
+        {
+            <MudText data-testid="admin-onboarding-status">
+                @(_state.WasSkipped ? "Omitido por soporte" : "Completo")
+                @if (_state.CompletedAt is { } at)
+                {
+                    <span> · @GsmFormat.Instant(at)</span>
+                }
+            </MudText>
+            @if (_state.WasSkipped && !string.IsNullOrEmpty(_state.SkipReason))
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="admin-onboarding-reason">
+                    Motivo: @_state.SkipReason
+                </MudText>
+            }
+        }
+        else
+        {
+            <MudText data-testid="admin-onboarding-status">
+                Pendiente · paso siguiente: @StepLabel(_state.NextStep)
+            </MudText>
+        }
+
+        <ul class="mt-2" style="padding-left:1.25rem">
+            @foreach (var step in _state.Steps)
+            {
+                <li data-testid="@($"admin-onboarding-{step.Key}")">
+                    @StepLabel(step.Key): @(step.Done ? "hecho" : "pendiente")@(step.Required ? "" : " (opcional)")
+                </li>
+            }
+        </ul>
+
+        @if (!_state.IsComplete)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning" Class="mt-2" OnClick="SkipAsync"
+                       data-testid="admin-onboarding-skip">
+                Omitir onboarding
+            </MudButton>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid GymId { get; set; }
+
+    private OnboardingResponse? _state;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _state = await AdminGyms.OnboardingAsync(GymId);
+        }
+        catch (GsmApiException)
+        {
+            _state = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SkipAsync()
+    {
+        var parameters = new DialogParameters<SkipOnboardingDialog> { { x => x.GymId, GymId } };
+        var dialog = await Dialogs.ShowAsync<SkipOnboardingDialog>("Omitir onboarding", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Onboarding omitido. Queda registrado en la auditoría.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    internal static string StepLabel(string? key) => key switch
+    {
+        "gym" => "Tu gym",
+        "location" => "Ubicación",
+        "hours" => "Horario",
+        "equipment" => "Máquinas",
+        "plans" => "Planes",
+        "entry" => "Entrada al gym",
+        "team" => "Tu equipo",
+        null => "—",
+        _ => key,
+    };
+}

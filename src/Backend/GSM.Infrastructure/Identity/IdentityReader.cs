@@ -119,4 +119,20 @@ public sealed class IdentityReader(GsmDbContext dbContext) : IIdentityReader
                 select new GymOwnerDto(user.Id, user.FullName, user.Email!))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+
+    public async Task<GymTeamSetup> GetTeamSetupAsync(Guid gymId, CancellationToken cancellationToken = default)
+    {
+        var staff = await (
+                from access in dbContext.GymAccesses
+                join user in dbContext.Users on access.UserId equals user.Id
+                where access.GymId == gymId && access.Role == UserRole.Staff && access.IsActive && user.IsActive
+                select access.Id)
+            .CountAsync(cancellationToken);
+
+        var kiosks = await dbContext.KioskDevices
+            .Where(k => k.GymId == gymId && k.PairedAt != null && k.RevokedAt == null)
+            .CountAsync(cancellationToken);
+
+        return new GymTeamSetup(staff, kiosks);
+    }
 }
