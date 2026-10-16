@@ -112,6 +112,31 @@ public sealed class AcceptConsentRequestValidator : AbstractValidator<AcceptCons
     }
 }
 
+public sealed class UpdateMyProfileRequestValidator : AbstractValidator<UpdateMyProfileRequest>
+{
+    // Solo la forma (400). Teléfono ininterpretable, identidad cambiada, etc. son del dominio o del caso de uso.
+    public UpdateMyProfileRequestValidator()
+    {
+        RuleFor(x => x.Phone).MaximumLength(30);
+        RuleFor(x => x.Address).MaximumLength(200);
+        RuleFor(x => x.City).MaximumLength(100);
+        RuleFor(x => x.EmergencyContactName).MaximumLength(150);
+        RuleFor(x => x.EmergencyContactRelationship).MaximumLength(50);
+        RuleFor(x => x.EmergencyContactPhone).MaximumLength(30);
+        RuleFor(x => x.FirstName).MaximumLength(100);
+        RuleFor(x => x.LastName).MaximumLength(100);
+        RuleFor(x => x.DocumentType).MaximumLength(20);
+        RuleFor(x => x.DocumentNumber).MaximumLength(30);
+        RuleFor(x => x.Email).MaximumLength(256);
+        When(x => x.Health is not null, () =>
+        {
+            RuleFor(x => x.Health!.MedicalConditions).MaximumLength(Member.HealthTextMaxLength);
+            RuleFor(x => x.Health!.Medications).MaximumLength(Member.HealthTextMaxLength);
+            RuleFor(x => x.Health!.TrainingRestrictions).MaximumLength(Member.HealthTextMaxLength);
+        });
+    }
+}
+
 public sealed class UpdateMemberHealthRequestValidator : AbstractValidator<UpdateMemberHealthRequest>
 {
     public UpdateMemberHealthRequestValidator()

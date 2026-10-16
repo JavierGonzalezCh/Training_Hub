@@ -1,0 +1,172 @@
+@* Mediciones propias de "Mi perfil" (M5): peso y altura con el IMC que calcula el servidor y una gráfica de la
+   evolución del peso. Sin la autorización de datos están bloqueadas; un menor no las escribe (CanEdit = false). *@
+@using System.Globalization
+@inject IMeProfileClient ProfileApi
+@inject ISnackbar Snackbar
+
+<section class="gsm-m-card gsm-profile__measurements" style="display:block">
+    <h2 class="gsm-m-card__title">Mis mediciones</h2>
+
+    @if (ConsentRequired)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="gsm-profile__measurements-locked">
+            Se desbloquean al aceptar la autorización de tratamiento de datos.
+        </MudText>
+    }
+    else if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        @if (CanEdit)
+        {
+            <MudGrid Class="mb-1">
+                <MudItem xs="6">
+                    <MudTextField T="string" @bind-Value="_weight" Label="Peso (kg)" Immediate="true" Disabled="_saving"
+                                  Class="gsm-profile__weight" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField T="string" @bind-Value="_height" Label="Altura (cm)" Immediate="true" Disabled="_saving"
+                                  Class="gsm-profile__height" HelperText="Opcional" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync" Class="gsm-profile__add-measurement"
+                       Disabled="_saving || string.IsNullOrWhiteSpace(_weight)">
+                @(_saving ? "Guardando..." : "Añadir medición")
+            </MudButton>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Las mediciones de un menor de edad las registra el staff.
+            </MudText>
+        }
+
+        @if (_items.Count == 0)
+        {
+            <MudText Class="mt-3 gsm-profile__measurements-empty" Color="Color.Secondary">Sin mediciones todavía.</MudText>
+        }
+        else
+        {
+            @if (_items.Count >= 2)
+            {
+                <MudChart ChartType="ChartType.Line" ChartSeries="_series" XAxisLabels="_labels" Width="100%" Height="220px"
+                          Class="mt-3 gsm-profile__chart" />
+            }
+
+            <MudSimpleTable Dense="true" Class="mt-3 gsm-profile__measurements-table">
+                <thead>
+                    <tr><th>Fecha</th><th>Peso</th><th>Altura</th><th>IMC</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in _items)
+                    {
+                        <tr class="gsm-profile__measurement-row">
+                            <td>@GsmFormat.Day(m.MeasuredOn)</td>
+                            <td>@m.WeightKg.ToString("0.##", CultureInfo.CurrentCulture) kg</td>
+                            <td>@(m.EffectiveHeightCm is { } h ? $"{h.ToString("0.#", CultureInfo.CurrentCulture)} cm" : "—")</td>
+                            <td>@(m.Bmi is { } b ? b.ToString("0.0", CultureInfo.CurrentCulture) : "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
+</section>
+
+@code {
+    [Parameter] public bool CanEdit { get; set; }
+
+    /// <summary>Sin la autorización de datos no se pide nada al servidor: la sección está bloqueada.</summary>
+    [Parameter] public bool ConsentRequired { get; set; }
+
+    private List<MemberMeasurementItem> _items = [];
+    private List<ChartSeries> _series = [];
+    private string[] _labels = [];
+    private string? _weight;
+    private string? _height;
+    private bool _loading = true;
+    private bool _saving;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ConsentRequired)
+        {
+            _loading = false;
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var view = await ProfileApi.ListMyMeasurementsAsync();
+            _items = (view.Items ?? []).ToList();
+            BuildChart();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void BuildChart()
+    {
+        // La lista llega de la más reciente a la más antigua; la gráfica va de izquierda (antigua) a derecha.
+        var ordered = _items.OrderBy(m => m.MeasuredOn).ToList();
+        _labels = ordered.Select(m => GsmFormat.Day(m.MeasuredOn)).ToArray();
+        _series = [new ChartSeries { Name = "Peso (kg)", Data = ordered.Select(m => (double)m.WeightKg).ToArray() }];
+    }
+
+    // Acepta coma o punto decimal (teclado en español).
+    private static bool TryParse(string? text, out double value)
+        => double.TryParse((text ?? string.Empty).Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+
+    private async Task AddAsync()
+    {
+        if (!TryParse(_weight, out var weight))
+        {
+            Snackbar.Add("El peso no es un número válido.", Severity.Warning);
+            return;
+        }
+
+        double? height = null;
+        if (!string.IsNullOrWhiteSpace(_height))
+        {
+            if (!TryParse(_height, out var parsed))
+            {
+                Snackbar.Add("La altura no es un número válido.", Severity.Warning);
+                return;
+            }
+
+            height = parsed;
+        }
+
+        _saving = true;
+        try
+        {
+            await ProfileApi.AddMyMeasurementAsync(new AddMemberMeasurementRequest { WeightKg = weight, HeightCm = height });
+            _weight = null;
+            _height = null;
+            await LoadAsync();
+            Snackbar.Add("Medición añadida.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}
