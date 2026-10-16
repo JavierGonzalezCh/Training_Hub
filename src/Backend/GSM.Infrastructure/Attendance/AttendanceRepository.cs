@@ -11,6 +11,41 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
 
     public void Add(AttendanceEntity attendance) => Attendances.Add(attendance);
 
+    // Candado de sesión (no de transacción): debe abarcar la lectura de las entradas del día y el SaveChanges, que
+    // abre su propia transacción. Por eso se fija la conexión abierta hasta liberarlo.
+    public async Task<IAsyncDisposable> LockMemberAsync(Guid memberId, CancellationToken cancellationToken = default)
+    {
+        var key = $"checkin:{memberId}";
+        var database = dbContext.Database;
+        var wasOpen = database.GetDbConnection().State == System.Data.ConnectionState.Open;
+        if (!wasOpen)
+        {
+            await database.OpenConnectionAsync(cancellationToken);
+        }
+
+        await database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_lock(hashtextextended({key}, 0))", cancellationToken);
+        return new MemberLock(database, key, wasOpen);
+    }
+
+    private sealed class MemberLock(
+        Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade database, string key, bool wasOpen) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            try
+            {
+                await database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_unlock(hashtextextended({key}, 0))");
+            }
+            finally
+            {
+                if (!wasOpen)
+                {
+                    await database.CloseConnectionAsync();
+                }
+            }
+        }
+    }
+
     public Task<AttendanceEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => Attendances.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 

@@ -15,16 +15,18 @@ public sealed class AttendanceController : ControllerBase
     /// <summary>
     /// Registrar entrada. Staff pasa memberId; un miembro se registra a sí mismo. Una sola entrada por día
     /// (salvo que el staff le haya habilitado entradas múltiples: hasta su máximo, con 2 horas entre una y
-    /// otra): repetir es 409 (`already_checked_in`).
+    /// otra): repetir es 409 (`already_checked_in`). Idempotente (A1b): un escaneo repetido dentro de 2 minutos
+    /// devuelve la misma entrada con 200 en vez de crear otra.
     /// </summary>
     [HttpPost("checkin")]
     [Authorize]
     [ProducesResponseType<CheckInResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<CheckInResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CheckInResponse>> CheckIn(
         CheckInRequest request, [FromServices] CheckInHandler handler, CancellationToken cancellationToken)
     {
-        var (response, _) = await handler.HandleAsync(request, cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, response);
+        var (response, created) = await handler.HandleAsync(request, cancellationToken);
+        return created ? StatusCode(StatusCodes.Status201Created, response) : Ok(response);
     }
 
     /// <summary>

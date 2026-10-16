@@ -9,6 +9,12 @@ public interface IAttendanceRepository
 {
     void Add(AttendanceEntity attendance);
 
+    /// <summary>
+    /// Candado por miembro (A1b) que se mantiene hasta liberar lo devuelto: dos registros simultáneos del mismo
+    /// miembro se hacen en fila, así que el segundo ve la entrada del primero y no crea otra.
+    /// </summary>
+    Task<IAsyncDisposable> LockMemberAsync(Guid memberId, CancellationToken cancellationToken = default);
+
     /// <summary>Entrada por id, anulada o no (para anular).</summary>
     Task<AttendanceEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 

@@ -112,7 +112,16 @@ public sealed class CheckInHandler(
 
         // Una entrada por día, por cualquier vía; el staff puede habilitar entradas múltiples (§3.2):
         // hasta el máximo del día y con 2 horas mínimo entre una y otra.
+        // A1b: el registro es idempotente. El candado pone en fila dos escaneos simultáneos del mismo miembro, y un
+        // segundo escaneo pegado al primero (doble toque, reintento por mala señal) devuelve la misma entrada en vez
+        // de crear otra (que en una tiquetera gastaría dos) o de responder 409.
+        await using var memberLock = await attendance.LockMemberAsync(member.Id, cancellationToken);
         var entriesToday = await attendance.GetEntriesOnDateAsync(member.Id, today, cancellationToken);
+        if (entriesToday.Count > 0 && clock.UtcNow - entriesToday[^1].CheckedInAt < DuplicateWindow)
+        {
+            return (await ReplayAsync(entriesToday[^1], member, cancellationToken), false);
+        }
+
         var rule = await entryRules.GetForMemberAsync(member.Id, cancellationToken);
         var allowance = EntryAllowance.Evaluate(entriesToday, rule, today, clock.UtcNow);
         if (!allowance.Allowed)
@@ -216,8 +225,28 @@ public sealed class CheckInHandler(
             ? await achievements.EvaluateForMemberAsync(member.Id, cancellationToken)
             : [];
 
+        var response = await BuildResponseAsync(record, member, access, notice, entriesLeft, unlocked, cancellationToken);
+        return (response, true);
+    }
+
+    /// <summary>Un escaneo repetido dentro de esta ventana devuelve la entrada ya registrada (A1b).</summary>
+    public static readonly TimeSpan DuplicateWindow = TimeSpan.FromMinutes(2);
+
+    /// <summary>La respuesta de una entrada que ya existía: mismo registro, estado actual, sin logros nuevos.</summary>
+    private async Task<CheckInResponse> ReplayAsync(
+        AttendanceEntity record, MemberInfo member, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Check-in repetido de miembro {MemberId}: se devuelve la entrada {AttendanceId}", member.Id, record.Id);
+        var access = await memberships.GetAccessStatusAsync(member.Id, cancellationToken);
+        return await BuildResponseAsync(record, member, access, access.Notice, access.EntriesLeft, [], cancellationToken);
+    }
+
+    private async Task<CheckInResponse> BuildResponseAsync(
+        AttendanceEntity record, MemberInfo member, AccessStatus access, string? notice, int? entriesLeft,
+        IReadOnlyList<UnlockedAchievement> unlocked, CancellationToken cancellationToken)
+    {
         var covered = access.Kind is AccessKind.Covered or AccessKind.Expiring;
-        var response = new CheckInResponse(
+        return new CheckInResponse(
             record.Id,
             member.Id,
             $"{member.FirstName} {member.LastName}",
@@ -236,8 +265,6 @@ public sealed class CheckInHandler(
             LocationCheck: record.LocationCheck?.ToString(),
             CountsForProgress: record.CountsForProgress,
             LocationNotice: GeoDistance.NoticeFor(record.LocationCheck));
-
-        return (response, true);
     }
 
     private async Task EnsureGymOpenAsync(Guid gymId, CancellationToken cancellationToken)

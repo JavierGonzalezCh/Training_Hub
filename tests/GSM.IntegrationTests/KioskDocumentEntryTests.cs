@@ -61,7 +61,8 @@ public sealed class KioskDocumentEntryTests(ApiFactory factory) : IClassFixture<
         Assert.Equal(saved.Id, notice.ReferenceId);
         Assert.Equal(GSM.Domain.Notifications.NotificationCategory.Security, notice.Category);
 
-        // Una entrada por día: la segunda es el mismo rechazo genérico.
+        // Una entrada por día: la segunda (pasada la ventana de idempotencia) es el mismo rechazo genérico.
+        await factory.AgeEntriesAsync(w.MemberId);
         var again = await kiosk.PostAsJsonAsync(Path, new { document = w.Document });
         Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
         Assert.Contains(KioskDocumentEntryHandler.GenericRejection, await again.Content.ReadAsStringAsync());

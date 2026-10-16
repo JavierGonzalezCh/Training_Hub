@@ -9593,7 +9593,7 @@ namespace GSM.Client.Generated
     {
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>Created</returns>
+        /// <returns>OK</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<CheckInResponse> CheckinAsync(CheckInRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -9707,7 +9707,7 @@ namespace GSM.Client.Generated
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>Created</returns>
+        /// <returns>OK</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<CheckInResponse> CheckinAsync(CheckInRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -9755,6 +9755,16 @@ namespace GSM.Client.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<CheckInResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<CheckInResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);

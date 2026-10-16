@@ -155,6 +155,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         var w = await SeedAsync(endedDaysAgo: -10);
         var code = CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today));
         await CheckInAsMember(w, code);
+        await factory.AgeEntriesAsync(w.MemberId);
 
         var first = await Assert.ThrowsAsync<ConflictException>(() => CheckInAsMember(w, code));
         Assert.Contains("Ya registraste tu entrada hoy a las", first.Message);
@@ -178,10 +179,47 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
+    public async Task A_repeated_scan_right_after_returns_the_same_entry_without_a_second_one_or_an_attempt()
+    {
+        var w = await SeedAsync(endedDaysAgo: -10);
+        var code = CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today));
+
+        var (first, created) = await CheckInAsMember(w, code);
+        var (again, createdAgain) = await CheckInAsMember(w, code);
+
+        Assert.True(created);
+        Assert.False(createdAgain);
+        Assert.Equal(first.AttendanceId, again.AttendanceId);
+        Assert.Empty(again.UnlockedAchievements);
+
+        using var s = Scope(w, UserRole.Staff);
+        var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
+        Assert.Equal(1, await db.Set<GSM.Domain.Attendance.Attendance>().CountAsync(a => a.GymId == w.GymId));
+        Assert.Equal(0, await db.Set<CheckinAttempt>().CountAsync(a => a.GymId == w.GymId));
+    }
+
+    [Fact]
+    public async Task Two_simultaneous_scans_register_a_single_entry()
+    {
+        var w = await SeedAsync(endedDaysAgo: -10);
+        var code = CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today));
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => CheckInAsMember(w, code)));
+
+        Assert.Single(results, r => r.Created);
+        Assert.Single(results.Select(r => r.Response.AttendanceId).Distinct());
+
+        using var s = Scope(w, UserRole.Staff);
+        var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
+        Assert.Equal(1, await db.Set<GSM.Domain.Attendance.Attendance>().CountAsync(a => a.GymId == w.GymId));
+    }
+
+    [Fact]
     public async Task Staff_cannot_register_a_second_entry_the_same_day_even_with_a_reason()
     {
         var w = await SeedAsync(endedDaysAgo: -10);
         await CheckInAsStaff(w);
+        await factory.AgeEntriesAsync(w.MemberId);
 
         var ex = await Assert.ThrowsAsync<ConflictException>(() => CheckInAsStaff(w, "Otra vez"));
         Assert.Contains("ya entró hoy a las", ex.Message);
@@ -198,6 +236,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
     {
         var w = await SeedAsync(endedDaysAgo: 1);
         await CheckInAsMember(w, CodeFor(w.GymId, CheckinMode.Rotating, 1, NowOf(Today)));
+        await factory.AgeEntriesAsync(w.MemberId);
 
         // Pasa la gracia (se acorta a 0) y escanea de nuevo: el motivo es "ya entró", no la membresía.
         using (var s = Scope(w, UserRole.Owner))

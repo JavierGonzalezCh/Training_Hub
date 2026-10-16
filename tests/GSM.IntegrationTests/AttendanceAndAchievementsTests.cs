@@ -60,6 +60,7 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
         }
 
         // Día 1 otra vez: una sola entrada por día (A1), el segundo intento es 409 y no suma logros.
+        await factory.AgeEntriesAsync(memberId);
         using (var scope = Staff(gymId, staffId, day1))
         {
             await Assert.ThrowsAsync<ConflictException>(() => scope.ServiceProvider.GetRequiredService<CheckInHandler>()
