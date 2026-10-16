@@ -1,0 +1,190 @@
+@* Pantalla de bloqueo del modo staff (apps y vistas §7). Se monta una vez en el host nativo; en la web
+   IDeviceLock es NullDeviceLock y no pinta nada. Cubre la app sin desmontarla (el estado se conserva). *@
+@using GSM.UI.Shared.Security
+@implements IDisposable
+@inject GymContext Gym
+@inject StaffLockState Lock
+@inject IDeviceLock Device
+@inject DevicePinService Pins
+@inject IAppLifecycle Lifecycle
+@inject SessionService Session
+@inject GSM.UI.Shared.Push.PushRegistrationService PushRegistration
+@inject NavigationManager Navigation
+
+@if (Device.IsSupported && Lock.IsLocked)
+{
+    <div class="gsm-lock-overlay" data-testid="device-lock"
+         style="position:fixed;inset:0;z-index:2000;background:var(--mud-palette-background);display:flex;align-items:center;justify-content:center;padding:16px;">
+        <MudPaper Class="pa-6" Style="max-width:360px;width:100%;" Elevation="4">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h5">App bloqueada</MudText>
+                @if (_creatingPin)
+                {
+                    <MudText Typo="Typo.body2">Tu teléfono no tiene bloqueo de pantalla. Crea un PIN de 4 a 6 dígitos para el modo staff.</MudText>
+                    <MudTextField T="string" @bind-Value="_pin" Label="PIN nuevo" InputType="InputType.Password" MaxLength="6" data-testid="lock-new-pin" />
+                    <MudTextField T="string" @bind-Value="_pinConfirm" Label="Repite el PIN" InputType="InputType.Password" MaxLength="6" data-testid="lock-confirm-pin" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreatePinAsync" data-testid="lock-create-pin">Guardar PIN</MudButton>
+                }
+                else if (_deviceAuth)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AuthenticateAsync" Disabled="_busy" data-testid="lock-biometric">Desbloquear con huella, rostro o PIN del teléfono</MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">Escribe tu PIN para continuar.</MudText>
+                    <MudTextField T="string" @bind-Value="_pin" Label="PIN" InputType="InputType.Password" MaxLength="6" data-testid="lock-pin" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VerifyPinAsync" data-testid="lock-verify-pin">Desbloquear</MudButton>
+                }
+                @if (_error is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" data-testid="lock-error">@_error</MudAlert>
+                }
+                <MudButton Variant="Variant.Text" OnClick="SignOutAsync" data-testid="lock-signout">Cerrar sesión</MudButton>
+            </MudStack>
+        </MudPaper>
+    </div>
+}
+
+@code {
+    private bool _creatingPin;
+    private bool _deviceAuth;
+    private bool _busy;
+    private string _pin = string.Empty;
+    private string _pinConfirm = string.Empty;
+    private string? _error;
+
+    private bool IsStaffMode => Gym.IsLoaded && AccessModes.IsTeam(Gym.Role);
+
+    protected override void OnInitialized()
+    {
+        Lock.Changed += OnLockChanged;
+        Gym.Changed += OnGymChanged;
+        Lifecycle.Backgrounded += OnBackgrounded;
+        Lifecycle.Foregrounded += OnForegrounded;
+        Lifecycle.Attach();
+        Evaluate();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // La ventana puede no existir al inicializar; se vuelve a intentar una vez pintado (idempotente).
+        if (firstRender)
+        {
+            Lifecycle.Attach();
+        }
+    }
+
+    private void Evaluate()
+    {
+        if (!Device.IsSupported)
+        {
+            return;
+        }
+
+        if (IsStaffMode)
+        {
+            Lock.CheckInitial(true);
+        }
+        else if (Gym.IsLoaded)
+        {
+            Lock.Reset();
+        }
+    }
+
+    private void OnGymChanged()
+    {
+        Evaluate();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnBackgrounded() => Lock.Backgrounded();
+
+    private void OnForegrounded() => Lock.Foregrounded(IsStaffMode);
+
+    private void OnLockChanged() => _ = InvokeAsync(Lock.IsLocked ? PrepareAsync : () => { StateHasChanged(); return Task.CompletedTask; });
+
+    private async Task PrepareAsync()
+    {
+        _error = null;
+        _pin = _pinConfirm = string.Empty;
+        _deviceAuth = await Device.IsDeviceAuthAvailableAsync();
+        _creatingPin = !_deviceAuth && !await Pins.HasPinAsync();
+        StateHasChanged();
+        if (_deviceAuth)
+        {
+            await AuthenticateAsync();
+        }
+    }
+
+    private async Task AuthenticateAsync()
+    {
+        _busy = true;
+        try
+        {
+            if (await Device.AuthenticateAsync("Desbloquea GSM para continuar"))
+            {
+                Lock.Unlock();
+            }
+            else
+            {
+                _error = "No se pudo verificar. Inténtalo de nuevo.";
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task CreatePinAsync()
+    {
+        if (!DevicePinService.IsValidFormat(_pin))
+        {
+            _error = "El PIN debe tener de 4 a 6 dígitos.";
+            return;
+        }
+
+        if (_pin != _pinConfirm)
+        {
+            _error = "Los PIN no coinciden.";
+            return;
+        }
+
+        await Pins.SetPinAsync(_pin);
+        Lock.Unlock();
+    }
+
+    private async Task VerifyPinAsync()
+    {
+        switch (await Pins.VerifyAsync(_pin))
+        {
+            case PinCheckResult.Ok:
+                Lock.Unlock();
+                break;
+            case PinCheckResult.TooManyAttempts:
+                await SignOutAsync();
+                break;
+            default:
+                _error = "PIN incorrecto.";
+                _pin = string.Empty;
+                break;
+        }
+    }
+
+    private async Task SignOutAsync()
+    {
+        Pins.Clear();
+        await PushRegistration.DisableAsync();
+        await Session.LogoutAsync();
+        Lock.Reset();
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        Lock.Changed -= OnLockChanged;
+        Gym.Changed -= OnGymChanged;
+        Lifecycle.Backgrounded -= OnBackgrounded;
+        Lifecycle.Foregrounded -= OnForegrounded;
+    }
+}

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
         <!-- Android primero, iOS después (ver docs/FRONTEND-BUILD-PLAN.md, F7.1). Sin host macOS en
@@ -42,6 +42,8 @@
         <PackageReference Include="MudBlazor" Version="8.5.1" />
         <!-- Lector de QR (12.6). OJO: ZXing.Net.Maui 1.0.0 es un paquete net6 antiguo; el mantenido es la 0.10.x con .Controls. -->
         <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.10.4" />
+        <!-- Bloqueo del modo staff (AP5): huella/rostro/PIN del teléfono en Android. Sin probar en dispositivo. -->
+        <PackageReference Include="Plugin.Fingerprint" Version="2.1.5" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
     </ItemGroup>
 
     <!-- Push en Android (N3): Firebase Cloud Messaging nativo. SIN VERIFICAR: la versión exacta del paquete la

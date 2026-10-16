@@ -42,6 +42,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<GSM.UI.Shared.IClipboard, MauiClipboard>();
         builder.Services.AddSingleton<IDeviceLocation, MauiDeviceLocation>();
         builder.Services.AddSingleton<GSM.UI.Shared.Diagnostics.IClientEnvironment, MauiClientEnvironment>();
+        builder.Services.AddGsmDeviceLock(); // AP5: bloqueo del modo staff
         MauiCrashReporter.Install(ApiBaseUrl);
 
 #if DEBUG
