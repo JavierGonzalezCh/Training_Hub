@@ -25,6 +25,7 @@ public sealed class RunCommunicationsJobHandler(
     ICommunicationsSettingsRepository settings,
     IDomainEventPublisher events,
     PublishBirthdayGreetingsHandler birthdays,
+    PublishScheduledAnnouncementsHandler scheduledAnnouncements,
     ILogger<RunCommunicationsJobHandler> logger)
 {
     /// <returns>Cuántos recordatorios de vencimiento y felicitaciones de cumpleaños se publicaron.</returns>
@@ -32,9 +33,11 @@ public sealed class RunCommunicationsJobHandler(
     {
         var reminders = await PublishRemindersAsync(cancellationToken);
         var greetings = await birthdays.HandleAsync(cancellationToken);
+        var announcements = await scheduledAnnouncements.HandleAsync(cancellationToken);
         logger.LogInformation(
-            "Tarea de comunicaciones: {Reminders} recordatorios y {Birthdays} cumpleaños publicados", reminders, greetings);
-        return new CommunicationsRunOutcome(reminders, greetings);
+            "Tarea de comunicaciones: {Reminders} recordatorios, {Birthdays} cumpleaños y {Announcements} anuncios programados publicados",
+            reminders, greetings, announcements);
+        return new CommunicationsRunOutcome(reminders, greetings, announcements);
     }
 
     /// <summary>

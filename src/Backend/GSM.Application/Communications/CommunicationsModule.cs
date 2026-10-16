@@ -9,6 +9,7 @@ public static class CommunicationsModuleRegistration
     public static IServiceCollection AddCommunicationsModule(this IServiceCollection services)
     {
         services.AddScoped<AnnouncementAudienceResolver>();
+        services.AddScoped<AnnouncementPublisher>();
         return services;
     }
 }

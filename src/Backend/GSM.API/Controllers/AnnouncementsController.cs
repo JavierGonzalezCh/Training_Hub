@@ -1,4 +1,5 @@
 using GSM.API.Auth;
+using GSM.API.Uploads;
 using GSM.Application.Common;
 using GSM.Application.Communications;
 using GSM.Application.Communications.Contracts;
@@ -136,6 +137,47 @@ public sealed class AnnouncementsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<AnnouncementResponse>> Publish(
         Guid id, [FromServices] PublishAnnouncementHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>
+    /// CO4: programa (o reprograma) la publicación para una hora futura. La publica la tarea periódica, unos
+    /// minutos después de la hora elegida como mucho, nunca antes. Publicado o archivado → 409; pasada → 422.
+    /// </summary>
+    [HttpPost("{id:guid}/schedule")]
+    [ProducesResponseType<AnnouncementResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<AnnouncementResponse>> Schedule(
+        Guid id,
+        ScheduleAnnouncementRequest request,
+        [FromServices] ScheduleAnnouncementHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
+    /// <summary>CO4: cancela la programación; el anuncio vuelve a borrador.</summary>
+    [HttpPost("{id:guid}/unschedule")]
+    [ProducesResponseType<AnnouncementResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AnnouncementResponse>> Unschedule(
+        Guid id, [FromServices] UnscheduleAnnouncementHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>CO4: sube o reemplaza la imagen (JPG, PNG o WebP, hasta 5 MB). Reemplaza y borra la anterior.</summary>
+    [HttpPost("{id:guid}/image")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType<AnnouncementResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<AnnouncementResponse>> UploadImage(
+        Guid id,
+        IFormFile file,
+        [FromServices] UploadAnnouncementImageHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
+
+    [HttpDelete("{id:guid}/image")]
+    [ProducesResponseType<AnnouncementResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<AnnouncementResponse>> RemoveImage(
+        Guid id, [FromServices] RemoveAnnouncementImageHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
 
     [HttpPost("{id:guid}/archive")]

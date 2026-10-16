@@ -113,6 +113,14 @@ public class PushUiTests : TestContext
 
         public Task<AnnouncementResponse> UnpinAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
+        public Task<AnnouncementResponse> ScheduleAsync(Guid id, ScheduleAnnouncementRequest body, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+        public Task<AnnouncementResponse> UnscheduleAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+        public Task<AnnouncementResponse> ImagePOSTAsync(Guid id, FileParameter file = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+        public Task<AnnouncementResponse> ImageDELETEAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
         public Task<AudiencePreviewResponse> AudiencePreviewAsync(AnnouncementAudienceDto body, CancellationToken cancellationToken = default)
             => Task.FromResult(new AudiencePreviewResponse { Count = 3, Truncated = false, Members = [] });
 

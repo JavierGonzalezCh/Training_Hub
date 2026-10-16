@@ -21,10 +21,10 @@ public sealed record UpdateCommunicationsSettingsRequest(int ReminderDaysBefore)
 /// Resumen de una ejecución de la tarea periódica: cuántos recordatorios de vencimiento se publicaron
 /// como evento (Notifications crea los avisos, sin duplicar) y cuántos avisos viejos se purgaron.
 /// </summary>
-public sealed record CommunicationsJobResult(int RemindersPublished, int NotificationsPurged, int BirthdaysPublished);
+public sealed record CommunicationsJobResult(int RemindersPublished, int NotificationsPurged, int BirthdaysPublished, int AnnouncementsPublished = 0);
 
 /// <summary>Lo que publicó la tarea: recordatorios de vencimiento y felicitaciones de cumpleaños.</summary>
-public sealed record CommunicationsRunOutcome(int Reminders, int Birthdays);
+public sealed record CommunicationsRunOutcome(int Reminders, int Birthdays, int Announcements = 0);
 
 /// <summary>Destinatarios de un anuncio por email (para avisar en el editor antes de publicar).</summary>
 public sealed record EmailAudienceResponse(int Recipients);

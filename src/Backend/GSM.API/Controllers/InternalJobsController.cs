@@ -50,9 +50,9 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
             {
                 var outcome = await handler.HandleAsync(cancellationToken);
                 return new CommunicationsJobResult(
-                    outcome.Reminders, await purge.HandleAsync(cancellationToken), outcome.Birthdays);
+                    outcome.Reminders, await purge.HandleAsync(cancellationToken), outcome.Birthdays, outcome.Announcements);
             },
-            r => (r.RemindersPublished + r.NotificationsPurged + r.BirthdaysPublished, 0));
+            r => (r.RemindersPublished + r.NotificationsPurged + r.BirthdaysPublished + r.AnnouncementsPublished, 0));
 
         // C4: vence las ofertas de la lista de espera y pasa el cupo al siguiente (idempotente).
         await runner.RunAsync(

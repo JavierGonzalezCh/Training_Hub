@@ -65,6 +65,10 @@ else
                         </div>
                         <h2 class="gsm-feed-card__title">@item.Title</h2>
                         <p class="gsm-feed-card__body">@item.Body</p>
+                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                        {
+                            <img class="gsm-announcement__image" src="@item.ImageUrl" alt="" loading="lazy" data-testid="feed-image" />
+                        }
                         <div class="gsm-reactions" role="group" aria-label="Reacciones">
                             @foreach (var kind in CommunicationLabels.Reactions)
                             {
