@@ -1,4 +1,6 @@
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Events;
+using GSM.Application.SuperAdmin.Events;
 using GSM.Application.Gyms.Public;
 using GSM.Application.SuperAdmin.Abstractions;
 using GSM.Application.SuperAdmin.Contracts;
@@ -17,6 +19,7 @@ public sealed class ReactivateGymHandler(
     IGymSubscriptionRepository subscriptions,
     SubscriptionDetailBuilder detailBuilder,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<ReactivateGymHandler> logger)
 {
     public async Task<SubscriptionDetail> HandleAsync(Guid gymId, CancellationToken cancellationToken)
@@ -40,6 +43,11 @@ public sealed class ReactivateGymHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Gym {GymId} reactivado", gymId);
+
+        // S3: los Owners se enteran. Después del commit; el id propio del hecho hace idempotente el aviso.
+        await events.PublishAsync(
+            new SubscriptionNoticeDue(gymId, SubscriptionNoticeKind.Reactivated, Guid.CreateVersion7(), null, null, null, null, null),
+            cancellationToken);
 
         return await detailBuilder.BuildAsync(sub, GymStatus.Active, cancellationToken);
     }
