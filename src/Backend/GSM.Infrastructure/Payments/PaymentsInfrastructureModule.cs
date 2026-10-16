@@ -16,6 +16,7 @@ public static class PaymentsInfrastructureRegistration
         services.AddScoped<IPaymentReader, PaymentReader>();
         services.AddScoped<IVoidRequestRepository, VoidRequestRepository>();
         services.AddScoped<ICashShiftRepository, CashShiftRepository>();
+        services.AddScoped<GSM.Application.Memberships.Abstractions.IMembershipPaidAmountProvider, PaymentsMembershipPaidAmountProvider>();
 
         return services;
     }

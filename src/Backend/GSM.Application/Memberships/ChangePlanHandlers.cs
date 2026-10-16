@@ -4,7 +4,6 @@ using GSM.Application.Members.Public;
 using GSM.Application.Memberships.Abstractions;
 using GSM.Application.Memberships.Contracts;
 using GSM.Application.Memberships.Events;
-using GSM.Application.Payments.Public;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
@@ -35,7 +34,7 @@ public sealed class PlanChangeResolver(
     IClock clock,
     IMemberReader members,
     IMembershipRepository memberships,
-    IPaymentReader payments)
+    IMembershipPaidAmountProvider payments)
 {
     public async Task<PlanChangeQuote> ResolveAsync(
         Guid memberId, Guid membershipId, ChangePlanRequest request, CancellationToken cancellationToken)
@@ -81,7 +80,7 @@ public sealed class PlanChangeResolver(
 
         var freezes = await memberships.GetFreezesAsync([current.Id], cancellationToken);
         var used = await MembershipLookup.UsedAsync(memberships, current, cancellationToken) ?? 0;
-        var netPaid = await payments.GetNetPaidForMembershipAsync(current.Id, cancellationToken);
+        var netPaid = await payments.GetNetPaidAsync(current.Id, cancellationToken);
 
         var credit = PlanChangeCredit.Compute(current, freezes, used, netPaid, today);
         var (creditValue, adjustReason) = credit.Resolve(request.CreditOverride, request.CreditAdjustmentReason);

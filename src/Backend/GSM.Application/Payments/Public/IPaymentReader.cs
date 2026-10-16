@@ -22,7 +22,7 @@ public interface IPaymentReader
 
     /// <summary>
     /// Lo que se pagó de verdad por una membresía: la suma de los asientos ligados a ella (cobros, y las anulaciones
-    /// y devoluciones, que son negativos). Memberships lo usa para calcular el crédito de un cambio de plan.
+    /// y devoluciones, que son negativos). Lo consume Memberships por su puerto <c>IMembershipPaidAmountProvider</c> (crédito del cambio de plan).
     /// </summary>
     Task<decimal> GetNetPaidForMembershipAsync(Guid membershipId, CancellationToken cancellationToken = default);
 
