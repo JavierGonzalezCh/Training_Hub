@@ -39,6 +39,12 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
     /// </summary>
     public bool MembersCanReportEquipment { get; private set; } = true;
 
+    /// <summary>
+    /// Muestra el ranking mensual voluntario de constancia (Achievements L6). Arranca en <c>true</c>; el gym lo apaga
+    /// si no lo quiere. Aun encendido, solo aparece quien acepta participar.
+    /// </summary>
+    public bool ShowRanking { get; private set; } = true;
+
     public static GymFeatureFlags Default(Guid gymId) => new() { GymId = gymId };
 
     public void Update(
@@ -50,7 +56,8 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         bool checkinQr,
         bool communityComments,
         bool membersCanCreateRoutines,
-        bool membersCanReportEquipment = true)
+        bool membersCanReportEquipment = true,
+        bool? showRanking = null)
     {
         ShowRoutines = showRoutines;
         ShowClasses = showClasses;
@@ -61,5 +68,6 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         CommunityComments = communityComments;
         MembersCanCreateRoutines = membersCanCreateRoutines;
         MembersCanReportEquipment = membersCanReportEquipment;
+        ShowRanking = showRanking ?? ShowRanking;
     }
 }

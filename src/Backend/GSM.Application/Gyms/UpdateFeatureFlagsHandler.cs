@@ -28,7 +28,8 @@ public sealed class UpdateFeatureFlagsHandler(
             request.CheckinQr,
             request.CommunityComments,
             request.MembersCanCreateRoutines,
-            request.MembersCanReportEquipment);
+            request.MembersCanReportEquipment,
+            request.ShowRanking);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Feature flags del gym {GymId} actualizados", gymId);

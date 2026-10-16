@@ -70,7 +70,8 @@ public sealed record UpdateFeatureFlagsRequest(
     bool CheckinQr,
     bool CommunityComments,
     bool MembersCanCreateRoutines,
-    bool MembersCanReportEquipment);
+    bool MembersCanReportEquipment,
+    bool? ShowRanking = null);
 
 public sealed record GymResponse(
     Guid Id,
@@ -135,4 +136,5 @@ public sealed record GymFeatureFlagsResponse(
     bool CheckinQr,
     bool CommunityComments,
     bool MembersCanCreateRoutines,
-    bool MembersCanReportEquipment);
+    bool MembersCanReportEquipment,
+    bool ShowRanking);

@@ -33,5 +33,8 @@ public sealed class GymFeatureFlagsConfiguration : IEntityTypeConfiguration<GymF
 
         // Reportar fallas de máquinas está permitido por defecto (Equipment E4); los gyms existentes lo heredan encendido.
         builder.Property(f => f.MembersCanReportEquipment).HasDefaultValue(true);
+
+        // El ranking voluntario arranca encendido (Achievements L6); los gyms existentes lo heredan encendido.
+        builder.Property(f => f.ShowRanking).HasDefaultValue(true);
     }
 }

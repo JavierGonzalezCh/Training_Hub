@@ -54,6 +54,36 @@ public sealed class MeController : ControllerBase
         [FromServices] GetMyAchievementsHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>Ranking mensual de constancia: top 10, mi posición y el podio del mes anterior. 403 si el gym lo apagó.</summary>
+    [HttpGet("ranking")]
+    [EndpointName("GetMyRanking")]
+    [ProducesResponseType<RankingResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<RankingResponse>> Ranking(
+        [FromServices] GetMyRankingHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Acepto aparecer en el ranking (o cambio cómo se me ve). Idempotente. 422 menores y alias inválido; 409 alias repetido.</summary>
+    [HttpPut("ranking/participation")]
+    [EndpointName("JoinMyRanking")]
+    [ProducesResponseType<RankingMeResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<RankingMeResponse>> JoinRanking(
+        JoinRankingRequest request, [FromServices] JoinRankingHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
+    /// <summary>Dejo de aparecer en el ranking.</summary>
+    [HttpDelete("ranking/participation")]
+    [EndpointName("LeaveMyRanking")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> LeaveRanking(
+        [FromServices] LeaveRankingHandler handler, CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(cancellationToken);
+        return NoContent();
+    }
+
     /// <summary>Rutina activa del miembro + qué toca hoy (o descanso). 403 si <c>show_routines = false</c>.</summary>
     [HttpGet("routines")]
     [ProducesResponseType<MyRoutineResponse>(StatusCodes.Status200OK)]
