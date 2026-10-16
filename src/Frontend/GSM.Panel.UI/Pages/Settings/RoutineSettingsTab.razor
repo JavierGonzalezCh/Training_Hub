@@ -1,0 +1,62 @@
+@* Pestaña "Rutinas" de la configuración (Routines R8): cada cuántas semanas se revisa una rutina. Solo Owner. *@
+@inject IRoutineSettingsClient RoutineSettings
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <div class="gsm-routine-settings">
+        <MudNumericField T="int" @bind-Value="_reviewWeeks" Label="Revisar la rutina cada (semanas)" Min="1" Max="52"
+                         HelperText="Al asignar una rutina, y cada vez que se marca como revisada, se fija la próxima revisión a estas semanas. Es un recordatorio para el entrenador: la rutina sigue activa aunque la fecha pase. Cambiarlo no mueve las fechas ya fijadas."
+                         Class="mb-4" Style="max-width:420px" id="routine-review-weeks" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving" id="routine-settings-save">
+            @(_saving ? "Guardando..." : "Guardar cambios")
+        </MudButton>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private int _reviewWeeks = 6;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _reviewWeeks = (await RoutineSettings.GetRoutineSettingsAsync()).ReviewWeeks;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var saved = await RoutineSettings.UpdateRoutineSettingsAsync(
+                new UpdateRoutineSettingsRequest { ReviewWeeks = _reviewWeeks });
+            _reviewWeeks = saved.ReviewWeeks;
+            Snackbar.Add("Ajustes de rutinas guardados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

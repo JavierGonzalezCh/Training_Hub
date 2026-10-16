@@ -105,6 +105,13 @@ public sealed class MemberReader(GsmDbContext dbContext) : IMemberReader
             .Select(m => m.Id)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> GetActiveMemberIdsByTrainerAsync(
+        Guid trainerUserId, CancellationToken cancellationToken = default)
+        => await Members
+            .Where(m => m.TrainerUserId == trainerUserId && m.Status == MemberStatus.Active)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<MemberBirthdayView>> GetBirthdaysOnAsync(
         Guid gymId, DateOnly day, CancellationToken cancellationToken = default)
     {

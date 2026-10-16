@@ -1,0 +1,50 @@
+@* Tarjeta del dashboard (Routines R8): rutinas por revisar. Bloque autónomo: si la lectura falla no se muestra
+   nada, no es motivo para romper el resumen. Para el entrenador cuenta las de sus miembros; para el resto, todas. *@
+@inject IRoutinesClient Routines
+
+@if (_due is { } due)
+{
+    <div data-testid="routines-due">
+        <a href="/routines/review" class="gsm-card-link" style="text-decoration:none;color:inherit">
+            <StatCard Label="Rutinas por revisar" Value="@due.Items.Count.ToString()"
+                      Accent="@(Overdue(due) > 0 ? Color.Warning : Color.Default)"
+                      Hint="@Hint(due)" />
+        </a>
+    </div>
+}
+
+@code {
+    private DueRoutinesResponse? _due;
+
+    public static string Hint(DueRoutinesResponse due, DateOnly today)
+    {
+        if (due.Items.Count == 0)
+        {
+            return "Nada pendiente";
+        }
+
+        var overdue = due.Items.Count(i => i.ReviewOn < today);
+        var scope = due.Mine ? "tus miembros" : "el gimnasio";
+        return overdue > 0
+            ? $"{overdue} atrasadas · {scope}"
+            : $"Vencen esta semana · {scope}";
+    }
+
+    private string Hint(DueRoutinesResponse due) => Hint(due, Today);
+
+    private int Overdue(DueRoutinesResponse due) => due.Items.Count(i => i.ReviewOn < Today);
+
+    private DateOnly Today => GsmFormat.Today();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _due = await Routines.GetRoutinesDueForReviewAsync(null);
+        }
+        catch (GsmApiException)
+        {
+            _due = null;
+        }
+    }
+}

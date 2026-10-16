@@ -19,6 +19,29 @@ public sealed class RoutinesController : ControllerBase
         Guid id, [FromServices] GetRoutineHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, cancellationToken));
 
+    /// <summary>
+    /// Rutinas por revisar (R8): activas con fecha de revisión vencida o en los próximos 7 días. Sin <c>mine</c>, el
+    /// entrenador ve las de sus miembros y el resto, todas; con <c>mine</c> se elige explícitamente.
+    /// </summary>
+    [HttpGet("due-for-review")]
+    [EndpointName("GetRoutinesDueForReview")]
+    [ProducesResponseType<DueRoutinesResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<DueRoutinesResponse>> DueForReview(
+        [FromQuery] bool? mine,
+        [FromServices] ListRoutinesDueForReviewHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(mine, cancellationToken));
+
+    /// <summary>Marca la rutina como revisada y corre su fecha de revisión.</summary>
+    [HttpPost("{id:guid}/review")]
+    [EndpointName("ReviewRoutine")]
+    [ProducesResponseType<RoutineReviewResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<RoutineReviewResponse>> Review(
+        Guid id, [FromServices] ReviewRoutineHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
     [HttpPut("{id:guid}")]
     [ProducesResponseType<RoutineResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<RoutineResponse>> Update(

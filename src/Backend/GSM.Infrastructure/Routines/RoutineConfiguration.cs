@@ -15,6 +15,10 @@ public sealed class RoutineConfiguration : IEntityTypeConfiguration<Routine>
         builder.Property(r => r.StartsOn).HasColumnType("date");
         builder.Property(r => r.DeactivatedOn).HasColumnType("date");
         builder.Property(r => r.ScheduleMode).HasDefaultValue(GSM.Domain.Routines.ScheduleMode.Rotating);
+        builder.Property(r => r.ReviewOn).HasColumnType("date");
+
+        // "Rutinas por revisar": activas ordenadas por fecha de revisión.
+        builder.HasIndex(r => new { r.GymId, r.IsActive, r.ReviewOn }).HasDatabaseName("ix_routines_gym_id_is_active_review_on");
 
         builder.HasMany(r => r.Days)
             .WithOne()
@@ -24,6 +28,16 @@ public sealed class RoutineConfiguration : IEntityTypeConfiguration<Routine>
         builder.Navigation(r => r.Days).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(r => new { r.GymId, r.MemberId, r.IsActive });
+    }
+}
+
+public sealed class RoutineSettingsConfiguration : IEntityTypeConfiguration<RoutineSettings>
+{
+    public void Configure(EntityTypeBuilder<RoutineSettings> builder)
+    {
+        builder.ToTable("routine_settings", "routines");
+
+        builder.HasIndex(s => s.GymId).IsUnique();
     }
 }
 

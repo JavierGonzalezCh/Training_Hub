@@ -18,6 +18,19 @@ public interface IRoutineRepository
 
     void Add(Routine routine);
 
+    /// <summary>Ajustes de rutinas del gym; <c>null</c> si nunca se editaron (valen los valores por defecto).</summary>
+    Task<RoutineSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    void Add(RoutineSettings settings);
+
+    /// <summary>
+    /// Rutinas activas armadas por el staff (no las auto-asignadas) cuya fecha de revisión es <paramref name="until"/>
+    /// o anterior, la más atrasada primero. Con <paramref name="memberIds"/> se limita a esos miembros; sin él, todas.
+    /// Sin días ni líneas.
+    /// </summary>
+    Task<IReadOnlyList<Routine>> ListDueForReviewAsync(
+        DateOnly until, IReadOnlyCollection<Guid>? memberIds, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Tras editar en el lugar: los días y líneas nuevos del agregado traen su id (UUID v7 del dominio) y EF
     /// los daría por existentes; esto los marca como nuevos para que se inserten.

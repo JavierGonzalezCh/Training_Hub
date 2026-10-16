@@ -49,3 +49,11 @@ public sealed class SetTargetInputValidator : AbstractValidator<SetTargetInput>
             .WithMessage("El tipo de serie debe ser \"normal\", \"warmup\", \"drop\" o \"failure\".");
     }
 }
+
+public sealed class UpdateRoutineSettingsRequestValidator : AbstractValidator<UpdateRoutineSettingsRequest>
+{
+    public UpdateRoutineSettingsRequestValidator()
+    {
+        RuleFor(x => x.ReviewWeeks).InclusiveBetween(1, 52);
+    }
+}

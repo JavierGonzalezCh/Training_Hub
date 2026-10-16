@@ -26,7 +26,8 @@ public static class RoutineMapper
             routine.DeactivatedOn,
             routine.CycleLength,
             routine.Days.OrderBy(d => d.Position).Select(d => ToDayResponse(d, exercises, equipment)).ToList(),
-            RoutineSchedule.ModeToText(routine.ScheduleMode));
+            RoutineSchedule.ModeToText(routine.ScheduleMode),
+            routine.ReviewOn);
 
     public static RoutineDayResponse ToDayResponse(
         RoutineDay day,
