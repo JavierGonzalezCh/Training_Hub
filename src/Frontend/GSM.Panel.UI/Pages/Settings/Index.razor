@@ -8,26 +8,46 @@
 
 <MudText Typo="Typo.h4" Class="mb-6">Configuración</MudText>
 
-@* Las pestañas no se escriben aquí: cada módulo declara las suyas (IPanelModule.SettingsSections)
-   y este contenedor solo las muestra, en orden. *@
-@if (_sections is not null)
+@* Las pestañas no se escriben aquí: cada módulo declara las suyas (IPanelModule.SettingsSections) y la
+   sección de Gyms §7 donde van; este contenedor solo las muestra. Una sección con varias pestañas las
+   anida; con una sola, muestra su contenido directo. *@
+@if (_groups is not null)
 {
-    <MudTabs Rounded="true" Color="Color.Primary" Class="gsm-settings-tabs">
-        @foreach (var section in _sections)
+    <MudTabs Rounded="true" Color="Color.Primary" Class="gsm-settings-tabs" data-testid="settings-groups">
+        @foreach (var group in _groups)
         {
-            <MudTabPanel Text="@section.Title">
-                <DynamicComponent Type="@section.Component" />
+            <MudTabPanel Text="@group.Name">
+                @if (group.Sections.Count == 1)
+                {
+                    var only = group.Sections[0];
+                    @if (only.Title != group.Name)
+                    {
+                        <MudText Typo="Typo.h6" Class="mb-3">@only.Title</MudText>
+                    }
+                    <DynamicComponent Type="@only.Component" />
+                }
+                else
+                {
+                    <MudTabs Rounded="false" Color="Color.Secondary" Class="gsm-settings-subtabs" data-testid="@($"settings-subtabs-{group.Name}")">
+                        @foreach (var section in group.Sections)
+                        {
+                            <MudTabPanel Text="@section.Title">
+                                <DynamicComponent Type="@section.Component" />
+                            </MudTabPanel>
+                        }
+                    </MudTabs>
+                }
             </MudTabPanel>
         }
     </MudTabs>
 }
 
 @code {
-    private IReadOnlyList<PanelSettingsSection>? _sections;
+    private IReadOnlyList<PanelSettingsGroup>? _groups;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
-        _sections = Registry.GetSettingsSections(state.User);
+        _groups = Registry.GetSettingsGroups(state.User);
     }
 }

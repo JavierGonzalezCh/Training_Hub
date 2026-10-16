@@ -68,7 +68,6 @@ public sealed record UpdateFeatureFlagsRequest(
     bool ShowGamification,
     bool ShowCommunity,
     bool CheckinQr,
-    bool CommunityComments,
     bool MembersCanCreateRoutines,
     bool MembersCanReportEquipment,
     bool? ShowRanking = null);
@@ -134,7 +133,6 @@ public sealed record GymFeatureFlagsResponse(
     bool ShowGamification,
     bool ShowCommunity,
     bool CheckinQr,
-    bool CommunityComments,
     bool MembersCanCreateRoutines,
     bool MembersCanReportEquipment,
     bool ShowRanking);

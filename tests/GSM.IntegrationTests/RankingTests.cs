@@ -298,13 +298,13 @@ public sealed class RankingTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var flags = GymFeatureFlags.Default(Guid.NewGuid());
         Assert.True(flags.ShowRanking);
 
-        flags.Update(true, true, true, true, true, true, true, false, true, showRanking: false);
+        flags.Update(true, true, true, true, true, true, false, true, showRanking: false);
         Assert.False(flags.ShowRanking);
 
-        flags.Update(true, true, true, true, true, true, true, false, true);
+        flags.Update(true, true, true, true, true, true, false, true);
         Assert.False(flags.ShowRanking);
 
-        flags.Update(true, true, true, true, true, true, true, false, true, showRanking: true);
+        flags.Update(true, true, true, true, true, true, false, true, showRanking: true);
         Assert.True(flags.ShowRanking);
     }
 
@@ -390,7 +390,7 @@ public sealed class RankingTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var flags = await db.Set<GymFeatureFlags>().IgnoreQueryFilters().FirstAsync(f => f.GymId == w.GymId);
         flags.Update(
             flags.ShowRoutines, flags.ShowClasses, flags.ShowProgress, flags.ShowGamification, flags.ShowCommunity,
-            flags.CheckinQr, flags.CommunityComments, flags.MembersCanCreateRoutines, flags.MembersCanReportEquipment,
+            flags.CheckinQr, flags.MembersCanCreateRoutines, flags.MembersCanReportEquipment,
             showRanking: on);
         await db.SaveChangesAsync();
     }

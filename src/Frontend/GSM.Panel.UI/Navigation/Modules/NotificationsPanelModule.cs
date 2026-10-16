@@ -8,5 +8,5 @@ public sealed class NotificationsPanelModule : IPanelModule
     public string Module => "Notifications";
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Avisos", 45, typeof(Pages.Settings.NotificationsTab), Roles: GsmRoles.Owner)];
+        [new("Avisos", 45, typeof(Pages.Settings.NotificationsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Communications)];
 }

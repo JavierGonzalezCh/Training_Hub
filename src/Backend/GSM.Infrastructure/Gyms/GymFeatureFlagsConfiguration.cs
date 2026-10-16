@@ -22,7 +22,6 @@ public sealed class GymFeatureFlagsConfiguration : IEntityTypeConfiguration<GymF
             nameof(GymFeatureFlags.ShowRoutines), nameof(GymFeatureFlags.ShowClasses),
             nameof(GymFeatureFlags.ShowProgress), nameof(GymFeatureFlags.ShowGamification),
             nameof(GymFeatureFlags.ShowCommunity), nameof(GymFeatureFlags.CheckinQr),
-            nameof(GymFeatureFlags.CommunityComments),
         })
         {
             builder.Property(flag).HasDefaultValue(true);

@@ -17,5 +17,5 @@ public sealed class ClassesPanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Reservas de clases", 45, typeof(Pages.Settings.ClassRulesTab))];
+        [new("Reservas de clases", 45, typeof(Pages.Settings.ClassRulesTab), Group: PanelSettingsGroups.Classes)];
 }

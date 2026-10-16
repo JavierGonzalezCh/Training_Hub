@@ -16,8 +16,8 @@ public sealed class GymsPanelModule : IPanelModule
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
     [
-        new("Datos del gym", 10, typeof(Pages.Settings.GymDataTab)),
-        new("Módulos", 20, typeof(Pages.Settings.ModulesTab)),
-        new("Horario", 25, typeof(Pages.Settings.OpeningHoursTab)),
+        new("Datos del gym", 10, typeof(Pages.Settings.GymDataTab), Group: PanelSettingsGroups.Gym),
+        new("Módulos", 20, typeof(Pages.Settings.ModulesTab), Group: PanelSettingsGroups.Modules),
+        new("Horario", 25, typeof(Pages.Settings.OpeningHoursTab), Group: PanelSettingsGroups.Gym),
     ];
 }

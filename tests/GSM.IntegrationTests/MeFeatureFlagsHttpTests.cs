@@ -45,7 +45,10 @@ public sealed class MeFeatureFlagsHttpTests(ApiFactory factory) : IClassFixture<
 
         var me = await client.GetFromJsonAsync<JsonElement>("/api/auth/me");
 
-        Assert.Equal(enabled, me.GetProperty("featureFlags").GetProperty("membersCanCreateRoutines").GetBoolean());
+        var featureFlags = me.GetProperty("featureFlags");
+        Assert.Equal(enabled, featureFlags.GetProperty("membersCanCreateRoutines").GetBoolean());
+        // G6: CommunityComments no hacía nada y se quitó del contrato.
+        Assert.False(featureFlags.TryGetProperty("communityComments", out _));
     }
 
     private async Task<string> SeedAsync(bool membersCanCreateRoutines)
@@ -58,7 +61,7 @@ public sealed class MeFeatureFlagsHttpTests(ApiFactory factory) : IClassFixture<
         var email = $"meflags-{suffix}@test.local";
         var gym = Gym.Create("Me Flags Gym", $"meflags-{suffix}");
         var flags = GymFeatureFlags.Default(gym.Id);
-        flags.Update(true, true, true, true, false, true, false, membersCanCreateRoutines);
+        flags.Update(true, true, true, true, false, true, membersCanCreateRoutines);
         db.AddRange(gym, flags);
         await db.SaveChangesAsync();
 

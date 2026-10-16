@@ -26,7 +26,6 @@ public sealed class UpdateFeatureFlagsHandler(
             request.ShowGamification,
             request.ShowCommunity,
             request.CheckinQr,
-            request.CommunityComments,
             request.MembersCanCreateRoutines,
             request.MembersCanReportEquipment,
             request.ShowRanking);

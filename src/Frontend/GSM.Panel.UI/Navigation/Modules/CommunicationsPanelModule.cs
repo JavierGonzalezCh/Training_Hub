@@ -13,5 +13,5 @@ public sealed class CommunicationsPanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Comunicaciones", 40, typeof(Pages.Settings.CommunicationsTab))];
+        [new("Comunicaciones", 40, typeof(Pages.Settings.CommunicationsTab), Group: PanelSettingsGroups.Communications)];
 }

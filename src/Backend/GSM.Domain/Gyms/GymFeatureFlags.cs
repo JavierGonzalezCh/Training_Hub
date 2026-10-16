@@ -28,8 +28,6 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
 
     public bool CheckinQr { get; private set; } = true;
 
-    public bool CommunityComments { get; private set; } = true;
-
     /// <summary>El miembro puede armarse rutinas él mismo (etapa 9.6). Arranca en <c>false</c>.</summary>
     public bool MembersCanCreateRoutines { get; private set; }
 
@@ -54,7 +52,6 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         bool showGamification,
         bool showCommunity,
         bool checkinQr,
-        bool communityComments,
         bool membersCanCreateRoutines,
         bool membersCanReportEquipment = true,
         bool? showRanking = null)
@@ -65,7 +62,6 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         ShowGamification = showGamification;
         ShowCommunity = showCommunity;
         CheckinQr = checkinQr;
-        CommunityComments = communityComments;
         MembersCanCreateRoutines = membersCanCreateRoutines;
         MembersCanReportEquipment = membersCanReportEquipment;
         ShowRanking = showRanking ?? ShowRanking;

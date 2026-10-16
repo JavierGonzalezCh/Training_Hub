@@ -219,7 +219,7 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
         var flags = GymFeatureFlags.Default(gym.Id);
         if (!checkinQr)
         {
-            flags.Update(true, true, true, true, true, false, true, false);
+            flags.Update(true, true, true, true, true, false, false);
         }
 
         db.AddRange(gym, flags);

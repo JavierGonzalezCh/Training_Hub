@@ -259,7 +259,7 @@ public sealed class AnnouncementTests(ApiFactory factory) : IClassFixture<ApiFac
         var flags = GymFeatureFlags.Default(gym.Id);
         if (!showCommunity)
         {
-            flags.Update(true, true, true, true, false, true, true, false);
+            flags.Update(true, true, true, true, false, true, false);
         }
 
         var memberUserId = Guid.CreateVersion7();

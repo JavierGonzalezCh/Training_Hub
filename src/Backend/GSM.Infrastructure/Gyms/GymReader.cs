@@ -49,7 +49,7 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
             .Where(f => f.GymId == gymId)
             .Select(f => new GymFeatureFlagsView(
                 f.ShowRoutines, f.ShowClasses, f.ShowProgress, f.ShowGamification,
-                f.ShowCommunity, f.CheckinQr, f.CommunityComments, f.MembersCanCreateRoutines,
+                f.ShowCommunity, f.CheckinQr, f.MembersCanCreateRoutines,
                 f.MembersCanReportEquipment, f.ShowRanking))
             .FirstOrDefaultAsync(cancellationToken);
 

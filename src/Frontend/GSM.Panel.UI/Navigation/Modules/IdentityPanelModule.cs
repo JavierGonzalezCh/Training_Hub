@@ -8,7 +8,7 @@ public sealed class IdentityPanelModule : IPanelModule
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
         [
-            new("Staff", 50, typeof(Pages.Settings.StaffTab)),
-            new("Kioscos", 55, typeof(Pages.Settings.KiosksTab), Roles: GsmRoles.Owner),
+            new("Staff", 50, typeof(Pages.Settings.StaffTab), Group: PanelSettingsGroups.Team),
+            new("Kioscos", 55, typeof(Pages.Settings.KiosksTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Entry),
         ];
 }

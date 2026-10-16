@@ -106,7 +106,6 @@ public sealed record MeFeatureFlags(
     bool ShowGamification,
     bool ShowCommunity,
     bool CheckinQr,
-    bool CommunityComments,
     bool MembersCanCreateRoutines,
     bool MembersCanReportEquipment,
     bool ShowRanking);

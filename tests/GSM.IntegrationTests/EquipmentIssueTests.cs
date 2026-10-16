@@ -537,7 +537,7 @@ public sealed class EquipmentIssueTests(ApiFactory factory) : IClassFixture<ApiF
         var flags = GymFeatureFlags.Default(gym.Id);
         if (!membersCanReport)
         {
-            flags.Update(true, true, true, true, true, true, true, false, membersCanReportEquipment: false);
+            flags.Update(true, true, true, true, true, true, false, membersCanReportEquipment: false);
         }
 
         db.Add(gym);

@@ -15,5 +15,5 @@ public sealed class AttendancePanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Check-in", 30, typeof(Pages.Settings.CheckinTab))];
+        [new("Check-in", 30, typeof(Pages.Settings.CheckinTab), Group: PanelSettingsGroups.Entry)];
 }

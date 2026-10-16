@@ -31,6 +31,14 @@ public sealed class PanelRegistry
     public IReadOnlyList<PanelSettingsSection> GetSettingsSections(ClaimsPrincipal user)
         => _settings.Where(s => s.IsVisibleTo(user)).ToList();
 
+    /// <summary>Las secciones de configuración visibles para el usuario, en el orden de Gyms §7; las vacías no salen.</summary>
+    public IReadOnlyList<PanelSettingsGroup> GetSettingsGroups(ClaimsPrincipal user)
+        => GetSettingsSections(user)
+            .GroupBy(s => s.GroupName)
+            .OrderBy(g => PanelSettingsGroups.Rank(g.Key))
+            .Select(g => new PanelSettingsGroup(g.Key, g.OrderBy(s => s.Order).ToList()))
+            .ToList();
+
     private IEnumerable<PanelMenuEntry> Visible(ClaimsPrincipal user) => _entries.Where(e => e.IsVisibleTo(user));
 
     private static IReadOnlyList<PanelMenuGroup> Group(IEnumerable<PanelMenuEntry> entries)
