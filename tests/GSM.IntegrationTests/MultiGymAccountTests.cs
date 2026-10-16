@@ -169,6 +169,53 @@ public sealed class MultiGymAccountTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Mode_switch_never_mixes_roles_in_a_token_and_retires_the_session_it_leaves()
+    {
+        // AP4: modo staff <-> modo miembro en el mismo gym.
+        var w = await SeedAsync(sharedPerson: false);
+        await GrantAsync(w.PersonId, w.GymA, UserRole.Member);
+        await using var host = RealIdentityHost();
+        var anonymous = host.CreateClient();
+        var login = await LoginAsync(anonymous, w.PersonEmail);
+        var teamSide = login.Accesses!.Single(a => a.Role == "owner");
+        var memberSide = login.Accesses!.Single(a => a.Role == "member");
+        var teamTokens = await SelectAsync(anonymous, login.SelectionToken!, teamSide.AccessId);
+
+        var client = host.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", teamTokens.AccessToken);
+
+        // En modo staff el menú marca el acceso de equipo como actual y ofrece el de miembro del mismo gym.
+        var inTeamMode = await client.GetFromJsonAsync<List<GymAccessOption>>("/api/auth/accesses");
+        Assert.True(inTeamMode!.Single(a => a.Role == "owner").IsCurrent);
+        Assert.False(inTeamMode!.Single(a => a.Role == "member").IsCurrent);
+        Assert.Equal((await client.GetAsync("/api/gym/staff")).StatusCode, HttpStatusCode.OK);
+
+        var toMember = await client.PostAsJsonAsync(
+            "/api/auth/switch-gym", new SwitchGymRequest(memberSide.AccessId, teamTokens.RefreshToken));
+        toMember.EnsureSuccessStatusCode();
+        var memberTokens = (await toMember.Content.ReadFromJsonAsync<AuthTokensResponse>())!;
+        var claims = Claims(memberTokens.AccessToken);
+        Assert.Equal("member", claims.GetProperty("role").GetString());
+
+        // El token de miembro no abre lo del staff, aunque la persona sea Owner de ese gym.
+        var asMember = host.CreateClient();
+        asMember.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", memberTokens.AccessToken);
+        Assert.Equal(HttpStatusCode.Forbidden, (await asMember.GetAsync("/api/gym/staff")).StatusCode);
+        var inMemberMode = await asMember.GetFromJsonAsync<List<GymAccessOption>>("/api/auth/accesses");
+        Assert.True(inMemberMode!.Single(a => a.Role == "member").IsCurrent);
+
+        // La sesión de staff que se dejó no se renueva; la de miembro sí, y sigue siendo de miembro.
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            (await anonymous.PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(teamTokens.RefreshToken))).StatusCode);
+        var renewed = await anonymous.PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(memberTokens.RefreshToken));
+        renewed.EnsureSuccessStatusCode();
+        Assert.Equal(
+            "member",
+            Claims((await renewed.Content.ReadFromJsonAsync<AuthTokensResponse>())!.AccessToken).GetProperty("role").GetString());
+    }
+
+    [Fact]
     public async Task A_person_can_hold_a_team_access_and_a_member_access_in_a_gym_but_not_two_team_accesses()
     {
         var w = await SeedAsync(sharedPerson: false);

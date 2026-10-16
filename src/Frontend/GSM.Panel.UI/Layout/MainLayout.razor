@@ -52,6 +52,7 @@
                             <div class="gsm-user-card__meta">@RoleLabel(GymContext.Role)</div>
                         </div>
                         <MudDivider />
+                        <ModeSwitch Accesses="_accesses" />
                         @if (_accesses.Count > 1)
                         {
                             <MudMenuItem Icon="@Icons.Material.Filled.SwapHoriz" OnClick="SwitchGymAsync">Cambiar de gimnasio</MudMenuItem>
