@@ -6,5 +6,5 @@ public sealed class AchievementsPanelModule : IPanelModule
     public string Module => "Achievements";
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Logros del gym", 60, typeof(Pages.Settings.AchievementsTab))];
+        [new("Logros del gym", 60, typeof(Pages.Settings.AchievementsTab), Group: PanelSettingsGroups.Achievements)];
 }

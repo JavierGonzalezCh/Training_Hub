@@ -105,6 +105,43 @@ public class AdaptivePanelTests : TestContext
     }
 
     [Fact]
+    public void Settings_are_grouped_by_section_in_the_order_of_Gyms_section_7()
+    {
+        Setup(withExtraModule: true);
+        var registry = Services.GetRequiredService<PanelRegistry>();
+        var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "owner")], "test"));
+
+        var groups = registry.GetSettingsGroups(user);
+
+        Assert.Equal(
+            ["Gym", "Equipo", "Entrada al gym", "Clases", "Comunicaciones", "Logros", "Miembros", "Módulos", "Otros"],
+            groups.Select(g => g.Name).ToArray());
+        Assert.Equal(["Datos del gym", "Horario"], groups.Single(g => g.Name == "Gym").Sections.Select(s => s.Title).ToArray());
+        Assert.Equal(["Check-in", "Kioscos"], groups.Single(g => g.Name == "Entrada al gym").Sections.Select(s => s.Title).ToArray());
+        Assert.Equal(["Comunicaciones", "Avisos"], groups.Single(g => g.Name == "Comunicaciones").Sections.Select(s => s.Title).ToArray());
+        // Una pestaña sin grupo cae en "Otros", al final.
+        Assert.Equal(["Máquinas y fallas"], groups.Last().Sections.Select(s => s.Title).ToArray());
+    }
+
+    [Fact]
+    public void Settings_index_shows_one_tab_per_section()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        Services.AddSingleton(new PanelRegistry([new ExtraModule()]));
+        var auth = this.AddTestAuthorization();
+        auth.SetAuthorized("ana");
+        auth.SetRoles("owner");
+        RenderComponent<MudPopoverProvider>();
+
+        var cut = RenderComponent<GSM.Panel.UI.Pages.Settings.Index>();
+
+        var tabs = cut.Find("[data-testid='settings-groups']").TextContent;
+        Assert.Contains("Otros", tabs);
+        Assert.Contains("contenido de prueba", cut.Markup);
+    }
+
+    [Fact]
     public void Settings_index_renders_the_tabs_the_modules_declare()
     {
         // Solo la pestaña de prueba hace falta para comprobar el armado; las reales piden la API.

@@ -51,11 +51,8 @@ else
                 "Insignias que el miembro desbloquea por constancia, visitas y clases.",
                 _flagsModel.ShowGamification, v => _flagsModel.ShowGamification = v)
             @ModuleCard(Icons.Material.Outlined.Forum, "Comunidad",
-                "Espacio social del gimnasio para publicar y compartir entre miembros.",
+                "Muestra en la app las comunicaciones del gimnasio: anuncios y novedades, con reacciones de los miembros.",
                 _flagsModel.ShowCommunity, v => _flagsModel.ShowCommunity = v)
-            @ModuleCard(Icons.Material.Outlined.ChatBubbleOutline, "Comentarios",
-                "Permite responder y comentar las publicaciones de la comunidad.",
-                _flagsModel.CommunityComments, v => _flagsModel.CommunityComments = v)
         </div>
     </section>
 
@@ -84,7 +81,6 @@ else
             _flagsModel.ShowGamification = flags.ShowGamification;
             _flagsModel.ShowCommunity = flags.ShowCommunity;
             _flagsModel.CheckinQr = flags.CheckinQr;
-            _flagsModel.CommunityComments = flags.CommunityComments;
             _flagsModel.MembersCanCreateRoutines = flags.MembersCanCreateRoutines;
             _flagsModel.MembersCanReportEquipment = flags.MembersCanReportEquipment;
             _flagsModel.ShowRanking = flags.ShowRanking;
@@ -112,7 +108,6 @@ else
                 ShowGamification = _flagsModel.ShowGamification,
                 ShowCommunity = _flagsModel.ShowCommunity,
                 CheckinQr = _flagsModel.CheckinQr,
-                CommunityComments = _flagsModel.CommunityComments,
                 MembersCanCreateRoutines = _flagsModel.MembersCanCreateRoutines,
                 MembersCanReportEquipment = _flagsModel.MembersCanReportEquipment,
                 ShowRanking = _flagsModel.ShowRanking,
@@ -152,7 +147,6 @@ else
         public bool ShowGamification { get; set; }
         public bool ShowCommunity { get; set; }
         public bool CheckinQr { get; set; }
-        public bool CommunityComments { get; set; }
         public bool MembersCanCreateRoutines { get; set; }
         public bool MembersCanReportEquipment { get; set; }
         public bool ShowRanking { get; set; } = true;

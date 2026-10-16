@@ -40,11 +40,47 @@ public sealed record PanelMenuEntry(
            && (Permission is null || GSM.UI.Shared.Auth.GsmClaimsPrincipalExtensions.HasPermission(user, Permission));
 }
 
-/// <summary>Una pestaña de <c>/settings</c>: el componente se muestra dentro de la pestaña.</summary>
-public sealed record PanelSettingsSection(string Title, int Order, Type Component, string? Roles = null)
+/// <summary>
+/// Secciones de <c>/settings</c> (Gyms §7), en el orden en que se muestran. Cada módulo ubica sus pestañas en una
+/// de ellas con <see cref="PanelSettingsSection.Group"/>; lo que no declara grupo cae en <see cref="Other"/>, al final.
+/// </summary>
+public static class PanelSettingsGroups
 {
+    public const string Gym = "Gym";
+    public const string Team = "Equipo";
+    public const string Memberships = "Membresías";
+    public const string Entry = "Entrada al gym";
+    public const string Routines = "Rutinas";
+    public const string Equipment = "Equipos";
+    public const string Classes = "Clases";
+    public const string Communications = "Comunicaciones";
+    public const string Achievements = "Logros";
+    public const string Members = "Miembros";
+    public const string Modules = "Módulos";
+    public const string Other = "Otros";
+
+    internal static readonly string[] Ordered =
+    [
+        Gym, Team, Memberships, Entry, Routines, Equipment, Classes, Communications, Achievements, Members, Modules, Other,
+    ];
+
+    internal static int Rank(string? group)
+    {
+        var index = Array.IndexOf(Ordered, group ?? Other);
+        return index < 0 ? Ordered.Length : index;
+    }
+}
+
+/// <summary>Una pestaña de <c>/settings</c>, dentro de la sección <see cref="Group"/>: el componente se muestra dentro de ella.</summary>
+public sealed record PanelSettingsSection(string Title, int Order, Type Component, string? Roles = null, string? Group = null)
+{
+    public string GroupName => string.IsNullOrWhiteSpace(Group) ? PanelSettingsGroups.Other : Group;
+
     public bool IsVisibleTo(ClaimsPrincipal user) => PanelRoles.Allows(Roles, user);
 }
+
+/// <summary>Una sección de <c>/settings</c> con las pestañas que le aportaron los módulos.</summary>
+public sealed record PanelSettingsGroup(string Name, IReadOnlyList<PanelSettingsSection> Sections);
 
 internal static class PanelRoles
 {

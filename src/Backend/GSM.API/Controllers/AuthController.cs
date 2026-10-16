@@ -263,7 +263,7 @@ public sealed class AuthController : ControllerBase
                 ? null
                 : new MeFeatureFlags(
                     flags.ShowRoutines, flags.ShowClasses, flags.ShowProgress, flags.ShowGamification,
-                    flags.ShowCommunity, flags.CheckinQr, flags.CommunityComments,
+                    flags.ShowCommunity, flags.CheckinQr,
                     flags.MembersCanCreateRoutines, flags.MembersCanReportEquipment, flags.ShowRanking),
         });
     }

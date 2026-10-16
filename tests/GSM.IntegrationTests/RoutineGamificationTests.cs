@@ -153,7 +153,7 @@ public sealed class RoutineGamificationTests(ApiFactory factory) : IClassFixture
         var flags = GymFeatureFlags.Default(gym.Id);
         if (selfService)
         {
-            flags.Update(true, true, true, true, true, true, true, membersCanCreateRoutines: true);
+            flags.Update(true, true, true, true, true, true, membersCanCreateRoutines: true);
         }
 
         db.AddRange(gym, flags, staff, memberUser, member,

@@ -505,7 +505,7 @@ public sealed class MemberCheckinTests(ApiFactory factory) : IClassFixture<ApiFa
         var flags = GymFeatureFlags.Default(gym.Id);
         if (!checkinQr)
         {
-            flags.Update(true, true, true, true, true, false, true, false);
+            flags.Update(true, true, true, true, true, false, false);
         }
 
         var userId = Guid.CreateVersion7();

@@ -74,7 +74,6 @@ public sealed record GymFeatureFlagsView(
     bool ShowGamification,
     bool ShowCommunity,
     bool CheckinQr,
-    bool CommunityComments,
     bool MembersCanCreateRoutines,
     bool MembersCanReportEquipment,
     bool ShowRanking = true);
