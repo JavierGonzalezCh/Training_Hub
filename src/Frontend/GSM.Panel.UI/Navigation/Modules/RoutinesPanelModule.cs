@@ -15,5 +15,5 @@ public sealed class RoutinesPanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Rutinas", 46, typeof(Pages.Settings.RoutineSettingsTab))];
+        [new("Rutinas", 46, typeof(Pages.Settings.RoutineSettingsTab), Group: PanelSettingsGroups.Routines)];
 }

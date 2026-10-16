@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Bunit;
 using Bunit.TestDoubles;
 using GSM.Client.Generated;
@@ -65,7 +65,7 @@ public class AdaptivePanelTests : TestContext
             [
                 "Dashboard|/", "Recepción|/attendance/checkin", "Asistencia|/attendance",
                 "Miembros|/members", "Planes|/plans", "Pagos y caja|/payments", "Comunicaciones|/communications",
-                "Clases|/classes", "Mis clases|/classes/mine", "Ejercicios|/exercises", "Equipos|/equipment",
+                "Clases|/classes", "Mis clases|/classes/mine", "Ejercicios|/exercises", "Rutinas por revisar|/routines/review", "Equipos|/equipment",
                 "Configuración|/settings",
             ],
             Links(cut));
@@ -101,7 +101,7 @@ public class AdaptivePanelTests : TestContext
 
         var titles = registry.GetSettingsSections(user).Select(s => s.Title).ToArray();
 
-        Assert.Equal(["Datos del gym", "Módulos", "Horario", "Check-in", "Autorizaciones", "Comunicaciones", "Reservas de clases", "Avisos", "Staff", "Kioscos", "Logros del gym", "Máquinas y fallas"], titles);
+        Assert.Equal(["Datos del gym", "Módulos", "Horario", "Check-in", "Autorizaciones", "Privacidad", "Comunicaciones", "Reservas de clases", "Avisos", "Rutinas", "Staff", "Kioscos", "Logros del gym", "Máquinas y fallas"], titles);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class AdaptivePanelTests : TestContext
         var groups = registry.GetSettingsGroups(user);
 
         Assert.Equal(
-            ["Gym", "Equipo", "Entrada al gym", "Clases", "Comunicaciones", "Logros", "Miembros", "Módulos", "Otros"],
+            ["Gym", "Equipo", "Entrada al gym", "Rutinas", "Clases", "Comunicaciones", "Logros", "Miembros", "Módulos", "Otros"],
             groups.Select(g => g.Name).ToArray());
         Assert.Equal(["Datos del gym", "Horario"], groups.Single(g => g.Name == "Gym").Sections.Select(s => s.Title).ToArray());
         Assert.Equal(["Check-in", "Kioscos"], groups.Single(g => g.Name == "Entrada al gym").Sections.Select(s => s.Title).ToArray());
@@ -172,7 +172,7 @@ public class AdaptivePanelTests : TestContext
         cut.Find("button.gsm-tabbar__more").Click();
 
         var more = cut.FindAll("[data-testid='more-sheet'] a.gsm-nav-link").Select(a => a.TextContent.Trim()).ToArray();
-        Assert.Equal(["Asistencia", "Planes", "Pagos y caja", "Comunicaciones", "Mis clases", "Ejercicios", "Equipos", "Configuración"], more);
+        Assert.Equal(["Asistencia", "Planes", "Pagos y caja", "Comunicaciones", "Mis clases", "Ejercicios", "Rutinas por revisar", "Equipos", "Configuración"], more);
     }
 
     [Fact]

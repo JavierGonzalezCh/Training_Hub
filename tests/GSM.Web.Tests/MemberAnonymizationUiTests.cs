@@ -40,7 +40,7 @@ public class MemberAnonymizationUiTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Contains("18", cut.Find("[data-testid=anonymization-months] input").GetAttribute("value"));
+            Assert.Contains("18", cut.Find("[data-testid=anonymization-months] input, input[data-testid=anonymization-months]").GetAttribute("value"));
             Assert.Contains("irreversible", cut.Markup);
             Assert.Contains("pagos, asistencias y membresías", cut.Markup);
         });

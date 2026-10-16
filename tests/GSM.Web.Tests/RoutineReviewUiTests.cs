@@ -143,7 +143,7 @@ public class RoutineReviewUiTests : TestContext
             Assert.DoesNotContain("Luis Gómez", page.Markup);
         });
 
-        page.Find("[data-testid='review-mine'] input").Change(false);
+        page.Find("[data-testid='review-mine'] input, input[data-testid='review-mine']").Change(false);
 
         page.WaitForAssertion(() =>
         {
