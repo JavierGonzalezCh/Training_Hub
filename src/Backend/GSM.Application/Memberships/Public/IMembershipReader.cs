@@ -96,6 +96,9 @@ public interface IMembershipReader
     Task<bool> BelongsToMemberAsync(
         Guid membershipId, Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>Planes activos del gym (onboarding G5: el paso "Planes" pide al menos uno).</summary>
+    Task<int> GetActivePlanCountAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Miembros distintos, en toda la plataforma, con una membresía <c>Active</c> que cubre <paramref name="day"/>
     /// (<c>start_date &lt;= day &lt;= end_date</c>). Para las métricas mensuales del SaaS (sin usuario: ve todos los gyms).

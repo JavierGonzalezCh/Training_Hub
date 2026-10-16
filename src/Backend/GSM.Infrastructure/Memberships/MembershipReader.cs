@@ -149,6 +149,9 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
         return counts;
     }
 
+    public Task<int> GetActivePlanCountAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => Plans.CountAsync(p => p.GymId == gymId && p.IsActive, cancellationToken);
+
     public async Task<int> GetCountedMemberCountAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
         var rows = await Memberships

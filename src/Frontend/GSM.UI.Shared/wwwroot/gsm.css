@@ -3125,3 +3125,45 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
+
+/* Onboarding del gym (G5): pasos del asistente y lista Para completar */
+.gsm-todo-list {
+    margin: 0;
+    padding: 0.5rem 1rem 0.75rem 2rem;
+}
+
+.gsm-onboarding-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    list-style: none;
+}
+
+.gsm-onboarding-steps__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--gsm-border);
+    border-radius: 999px;
+    background: var(--gsm-surface);
+    color: var(--gsm-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.gsm-onboarding-steps .is-current .gsm-onboarding-steps__item {
+    border-color: var(--gsm-accent);
+    background: var(--gsm-accent-soft);
+}
+
+.gsm-onboarding-steps__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    font-family: var(--gsm-font-mono);
+    font-size: 0.8rem;
+}

@@ -1,0 +1,259 @@
+@page "/onboarding"
+@layout OnboardingLayout
+@attribute [Authorize(Roles = GsmRoles.Owner)]
+@using GSM.Panel.UI.Onboarding
+@using GSM.Panel.UI.Pages.Equipment
+@using GSM.Panel.UI.Pages.Settings
+@inject OnboardingGate Gate
+@inject IDialogService Dialogs
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Configura tu gimnasio — GSM</PageTitle>
+
+@* Asistente de onboarding (Gyms §5). Cada paso reutiliza la pantalla del módulo que guarda el dato; el avance lo
+   dicta el servidor (GET /api/gym/onboarding): un paso está hecho cuando su dato existe, no por pulsar "Siguiente". *@
+<MudText Typo="Typo.h4" Class="mb-1">Configura tu gimnasio</MudText>
+<MudText Color="Color.Secondary" Class="mb-4">
+    Completa los pasos obligatorios para habilitar el panel. Puedes salir y volver: lo que guardes se conserva.
+</MudText>
+
+@if (_state is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <ol class="gsm-onboarding-steps" data-testid="onboarding-steps">
+        @for (var i = 0; i < _state.Steps.Count; i++)
+        {
+            var index = i;
+            var step = _state.Steps.ElementAt(i);
+            <li class="@(index == _current ? "is-current" : null)">
+                <button type="button" class="gsm-onboarding-steps__item" @onclick="() => _current = index"
+                        data-testid="@($"onboarding-step-{step.Key}")" aria-current="@(index == _current ? "step" : null)">
+                    <span class="gsm-onboarding-steps__mark">
+                        @if (step.Done)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" />
+                        }
+                        else
+                        {
+                            <span>@step.Order</span>
+                        }
+                    </span>
+                    <span>@Title(step.Key)</span>
+                    @if (!step.Required)
+                    {
+                        <span class="gsm-tag">Opcional</span>
+                    }
+                </button>
+            </li>
+        }
+    </ol>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4" data-testid="onboarding-error">@_error</MudAlert>
+    }
+
+    <section class="gsm-panel pa-4 mb-4" aria-live="polite">
+        <MudText Typo="Typo.h6" Class="mb-1">@Title(CurrentKey)</MudText>
+        <MudText Color="Color.Secondary" Class="mb-3">@Help(CurrentKey)</MudText>
+
+        @switch (CurrentKey)
+        {
+            case OnboardingKeys.Gym:
+            case OnboardingKeys.Location:
+                @* Datos del gym y ubicación viven en el mismo formulario: la dirección y la ciudad cuentan para el paso 2. *@
+                <GymDataTab @key="@("gym-data")" />
+                break;
+
+            case OnboardingKeys.Hours:
+                <OpeningHoursTab />
+                break;
+
+            case OnboardingKeys.Equipment:
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenCatalogAsync" data-testid="onboarding-add-equipment">
+                    Agregar del catálogo
+                </MudButton>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+                    Marca las máquinas que tienes, con cuántas y en qué zona. Después puedes ajustar fotos y estado desde Equipos.
+                </MudText>
+                break;
+
+            case OnboardingKeys.Plans:
+                <OnboardingPlansStep OnCreated="RefreshAsync" />
+                break;
+
+            case OnboardingKeys.Entry:
+                <MudText>
+                    El modo del QR (rotativo o fijo), el emparejamiento del kiosco, la entrada con documento y el aforo se
+                    configuran desde <strong>Configuración</strong> cuando termines. Aparecerán en la lista «Para completar»
+                    del dashboard.
+                </MudText>
+                break;
+
+            case OnboardingKeys.Team:
+                <MudText>
+                    Invita a tu staff y a otros propietarios, con sus permisos, desde <strong>Configuración → Staff</strong>
+                    cuando termines. Aparecerá en la lista «Para completar» del dashboard.
+                </MudText>
+                break;
+        }
+    </section>
+
+    <div class="d-flex flex-wrap" style="gap:0.75rem">
+        <MudButton Variant="Variant.Outlined" Disabled="@(_current == 0)" OnClick="Back" data-testid="onboarding-back">Atrás</MudButton>
+        <MudSpacer />
+        @if (_current < _state.Steps.Count - 1)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NextAsync" Disabled="_busy"
+                       data-testid="onboarding-next">
+                Siguiente
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="FinishAsync" Disabled="_busy"
+                       data-testid="onboarding-finish">
+                Terminar y abrir el panel
+            </MudButton>
+        }
+    </div>
+}
+
+@code {
+    private OnboardingResponse? _state;
+    private int _current;
+    private bool _busy;
+    private string? _error;
+
+    private static readonly DialogOptions CatalogOptions = new() { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true };
+
+    private string CurrentKey => _state!.Steps.ElementAt(_current).Key;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _state = await Gate.RefreshAsync();
+        if (_state is null || _state.IsComplete)
+        {
+            // Nada que configurar (o no se pudo leer): el panel decide.
+            _state = null;
+            Navigation.NavigateTo("/", replace: true);
+            return;
+        }
+
+        var next = _state.Steps.Select((s, i) => (s, i)).FirstOrDefault(x => x.s.Required && !x.s.Done);
+        _current = next.s is null ? 0 : next.i;
+    }
+
+    private async Task RefreshAsync()
+    {
+        _state = await Gate.RefreshAsync() ?? _state;
+        _error = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Back()
+    {
+        _error = null;
+        if (_current > 0)
+        {
+            _current--;
+        }
+    }
+
+    private async Task NextAsync()
+    {
+        _busy = true;
+        try
+        {
+            await RefreshAsync();
+            var step = _state!.Steps.ElementAt(_current);
+            if (step.Required && !step.Done)
+            {
+                _error = Missing(step.Key);
+                return;
+            }
+
+            _current++;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task FinishAsync()
+    {
+        _busy = true;
+        try
+        {
+            await RefreshAsync();
+            if (_state is { IsComplete: true })
+            {
+                Snackbar.Add("¡Listo! Tu gimnasio está configurado.", Severity.Success);
+                Navigation.NavigateTo("/", replace: true);
+                return;
+            }
+
+            var pending = _state?.Steps.Select((s, i) => (s, i)).FirstOrDefault(x => x.s.Required && !x.s.Done);
+            if (pending is { s: not null } p)
+            {
+                _current = p.i;
+                _error = Missing(p.s.Key);
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task OpenCatalogAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<AddFromCatalogDialog>("Agregar del catálogo", CatalogOptions);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Equipos agregados al inventario.", Severity.Success);
+            await RefreshAsync();
+        }
+    }
+
+    private static string Title(string key) => key switch
+    {
+        OnboardingKeys.Gym => "Tu gym",
+        OnboardingKeys.Location => "Ubicación",
+        OnboardingKeys.Hours => "Horario",
+        OnboardingKeys.Equipment => "Máquinas",
+        OnboardingKeys.Plans => "Planes",
+        OnboardingKeys.Entry => "Entrada al gym",
+        OnboardingKeys.Team => "Tu equipo",
+        _ => key,
+    };
+
+    private static string Help(string key) => key switch
+    {
+        OnboardingKeys.Gym => "Nombre, logo, colores, razón social, NIT, teléfono, email y redes. Solo el nombre es obligatorio.",
+        OnboardingKeys.Location => "Dirección y ciudad son obligatorias. Las coordenadas solo hacen falta si vas a usar QR fijo.",
+        OnboardingKeys.Hours => "Define el horario de los 7 días y de festivos. Empieza con la plantilla y ajústala. Obligatorio.",
+        OnboardingKeys.Equipment => "Registra al menos una máquina. Obligatorio.",
+        OnboardingKeys.Plans => "Crea al menos un plan. Con las plantillas solo pones el precio. Obligatorio.",
+        OnboardingKeys.Entry => "Opcional: puedes dejarlo para después.",
+        OnboardingKeys.Team => "Opcional: puedes dejarlo para después.",
+        _ => string.Empty,
+    };
+
+    private static string Missing(string key) => key switch
+    {
+        OnboardingKeys.Gym => "Falta el nombre del gimnasio.",
+        OnboardingKeys.Location => "Guarda la dirección y la ciudad para continuar.",
+        OnboardingKeys.Hours => "Guarda el horario de atención para continuar.",
+        OnboardingKeys.Equipment => "Agrega al menos una máquina para continuar.",
+        OnboardingKeys.Plans => "Crea al menos un plan para continuar.",
+        _ => "Falta completar este paso.",
+    };
+}

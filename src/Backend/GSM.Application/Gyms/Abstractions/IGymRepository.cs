@@ -11,6 +11,11 @@ public interface IGymRepository
 
     Task<GymFeatureFlags?> GetFeatureFlagsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>Estado del onboarding del gym; <c>null</c> si nunca se tocó (gym nuevo, pendiente).</summary>
+    Task<GymOnboarding?> GetOnboardingAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    void Add(GymOnboarding onboarding);
+
     void Add(Gym gym);
 
     void Add(GymFeatureFlags featureFlags);

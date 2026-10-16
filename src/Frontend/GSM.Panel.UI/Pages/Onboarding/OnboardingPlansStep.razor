@@ -1,0 +1,103 @@
+@using GSM.Panel.UI.Onboarding
+@inject IMembershipPlansClient Plans
+@inject ISnackbar Snackbar
+
+@* Paso 5 del onboarding: plantillas de plan donde solo se pone el precio (Gyms §5). *@
+<div data-testid="onboarding-plans">
+    @if (_existing.Count > 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2" data-testid="onboarding-existing-plans">
+            Ya tienes @_existing.Count @(_existing.Count == 1 ? "plan" : "planes"): @string.Join(", ", _existing.Select(p => p.Name)).
+        </MudText>
+    }
+
+    <MudGrid Spacing="2" Style="max-width:720px">
+        @foreach (var template in PlanTemplate.All)
+        {
+            var row = _rows[template.Key];
+            <MudItem xs="12" sm="6">
+                <div class="d-flex align-center" style="gap:0.75rem">
+                    <MudCheckBox T="bool" @bind-Value="row.Selected" Label="@template.Name"
+                                 data-testid="@($"onboarding-plan-{template.Key}")" />
+                    <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat"
+                                     @bind-Value="row.Price" Label="Precio (COP)" Min="0" Dense="true" Disabled="@(!row.Selected)"
+                                     data-testid="@($"onboarding-plan-{template.Key}-price")" />
+                </div>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3" data-testid="onboarding-plans-error">@_error</MudAlert>
+    }
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="CreateAsync"
+               Disabled="@(_busy || !_rows.Values.Any(r => r.Selected))" data-testid="onboarding-plans-create">
+        @(_busy ? "Creando..." : "Crear planes seleccionados")
+    </MudButton>
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+        Congelamientos, matrícula y tiqueteras se ajustan después desde Planes.
+    </MudText>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnCreated { get; set; }
+
+    private sealed class Row
+    {
+        public bool Selected { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    private readonly Dictionary<string, Row> _rows = PlanTemplate.All.ToDictionary(t => t.Key, _ => new Row());
+    private List<PlanResponse> _existing = [];
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _existing = (await Plans.MembershipPlansAllAsync(false)).ToList();
+        }
+        catch (GsmApiException)
+        {
+            // Sin la lista, el paso sigue sirviendo: solo no muestra los planes existentes.
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var chosen = PlanTemplate.All.Where(t => _rows[t.Key].Selected).ToList();
+        if (chosen.Any(t => _rows[t.Key].Price <= 0))
+        {
+            _error = "Escribe el precio de cada plan que elegiste.";
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            foreach (var template in chosen)
+            {
+                await Plans.MembershipPlansPOSTAsync(template.ToRequest(_rows[template.Key].Price));
+                _rows[template.Key].Selected = false;
+            }
+
+            Snackbar.Add(chosen.Count == 1 ? "Plan creado." : "Planes creados.", Severity.Success);
+            _existing = (await Plans.MembershipPlansAllAsync(false)).ToList();
+            await OnCreated.InvokeAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

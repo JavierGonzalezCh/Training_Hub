@@ -31,6 +31,27 @@ public sealed class AdminGymsController : ControllerBase
         Guid gymId, [FromServices] GetGymDetailHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(gymId, cancellationToken));
 
+    /// <summary>Dónde va el onboarding del gym: pasos, si se omitió y con qué motivo.</summary>
+    [HttpGet("{gymId:guid}/onboarding")]
+    [ProducesResponseType<GSM.Application.Gyms.Contracts.OnboardingResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GSM.Application.Gyms.Contracts.OnboardingResponse>> GetOnboarding(
+        Guid gymId, [FromServices] GSM.Application.Gyms.GetOnboardingHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(gymId, cancellationToken));
+
+    /// <summary>"Omitir onboarding" (soporte): habilita el panel sin pasar por el asistente. Exige motivo; queda auditado.</summary>
+    [HttpPost("{gymId:guid}/onboarding/skip")]
+    [ProducesResponseType<GSM.Application.Gyms.Contracts.OnboardingResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<GSM.Application.Gyms.Contracts.OnboardingResponse>> SkipOnboarding(
+        Guid gymId,
+        GSM.Application.Gyms.Contracts.SkipOnboardingRequest request,
+        [FromServices] GSM.Application.Gyms.SkipOnboardingHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(gymId, request, cancellationToken));
+
     /// <summary>Cambia plan y precio negociado del cliente.</summary>
     [HttpPut("{gymId:guid}/subscription")]
     [ProducesResponseType<SubscriptionDetail>(StatusCodes.Status200OK)]

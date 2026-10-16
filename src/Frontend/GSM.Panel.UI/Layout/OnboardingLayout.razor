@@ -1,0 +1,79 @@
+@inherits LayoutComponentBase
+@inject GymContext GymContext
+@inject SessionService Session
+@inject NavigationManager Navigation
+@inject ViewportState Viewport
+@implements IDisposable
+
+@* Layout del asistente de onboarding (Gyms §5): sin menú ni barra inferior, porque el panel todavía no está
+   habilitado. Lleva los mismos proveedores que MainLayout para que los diálogos (catálogo de máquinas) funcionen. *@
+<GsmThemeProvider Gym="@GymContext.Gym" />
+<MudPopoverProvider />
+<PanelDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout Class="gsm-shell">
+    <MudAppBar Elevation="0" Class="gsm-topbar">
+        <span class="gsm-wordmark">GS<span class="accent">M</span></span>
+        @if (GymContext.Gym is { } gym)
+        {
+            <span class="gsm-topbar__gym d-none d-sm-inline">@gym.Name</span>
+        }
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="LogoutAsync" data-testid="onboarding-logout">
+            Cerrar sesión
+        </MudButton>
+    </MudAppBar>
+
+    <MudMainContent Class="gsm-main">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="gsm-page">
+            <GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
+                @Body
+            </GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Viewport.Changed += OnViewportChanged;
+        GymContext.Changed += OnGymChanged;
+
+        if (!GymContext.IsLoaded)
+        {
+            try
+            {
+                await Session.BootstrapAsync();
+            }
+            catch (ApiErrorException ex) when (ex.Error.IsUnauthorized)
+            {
+                Navigation.NavigateTo("/login", replace: true);
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Viewport.EnsureStartedAsync();
+        }
+    }
+
+    private void OnViewportChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnGymChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task LogoutAsync()
+    {
+        await Session.LogoutAsync();
+        Navigation.NavigateTo("/login", replace: true);
+    }
+
+    public void Dispose()
+    {
+        Viewport.Changed -= OnViewportChanged;
+        GymContext.Changed -= OnGymChanged;
+    }
+}

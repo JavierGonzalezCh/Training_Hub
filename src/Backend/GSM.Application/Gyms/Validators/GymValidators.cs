@@ -89,6 +89,16 @@ public sealed class UpdateFeatureFlagsRequestValidator : AbstractValidator<Updat
     // Todos los campos son bool no anulables; el binder ya garantiza forma. Sin reglas extra.
 }
 
+public sealed class SkipOnboardingRequestValidator : AbstractValidator<SkipOnboardingRequest>
+{
+    public SkipOnboardingRequestValidator()
+    {
+        RuleFor(x => x.Reason)
+            .NotEmpty().WithMessage("Indica el motivo para omitir el onboarding.")
+            .MaximumLength(GSM.Domain.Gyms.GymOnboarding.MaxSkipReasonLength);
+    }
+}
+
 public sealed class TimeSlotDtoValidator : AbstractValidator<GSM.Application.Gyms.Contracts.TimeSlotDto>
 {
     public TimeSlotDtoValidator()

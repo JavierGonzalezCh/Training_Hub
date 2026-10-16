@@ -61,6 +61,7 @@ public static class PanelServiceCollectionExtensions
         }
 
         services.AddSingleton<PanelRegistry>();
+        services.AddScoped<GSM.Panel.UI.Onboarding.OnboardingGate>();
         return services;
     }
 }

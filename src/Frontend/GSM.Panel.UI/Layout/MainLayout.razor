@@ -7,6 +7,7 @@
 @inject ViewportState Viewport
 @inject IDialogService Dialogs
 @inject GSM.UI.Shared.Push.PushRegistrationService PushRegistration
+@inject GSM.Panel.UI.Onboarding.OnboardingGate OnboardingGate
 @implements IDisposable
 
 <GsmThemeProvider Gym="@GymContext.Gym" />
@@ -85,9 +86,21 @@
                                       Title="Activa los avisos del gimnasio"
                                       Message="Recibe en este teléfono las alertas del gimnasio aunque el panel esté cerrado. Elige cuáles quieres en «Avisos en el teléfono»." />
             </AuthorizeView>
-            <GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
-                @Body
-            </GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
+            @if (_staffWaiting)
+            {
+                @* Gyms §5: el staff no puede hacer nada hasta que el Owner termine el onboarding. *@
+                <div class="gsm-empty" data-testid="onboarding-staff-waiting">
+                    <MudIcon Icon="@Icons.Material.Outlined.Construction" Class="gsm-empty-icon" />
+                    <MudText Typo="Typo.h6">Tu gym todavía se está configurando</MudText>
+                    <MudText Color="Color.Secondary">El propietario está terminando de dejar todo listo. Vuelve en un rato.</MudText>
+                </div>
+            }
+            else if (!_redirectingToOnboarding)
+            {
+                <GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
+                    @Body
+                </GSM.UI.Shared.Diagnostics.GsmErrorBoundary>
+            }
         </MudContainer>
     </MudMainContent>
     <BottomNav />
@@ -96,6 +109,8 @@
 @code {
     private bool _drawerOpen = true;
     private IReadOnlyList<GymAccessOption> _accesses = [];
+    private bool _staffWaiting;
+    private bool _redirectingToOnboarding;
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,6 +139,12 @@
             }
         }
 
+        // Onboarding obligatorio (Gyms §5): hasta completar los pasos 1 a 5, el Owner va al asistente y el staff espera.
+        if (await ApplyOnboardingGateAsync(state.User))
+        {
+            return;
+        }
+
         // Con más de un acceso (otros gyms, o el otro modo de este gym) se ofrece "Cambiar de gimnasio".
         _accesses = await Session.GetAccessesAsync();
 
@@ -132,6 +153,29 @@
         {
             _ = PushRegistration.SyncAsync(GSM.UI.Shared.Push.PushPlatforms.WebPanel);
         }
+    }
+
+    /// <summary>Devuelve <c>true</c> si el panel quedó bloqueado (y no hay que seguir cargándolo).</summary>
+    private async Task<bool> ApplyOnboardingGateAsync(System.Security.Claims.ClaimsPrincipal user)
+    {
+        if (!await OnboardingGate.IsBlockedAsync())
+        {
+            _staffWaiting = false;
+            _redirectingToOnboarding = false;
+            return false;
+        }
+
+        if (user.IsInRole(GsmRoles.Owner))
+        {
+            _redirectingToOnboarding = true;
+            Navigation.NavigateTo("/onboarding", replace: true);
+        }
+        else
+        {
+            _staffWaiting = true;
+        }
+
+        return true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -153,6 +197,13 @@
     // En escritorio queda fijo, así que solo se cierra por debajo del breakpoint.
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        // El staff que esperaba entra en cuanto el Owner termina: se vuelve a preguntar al navegar.
+        if (_staffWaiting && !await OnboardingGate.IsBlockedAsync(refresh: true))
+        {
+            _staffWaiting = false;
+            await InvokeAsync(StateHasChanged);
+        }
+
         if (!_drawerOpen)
         {
             return;

@@ -61,6 +61,17 @@ public sealed class GymController : ControllerBase
         SetBillingContactRequest request, [FromServices] SetBillingContactHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(request, cancellationToken));
 
+    /// <summary>
+    /// Onboarding del gym (Gyms §5): qué pasos tienen su dato, cuál sigue y qué opcional queda para la lista
+    /// "Para completar". Mientras <c>isComplete</c> sea <c>false</c>, el panel lleva todo a <c>/onboarding</c>.
+    /// Lo puede leer el staff (ve "tu gym se está configurando"); lo completa el Owner con las pantallas de cada módulo.
+    /// </summary>
+    [HttpGet("onboarding")]
+    [ProducesResponseType<OnboardingResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<OnboardingResponse>> GetOnboarding(
+        [FromServices] GetOnboardingHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     [HttpGet("feature-flags")]
     [ProducesResponseType<GymFeatureFlagsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<GymFeatureFlagsResponse>> GetFeatureFlags(

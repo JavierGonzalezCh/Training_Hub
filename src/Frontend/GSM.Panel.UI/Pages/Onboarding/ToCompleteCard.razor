@@ -1,0 +1,66 @@
+@using GSM.Panel.UI.Onboarding
+@inject IGymClient Gym
+
+@* Lista «Para completar» del dashboard (Gyms §5): lo opcional del onboarding que quedó pendiente. Solo la ve el
+   Owner y desaparece cuando no queda nada. *@
+<AuthorizeView Roles="@GsmRoles.Owner">
+    @if (_items.Count > 0)
+    {
+        <section class="gsm-panel mb-4" aria-labelledby="to-complete-title" data-testid="to-complete">
+            <header class="gsm-panel__header">
+                <h2 id="to-complete-title" class="gsm-panel__title">Para completar</h2>
+                <span class="gsm-panel__meta">@_items.Count @(_items.Count == 1 ? "pendiente" : "pendientes")</span>
+            </header>
+            <ul class="gsm-todo-list">
+                @foreach (var item in _items)
+                {
+                    <li data-testid="@($"to-complete-{item.Key}")">
+                        <a href="@item.Href">@item.Label</a>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</AuthorizeView>
+
+@code {
+    private List<(string Key, string Label, string Href)> _items = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var state = await Gym.OnboardingAsync();
+            _items = ItemsFor(state).ToList();
+        }
+        catch (Exception)
+        {
+            // La lista es una ayuda: si no carga, el dashboard sigue sin ella.
+        }
+    }
+
+    /// <summary>Solo se muestra con el onboarding completo (antes el panel está bloqueado). Visible para pruebas.</summary>
+    internal static IEnumerable<(string Key, string Label, string Href)> ItemsFor(OnboardingResponse state)
+    {
+        if (!state.IsComplete)
+        {
+            yield break;
+        }
+
+        foreach (var todo in state.ToComplete)
+        {
+            switch (todo.Key)
+            {
+                case OnboardingKeys.Entry:
+                    yield return (todo.Key, "Empareja el kiosco y configura la entrada al gym", "/settings");
+                    break;
+                case OnboardingKeys.Team:
+                    yield return (todo.Key, "Invita a tu staff y a otros propietarios", "/settings");
+                    break;
+                case OnboardingKeys.Members:
+                    yield return (todo.Key, "Registra a tus primeros miembros", "/members");
+                    break;
+            }
+        }
+    }
+}
