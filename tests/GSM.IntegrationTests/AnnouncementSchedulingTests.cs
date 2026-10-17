@@ -208,6 +208,15 @@ public sealed class AnnouncementSchedulingTests(ApiFactory factory) : IClassFixt
         Assert.Equal("Published", await StatusAsync(fine));
         // Ya no está programado: no se reintenta en cada ejecución.
         Assert.Equal(0, await RunJobAtAsync(T0.AddHours(3)));
+
+        // CO4-1: su autor recibe un aviso en la campana del staff; el que sí salió no genera ninguno.
+        using var scope = SystemScope(T0.AddHours(3));
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var author = (await db.Set<Announcement>().IgnoreQueryFilters().AsNoTracking().FirstAsync(a => a.Id == empty)).AuthorUserId;
+        var notice = Assert.Single(await db.Set<Notification>().IgnoreQueryFilters().AsNoTracking()
+            .Where(n => n.GymId == w.GymId && n.Type == NotificationType.AnnouncementNotPublished).ToListAsync());
+        Assert.Equal(author, notice.RecipientUserId);
+        Assert.Contains("Tu anuncio «Sin nadie» no se publicó", notice.Body);
     }
 
     [Fact]

@@ -1,7 +1,9 @@
 using GSM.Application.Common;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Communications.Abstractions;
+using GSM.Application.Common.Events;
 using GSM.Application.Communications.Contracts;
+using GSM.Application.Communications.Events;
 using GSM.Domain.Common.Exceptions;
 using Microsoft.Extensions.Logging;
 
@@ -111,7 +113,8 @@ public sealed class RemoveAnnouncementImageHandler(
 /// publicarlos dejan de serlo, así que una segunda ejecución no hace nada.
 /// <para>
 /// Si al llegar la hora ya no se puede publicar (audiencia vacía o caducidad pasada) vuelve a borrador y queda
-/// un aviso en el log, en vez de reintentarse en cada ejecución para siempre.
+/// un aviso en el log, en vez de reintentarse en cada ejecución para siempre. Además se publica
+/// <see cref="ScheduledAnnouncementNotPublished"/>: su autor recibe un aviso en la campana del staff (CO4-1).
 /// </para>
 /// </summary>
 public sealed class PublishScheduledAnnouncementsHandler(
@@ -119,6 +122,7 @@ public sealed class PublishScheduledAnnouncementsHandler(
     IAnnouncementRepository announcements,
     AnnouncementPublisher publisher,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<PublishScheduledAnnouncementsHandler> logger)
 {
     public const int BatchSize = 100;
@@ -142,6 +146,11 @@ public sealed class PublishScheduledAnnouncementsHandler(
                     announcement.Id, announcement.GymId);
                 announcement.Unschedule();
                 await unitOfWork.SaveChangesAsync(cancellationToken);
+                await events.PublishAsync(
+                    new ScheduledAnnouncementNotPublished(
+                        Guid.CreateVersion7(), announcement.Id, announcement.GymId, announcement.AuthorUserId,
+                        announcement.Title, ex.Message),
+                    cancellationToken);
             }
         }
 

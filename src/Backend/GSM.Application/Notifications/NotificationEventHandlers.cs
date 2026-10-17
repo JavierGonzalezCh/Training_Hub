@@ -243,3 +243,33 @@ public sealed class CheckInRejectedCreatesActionNotice(
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }
+
+/// <summary>
+/// CO4-1: un anuncio programado que no pudo salir y volvió a borrador le avisa a su autor en la campana del staff
+/// ("Tu anuncio «X» no se publicó: ..."). Idempotente por el fallo.
+/// </summary>
+public sealed class ScheduledAnnouncementNotPublishedNotifiesAuthor(
+    INotificationRepository notifications,
+    IClock clock,
+    IUnitOfWork unitOfWork) : IDomainEventHandler<ScheduledAnnouncementNotPublished>
+{
+    public async Task HandleAsync(ScheduledAnnouncementNotPublished domainEvent, CancellationToken cancellationToken = default)
+    {
+        if (await notifications.ExistsAsync(
+                NotificationType.AnnouncementNotPublished, domainEvent.AuthorUserId, null, domainEvent.NoticeId, cancellationToken))
+        {
+            return;
+        }
+
+        var body = $"Tu anuncio «{domainEvent.Title}» no se publicó: {domainEvent.Reason} Volvió a borrador.";
+        if (body.Length > Notification.BodyMaxLength)
+        {
+            body = body[..Notification.BodyMaxLength];
+        }
+
+        notifications.Add(Notification.CreateForUser(
+            domainEvent.GymId, domainEvent.AuthorUserId, NotificationType.AnnouncementNotPublished, domainEvent.NoticeId,
+            "Tu anuncio no se publicó", body, "/communications", clock.UtcNow));
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}

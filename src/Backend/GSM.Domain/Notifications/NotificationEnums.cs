@@ -117,6 +117,12 @@ public enum NotificationType
 
     /// <summary>C3-5: el staff levantó la penalización; ya puede reservar. Referencia: miembro + día en que se levantó.</summary>
     BookingPenaltyLifted,
+
+    /// <summary>
+    /// CO4-1: un anuncio programado no pudo salir a su hora (audiencia vacía o caducado) y volvió a borrador. Aviso
+    /// informativo en la campana del autor. Referencia: un id propio de cada fallo.
+    /// </summary>
+    AnnouncementNotPublished,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>
