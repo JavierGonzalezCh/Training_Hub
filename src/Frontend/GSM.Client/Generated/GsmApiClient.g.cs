@@ -54727,6 +54727,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("goal")]
+        public string? Goal { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

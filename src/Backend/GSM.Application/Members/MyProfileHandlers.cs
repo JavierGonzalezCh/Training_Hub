@@ -120,6 +120,7 @@ public sealed class UpdateMyProfileHandler(
         var fieldChanges = new List<MemberFieldChange>(member.UpdateContact(
             request.Phone, request.Address, request.City,
             request.EmergencyContactName, request.EmergencyContactRelationship, request.EmergencyContactPhone,
+            ParseGoal(request.Goal),
             today));
 
         if (request.Health is { } health)
@@ -136,6 +137,18 @@ public sealed class UpdateMyProfileHandler(
         logger.LogInformation(
             "Perfil del miembro {MemberId} actualizado por él mismo ({ChangedFields} campos)", member.Id, fieldChanges.Count);
         return await composer.BuildAsync(member, cancellationToken);
+    }
+
+    private static MemberGoal? ParseGoal(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        return EnumText.TryParse<MemberGoal>(text, out var goal)
+            ? goal
+            : throw new ValidationDomainException($"Objetivo no válido: '{text}'.");
     }
 
     private static void RejectIdentityChanges(Member member, UpdateMyProfileRequest request)

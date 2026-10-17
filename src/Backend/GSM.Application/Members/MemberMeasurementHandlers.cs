@@ -16,13 +16,14 @@ namespace GSM.Application.Members;
 /// </summary>
 public sealed class ListMemberMeasurementsHandler(
     ICurrentUserService currentUser,
+    IClock clock,
     IMemberRepository members,
     IConsentRepository consents,
     IIdentityReader identity)
 {
     public async Task<MemberMeasurementsView> HandleAsync(Guid memberId, CancellationToken cancellationToken)
     {
-        _ = currentUser.RequireGymId();
+        var gymId = currentUser.RequireGymId();
         MemberHealthRules.RequirePermission(currentUser);
 
         if (!await members.ExistsAsync(memberId, cancellationToken))
@@ -33,6 +34,17 @@ public sealed class ListMemberMeasurementsHandler(
         if (!await MemberHealthRules.HasDataConsentAsync(consents, memberId, cancellationToken))
         {
             return new MemberMeasurementsView(ConsentRequired: true, Items: []);
+        }
+
+        // M4-2: igual que la sección de salud, la consulta deja constancia (salvo la del SuperAdmin, que va a su auditoría).
+        if (!currentUser.IsSuperAdmin && currentUser.UserId is { } userId)
+        {
+            await members.LogHealthAccessAsync(
+                MemberHealthAccess.Record(
+                    gymId, memberId, userId,
+                    currentUser.Role == UserRole.Owner ? "owner" : "staff",
+                    clock.UtcNow, clock.Today),
+                cancellationToken);
         }
 
         var rows = await members.GetMeasurementsAsync(memberId, cancellationToken);
@@ -56,10 +68,9 @@ public sealed class AddMemberMeasurementHandler(
         var gymId = currentUser.RequireGymId();
         MemberHealthRules.RequirePermission(currentUser);
 
-        if (!await members.ExistsAsync(memberId, cancellationToken))
-        {
-            throw new NotFoundException("Miembro no encontrado.");
-        }
+        var member = await members.GetByIdAsync(memberId, cancellationToken)
+            ?? throw new NotFoundException("Miembro no encontrado.");
+        AnonymizedGuard.EnsureNotAnonymized(member);
 
         if (!await MemberHealthRules.HasDataConsentAsync(consents, memberId, cancellationToken))
         {

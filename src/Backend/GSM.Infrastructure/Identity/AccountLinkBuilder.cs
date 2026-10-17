@@ -21,7 +21,11 @@ public sealed class AccountLinkBuilder(IOptions<AccountLinkOptions> options) : I
 {
     private readonly string _baseUrl = options.Value.PublicWebBaseUrl.TrimEnd('/');
 
-    public string RegistrationUrl(string code) => $"{_baseUrl}/app/registro?code={Uri.EscapeDataString(code)}";
+    public string RegistrationUrl(string code, string? gymSlug = null)
+    {
+        var url = $"{_baseUrl}/app/registro?code={Uri.EscapeDataString(code)}";
+        return string.IsNullOrWhiteSpace(gymSlug) ? url : $"{url}&gym={Uri.EscapeDataString(gymSlug.Trim())}";
+    }
 
     public string ResetUrl(string email, string code) => Build("/restablecer", email, code);
 

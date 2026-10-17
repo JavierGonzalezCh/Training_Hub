@@ -192,4 +192,20 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
         => dbContext.Set<MembershipSettings>().FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);
 
     public void Add(MembershipSettings settings) => dbContext.Set<MembershipSettings>().Add(settings);
+
+    public async Task ReplaceReasonsForMemberAsync(
+        Guid gymId, Guid memberId, string replacement, CancellationToken cancellationToken = default)
+    {
+        await Memberships.IgnoreQueryFilters()
+            .Where(m => m.GymId == gymId && m.MemberId == memberId
+                        && m.CancellationReason != null && m.CancellationReason != replacement)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.CancellationReason, replacement), cancellationToken);
+
+        var membershipIds = Memberships.IgnoreQueryFilters()
+            .Where(m => m.GymId == gymId && m.MemberId == memberId)
+            .Select(m => m.Id);
+        await dbContext.Set<MembershipFreeze>().IgnoreQueryFilters()
+            .Where(f => f.GymId == gymId && membershipIds.Contains(f.MembershipId) && f.Reason != replacement)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.Reason, replacement), cancellationToken);
+    }
 }

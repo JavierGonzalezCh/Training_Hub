@@ -96,6 +96,13 @@ public interface IMembershipRepository
     Task<MembershipSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     void Add(MembershipSettings settings);
+
+    /// <summary>
+    /// M6-2: reemplaza por <paramref name="replacement"/> los motivos de cancelación de las membresías del miembro y los
+    /// de sus congelamientos. Las fechas y los días acreditados no se tocan. Idempotente.
+    /// </summary>
+    Task ReplaceReasonsForMemberAsync(
+        Guid gymId, Guid memberId, string replacement, CancellationToken cancellationToken = default);
 }
 
 public sealed record ExpiringMembershipRow(

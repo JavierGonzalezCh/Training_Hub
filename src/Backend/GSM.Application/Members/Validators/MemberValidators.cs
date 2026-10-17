@@ -128,6 +128,7 @@ public sealed class UpdateMyProfileRequestValidator : AbstractValidator<UpdateMy
         RuleFor(x => x.DocumentType).MaximumLength(20);
         RuleFor(x => x.DocumentNumber).MaximumLength(30);
         RuleFor(x => x.Email).MaximumLength(256);
+        RuleFor(x => x.Goal).MaximumLength(30);
         When(x => x.Health is not null, () =>
         {
             RuleFor(x => x.Health!.MedicalConditions).MaximumLength(Member.HealthTextMaxLength);

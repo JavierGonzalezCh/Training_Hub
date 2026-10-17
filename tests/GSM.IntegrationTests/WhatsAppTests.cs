@@ -182,7 +182,7 @@ public sealed class WhatsAppTests(ApiFactory factory) : IClassFixture<ApiFactory
         {
             var message = await scope.ServiceProvider.GetRequiredService<BuildWhatsAppMessageHandler>()
                 .HandleAsync(w.MemberWithPhone, "AppInvitation", default);
-            Assert.Contains($"/app/registro?code={code}", message.Message);
+            Assert.Contains($"/app/registro?code={code}&gym=", message.Message);
             Assert.StartsWith("Hola Ana, activa tu cuenta de Gym WhatsApp: ", message.Message);
 
             // Vencida (8 días después), ya no sirve.

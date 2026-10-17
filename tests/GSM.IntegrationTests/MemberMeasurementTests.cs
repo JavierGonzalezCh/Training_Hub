@@ -219,6 +219,28 @@ public sealed class MemberMeasurementTests(ApiFactory factory) : IClassFixture<A
     }
 
     [Fact]
+    public async Task Reading_the_measurements_leaves_a_row_in_the_health_access_log()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var owner = await LoggedInAsync(host, w.OwnerEmail);
+        var id = await CreateAsync(owner, Body("m4-10"));
+
+        // Sin autorización de datos no se entrega nada y no se registra.
+        await owner.GetAsync($"/api/members/{id}/measurements");
+        var none = (await owner.GetFromJsonAsync<PagedResult<MemberHealthAccessItem>>($"/api/members/{id}/health-access"))!;
+        Assert.Equal(0, none.Total);
+
+        await AcceptDataAsync(owner, id);
+        await owner.GetAsync($"/api/members/{id}/measurements");
+        await owner.GetAsync($"/api/members/{id}/measurements"); // el mismo día no duplica la fila
+
+        var access = (await owner.GetFromJsonAsync<PagedResult<MemberHealthAccessItem>>($"/api/members/{id}/health-access"))!;
+        Assert.Equal(1, access.Total);
+        Assert.Equal(w.OwnerId, access.Items[0].UserId);
+    }
+
+    [Fact]
     public async Task Measurements_of_another_gym_are_invisible()
     {
         var w1 = await SeedAsync();

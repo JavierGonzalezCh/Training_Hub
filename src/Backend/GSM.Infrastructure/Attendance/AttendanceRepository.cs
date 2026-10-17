@@ -144,4 +144,11 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
             .Select(a => a.MemberId)
             .Distinct()
             .CountAsync(cancellationToken);
+
+    public async Task ReplaceAuthorizationReasonsForMemberAsync(
+        Guid gymId, Guid memberId, string replacement, CancellationToken cancellationToken = default)
+        => await Attendances.IgnoreQueryFilters()
+            .Where(a => a.GymId == gymId && a.MemberId == memberId
+                        && a.AuthorizationReason != null && a.AuthorizationReason != replacement)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.AuthorizationReason, replacement), cancellationToken);
 }

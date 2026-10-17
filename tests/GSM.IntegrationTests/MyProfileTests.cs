@@ -107,6 +107,34 @@ public sealed class MyProfileTests(ApiFactory factory) : IClassFixture<ApiFactor
     }
 
     [Fact]
+    public async Task The_member_edits_their_own_goal_with_history_and_an_invalid_goal_is_422()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var owner = await LoggedInAsync(host, w.OwnerEmail);
+        var id = await CreateAsync(owner, Body("m5-goal"));
+        await LinkAsync(id, w.MemberUserId);
+        var mine = await LoggedInAsync(host, w.MemberEmail);
+
+        var response = await mine.PutAsJsonAsync("/api/me/profile", Update(goal: "muscle_gain"));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("muscle_gain", (await response.Content.ReadFromJsonAsync<MyProfile>())!.Goal);
+        Assert.Equal("muscle_gain", (await owner.GetFromJsonAsync<MemberDetail>($"/api/members/{id}"))!.Goal);
+
+        var changes = (await owner.GetFromJsonAsync<PagedResult<MemberChangeItem>>($"/api/members/{id}/changes?pageSize=100"))!.Items;
+        var row = Assert.Single(changes, c => c.Field == "goal");
+        Assert.Equal("member", row.ChangedByRole);
+
+        Assert.Equal(
+            HttpStatusCode.UnprocessableEntity,
+            (await mine.PutAsJsonAsync("/api/me/profile", Update(goal: "volar"))).StatusCode);
+
+        // Vacío lo quita.
+        var cleared = await mine.PutAsJsonAsync("/api/me/profile", Update(goal: ""));
+        Assert.Null((await cleared.Content.ReadFromJsonAsync<MyProfile>())!.Goal);
+    }
+
+    [Fact]
     public async Task Identity_fields_with_another_value_are_403_and_the_same_value_is_accepted()
     {
         var w = await SeedAsync();
@@ -344,8 +372,10 @@ public sealed class MyProfileTests(ApiFactory factory) : IClassFixture<ApiFactor
         string? documentType = null,
         string? documentNumber = null,
         string? birthDate = null,
-        string? email = null) => new()
+        string? email = null,
+        string? goal = null) => new()
         {
+            ["goal"] = goal,
             ["phone"] = phone,
             ["city"] = city,
             ["emergencyContactName"] = emergencyName,

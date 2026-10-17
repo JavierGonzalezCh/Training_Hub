@@ -127,7 +127,9 @@ public sealed class BuildWhatsAppMessageHandler(
                 throw new ConflictException("Genera primero la invitación del miembro: no tiene una vigente.");
             }
 
-            link = registrationLinks.RegistrationUrl(invitation.Code);
+            // El slug va en el enlace para que la pantalla de registro muestre la marca del gym (I5-4).
+            var slug = (await gyms.GetAdminViewAsync(gymId, cancellationToken))?.Slug;
+            link = registrationLinks.RegistrationUrl(invitation.Code, slug);
         }
 
         var message = text

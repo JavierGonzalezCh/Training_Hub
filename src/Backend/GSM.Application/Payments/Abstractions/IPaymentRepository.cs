@@ -40,4 +40,11 @@ public interface IPaymentRepository
     /// <summary>Todos los pagos del gym cuyo <c>paid_at</c> cae en <c>[fromUtc, toUtc)</c> (cierre de caja).</summary>
     Task<IReadOnlyList<Payment>> GetInRangeAsync(
         DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// M6-2: reemplaza por <paramref name="replacement"/> las notas de los asientos del miembro. Los montos y fechas no
+    /// se tocan. Idempotente.
+    /// </summary>
+    Task ReplaceNotesForMemberAsync(
+        Guid gymId, Guid memberId, string replacement, CancellationToken cancellationToken = default);
 }
