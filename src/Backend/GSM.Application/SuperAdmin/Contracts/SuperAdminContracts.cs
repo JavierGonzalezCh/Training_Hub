@@ -55,12 +55,10 @@ public sealed record SubscriptionDetail(
     string? Notes,
     int TrialGraceDays);
 
-/// <param name="Plan">Enum heredado (<c>basic</c>/<c>pro</c>/<c>enterprise</c>). Si viene <paramref name="SaasPlanId"/> manda este.</param>
-/// <param name="SaasPlanId">Plan del SaaS (S2). Si se omite, se resuelve por el nombre de <paramref name="Plan"/>.</param>
+/// <param name="SaasPlanId">Plan del SaaS (S2). Si se omite, el plan actual no cambia.</param>
 /// <param name="MemberLimitOverride">Límite propio del cliente; nulo = el del plan (el PUT reemplaza el valor anterior).</param>
 /// <param name="TrialGraceDays">Días de <c>trial_ended</c> tras la prueba (0 a 60). Nulo = no cambia el valor actual.</param>
 public sealed record UpdateSubscriptionRequest(
-    GymPlan Plan,
     decimal MonthlyPrice,
     Guid? SaasPlanId = null,
     int? MemberLimitOverride = null,
@@ -265,3 +263,33 @@ public sealed record ImpersonationActionItem(
     string Summary,
     int StatusCode,
     DateTimeOffset OccurredAt);
+
+
+/// <summary>
+/// Lo que el Owner ve de la suscripción de su gym (solo lectura): plan, precio, estado efectivo de hoy, hasta
+/// cuándo está cubierto, uso del límite de miembros y los últimos pagos. No expone las notas internas.
+/// </summary>
+/// <param name="Plan">Nombre del plan del SaaS ("Sin plan" si no tiene uno).</param>
+/// <param name="EffectiveStatus">Nombre de <c>EffectiveSubscriptionStatus</c>: Trial, TrialEnded, Active, Overdue, Disabled, Suspended.</param>
+/// <param name="SuspensionReason">Motivo de la suspensión; solo viene si el estado es Suspended.</param>
+/// <param name="TrialEndsOn">Fin de la prueba; nulo si el gym nació sin prueba.</param>
+/// <param name="MemberLimit">Límite efectivo de miembros. Nulo = sin límite.</param>
+public sealed record OwnSubscriptionResponse(
+    string Plan,
+    decimal MonthlyPrice,
+    string EffectiveStatus,
+    string? SuspensionReason,
+    DateOnly? TrialEndsOn,
+    DateOnly PaidThrough,
+    int? DaysUntilDisabled,
+    int? MemberLimit,
+    int CountedMembers,
+    IReadOnlyList<OwnSubscriptionPayment> RecentPayments);
+
+public sealed record OwnSubscriptionPayment(
+    Guid Id,
+    decimal Amount,
+    string Method,
+    DateOnly CoversFrom,
+    DateOnly CoversThrough,
+    DateTimeOffset PaidAt);

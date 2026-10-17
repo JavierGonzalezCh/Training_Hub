@@ -62,7 +62,6 @@
             _plans = (await AdminPlans.PlansAllAsync())
                 .Where(p => p.IsActive == true || p.Id == Current.SaasPlanId)
                 .ToList();
-            _planId ??= _plans.FirstOrDefault(p => p.Name == Current.Plan)?.Id;
         }
         catch (GsmApiException ex)
         {
@@ -86,10 +85,8 @@
         _error = null;
         try
         {
-            var planName = _plans.FirstOrDefault(p => p.Id == _planId)?.Name ?? Current.Plan;
             await AdminGyms.SubscriptionAsync(GymId, new UpdateSubscriptionRequest
             {
-                Plan = SuperAdminLabels.LegacyPlanValue(planName),
                 SaasPlanId = _planId,
                 MemberLimitOverride = _limitOverride,
                 MonthlyPrice = (double)_price,

@@ -147,7 +147,7 @@ public sealed class AdminDashboardD3Tests(ApiFactory factory) : IClassFixture<Ap
         var atNinety = await SeedGymAsync(GymStatus.Active, Today.AddDays(-60), null, Today.AddDays(20), memberLimit: 10);
         var atEighty = await SeedGymAsync(GymStatus.Active, Today.AddDays(-60), null, Today.AddDays(20), memberLimit: 10);
         var full = await SeedGymAsync(GymStatus.Active, Today.AddDays(-60), null, Today.AddDays(20), memberLimit: 4);
-        var unlimited = await SeedGymAsync(GymStatus.Active, Today.AddDays(-60), null, Today.AddDays(20), memberLimit: null, plan: GymPlan.Enterprise);
+        var unlimited = await SeedGymAsync(GymStatus.Active, Today.AddDays(-60), null, Today.AddDays(20), memberLimit: null);
         await AddCoveredMembersAsync(atNinety.GymId, 9);
         await AddCoveredMembersAsync(atEighty.GymId, 8);
         await AddCoveredMembersAsync(full.GymId, 4);
@@ -285,7 +285,7 @@ public sealed class AdminDashboardD3Tests(ApiFactory factory) : IClassFixture<Ap
 
     private async Task<World> SeedGymAsync(
         GymStatus status, DateOnly startedOn, DateOnly? trialEndsOn, DateOnly paidThrough,
-        bool ownerWithPassword = true, int? memberLimit = null, GymPlan plan = GymPlan.Basic)
+        bool ownerWithPassword = true, int? memberLimit = null)
     {
         using var scope = SystemScope();
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
@@ -297,7 +297,7 @@ public sealed class AdminDashboardD3Tests(ApiFactory factory) : IClassFixture<Ap
             gym.SetCommercialStatus(status);
         }
 
-        var subscription = GymSubscription.Create(gym.Id, plan, 100_000m, startedOn, paidThrough, trialEndsOn);
+        var subscription = GymSubscription.Create(gym.Id, 100_000m, startedOn, paidThrough, trialEndsOn);
         if (memberLimit is { } limit)
         {
             subscription.SetMemberLimitOverride(limit);

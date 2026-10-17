@@ -21,12 +21,26 @@ public class GymCreationDialogTests : TestContext
         }
     }
 
+    private sealed class FakePlansClient : IAdminPlansClient
+    {
+        public Task<ICollection<SaasPlanItem>> PlansAllAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<ICollection<SaasPlanItem>>(
+                [new SaasPlanItem { Id = Guid.NewGuid(), Name = "Basic", MemberLimit = 150, IsActive = true }]);
+
+        public Task<SaasPlanItem> PlansPOSTAsync(CreateSaasPlanRequest body, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<SaasPlanItem> PlansPUTAsync(Guid planId, UpdateSaasPlanRequest body, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
+
     private async Task<(FakeGymsClient Client, IRenderedComponent<MudDialogProvider> Provider)> OpenAsync()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
         var client = new FakeGymsClient();
         Services.AddSingleton<IGymsClient>(client);
+        Services.AddSingleton<IAdminPlansClient>(new FakePlansClient());
 
         RenderComponent<MudPopoverProvider>();   // el selector del método de pago lo necesita
         var provider = RenderComponent<MudDialogProvider>();

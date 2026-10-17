@@ -66,7 +66,7 @@ public sealed class CreateGymHandler(
         }
 
         var gym = Gym.Create(
-            request.Name, slug, request.Plan, request.Nit, request.Phone, request.Email);
+            request.Name, slug, request.Nit, request.Phone, request.Email);
         if (!hasTrial)
         {
             // Sin prueba el gym nace activo (SuperAdmin §V2).
@@ -110,7 +110,7 @@ public sealed class CreateGymHandler(
 
         await events.PublishAsync(
             new GymCreated(
-                gym.Id, gym.Name, gym.Plan, request.TrialDays, firstPayment, request.MonthlyPrice ?? 0m, createdBy),
+                gym.Id, gym.Name, request.SaasPlanId, request.TrialDays, firstPayment, request.MonthlyPrice ?? 0m, createdBy),
             cancellationToken);
 
         var sent = invitation is null || await SendInvitationAsync(request.Owner, gym.Name, invitation, cancellationToken);

@@ -1,4 +1,4 @@
-using GSM.Application.Memberships;
+﻿using GSM.Application.Memberships;
 using GSM.Application.Memberships.Contracts;
 using GSM.Application.Memberships.Public;
 using GSM.Application.SuperAdmin;
@@ -37,23 +37,23 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     }
 
     [Fact]
-    public async Task A_subscription_without_chosen_plan_uses_the_limit_of_its_legacy_plan_name()
+    public async Task A_subscription_without_chosen_plan_has_no_plan_limit()
     {
-        var w = await SeedAsync(planEnum: GymPlan.Basic, limitOverride: null);
+        var w = await SeedAsync(planName: null, limitOverride: null);
 
         using var scope = SuperAdmin();
         var limit = await scope.ServiceProvider.GetRequiredService<ISaasPlanRepository>().GetGymLimitAsync(w.GymId, default);
 
         Assert.NotNull(limit);
-        Assert.Equal("Basic", limit!.PlanName);
-        Assert.Equal(150, limit.Effective);
+        Assert.Equal("Sin plan", limit!.PlanName);
+        Assert.Null(limit.Effective);
         Assert.Null(limit.Override);
     }
 
     [Fact]
     public async Task The_override_of_a_client_beats_the_limit_of_its_plan()
     {
-        var w = await SeedAsync(GymPlan.Enterprise, limitOverride: 7);
+        var w = await SeedAsync("Enterprise", limitOverride: 7);
 
         using var scope = SuperAdmin();
         var limit = await scope.ServiceProvider.GetRequiredService<ISaasPlanRepository>().GetGymLimitAsync(w.GymId, default);
@@ -65,7 +65,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task At_the_limit_a_new_member_cannot_get_a_membership()
     {
-        var w = await SeedAsync(GymPlan.Basic, limitOverride: 2);
+        var w = await SeedAsync("Basic", limitOverride: 2);
         await AddMembershipAsync(w, w.Members[0], Today.AddDays(-5));
         await AddMembershipAsync(w, w.Members[1], Today.AddDays(-5));
 
@@ -80,7 +80,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task Below_the_limit_a_new_member_gets_the_membership()
     {
-        var w = await SeedAsync(GymPlan.Basic, limitOverride: 2);
+        var w = await SeedAsync("Basic", limitOverride: 2);
         await AddMembershipAsync(w, w.Members[0], Today.AddDays(-5));
 
         using var scope = Staff(w);
@@ -93,7 +93,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task Renewing_someone_who_already_counts_is_never_blocked_even_at_the_limit()
     {
-        var w = await SeedAsync(GymPlan.Basic, limitOverride: 2);
+        var w = await SeedAsync("Basic", limitOverride: 2);
         await AddMembershipAsync(w, w.Members[0], Today.AddDays(-25));   // al día (por vencer)
         await AddMembershipAsync(w, w.Members[1], Today.AddDays(-32));   // venció hace 2 días: en gracia (3)
 
@@ -110,7 +110,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task A_frozen_member_counts_and_can_be_renewed_at_the_limit()
     {
-        var w = await SeedAsync(GymPlan.Basic, limitOverride: 2);
+        var w = await SeedAsync("Basic", limitOverride: 2);
         await AddMembershipAsync(w, w.Members[0], Today.AddDays(-5), freeze: true);
         await AddMembershipAsync(w, w.Members[1], Today.AddDays(-5));
 
@@ -126,7 +126,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task Expired_and_cancelled_members_do_not_count_but_cannot_come_back_at_the_limit()
     {
-        var w = await SeedAsync(GymPlan.Basic, limitOverride: 2);
+        var w = await SeedAsync("Basic", limitOverride: 2);
         await AddMembershipAsync(w, w.Members[0], Today.AddDays(-5));
         await AddMembershipAsync(w, w.Members[1], Today.AddDays(-5));
         await AddMembershipAsync(w, w.Members[2], Today.AddDays(-60));                  // vencida, fuera de la gracia
@@ -147,7 +147,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task A_gym_without_a_limit_is_never_blocked()
     {
-        var w = await SeedAsync(GymPlan.Enterprise, limitOverride: null);
+        var w = await SeedAsync("Enterprise", limitOverride: null);
         foreach (var member in w.Members.Take(4))
         {
             await AddMembershipAsync(w, member, Today.AddDays(-5));
@@ -166,7 +166,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task A_gym_without_subscription_is_never_blocked()
     {
-        var w = await SeedAsync(GymPlan.Basic, limitOverride: 1, withSubscription: false);
+        var w = await SeedAsync("Basic", limitOverride: 1, withSubscription: false);
         await AddMembershipAsync(w, w.Members[0], Today.AddDays(-5));
 
         using var scope = Staff(w);
@@ -178,7 +178,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task Raising_the_override_unblocks_and_the_detail_shows_the_usage()
     {
-        var w = await SeedAsync(GymPlan.Basic, limitOverride: 2);
+        var w = await SeedAsync("Basic", limitOverride: 2);
         await AddMembershipAsync(w, w.Members[0], Today.AddDays(-5));
         await AddMembershipAsync(w, w.Members[1], Today.AddDays(-5));
 
@@ -190,7 +190,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
             Assert.Equal(2, detail.Subscription.MemberLimitOverride);
 
             var updated = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
-                .HandleAsync(w.GymId, new UpdateSubscriptionRequest(GymPlan.Basic, 100_000m, MemberLimitOverride: 3), default);
+                .HandleAsync(w.GymId, new UpdateSubscriptionRequest(100_000m, MemberLimitOverride: 3), default);
             Assert.Equal(3, updated.MemberLimit);
 
             var portfolio = await scope.ServiceProvider.GetRequiredService<ListGymPortfolioHandler>()
@@ -209,11 +209,11 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task Clearing_the_override_returns_to_the_limit_of_the_plan()
     {
-        var w = await SeedAsync(GymPlan.Pro, limitOverride: 2);
+        var w = await SeedAsync("Pro", limitOverride: 2);
 
         using var scope = SuperAdmin();
         var updated = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
-            .HandleAsync(w.GymId, new UpdateSubscriptionRequest(GymPlan.Pro, 100_000m, MemberLimitOverride: null), default);
+            .HandleAsync(w.GymId, new UpdateSubscriptionRequest(100_000m, MemberLimitOverride: null), default);
 
         Assert.Equal(500, updated.MemberLimit);
         Assert.Null(updated.MemberLimitOverride);
@@ -223,7 +223,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task The_superadmin_creates_and_edits_a_plan_and_the_gyms_that_use_it_follow()
     {
-        var w = await SeedAsync(GymPlan.Basic, limitOverride: null);
+        var w = await SeedAsync("Basic", limitOverride: null);
         var name = $"Test-{Guid.NewGuid():N}"[..20];
         Guid planId = Guid.Empty;
 
@@ -237,7 +237,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
                 Assert.Equal(40, created.MemberLimit);
 
                 var updated = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
-                    .HandleAsync(w.GymId, new UpdateSubscriptionRequest(GymPlan.Basic, 90_000m, SaasPlanId: planId), default);
+                    .HandleAsync(w.GymId, new UpdateSubscriptionRequest(90_000m, SaasPlanId: planId), default);
                 Assert.Equal(name, updated.Plan);
                 Assert.Equal(40, updated.MemberLimit);
             }
@@ -274,7 +274,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     [Fact]
     public async Task A_deactivated_member_with_a_current_membership_does_not_count_toward_the_limit()
     {
-        var w = await SeedAsync(GymPlan.Enterprise, limitOverride: 5);
+        var w = await SeedAsync("Enterprise", limitOverride: 5);
         await AddMembershipAsync(w, w.Members[0], Today.AddDays(-2));
         await AddMembershipAsync(w, w.Members[1], Today.AddDays(-2));
 
@@ -350,7 +350,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
         }
     }
 
-    private async Task<World> SeedAsync(GymPlan planEnum, int? limitOverride, bool withSubscription = true)
+    private async Task<World> SeedAsync(string? planName, int? limitOverride, bool withSubscription = true)
     {
         using var scope = factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
@@ -366,7 +366,13 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
 
         if (withSubscription)
         {
-            var sub = GymSubscription.Create(gym.Id, planEnum, 100_000m, Today.AddDays(-10), Today.AddDays(20));
+            var sub = GymSubscription.Create(gym.Id, 100_000m, Today.AddDays(-10), Today.AddDays(20));
+            if (planName is not null)
+            {
+                var saasPlan = await db.Set<SaasPlan>().SingleAsync(p => p.Name == planName);
+                sub.AssignSaasPlan(saasPlan.Id);
+            }
+
             sub.SetMemberLimitOverride(limitOverride);
             db.Add(sub);
         }

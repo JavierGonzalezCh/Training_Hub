@@ -33,7 +33,6 @@ public sealed class ListGymPortfolioHandler(
 
         var planList = await saasPlans.ListAsync(cancellationToken);
         var plansById = planList.ToDictionary(p => p.Id);
-        var plansByName = planList.ToDictionary(p => p.Name.ToLowerInvariant());
 
         var items = new List<PortfolioItem>(rows.Count);
         var countByStatus = new Dictionary<string, int>();
@@ -51,10 +50,10 @@ public sealed class ListGymPortfolioHandler(
                 continue;
             }
 
-            // Mismo criterio que ISaasPlanRepository.GetGymLimitAsync: el plan elegido, o el del enum heredado por nombre.
+            // Mismo criterio que ISaasPlanRepository.GetGymLimitAsync: el plan elegido, o ninguno.
             var plan = row.SaasPlanId is { } planId
                 ? plansById.GetValueOrDefault(planId)
-                : plansByName.GetValueOrDefault(row.Plan.ToString().ToLowerInvariant());
+                : null;
 
             items.Add(new PortfolioItem(
                 row.GymId,
@@ -62,7 +61,7 @@ public sealed class ListGymPortfolioHandler(
                 row.GymSlug,
                 effective.ToString(),
                 row.ManualStatus.ToString(),
-                plan?.Name ?? row.Plan.ToString(),
+                plan?.Name ?? "Sin plan",
                 row.MonthlyPrice,
                 row.PaidThrough,
                 GymSubscription.DaysUntilDisabled(row.ManualStatus, today, row.PaidThrough, row.TrialEndsOn, row.TrialGraceDays),

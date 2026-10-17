@@ -119,7 +119,7 @@ public sealed class SubscriptionStatusDerivationTests
     [Fact]
     public void Trial_grace_days_are_validated_on_the_entity()
     {
-        var sub = GymSubscription.Create(Guid.NewGuid(), GymPlan.Basic, 0m, Today, Today.AddDays(30), Today.AddDays(30));
+        var sub = GymSubscription.Create(Guid.NewGuid(), 0m, Today, Today.AddDays(30), Today.AddDays(30));
         Assert.Equal(3, sub.TrialGraceDays);
         sub.SetTrialGraceDays(0);
         Assert.Equal(0, sub.TrialGraceDays);

@@ -209,7 +209,7 @@ public sealed class SubscriptionGateHttpTests(ApiFactory factory) : IClassFixtur
         db.Add(GymFeatureFlags.Default(gym.Id));
         if (paidThroughDaysAgo is { } ago)
         {
-            db.Add(GymSubscription.Create(gym.Id, GymPlan.Basic, 100_000m, today.AddDays(-60), today.AddDays(-ago)));
+            db.Add(GymSubscription.Create(gym.Id, 100_000m, today.AddDays(-60), today.AddDays(-ago)));
         }
 
         await db.SaveChangesAsync();

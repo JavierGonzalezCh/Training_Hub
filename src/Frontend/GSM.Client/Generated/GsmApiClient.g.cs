@@ -21388,6 +21388,11 @@ namespace GSM.Client.Generated
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<OwnSubscriptionResponse> OwnSubscriptionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<BillingContactResponse> BillingContactGET2Async(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -21673,6 +21678,77 @@ namespace GSM.Client.Generated
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<MemberUsageResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<OwnSubscriptionResponse> OwnSubscriptionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/gym/subscription"
+                    urlBuilder_.Append("api/gym/subscription");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<OwnSubscriptionResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -45458,8 +45534,8 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("plan")]
-        public int Plan { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("saasPlanId")]
+        public System.Guid? SaasPlanId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         public CreateGymOwner Owner { get; set; } = new CreateGymOwner();
@@ -47185,9 +47261,6 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("plan")]
-        public string Plan { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public string Status { get; set; } = default!;
@@ -49363,6 +49436,84 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("planName")]
         public string PlanName { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class OwnSubscriptionResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("plan")]
+        public string Plan { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("monthlyPrice")]
+        public double MonthlyPrice { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("effectiveStatus")]
+        public string EffectiveStatus { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("suspensionReason")]
+        public string? SuspensionReason { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("trialEndsOn")]
+        public System.DateOnly? TrialEndsOn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("paidThrough")]
+        public System.DateOnly PaidThrough { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("daysUntilDisabled")]
+        public int? DaysUntilDisabled { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberLimit")]
+        public int? MemberLimit { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("countedMembers")]
+        public int CountedMembers { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recentPayments")]
+        public System.Collections.Generic.ICollection<OwnSubscriptionPayment> RecentPayments { get; set; } = new System.Collections.ObjectModel.Collection<OwnSubscriptionPayment>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class OwnSubscriptionPayment
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("amount")]
+        public double Amount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("method")]
+        public string Method { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("coversFrom")]
+        public System.DateOnly CoversFrom { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("coversThrough")]
+        public System.DateOnly CoversThrough { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("paidAt")]
+        public System.DateTimeOffset PaidAt { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -55288,9 +55439,6 @@ namespace GSM.Client.Generated
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateSubscriptionRequest
     {
-
-        [System.Text.Json.Serialization.JsonPropertyName("plan")]
-        public int Plan { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("monthlyPrice")]
         public double MonthlyPrice { get; set; } = default!;

@@ -3,7 +3,6 @@ using GSM.Application.Gyms.Public;
 using GSM.Application.SuperAdmin.Abstractions;
 using GSM.Application.SuperAdmin.Contracts;
 using GSM.Domain.Common.Exceptions;
-using GSM.Domain.Gyms;
 using GSM.Domain.SuperAdmin;
 using Microsoft.Extensions.Logging;
 
@@ -18,8 +17,7 @@ namespace GSM.Application.SuperAdmin;
 /// o con el handler de alta caído—, y sin ella ese cliente sería incobrable. La cobertura la pone
 /// después un pago o una renovación, que es donde vive esa decisión.
 /// <para>
-/// El plan del SaaS (S2) se elige con <c>SaasPlanId</c>; si no viene, se resuelve por el nombre del enum
-/// heredado. Bajar el límite por debajo de los miembros que ya cuentan no expulsa a nadie: solo bloquea
+/// El plan del SaaS (S2) se elige con <c>SaasPlanId</c>; si no viene, el plan actual no cambia. Bajar el límite por debajo de los miembros que ya cuentan no expulsa a nadie: solo bloquea
 /// las membresías nuevas para quien hoy no cuenta.
 /// </para>
 /// </remarks>
@@ -46,12 +44,12 @@ public sealed class UpdateSubscriptionHandler(
         {
             var today = clock.Today;
             sub = GymSubscription.Create(
-                gymId, LegacyPlan(request, plan), request.MonthlyPrice, startedOn: today, paidThrough: today);
+                gymId, request.MonthlyPrice, startedOn: today, paidThrough: today);
             subscriptions.Add(sub);
         }
         else
         {
-            sub.UpdatePlan(LegacyPlan(request, plan), request.MonthlyPrice);
+            sub.UpdatePrice(request.MonthlyPrice);
         }
 
         if (plan is not null)
@@ -70,7 +68,7 @@ public sealed class UpdateSubscriptionHandler(
 
         logger.LogInformation(
             "Suscripción del gym {GymId} actualizada: plan {Plan}, precio {Price}, override de miembros {Override}",
-            gymId, plan?.Name ?? request.Plan.ToString(), request.MonthlyPrice, request.MemberLimitOverride);
+            gymId, plan?.Name, request.MonthlyPrice, request.MemberLimitOverride);
 
         return await detailBuilder.BuildAsync(sub, gym.ManualStatus, cancellationToken);
     }
@@ -83,15 +81,6 @@ public sealed class UpdateSubscriptionHandler(
                 ?? throw new NotFoundException("El plan del SaaS no existe.");
         }
 
-        return await plans.GetByNameAsync(request.Plan.ToString(), cancellationToken);
+        return null;
     }
-
-    /// <summary>
-    /// El enum heredado sigue en la columna <c>plan</c> mientras Gyms lo use (<c>Gym.Plan</c>). Si el plan
-    /// elegido es uno de los tres históricos, el enum lo acompaña; si es uno nuevo, se deja el enviado.
-    /// </summary>
-    private static GymPlan LegacyPlan(UpdateSubscriptionRequest request, SaasPlan? plan)
-        => plan is not null && Enum.TryParse<GymPlan>(plan.Name, ignoreCase: true, out var legacy)
-            ? legacy
-            : request.Plan;
 }

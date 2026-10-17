@@ -18,7 +18,6 @@ public sealed class CreateGymRequestValidator : AbstractValidator<CreateGymReque
         RuleFor(x => x.Nit).MaximumLength(20);
         RuleFor(x => x.Phone).MaximumLength(20);
         RuleFor(x => x.Email).EmailAddress().MaximumLength(256).When(x => !string.IsNullOrWhiteSpace(x.Email));
-        RuleFor(x => x.Plan).IsInEnum();
 
         RuleFor(x => x.Owner).NotNull();
         RuleFor(x => x.Owner.Email).NotEmpty().EmailAddress().MaximumLength(256)

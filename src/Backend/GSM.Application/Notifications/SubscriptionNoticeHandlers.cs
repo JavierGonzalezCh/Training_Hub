@@ -33,6 +33,9 @@ public sealed class SubscriptionNoticeDueNotifiesOwners(
 {
     private static readonly CultureInfo Colombia = CultureInfo.GetCultureInfo("es-CO");
 
+    /// <summary>Pantalla de suscripción del panel del gym (solo Owner): a donde llevan todos los avisos S3.</summary>
+    public const string SubscriptionLink = "/subscription";
+
     public async Task HandleAsync(SubscriptionNoticeDue domainEvent, CancellationToken cancellationToken = default)
     {
         var owners = await identity.ListActiveOwnersAsync(domainEvent.GymId, cancellationToken);
@@ -56,7 +59,7 @@ public sealed class SubscriptionNoticeDueNotifiesOwners(
             }
 
             var notification = Notification.CreateForUser(
-                domainEvent.GymId, owner.UserId, type, domainEvent.ReferenceId, title, body, "/", scheduledFor,
+                domainEvent.GymId, owner.UserId, type, domainEvent.ReferenceId, title, body, SubscriptionLink, scheduledFor,
                 urgent ? NotificationPriority.Urgent : NotificationPriority.Normal);
             notifications.Add(notification);
             created++;

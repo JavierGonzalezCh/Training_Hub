@@ -138,7 +138,7 @@ public sealed class SubscriptionGateTests(ApiFactory factory) : IClassFixture<Ap
         db.Add(GymFeatureFlags.Default(gym.Id));
         if (paidThrough is { } pt)
         {
-            db.Add(GymSubscription.Create(gym.Id, GymPlan.Basic, 100_000m, Today.AddDays(-40), pt));
+            db.Add(GymSubscription.Create(gym.Id, 100_000m, Today.AddDays(-40), pt));
         }
 
         await db.SaveChangesAsync();

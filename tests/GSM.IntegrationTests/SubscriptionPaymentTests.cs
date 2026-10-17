@@ -163,7 +163,7 @@ public sealed class SubscriptionPaymentTests(ApiFactory factory) : IClassFixture
         var gym = Gym.Create("Pay Gym", $"pay-{suffix}");
         db.Add(gym);
         db.Add(GymFeatureFlags.Default(gym.Id));
-        db.Add(GymSubscription.Create(gym.Id, GymPlan.Pro, 200_000m, Today.AddDays(-40), paidThrough));
+        db.Add(GymSubscription.Create(gym.Id, 200_000m, Today.AddDays(-40), paidThrough));
         await db.SaveChangesAsync();
 
         return new World(gym.Id, Guid.CreateVersion7());

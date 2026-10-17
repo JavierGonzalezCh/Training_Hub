@@ -36,7 +36,6 @@ public sealed class GymConfiguration : IEntityTypeConfiguration<Gym>
         builder.Property(g => g.WebsiteUrl).HasMaxLength(2048);
         builder.Property(g => g.WhatsAppPhone).HasMaxLength(20);
 
-        builder.Property(g => g.Plan).HasColumnName("plan");
         builder.Property(g => g.Status).HasColumnName("status");
 
         builder.HasIndex(g => g.OwnerId);

@@ -14,7 +14,7 @@ internal static class SubscriptionMapper
     public static SubscriptionDetail ToDetail(
         GymSubscription sub, GymStatus manualStatus, DateOnly today, GymMemberLimit? limit, int countedMembers)
         => new(
-            Plan: limit?.PlanName ?? sub.Plan.ToString(),
+            Plan: limit?.PlanName ?? "Sin plan",
             SaasPlanId: limit?.PlanId,
             MemberLimit: limit?.Effective,
             MemberLimitOverride: limit?.Override,

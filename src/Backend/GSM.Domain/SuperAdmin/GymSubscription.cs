@@ -30,8 +30,6 @@ public sealed class GymSubscription : BaseEntity
 
     public Guid GymId { get; private set; }
 
-    public GymPlan Plan { get; private set; }
-
     /// <summary>Precio mensual de este cliente en COP. Puede ser 0 (cortesía); nunca negativo.</summary>
     public decimal MonthlyPrice { get; private set; }
 
@@ -46,8 +44,7 @@ public sealed class GymSubscription : BaseEntity
 
     /// <summary>
     /// Plan del SaaS (<c>superadmin.saas_plans</c>) que define el límite de miembros. Nulo en
-    /// suscripciones creadas sin elegirlo: entonces el límite se resuelve por el nombre del
-    /// <see cref="Plan"/> heredado.
+    /// suscripciones creadas sin elegirlo: entonces no hay límite de plan (solo el override, si existe).
     /// </summary>
     public Guid? SaasPlanId { get; private set; }
 
@@ -59,7 +56,6 @@ public sealed class GymSubscription : BaseEntity
 
     public static GymSubscription Create(
         Guid gymId,
-        GymPlan plan,
         decimal monthlyPrice,
         DateOnly startedOn,
         DateOnly paidThrough,
@@ -84,7 +80,6 @@ public sealed class GymSubscription : BaseEntity
         return new GymSubscription
         {
             GymId = gymId,
-            Plan = plan,
             MonthlyPrice = decimal.Round(monthlyPrice, 2),
             StartedOn = startedOn,
             PaidThrough = paidThrough,
@@ -93,15 +88,14 @@ public sealed class GymSubscription : BaseEntity
         };
     }
 
-    /// <summary>Cambia plan y precio negociado. No toca la cobertura.</summary>
-    public void UpdatePlan(GymPlan plan, decimal monthlyPrice)
+    /// <summary>Cambia el precio negociado. No toca la cobertura ni el plan (<see cref="AssignSaasPlan"/>).</summary>
+    public void UpdatePrice(decimal monthlyPrice)
     {
         if (monthlyPrice < 0)
         {
             throw new ValidationDomainException("El precio mensual no puede ser negativo.");
         }
 
-        Plan = plan;
         MonthlyPrice = decimal.Round(monthlyPrice, 2);
     }
 

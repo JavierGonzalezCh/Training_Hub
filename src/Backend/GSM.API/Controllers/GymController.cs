@@ -37,6 +37,19 @@ public sealed class GymController : ControllerBase
         [FromServices] GSM.Application.SuperAdmin.GetMemberUsageHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>
+    /// Suscripción del gym al SaaS, solo lectura para el Owner (S3-3): plan, precio, estado de hoy, hasta cuándo está
+    /// cubierta, límite de miembros y últimos pagos. El gym no paga desde el sistema. 404 si aún no tiene suscripción.
+    /// </summary>
+    [HttpGet("subscription")]
+    [EndpointName("OwnSubscription")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<GSM.Application.SuperAdmin.Contracts.OwnSubscriptionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GSM.Application.SuperAdmin.Contracts.OwnSubscriptionResponse>> GetOwnSubscription(
+        [FromServices] GSM.Application.SuperAdmin.GetOwnSubscriptionHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     [HttpPut]
     [Authorize(Policy = AuthPolicies.RequireOwner)]
     [ProducesResponseType<GymResponse>(StatusCodes.Status200OK)]

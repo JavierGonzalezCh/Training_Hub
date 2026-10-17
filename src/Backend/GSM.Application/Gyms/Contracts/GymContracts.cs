@@ -9,6 +9,7 @@ namespace GSM.Application.Gyms.Contracts;
 /// enlace de activación. Hay que elegir <b>una</b> de dos: <c>TrialDays</c> (con prueba) o <c>FirstPayment</c>
 /// (sin prueba, el gym nace activo con ese primer pago). No existe un gym sin prueba y sin pago.
 /// </summary>
+/// <param name="SaasPlanId">Plan del SaaS (<c>superadmin.saas_plans</c>); define el límite de miembros. Opcional.</param>
 /// <param name="TrialDays">Días de prueba (1 a 365). Excluyente con <paramref name="FirstPayment"/>.</param>
 /// <param name="MonthlyPrice">Precio mensual negociado con el cliente; sin indicar, 0 (se fija luego).</param>
 /// <param name="FirstPayment">Primer pago del SaaS cuando no hay prueba.</param>
@@ -18,7 +19,7 @@ public sealed record CreateGymRequest(
     string? Nit,
     string? Phone,
     string? Email,
-    GymPlan Plan,
+    Guid? SaasPlanId,
     CreateGymOwner Owner,
     int? TrialDays = null,
     decimal? MonthlyPrice = null,
@@ -84,7 +85,6 @@ public sealed record GymResponse(
     string SecondaryColor,
     int? Capacity,
     bool IsActive,
-    string Plan,
     string Status,
     Guid OwnerId,
     DateTimeOffset CreatedAt,

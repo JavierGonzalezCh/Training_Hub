@@ -29,7 +29,7 @@ public sealed class AttendanceAndAchievementsTests(ApiFactory factory) : IClassF
         {
             var result = await scope.ServiceProvider.GetRequiredService<CreateGymHandler>()
                 .HandleWithOwnerPasswordAsync(new CreateGymRequest(
-                    "Seed Gym", $"seed-{Guid.NewGuid():N}"[..18], null, null, null, GymPlan.Basic,
+                    "Seed Gym", $"seed-{Guid.NewGuid():N}"[..18], null, null, null, null,
                     new CreateGymOwner("owner@seed.local", "Seed Owner"), TrialDays: 30), "OwnerPass_123", default);
             gymId = result.GymId;
         }

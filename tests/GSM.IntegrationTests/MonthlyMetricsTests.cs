@@ -275,7 +275,7 @@ public sealed class MonthlyMetricsTests(ApiFactory factory) : IClassFixture<ApiF
 
         db.Add(gym);
         db.Add(GymFeatureFlags.Default(gym.Id));
-        db.Add(GymSubscription.Create(gym.Id, GymPlan.Basic, price, startedOn, paidThrough, trialEndsOn));
+        db.Add(GymSubscription.Create(gym.Id, price, startedOn, paidThrough, trialEndsOn));
         return gym.Id;
     }
 
