@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Logs;
 using GSM.Application.Identity;
 using GSM.Application.Identity.Abstractions;
 using GSM.Domain.Identity;
@@ -21,7 +22,8 @@ public sealed class LoginCodeService(
     UserManager<AppUser> userManager,
     GsmDbContext dbContext,
     IClock clock,
-    IOptions<JwtOptions> jwtOptions) : ILoginCodeService
+    IOptions<JwtOptions> jwtOptions,
+    ILogStore logStore) : ILoginCodeService
 {
     public async Task<LoginCodeIssue> IssueAsync(string email, CancellationToken cancellationToken = default)
     {
@@ -85,9 +87,18 @@ public sealed class LoginCodeService(
             await dbContext.LoginCodes
                 .Where(c => c.Id == current.Id && c.ConsumedAt == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(c => c.Attempts, c => c.Attempts + 1), cancellationToken);
-            await dbContext.LoginCodes
+            var exhausted = await dbContext.LoginCodes
                 .Where(c => c.Id == current.Id && c.ConsumedAt == null && c.Attempts >= LoginCode.MaxAttempts)
                 .ExecuteUpdateAsync(s => s.SetProperty(c => c.ConsumedAt, now), cancellationToken);
+
+            if (exhausted > 0)
+            {
+                // LG2-4: este fallo agotó el código (quinto intento). Solo el email y el número de intentos; nunca el código.
+                logStore.RecordSecurityEvent(new SecurityEventLogEntry(
+                    SecurityEventTypes.CodeAttemptsExceeded,
+                    $"email={email.Trim()}; intentos={LoginCode.MaxAttempts}"));
+            }
+
             return null;
         }
 
