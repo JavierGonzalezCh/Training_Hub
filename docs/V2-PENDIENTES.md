@@ -6,7 +6,7 @@
 
 Todas las sub-etapas del plan (`docs/V2-BUILD-PLAN.md`, olas 0 a 6) que se pueden escribir están **construidas, unidas y en verde**:
 
-- **Suite:** 1171 tests de integración + 663 bUnit, todos pasan contra `gsm_test` (≈ 15–30 min la de integración).
+- **Suite:** 1224 tests de integración + 693 bUnit, todos pasan contra `gsm_test` (≈ 8 min la de integración, en dos mitades).
 - **Compila:** backend, `GSM.Frontend.slnx` y `GSM.Mobile` para Android (`dotnet build src/Frontend/GSM.Mobile -f net10.0-android -p:RuntimeIdentifier=android-arm64`).
 - **Quedan sin hacer** solo las dos tareas de cierre que no dependen de código: **V1** (recorrido de punta a punta) y **DP** (despliegue).
 
@@ -23,7 +23,7 @@ Avance estimado: **~85 %**. El código está; falta verificarlo en condiciones r
 | Teléfono Android o emulador | AP3+N3, AP5, A6 (ubicación), escáner QR | Nada de `GSM.Mobile` se ha ejecutado nunca en un dispositivo. |
 | Revisión legal (Ley 1581, Ley 2300) | M2 (texto de autorizaciones, hoy borrador), M3 (salud), M6 (anonimización), comunicaciones | |
 | Imágenes de ejercicios y máquinas con licencia | Catálogo del sistema (S4, E1) | Hoy hay íconos por tipo. |
-| Responder las preguntas abiertas | Ajustes finos | `docs/V2-NOCHE.md` §2: cada tarea dejó sus decisiones conservadoras. Ninguna bloquea. |
+| ~~Responder las preguntas abiertas~~ | — | **Hecho 2026-10-17**: todas respondidas y aplicadas (`V2-NOCHE.md` §2). |
 
 Claves de configuración que la API exige o usa en producción: `Checkin:SigningKey`, `Communications:UnsubscribeSigningKey`, `Communications:PublicApiBaseUrl`, `Jobs:Secret`, `Identity:PublicWebBaseUrl`, `Notifications:Fcm:*`, las de R2 y Resend. La tarea periódica `POST /internal/jobs/communications/run` debe programarse en Dokploy cada 5–10 min (ahora también corre avisos de suscripción, anonimización y alertas).
 
@@ -32,7 +32,7 @@ Claves de configuración que la API exige o usa en producción: `Checkin:Signing
 - **Android (AP3+N3, AP5, A6):** compila; nunca se ha ejecutado. Paquetes nuevos sin probar en runtime: `Xamarin.Firebase.Messaging` 124.1.2.2 y `Plugin.Fingerprint` 2.1.5 (alternativa si falla: `Xamarin.AndroidX.Biometric`).
 - **Vistas de celular de AP7** (planes, ejercicios, equipos): mirarlas a 375 px en el navegador.
 - **Ninguna pantalla nueva de esta tanda se recorrió en el navegador**: los agentes solo escribieron código y los tests son bUnit. V1 debe cubrir sobre todo D1 (dashboard por bloques), D2 (Inicio del miembro), G5 (onboarding), MS7 (planes de grupo), M6 (anonimización) y "Mi progreso".
-- **Base de desarrollo `gsm` atrasada:** está en `V2_P13_TrialsNotConverted`; `gsm_test` está al día (`V2_R11_RoutineTemplates`). Antes de usar la API en local: respaldar `gsm` (`pg_dump`) y migrarla con `dotnet ef database update --project src/Backend/GSM.Infrastructure --context GsmDbContext --connection "<cadena de gsm>"`. Varias migraciones no se revierten en datos (M6 rellena fechas de baja, R4, I2).
+- **Base de desarrollo `gsm` atrasada:** está en `V2_P13_TrialsNotConverted`; `gsm_test` está al día (`V2_Q7_RemoveGymPlan`). Antes de usar la API en local: respaldar `gsm` (`pg_dump`) y migrarla con `dotnet ef database update --project src/Backend/GSM.Infrastructure --context GsmDbContext --connection "<cadena de gsm>"`. Varias migraciones no se revierten en datos (M6 rellena fechas de baja, R4, I2).
 
 ## 4. Seguimientos que dejaron las tareas (no bloquean)
 
@@ -48,7 +48,7 @@ Claves de configuración que la API exige o usa en producción: `Checkin:Signing
 
 ## 5. Para cerrar la v2
 
-1. Dueño: cuentas externas (§2) y respuestas a las preguntas de `V2-NOCHE.md` §2.
+1. Dueño: cuentas externas (§2). (Las preguntas ya están respondidas.)
 2. Migrar `gsm` (con respaldo) y levantar la API y la web en local.
 3. **V1:** recorrer el guion de `docs/VERSION-INICIAL-PLAN.md` ampliado a la v2, en navegador (escritorio y 375 px) y en Android. Cada falla, a `docs/BUGS.md` con su test.
 4. **DP:** desplegar con Dokploy (`docs/DEPLOY-DOKPLOY-PLAN.md`) con R2, Resend y Firebase configurados.

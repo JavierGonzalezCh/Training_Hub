@@ -138,6 +138,8 @@ Línea base antes de empezar: 160 integración + 68 bUnit, todo verde.
 
 ## 2. Preguntas para el dueño
 
+> **2026-10-17: todas respondidas.** El dueño aceptó las recomendaciones de la lista (artifact "Preguntas abiertas v2"): 47 cambios hechos en las tandas Q1–Q7 y el resto se acepta como estaba construido; LG4-5 queda para después del despliegue.
+
 Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 
 1. **[DECIDIDA 2026-10-11: (c) el reintento pide el dato vigente al módulo dueño; GSM-logs.md §4.3 actualizado.]** **LG1 → LG4: ¿se pueden reintentar los eventos con campos sensibles?** `GSM-logs.md` §3 manda limpiar `code`, `token`… antes de guardar, y §4.3 pide guardar el evento completo "para poder reintentarlo". Choque: `MemberInvited.Code` queda `[REDACTED]`, y reintentarlo enviaría un correo sin código. Opciones: (a) esos eventos se marcan como no reintentables en el panel; (b) el payload de `event_handler_failures` no se limpia de códigos de un solo uso (sí de contraseñas y salud); (c) el reintento vuelve a leer el dato del módulo dueño en lugar del payload.
@@ -165,312 +167,312 @@ Ninguna bloquea trabajo de esta noche; todas afectan a tareas futuras.
 
 **Decisiones del 2026-10-16:**
 
-- **MS6-1:** Memberships leía `IPaymentReader` y Payments ya leía Memberships (segundo ciclo entre módulos). Se rompe: Memberships declara el puerto `IMembershipPaidAmountProvider` y Payments lo implementa en Infrastructure. Hecho.
-- **Resto de MS6, C6, L5 y A7** (las preguntas de esa tanda no se habían anotado aquí): MS6 — el crédito se calcula sobre lo pagado sin matrícula, más el crédito heredado; ajuste manual de 0 a lo pagado; los días congelados programados no cuentan como usados; con una membresía programada detrás de la vigente el cambio da 409; no cobra matrícula ni cuenta para el límite del SaaS; se permite cambiar entre tiquetera y plan por tiempo. C6 — una clase de entrada libre no se liga a máquinas (422); la disponibilidad sale del estado actual de la máquina y su `ExpectedBackOn`; si se dan de baja todas las máquinas el cupo queda en 0 sin aviso; una oferta ya hecha se respeta al confirmar. L5 — ¿se entrega un premio vencido?, ¿la entrega necesita permiso propio?, un logro desactivado con premio pendiente se ve en recepción pero no en `/app`, el aviso de vencimiento va solo a la bandeja. A7 — el push de rechazos viene apagado por defecto también para el Owner; sin app el aviso de entrada con documento llega solo a bandeja y correo.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS6-1:** Memberships leía `IPaymentReader` y Payments ya leía Memberships (segundo ciclo entre módulos). Se rompe: Memberships declara el puerto `IMembershipPaidAmountProvider` y Payments lo implementa en Infrastructure. Hecho.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **Resto de MS6, C6, L5 y A7** (las preguntas de esa tanda no se habían anotado aquí): MS6 — el crédito se calcula sobre lo pagado sin matrícula, más el crédito heredado; ajuste manual de 0 a lo pagado; los días congelados programados no cuentan como usados; con una membresía programada detrás de la vigente el cambio da 409; no cobra matrícula ni cuenta para el límite del SaaS; se permite cambiar entre tiquetera y plan por tiempo. C6 — una clase de entrada libre no se liga a máquinas (422); la disponibilidad sale del estado actual de la máquina y su `ExpectedBackOn`; si se dan de baja todas las máquinas el cupo queda en 0 sin aviso; una oferta ya hecha se respeta al confirmar. L5 — ¿se entrega un premio vencido?, ¿la entrega necesita permiso propio?, un logro desactivado con premio pendiente se ve en recepción pero no en `/app`, el aviso de vencimiento va solo a la bandeja. A7 — el push de rechazos viene apagado por defecto también para el Owner; sin app el aviso de entrada con documento llega solo a bandeja y correo.
 
 **Decisiones del 2026-10-12 (preguntas de E2, P2, I7 y N2):**
 
-- **E2:** el nivel 1 (filtro "lo que se puede hacer en mi gym") lo conecta **E3**. Alargar el arreglo repitiendo el estado con fecha nueva: **hecho**.
-- **P2-1:** el aviso de "anulación solicitada" llega al Owner, a quien tiene `VoidPayments` y a quien tiene `ViewFinances` (solo ve) → tarea **N1b**, pendiente.
-- **P2-2:** "lo que cobró en su turno" va en **P3**.
-- **P2-3:** nota opcional al rechazar, con aviso personal a quien pidió (`VoidRequestRejected`): **hecho** (migración `V2_P2b_RejectionNote`).
-- **P2-4:** anular directo cierra la solicitud pendiente: aceptado.
-- **I7-5:** la sesión del kiosco no vence hasta que el Owner la revoca: aceptado.
-- **I7-6:** cerrar `/kiosk` a la sesión normal del staff va en **A3**.
-- **N2-7:** una promoción no puede marcarse como importante (Ley 1581): **hecho**. Resto de N2 aceptado (Firebase sin probar; importante sin fecha queda hasta archivarse; no cuenta para el límite de fijados).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **E2:** el nivel 1 (filtro "lo que se puede hacer en mi gym") lo conecta **E3**. Alargar el arreglo repitiendo el estado con fecha nueva: **hecho**.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **P2-1:** el aviso de "anulación solicitada" llega al Owner, a quien tiene `VoidPayments` y a quien tiene `ViewFinances` (solo ve) → tarea **N1b**, pendiente.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **P2-2:** "lo que cobró en su turno" va en **P3**.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **P2-3:** nota opcional al rechazar, con aviso personal a quien pidió (`VoidRequestRejected`): **hecho** (migración `V2_P2b_RejectionNote`).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **P2-4:** anular directo cierra la solicitud pendiente: aceptado.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I7-5:** la sesión del kiosco no vence hasta que el Owner la revoca: aceptado.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I7-6:** cerrar `/kiosk` a la sesión normal del staff va en **A3**.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **N2-7:** una promoción no puede marcarse como importante (Ley 1581): **hecho**. Resto de N2 aceptado (Firebase sin probar; importante sin fecha queda hasta archivarse; no cuenta para el límite de fijados).
 
 **Preguntas de la tanda del 2026-10-14 (para responder mañana):**
 
-- **M3-1 (desvío de la spec):** §5 dice que `GET /api/members/{id}` trae la salud vacía sin permiso. El agente dejó la ficha solo con `HasHealthAlerts` y puso el detalle en `GET /api/members/{id}/health`, así el registro de consultas refleja abrir la pestaña y ningún otro endpoint filtra salud. ¿Se acepta?
-- **M3-2:** sin autorización de datos aceptada, `PUT .../health` responde **409** y `GET` responde 200 con `consentRequired=true`. ¿Otro código?
-- **M3-3:** el miembro leyendo su propia salud queda para **M5** (`/api/me/profile`); `/health` da 403 al miembro. Confirmar.
-- **M3-4:** la consulta de un SuperAdmin impersonando no va a `health_access_log` (ya queda en `superadmin.impersonation_actions`). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M3-1 (desvío de la spec):** §5 dice que `GET /api/members/{id}` trae la salud vacía sin permiso. El agente dejó la ficha solo con `HasHealthAlerts` y puso el detalle en `GET /api/members/{id}/health`, así el registro de consultas refleja abrir la pestaña y ningún otro endpoint filtra salud. ¿Se acepta?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M3-2:** sin autorización de datos aceptada, `PUT .../health` responde **409** y `GET` responde 200 con `consentRequired=true`. ¿Otro código?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M3-3:** el miembro leyendo su propia salud queda para **M5** (`/api/me/profile`); `/health` da 403 al miembro. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M3-4:** la consulta de un SuperAdmin impersonando no va a `health_access_log` (ya queda en `superadmin.impersonation_actions`). Confirmar.
 
-- **C1-1:** las tiqueteras aún no existen (MS5); la regla de cobertura de clases por entradas queda pendiente para cuando existan.
-- **C1-2:** cuando el gym cambia su horario, las sesiones futuras con reservas que ya no caben se cancelan **de forma perezosa al abrir el horario del staff** (un GET escribe). ¿Se prefiere un evento `OpeningHoursChanged` de Gyms o la tarea periódica?
-- **C1-3:** el aviso al miembro sale por `ClassSessionCancelled` con motivo "Gym cerrado"; revisar el texto.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **C1-1:** las tiqueteras aún no existen (MS5); la regla de cobertura de clases por entradas queda pendiente para cuando existan.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C1-2:** cuando el gym cambia su horario, las sesiones futuras con reservas que ya no caben se cancelan **de forma perezosa al abrir el horario del staff** (un GET escribe). ¿Se prefiere un evento `OpeningHoursChanged` de Gyms o la tarea periódica?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C1-3:** el aviso al miembro sale por `ClassSessionCancelled` con motivo "Gym cerrado"; revisar el texto.
 - **[DECIDIDA 2026-10-16: se guardan los que están al día y la respuesta trae `NotMarked` con quién quedó fuera y por qué. Hecho, con test.]** **C1-4:** marcar asistencia con un asistente que no está al día rechaza **el lote entero** nombrando a la persona. ¿O solo a esa persona?
-- **C1-5:** 409 para "gym cerrado"/"no está al día" al reservar o marcar; 422 al crear/editar fuera de horario. Confirmar.
-- **C1-6:** la cobertura de la asistencia se mide en la fecha de la sesión, no hoy. Confirmar.
-- **C1-7:** el roster no muestra "Gym cerrado" (solo el horario). ¿Hace falta?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C1-5:** 409 para "gym cerrado"/"no está al día" al reservar o marcar; 422 al crear/editar fuera de horario. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C1-6:** la cobertura de la asistencia se mide en la fecha de la sesión, no hoy. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C1-7:** el roster no muestra "Gym cerrado" (solo el horario). ¿Hace falta?
 
-- **I5-1:** si la persona es staff y miembro, el código **solo abre sus accesos de miembro**. ¿O todos?
-- **I5-2:** solo puede pedir código quien tiene un acceso de miembro activo; los demás reciben la misma respuesta 202 sin correo. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I5-1:** si la persona es staff y miembro, el código **solo abre sus accesos de miembro**. ¿O todos?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I5-2:** solo puede pedir código quien tiene un acceso de miembro activo; los demás reciben la misma respuesta 202 sin correo. Confirmar.
 - **[DECIDIDA 2026-10-16: el código se ve en el log solo en Development. Hecho, con test.]** **I5-3:** sin Resend, el código **no aparece en el log** (correo marcado sensible). ¿Se permite verlo solo en Development?
-- **I5-4:** el enlace de invitación `/app/registro?code=…` no lleva el slug del gym, así que la primera vez no sale la marca. ¿Se agrega `&gym=slug` al enlace?
-- **I5-5:** si el correo falla, la respuesta sigue siendo 202 sin aviso. Confirmar.
-- **I5-7:** el límite de 5 códigos por hora no se le avisa al miembro (solo no le llega). ¿Mensaje explícito?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **I5-4:** el enlace de invitación `/app/registro?code=…` no lleva el slug del gym, así que la primera vez no sale la marca. ¿Se agrega `&gym=slug` al enlace?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I5-5:** si el correo falla, la respuesta sigue siendo 202 sin aviso. Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **I5-7:** el límite de 5 códigos por hora no se le avisa al miembro (solo no le llega). ¿Mensaje explícito?
 - Observación de I5: `RefreshTokenService.IssueAsync` usa `DateTimeOffset.UtcNow` en vez de `IClock` (candidato a `BUGS.md`).
 
 - **[DECIDIDA 2026-10-16: caja compartida, como está (una sede, un cajón; cada cobro queda firmado por quien lo hizo). Sin cambios.]** **P3-1:** la caja "olvidada" = abierta hace más de **16 h**. Antes de eso, cualquier staff cobra en efectivo en la caja abierta de otro. ¿Se bloquea al staff que no abrió la caja?
-- **P3-2:** mover dinero y cerrar: solo quien abrió la caja o el Owner (`ViewFinances` no basta). Confirmar.
-- **P3-3:** un retiro mayor al efectivo esperado se permite sin límite. ¿Se bloquea?
-- **P3-4:** la barra de la caja solo está en `/payments`, no en Recepción. ¿Se lleva también a Recepción?
-- **P3-5:** el filtro "persona" de la lista de turnos usa un endpoint solo-Owner y se oculta a quien solo tiene `ViewFinances`. ¿Hace falta un endpoint de equipo para ellos?
-- **P3-6 (técnico, sin decidir):** dos aperturas simultáneas las rechaza el índice único, pero esa carrera da 500 en vez de 409. Arreglo pendiente pequeño.
-- **Observación de C1:** reservar una sesión que ya empezó puede dejar la sesión materializada sin reserva (inofensivo; preexistente).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **P3-2:** mover dinero y cerrar: solo quien abrió la caja o el Owner (`ViewFinances` no basta). Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **P3-3:** un retiro mayor al efectivo esperado se permite sin límite. ¿Se bloquea?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **P3-4:** la barra de la caja solo está en `/payments`, no en Recepción. ¿Se lleva también a Recepción?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **P3-5:** el filtro "persona" de la lista de turnos usa un endpoint solo-Owner y se oculta a quien solo tiene `ViewFinances`. ¿Hace falta un endpoint de equipo para ellos?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **P3-6 (técnico, sin decidir):** dos aperturas simultáneas las rechaza el índice único, pero esa carrera da 500 en vez de 409. Arreglo pendiente pequeño.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **Observación de C1:** reservar una sesión que ya empezó puede dejar la sesión materializada sin reserva (inofensivo; preexistente).
 
-- **C5-1:** la fecha de fin de la serie es **inclusiva** (ese día aún hay clase). Confirmar.
-- **C5-2:** se permite poner una fecha de fin ya pasada (siempre que no sea anterior al inicio). Confirmar.
-- **C5-3:** si se acorta la serie y ya hay reservas después del nuevo fin, esas sesiones siguen y **no se cancelan ni se avisa**. ¿Se cancelan y se notifica?
-- **C5-4:** la fecha de fin es independiente de dar de baja la clase. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C5-1:** la fecha de fin de la serie es **inclusiva** (ese día aún hay clase). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C5-2:** se permite poner una fecha de fin ya pasada (siempre que no sea anterior al inicio). Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **C5-3:** si se acorta la serie y ya hay reservas después del nuevo fin, esas sesiones siguen y **no se cancelan ni se avisa**. ¿Se cancelan y se notifica?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C5-4:** la fecha de fin es independiente de dar de baja la clase. Confirmar.
 
-- **M4-1:** las mediciones (leer, añadir, borrar) exigen `ViewMemberHealth`; un entrenador o recepción sin ese permiso no ve pesos. ¿O basta ser staff?
-- **M4-2:** leer mediciones **no** se registra en `health_access_log`. ¿Debe registrarse?
-- **M4-3:** borrar una medición deja una fila de historial **sensible** (solo la ve quien tiene `ViewMemberHealth`). Confirmar.
-- **M4-4:** las mediciones del propio miembro y la gráfica de evolución quedan para M5. Confirmar.
-- **M4-6:** se permiten varias mediciones el mismo día; peso y altura se redondean (2 y 1 decimales) antes de validar. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M4-1:** las mediciones (leer, añadir, borrar) exigen `ViewMemberHealth`; un entrenador o recepción sin ese permiso no ve pesos. ¿O basta ser staff?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **M4-2:** leer mediciones **no** se registra en `health_access_log`. ¿Debe registrarse?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M4-3:** borrar una medición deja una fila de historial **sensible** (solo la ve quien tiene `ViewMemberHealth`). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M4-4:** las mediciones del propio miembro y la gráfica de evolución quedan para M5. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M4-6:** se permiten varias mediciones el mismo día; peso y altura se redondean (2 y 1 decimales) antes de validar. Confirmar.
 
-- **A1b-1:** el rechazo por las 2 horas usa el motivo `already_checked_in` (con la hora en que puede volver). ¿Motivo propio `too_soon`?
-- **A1b-2:** las 2 horas aplican también a la recepción del staff (todas las vías). Confirmar.
-- **A1b-3:** `valid_until` de la regla es inclusivo. Confirmar.
-- **A1b-5:** asistir a una clase no crea una segunda entrada si ya hubo una ese día, aunque el miembro tenga entradas múltiples. Confirmar.
-- **A1b-6:** "Check-ins hoy" del dashboard y los conteos de SuperAdmin cuentan **entradas**, no personas. ¿Se cambian a personas distintas? (lo aclara A5)
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A1b-1:** el rechazo por las 2 horas usa el motivo `already_checked_in` (con la hora en que puede volver). ¿Motivo propio `too_soon`?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A1b-2:** las 2 horas aplican también a la recepción del staff (todas las vías). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A1b-3:** `valid_until` de la regla es inclusivo. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A1b-5:** asistir a una clase no crea una segunda entrada si ya hubo una ese día, aunque el miembro tenga entradas múltiples. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A1b-6:** "Check-ins hoy" del dashboard y los conteos de SuperAdmin cuentan **entradas**, no personas. ¿Se cambian a personas distintas? (lo aclara A5)
 - **[DECIDIDA 2026-10-16: el ingreso es idempotente — candado por miembro y un escaneo repetido en 2 min devuelve la misma entrada (200). Hecho, con tests.]** **Riesgo A1b:** sin el índice único por miembro y día, dos escaneos simultáneos pueden registrar dos entradas. ¿Se cierra con un candado por miembro?
 
 - **[DECIDIDA 2026-10-16: se pide un código al correo actual además del nuevo (migración `V2_I6b_EmailChangeCurrentCode`). Hecho, con tests.]** **I6-1:** cambiar el email **no pide la contraseña actual** (el miembro entra con código). Riesgo: una sesión robada puede mover el email. ¿Se exige?
-- **I6-2:** si el email nuevo ya es de otra cuenta, 409 con mensaje claro (permite saber si un email existe). ¿O 202 sin enviar nada?
-- **I6-3:** demasiados pedidos = 409 (no hay 429 en el dominio); código malo/vencido = 422. Confirmar.
-- **I6-4:** el formulario quedó en las pantallas de cuenta actuales (`/cuenta/contrasena`, `/app/cuenta/contrasena`); "Mi perfil" va en M5. Confirmar.
-- **I6-5:** se manda un aviso al correo viejo (no lo pedía la spec); no se cierran las otras sesiones. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I6-2:** si el email nuevo ya es de otra cuenta, 409 con mensaje claro (permite saber si un email existe). ¿O 202 sin enviar nada?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I6-3:** demasiados pedidos = 409 (no hay 429 en el dominio); código malo/vencido = 422. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I6-4:** el formulario quedó en las pantallas de cuenta actuales (`/cuenta/contrasena`, `/app/cuenta/contrasena`); "Mi perfil" va en M5. Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **I6-5:** se manda un aviso al correo viejo (no lo pedía la spec); no se cierran las otras sesiones. Confirmar.
 
-- **A2-1:** la ventana para anular es por día de negocio, `fecha >= hoy - 7` (8 días de calendario contando hoy). ¿Correcto?
-- **A2-2:** el miembro nunca ve sus entradas anuladas; el staff solo con "Ver anuladas". Confirmar.
-- **A2-3:** anular una entrada **no avisa al miembro**. ¿Debe avisarse?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A2-1:** la ventana para anular es por día de negocio, `fecha >= hoy - 7` (8 días de calendario contando hoy). ¿Correcto?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A2-2:** el miembro nunca ve sus entradas anuladas; el staff solo con "Ver anuladas". Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A2-3:** anular una entrada **no avisa al miembro**. ¿Debe avisarse?
 
-- **S2-1:** el enum `GymPlan` (en `gyms.gyms.plan` y `GymCreated`) se conserva; manda `SaasPlanId`. ¿Se elimina el enum ya (toca Gyms)?
-- **S2-2:** dos altas simultáneas al borde del límite pueden pasarse por una (sin candado). ¿Aceptable?
-- **S2-3:** el recuento incluye miembros desactivados que tengan membresía vigente. ¿Se excluyen?
-- **S2-4:** bajar el límite por debajo del uso no expulsa a nadie, solo bloquea membresías nuevas. Confirmar.
-- **Observación S2:** la spec menciona `TrialGraceDays` en `GymSubscription` y S1 no lo trae.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **S2-1:** el enum `GymPlan` (en `gyms.gyms.plan` y `GymCreated`) se conserva; manda `SaasPlanId`. ¿Se elimina el enum ya (toca Gyms)?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S2-2:** dos altas simultáneas al borde del límite pueden pasarse por una (sin candado). ¿Aceptable?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **S2-3:** el recuento incluye miembros desactivados que tengan membresía vigente. ¿Se excluyen?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S2-4:** bajar el límite por debajo del uso no expulsa a nadie, solo bloquea membresías nuevas. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **Observación S2:** la spec menciona `TrialGraceDays` en `GymSubscription` y S1 no lo trae.
 
-- **C3-1:** ¿un valor 0 debe apagar una regla? Hoy el mínimo es 1 en límite de inasistencias, ventana y máximo de reservas; solo el plazo de cancelación admite 0.
-- **C3-2:** "bloqueado hasta el X" es inclusivo (7 días contando el día en que se llega al límite). Confirmar.
-- **C3-3:** una cancelación tardía cuenta como inasistencia aunque luego vuelva a reservar; marcar asistencia la borra. Confirmar.
-- **C3-4:** la penalización se levanta desde "Penalizados" en Clases, no desde la ficha del miembro. ¿También en la ficha?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **C3-1:** ¿un valor 0 debe apagar una regla? Hoy el mínimo es 1 en límite de inasistencias, ventana y máximo de reservas; solo el plazo de cancelación admite 0.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C3-2:** "bloqueado hasta el X" es inclusivo (7 días contando el día en que se llega al límite). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C3-3:** una cancelación tardía cuenta como inasistencia aunque luego vuelva a reservar; marcar asistencia la borra. Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **C3-4:** la penalización se levanta desde "Penalizados" en Clases, no desde la ficha del miembro. ¿También en la ficha?
 - **[DECIDIDA 2026-10-16: aviso al miembro al quedar penalizado y al levantarse (tipos `BookingPenaltyApplied`/`Lifted`, categoría Clases, migración `V2_C3b_BookingPenaltyNotices`). Hecho, con test.]** **C3-5:** los eventos `BookingPenaltyApplied`/`Lifted` aún **no avisan al miembro** (falta un consumidor en Notifications; ¿va en C8?).
 
-- **R4-2:** una serie no exige objetivo (reps, tiempo o distancia); solo mínimo 1 serie por línea. ¿Se exige?
-- **R4-3:** las líneas de una superserie no tienen que tener el mismo número de series; el backend no exige mínimo 2 líneas (la UI suelta las de una sola). Confirmar.
-- **R4-4:** los campos que no aplican al tipo de medida se descartan en silencio (no 422). Confirmar.
-- **R4-5:** planeado vs hecho se compara en el cliente: gana la peor medida; una serie al fallo se cumple con ≥ 1 repetición. Confirmar.
-- **R4 (dato):** la migración es irreversible en datos (las repeticiones no numéricas pasan a notas). Cuando entre R3b (peso + distancia), añadir esa medida a las series.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R4-2:** una serie no exige objetivo (reps, tiempo o distancia); solo mínimo 1 serie por línea. ¿Se exige?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R4-3:** las líneas de una superserie no tienen que tener el mismo número de series; el backend no exige mínimo 2 líneas (la UI suelta las de una sola). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R4-4:** los campos que no aplican al tipo de medida se descartan en silencio (no 422). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R4-5:** planeado vs hecho se compara en el cliente: gana la peor medida; una serie al fallo se cumple con ≥ 1 repetición. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R4 (dato):** la migración es irreversible en datos (las repeticiones no numéricas pasan a notas). Cuando entre R3b (peso + distancia), añadir esa medida a las series.
 
-- **CO7-1:** `ReminderDaysBefore = 0` apaga **los tres** recordatorios (antes, vence hoy, último día de gracia). ¿O solo el de "N días antes"?
-- **CO7-3:** los tres avisos comparten tipo e ícono; se distinguen por un `ReferenceId` derivado (MD5 de `membresía:paso`). ¿Tipos de aviso propios?
-- **CO7-4:** revisar el texto del último día de gracia ("Hoy es tu último día para renovar sin perder tu fecha").
-- **CO7 (para MS5):** cuando existan tiqueteras, excluir las que no tienen gracia del aviso de último día.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO7-1:** `ReminderDaysBefore = 0` apaga **los tres** recordatorios (antes, vence hoy, último día de gracia). ¿O solo el de "N días antes"?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO7-3:** los tres avisos comparten tipo e ícono; se distinguen por un `ReferenceId` derivado (MD5 de `membresía:paso`). ¿Tipos de aviso propios?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO7-4:** revisar el texto del último día de gracia ("Hoy es tu último día para renovar sin perder tu fecha").
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO7 (para MS5):** cuando existan tiqueteras, excluir las que no tienen gracia del aviso de último día.
 
-- **C2-1:** al cambiar el instructor de una clase también se reasignan las sesiones futuras ya materializadas (las pasadas no). Confirmar.
-- **C2-2:** "Mis clases" exige el permiso `Trainer` (403 sin él). ¿O cualquier staff con lista vacía?
-- **C2-3:** cualquier staff (no solo el instructor) puede marcar asistencia o cancelar cualquier sesión. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C2-1:** al cambiar el instructor de una clase también se reasignan las sesiones futuras ya materializadas (las pasadas no). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C2-2:** "Mis clases" exige el permiso `Trainer` (403 sin él). ¿O cualquier staff con lista vacía?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C2-3:** cualquier staff (no solo el instructor) puede marcar asistencia o cancelar cualquier sesión. Confirmar.
 
-- **E3-1:** las ligas propias del gym **reemplazan** a las de modelo en ese gym (no suman). Confirmar.
-- **E3-2:** un ejercicio ligado a un modelo que el gym no tiene cae a la regla de tipos de equipo. Confirmar.
-- **E3-3:** no hay pantalla de SuperAdmin para ligar ejercicios a modelos (solo API y siembra); va con S4.
-- **E3-5:** revisar los 16 pares ejercicio↔modelo sembrados en `V2_E3.sql` (propuesta del agente).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **E3-1:** las ligas propias del gym **reemplazan** a las de modelo en ese gym (no suman). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **E3-2:** un ejercicio ligado a un modelo que el gym no tiene cae a la regla de tipos de equipo. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **E3-3:** no hay pantalla de SuperAdmin para ligar ejercicios a modelos (solo API y siembra); va con S4.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **E3-5:** revisar los 16 pares ejercicio↔modelo sembrados en `V2_E3.sql` (propuesta del agente).
 
-- **N5-1:** si se reserva dentro de los 10 minutos previos al inicio, **no** hay recordatorio. ¿Uno inmediato?
-- **N5-2:** un recordatorio de vencimiento generado de madrugada sale a las 8:00 aunque el staff haya renovado entretanto. ¿Se revalida al enviar?
-- **N5-3:** el recordatorio del instructor se crea con la primera reserva; si todas se cancelan, lo recibe igual; una sesión sin reservas no lo genera. Confirmar.
-- **N5-4:** el recordatorio del instructor no se puede apagar (no está en las preferencias del staff). ¿Se agrega?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **N5-1:** si se reserva dentro de los 10 minutos previos al inicio, **no** hay recordatorio. ¿Uno inmediato?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **N5-2:** un recordatorio de vencimiento generado de madrugada sale a las 8:00 aunque el staff haya renovado entretanto. ¿Se revalida al enviar?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **N5-3:** el recordatorio del instructor se crea con la primera reserva; si todas se cancelan, lo recibe igual; una sesión sin reservas no lo genera. Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **N5-4:** el recordatorio del instructor no se puede apagar (no está en las preferencias del staff). ¿Se agrega?
 - **[DECIDIDA 2026-10-16: dar de baja cancela las sesiones futuras con reservas ("Clase dada de baja") y avisa; los recordatorios se retiran por el mismo evento. Hecho, con test.]** **N5-6 (hueco de Classes):** desactivar una clase no cancela sus reservas futuras ni sus recordatorios.
 - **[DECIDIDA 2026-10-16: ver C3-5. Hecho.]** **N5-7:** `BookingPenaltyApplied` sigue sin aviso al miembro (ver C3-5).
 
-- **CO2-1:** dentro de un filtro los valores suman (O); entre filtros, "y". Confirmar.
-- **CO2-2:** publicar un segmento sin miembros da 422. Confirmar.
-- **CO2-3:** el filtro de plan solo cuenta membresías que cubren hoy (no en gracia ni congelados); el de clase cuenta reservas y asistencias de los últimos 30 días. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO2-1:** dentro de un filtro los valores suman (O); entre filtros, "y". Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO2-2:** publicar un segmento sin miembros da 422. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO2-3:** el filtro de plan solo cuenta membresías que cubren hoy (no en gracia ni congelados); el de clase cuenta reservas y asistencias de los últimos 30 días. Confirmar.
 - **[DECIDIDA 2026-10-16: corregido; `POST api/announcements/email-audience` recibe categoría y audiencia, y el editor recalcula al cambiar los filtros. Hecho, con test.]** **CO2-4 (hueco):** `GET api/announcements/email-audience` ignora el segmento: la confirmación por email puede decir "a N miembros" con N mayor. ¿Se corrige ya?
-- **CO2-5 (para CO4):** la publicación programada corre sin usuario; los readers de la audiencia necesitarán el gym explícito.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO2-5 (para CO4):** la publicación programada corre sin usuario; los readers de la audiencia necesitarán el gym explícito.
 
-- **CO5-1:** si la tarea no corre en todo el día, ese cumpleaños no se felicita (no se recupera). Confirmar.
-- **CO5-2:** "la noche anterior" se implementó como la primera ejecución del día con envío a las 8:00. Confirmar.
-- **CO5-3:** el "regalo" va dentro del texto libre, sin campo aparte. ¿Hace falta?
-- **CO5-4:** el texto de la felicitación automática y la plantilla de WhatsApp de cumpleaños (CO3) son independientes. ¿Se unifican?
-- **CO5:** la felicitación viene **apagada por defecto** por gym. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO5-1:** si la tarea no corre en todo el día, ese cumpleaños no se felicita (no se recupera). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO5-2:** "la noche anterior" se implementó como la primera ejecución del día con envío a las 8:00. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO5-3:** el "regalo" va dentro del texto libre, sin campo aparte. ¿Hace falta?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO5-4:** el texto de la felicitación automática y la plantilla de WhatsApp de cumpleaños (CO3) son independientes. ¿Se unifican?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO5:** la felicitación viene **apagada por defecto** por gym. Confirmar.
 
 **Preguntas de la tanda MS1b/G3b/R2b/L1 (2026-10-15):**
 
-- **G3b-1:** un tramo 00:00–23:59 escrito a mano se lee de vuelta como "24 horas" (no hay columna propia). ¿Aceptable, o columna `is_24h`?
-- **G3b-2:** una clase de 23:30 a 00:30 no cabe ni en un día 24 h (no se cruza la medianoche). Sigue la spec; confirmar.
-- **G3b-3:** la casilla 24 h no existe para el horario de festivos ni para las excepciones por fecha. Confirmar.
-- **R2b-1:** un día retirado deja de contar desde el mismo día del cambio (ese día ya usa la rutina nueva). Confirmar.
-- **R2b-2:** en el modo rotativo no se guarda la historia exacta del ciclo; cada fecha se reconstruye con los días vigentes ordenados por posición. Si se agregan o quitan días a mitad de un ciclo, puede no coincidir con lo que el miembro vio. ¿Se acepta?
-- **MS1b-1:** el rechazo por membresía programada se guarda como `no_membership` (solo lo distingue el mensaje). ¿Motivo propio `membership_scheduled` (exige `ALTER TYPE`)?
-- **MS1b-2:** una membresía programada no cuenta para el límite de miembros del plan SaaS. Confirmar.
-- **MS1b-3:** los recordatorios de vencimiento (CO7) no tienen en cuenta el estado programado. ¿Hace falta algo?
-- **L1-1:** la regla "QR fijo sin ubicación no cuenta para logros ni racha" queda para A6 (filtrar en `AttendanceReader.Attendances`).
-- **L1-2:** crear/editar y otorgar son dos llamadas desde la UI (no atómicas; otorgar es idempotente y se puede repetir). ¿Aceptable?
-- **L1-3:** el otorgamiento calcula racha, sesiones y clases miembro por miembro (solo las visitas van en bloque). Suficiente para un gym normal; confirmar.
-- **L1-4:** se pregunta por el otorgamiento solo al crear, al cambiar el tipo o al bajar el valor (subirlo no quita logros). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G3b-1:** un tramo 00:00–23:59 escrito a mano se lee de vuelta como "24 horas" (no hay columna propia). ¿Aceptable, o columna `is_24h`?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G3b-2:** una clase de 23:30 a 00:30 no cabe ni en un día 24 h (no se cruza la medianoche). Sigue la spec; confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G3b-3:** la casilla 24 h no existe para el horario de festivos ni para las excepciones por fecha. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R2b-1:** un día retirado deja de contar desde el mismo día del cambio (ese día ya usa la rutina nueva). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R2b-2:** en el modo rotativo no se guarda la historia exacta del ciclo; cada fecha se reconstruye con los días vigentes ordenados por posición. Si se agregan o quitan días a mitad de un ciclo, puede no coincidir con lo que el miembro vio. ¿Se acepta?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS1b-1:** el rechazo por membresía programada se guarda como `no_membership` (solo lo distingue el mensaje). ¿Motivo propio `membership_scheduled` (exige `ALTER TYPE`)?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS1b-2:** una membresía programada no cuenta para el límite de miembros del plan SaaS. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS1b-3:** los recordatorios de vencimiento (CO7) no tienen en cuenta el estado programado. ¿Hace falta algo?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L1-1:** la regla "QR fijo sin ubicación no cuenta para logros ni racha" queda para A6 (filtrar en `AttendanceReader.Attendances`).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L1-2:** crear/editar y otorgar son dos llamadas desde la UI (no atómicas; otorgar es idempotente y se puede repetir). ¿Aceptable?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L1-3:** el otorgamiento calcula racha, sesiones y clases miembro por miembro (solo las visitas van en bloque). Suficiente para un gym normal; confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L1-4:** se pregunta por el otorgamiento solo al crear, al cambiar el tipo o al bajar el valor (subirlo no quita logros). Confirmar.
 
 **Preguntas de la tanda R3b/N1b/S1b/LG2 (2026-10-15):**
 
-- **R3b (observación):** el registro por serie (R4) no descarta los campos que no aplican a la medida; solo lo controla la UI.
-- **N1b-1:** quien solo tiene `ViewFinances` ve el aviso de anulación pero no puede cerrarlo a mano (403). Confirmar.
-- **S1b-1:** "nunca pagó" = `PaidThrough <= TrialEndsOn`, sin mirar los pagos: una renovación de cortesía cuenta como pago. ¿Se acepta?
-- **S1b-2:** tope de 60 días para la gracia tras la prueba (lo puso el agente; la spec no lo dice). ¿Se confirma o se quita?
-- **S1b-3:** `OverdueGraceDays` por gym (spec §V2) sigue fijo en 15; los avisos "Tu prueba terminó" quedan para S3.
-- **LG2-1:** las peticiones a `/internal/jobs/*` son lentas a propósito y llenarán `slow_requests`. ¿Se excluyen (ya tienen `job_runs`)?
-- **LG2-2:** un 403 por permiso queda en `business_rejections` y en `security_events`; un 403 de dominio solo en la primera. Confirmar.
-- **LG2-3:** `account_locked` solo sale en el intento que bloquea; los siguientes quedan como `login_failed`. Confirmar.
-- **LG2-4 (pendiente técnico):** `code_attempts_exceeded` no se registra. El agente creyó que el login con código (I5) no existía, pero **sí existe**: falta engancharlo. `document_entry_locked` espera a A4. Tampoco hay test de `permission_denied` ni de `account_locked`.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R3b (observación):** el registro por serie (R4) no descarta los campos que no aplican a la medida; solo lo controla la UI.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **N1b-1:** quien solo tiene `ViewFinances` ve el aviso de anulación pero no puede cerrarlo a mano (403). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S1b-1:** "nunca pagó" = `PaidThrough <= TrialEndsOn`, sin mirar los pagos: una renovación de cortesía cuenta como pago. ¿Se acepta?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S1b-2:** tope de 60 días para la gracia tras la prueba (lo puso el agente; la spec no lo dice). ¿Se confirma o se quita?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S1b-3:** `OverdueGraceDays` por gym (spec §V2) sigue fijo en 15; los avisos "Tu prueba terminó" quedan para S3.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **LG2-1:** las peticiones a `/internal/jobs/*` son lentas a propósito y llenarán `slow_requests`. ¿Se excluyen (ya tienen `job_runs`)?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG2-2:** un 403 por permiso queda en `business_rejections` y en `security_events`; un 403 de dominio solo en la primera. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG2-3:** `account_locked` solo sale en el intento que bloquea; los siguientes quedan como `login_failed`. Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **LG2-4 (pendiente técnico):** `code_attempts_exceeded` no se registra. El agente creyó que el login con código (I5) no existía, pero **sí existe**: falta engancharlo. `document_entry_locked` espera a A4. Tampoco hay test de `permission_denied` ni de `account_locked`.
 
 **Preguntas de la tanda A3/MS2/LG3/I4+G4 (2026-10-15):**
 
-- **A3-1:** el cartel del QR fijo ya no se imprime desde la sesión del staff (solo desde el dispositivo). ¿Vista de impresión para el Owner en Configuración → Check-in?
-- **A3-2:** revocar un kiosco corta el refresh, pero su token sigue sirviendo el código hasta 15 min. Aceptado en I7; confirmar.
-- **A3-3:** el kiosco ya no muestra el nombre del gym (no tiene endpoint). ¿Se agrega un GET pequeño para el rol `kiosk`?
-- **A3-4:** se quitó "Kiosco" del menú (los botones llevan a "Configurar kiosco" en `/settings`). El kiosco es solo web.
-- **MS2-1:** la matrícula se configura en la pestaña Check-in de `/settings` (solo Owner). ¿Otra ubicación?
-- **MS2-2:** se cobra matrícula solo si el miembro nunca tuvo membresía (las canceladas cuentan como historial). Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **A3-1:** el cartel del QR fijo ya no se imprime desde la sesión del staff (solo desde el dispositivo). ¿Vista de impresión para el Owner en Configuración → Check-in?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A3-2:** revocar un kiosco corta el refresh, pero su token sigue sirviendo el código hasta 15 min. Aceptado en I7; confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **A3-3:** el kiosco ya no muestra el nombre del gym (no tiene endpoint). ¿Se agrega un GET pequeño para el rol `kiosk`?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A3-4:** se quitó "Kiosco" del menú (los botones llevan a "Configurar kiosco" en `/settings`). El kiosco es solo web.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **MS2-1:** la matrícula se configura en la pestaña Check-in de `/settings` (solo Owner). ¿Otra ubicación?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS2-2:** se cobra matrícula solo si el miembro nunca tuvo membresía (las canceladas cuentan como historial). Confirmar.
 - **[DECIDIDA 2026-10-16: "pendiente de pago" visible — `AmountDue` en la lista de membresías de la ficha y bloque `Unpaid` en "Requiere atención" del dashboard; no bloquea la entrada. Hecho, con tests.]** **MS2-3:** el servidor no impide una membresía sin pago (el cobro obligatorio lo impone el diálogo). Evitarlo exigiría escritura cruzada o chequeo diferido. ¿Se acepta?
-- **LG3-1:** R2 sin test (el `AmazonS3Client` se crea en el constructor). ¿Inyectar `IAmazonS3`?
-- **LG3-2:** la app Windows (MAUI) no reporta errores (la spec no lista `windows`). ¿Se agrega?
-- **LG3-3 (para LG5):** "5 fallas seguidas del mismo proveedor" no puede saber si hubo un éxito entre medias (no se registran éxitos). Decidir antes de LG5.
-- **I4-1:** `Gym.OwnerId` no se eliminó (la spec dice que desaparece): queda como "fundador histórico" sin efecto. ¿Se elimina en otra tanda?
-- **I4-2:** al bajar a un Owner a staff, perfil Recepción por defecto. Confirmar.
-- **I4-3:** el cambio de contacto de facturación no se audita. ¿Se audita?
-- **I4-4:** el traspaso son dos llamadas desde la UI (primero agregar, luego quitarse). Si el nuevo no activó su cuenta, el gym queda con un Owner pendiente. "Copiar enlace" para el Owner quedó fuera.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG3-1:** R2 sin test (el `AmazonS3Client` se crea en el constructor). ¿Inyectar `IAmazonS3`?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG3-2:** la app Windows (MAUI) no reporta errores (la spec no lista `windows`). ¿Se agrega?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG3-3 (para LG5):** "5 fallas seguidas del mismo proveedor" no puede saber si hubo un éxito entre medias (no se registran éxitos). Decidir antes de LG5.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I4-1:** `Gym.OwnerId` no se eliminó (la spec dice que desaparece): queda como "fundador histórico" sin efecto. ¿Se elimina en otra tanda?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I4-2:** al bajar a un Owner a staff, perfil Recepción por defecto. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I4-3:** el cambio de contacto de facturación no se audita. ¿Se audita?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **I4-4:** el traspaso son dos llamadas desde la UI (primero agregar, luego quitarse). Si el nuevo no activó su cuenta, el gym queda con un Owner pendiente. "Copiar enlace" para el Owner quedó fuera.
 
 **Preguntas de la tanda MS3/A4/R5/LG4 (2026-10-15):**
 
-- **MS3-1:** al reanudar un congelamiento se corre el fin pero no el día del ciclo; la siguiente renovación arranca un ciclo nuevo si no coincide. ¿Esperado? (ligado a MS4)
-- **MS3-2:** la membresía no guarda la unidad ni la duración del plan; si MS5/MS6 las necesitan, habrá que guardarlas.
-- **A4-1:** "Bienvenido/a, Ana" (no hay dato de género). ¿Se queda así?
-- **A4-2:** con el QR apagado, el kiosco muestra "desactivado" aunque el documento esté encendido. ¿Debe funcionar el documento sin QR?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS3-1:** al reanudar un congelamiento se corre el fin pero no el día del ciclo; la siguiente renovación arranca un ciclo nuevo si no coincide. ¿Esperado? (ligado a MS4)
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS3-2:** la membresía no guarda la unidad ni la duración del plan; si MS5/MS6 las necesitan, habrá que guardarlas.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A4-1:** "Bienvenido/a, Ana" (no hay dato de género). ¿Se queda así?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **A4-2:** con el QR apagado, el kiosco muestra "desactivado" aunque el documento esté encendido. ¿Debe funcionar el documento sin QR?
 - **[DECIDIDA 2026-10-16: se queda en memoria (un solo servidor); revisar si algún día hay varias instancias.]** **A4-3:** el bloqueo por intentos vive en memoria (un reinicio lo limpia; no sirve con varias instancias).
-- **A4-4:** el documento se compara sin tipo: dos miembros con el mismo número y distinto tipo son rechazados los dos.
-- **A4-5:** el ajuste se llama `ByDocument` y vive en `attendance.checkin_settings`, no en `GymFeatureFlags` (la spec dice `CheckinByDocument`). ¿Se acepta?
-- **R5-1:** se agregaron PUT/DELETE de alternativas por gym sin pantalla en el panel (la del SuperAdmin es S4). ¿Hace falta pantalla para el staff?
-- **R5-2:** un gym no puede ocultar una alternativa del sistema (422). ¿Debería?
-- **R5-3:** si salen menos de 3 sugeridas se completa con el mismo grupo muscular; las recomendadas salen aunque el gym no tenga la máquina (marcadas). Confirmar.
-- **R5-4:** "hizo X en lugar de Y" se guarda, pero el staff no tiene pantalla de historial del miembro donde verlo.
-- **LG4-1:** huellas propias para `external` (`proveedor|operación|estado`) y `client` (`plataforma|tipo`). Confirmar.
-- **LG4-2:** `logs.error_groups` solo guarda estado y notas; conteos y gyms se calculan al leer. LG5 puede necesitar contadores escritos.
-- **LG4-3:** `MemberInvited` no es reintentable (el código se limpia): falta el refrescador de Members (decisión del 2026-10-11). ¿Se construye o basta reinvitar?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A4-4:** el documento se compara sin tipo: dos miembros con el mismo número y distinto tipo son rechazados los dos.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A4-5:** el ajuste se llama `ByDocument` y vive en `attendance.checkin_settings`, no en `GymFeatureFlags` (la spec dice `CheckinByDocument`). ¿Se acepta?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R5-1:** se agregaron PUT/DELETE de alternativas por gym sin pantalla en el panel (la del SuperAdmin es S4). ¿Hace falta pantalla para el staff?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R5-2:** un gym no puede ocultar una alternativa del sistema (422). ¿Debería?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R5-3:** si salen menos de 3 sugeridas se completa con el mismo grupo muscular; las recomendadas salen aunque el gym no tenga la máquina (marcadas). Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **R5-4:** "hizo X en lugar de Y" se guarda, pero el staff no tiene pantalla de historial del miembro donde verlo.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG4-1:** huellas propias para `external` (`proveedor|operación|estado`) y `client` (`plataforma|tipo`). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG4-2:** `logs.error_groups` solo guarda estado y notas; conteos y gyms se calculan al leer. LG5 puede necesitar contadores escritos.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG4-3:** `MemberInvited` no es reintentable (el código se limpia): falta el refrescador de Members (decisión del 2026-10-11). ¿Se construye o basta reinvitar?
 - **[DECIDIDA 2026-10-16: el reintento corre en el gym del evento (`GymExecutionScope`). Hecho, con test.]** **LG4-4 (riesgo):** el reintento corre el manejador como SuperAdmin (sin gym, filtro apagado). No se auditaron los ~20 manejadores; los que usen `RequireGymId()` fallarían. ¿Contexto de gym para el reintento?
-- **LG4-5:** las vistas de rechazos, seguridad, lentitud y procesos del §7 no se construyeron (la fila LG4 no las pide). ¿Tarea aparte?
+- **[DECIDIDA 2026-10-17: se construye después del despliegue.]** **LG4-5:** las vistas de rechazos, seguridad, lentitud y procesos del §7 no se construyeron (la fila LG4 no las pide). ¿Tarea aparte?
 
 **Preguntas de la tanda A5/L2/C4/MS4 (2026-10-15):**
 
-- **A5-1:** "Check-ins hoy" sigue contando entradas, no personas (la ocupación sí cuenta personas). Es la A1b-6.
-- **A5-2:** la spec pone la ocupación del miembro "junto a las horas pico que ya existen", pero el miembro no tiene horas pico (solo el staff). ¿Se le exponen?
-- **L2-1:** la antigüedad son días cubiertos ÷ 30 (spec §3.1), no meses del calendario. Confirmar.
-- **L2-2:** un referido cuenta con una membresía no cancelada de precio > 0, no con un pago registrado (evita depender de Payments). ¿Se acepta?
-- **L2-3:** si el staff anota el referidor cuando el amigo ya tenía membresía, el logro llega en el próximo check-in o membresía, no al instante. ¿Evento de Members?
-- **L2-4:** un referido inactivo sigue contando. Confirmar.
-- **C4-1:** subir el cupo de una clase no llega a las sesiones ya materializadas (copian el cupo), así que no libera ofertas. ¿Se propaga?
-- **C4-2:** al cancelar una sesión, la lista de espera queda `expired` sin aviso. ¿Aviso propio?
-- **C4-3:** si el miembro deja de estar al día con una oferta abierta, no puede confirmar pero la oferta aparta el cupo hasta vencer. ¿Debe saltar al siguiente?
-- **MS4-1:** los planes (nuevos y migrados) quedan con `MaxFreezeDays = 0`, como pide §13: hasta configurarlos solo el Owner congela, con override. ¿Otro valor por defecto (p. ej. 30)?
-- **MS4-2:** un congelamiento abierto que supera el límite del plan solo acredita hasta el límite (salvo override). ¿Se acredita todo?
-- **MS4-3:** un programado no puede empezar antes de hoy ni fuera de la vigencia, pero sí terminar después del fin actual. Confirmar.
-- **MS4-4:** "por vencer" y los días que quedan cuentan los días de un congelamiento futuro ya programado (el fin ya está corrido). Confirmar.
-- **MS4-5 (= MS3-1):** correr el fin por un congelamiento no mueve el día del ciclo; la renovación siguiente arranca ciclo nuevo si no coincide.
-- **Integración MS4 ↔ L2:** MS4 reemplazó `paused`/`paused_on` por congelamientos; el `PausedDays` de L2 se retiró y la antigüedad descuenta los tramos congelados.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A5-1:** "Check-ins hoy" sigue contando entradas, no personas (la ocupación sí cuenta personas). Es la A1b-6.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A5-2:** la spec pone la ocupación del miembro "junto a las horas pico que ya existen", pero el miembro no tiene horas pico (solo el staff). ¿Se le exponen?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L2-1:** la antigüedad son días cubiertos ÷ 30 (spec §3.1), no meses del calendario. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L2-2:** un referido cuenta con una membresía no cancelada de precio > 0, no con un pago registrado (evita depender de Payments). ¿Se acepta?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L2-3:** si el staff anota el referidor cuando el amigo ya tenía membresía, el logro llega en el próximo check-in o membresía, no al instante. ¿Evento de Members?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L2-4:** un referido inactivo sigue contando. Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **C4-1:** subir el cupo de una clase no llega a las sesiones ya materializadas (copian el cupo), así que no libera ofertas. ¿Se propaga?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **C4-2:** al cancelar una sesión, la lista de espera queda `expired` sin aviso. ¿Aviso propio?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **C4-3:** si el miembro deja de estar al día con una oferta abierta, no puede confirmar pero la oferta aparta el cupo hasta vencer. ¿Debe saltar al siguiente?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **MS4-1:** los planes (nuevos y migrados) quedan con `MaxFreezeDays = 0`, como pide §13: hasta configurarlos solo el Owner congela, con override. ¿Otro valor por defecto (p. ej. 30)?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS4-2:** un congelamiento abierto que supera el límite del plan solo acredita hasta el límite (salvo override). ¿Se acredita todo?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS4-3:** un programado no puede empezar antes de hoy ni fuera de la vigencia, pero sí terminar después del fin actual. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS4-4:** "por vencer" y los días que quedan cuentan los días de un congelamiento futuro ya programado (el fin ya está corrido). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS4-5 (= MS3-1):** correr el fin por un congelamiento no mueve el día del ciclo; la renovación siguiente arranca ciclo nuevo si no coincide.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **Integración MS4 ↔ L2:** MS4 reemplazó `paused`/`paused_on` por congelamientos; el `PausedDays` de L2 se retiró y la antigüedad descuenta los tramos congelados.
 
 **Preguntas de la tanda L4/CO4/MS5/E4 (2026-10-15):**
 
-- **L4-1:** cualquier staff retira un logro manual (igual que otorgarlo). Confirmar.
-- **L4-2:** volver a otorgar un logro retirado no genera aviso nuevo (misma fila, aviso idempotente). ¿Avisar otra vez?
-- **L4-3:** se guarda el id de quien otorgó, pero la UI no muestra su nombre (exigiría leer de Identity).
-- **L4-4:** en `/app/logros` los manuales no ganados se ven bloqueados. ¿Se ocultan?
-- **L4-5:** el aviso dice "Desbloqueaste «X»" también para los manuales. ¿Otro texto?
-- **CO4-1:** un programado que ya no puede salir (audiencia vacía o caducado) vuelve a borrador solo con un log. ¿Avisar al autor?
-- **CO4-2:** el correo y el push aún no incluyen la imagen (el dato ya viaja en el evento).
-- **CO4-3:** dos ejecuciones simultáneas de la tarea podrían publicar el mismo anuncio (sin claim atómico). Con una sola tarea de Dokploy no debería pasar.
-- **MS5-1:** se permiten varias tiqueteras vigentes; se gasta la que vence primero. ¿O se rechaza comprar otra?
-- **MS5-2:** si un plan por tiempo cubre el día, manda y la tiquetera no se toca. Confirmar.
-- **MS5-3:** una tiquetera cobra matrícula si es la primera membresía (§4.1 literal). Confirmar.
-- **MS5-4:** la lista "Por vencer" y el dashboard siguen contando solo por fecha (no por ≤ 2 entradas).
-- **MS5-5:** agotar la tiquetera no avisa al miembro.
-- **E4-1:** el aviso "tu reporte se resolvió" usa la categoría `News` (configurable, respeta el horario sin avisos). Confirmar.
-- **E4-2:** el texto al miembro es neutro ("Lo que reportaste de «X» ya quedó resuelto"). Confirmar.
-- **E4-3:** al volver una máquina a `available`, los reportes abiertos no se ofrecen cerrar automáticamente (solo se listan).
-- **E4-4:** un reporte `unsafe` nunca se agrupa con otros. Confirmar.
-- **Encontrado al integrar (corregido):** `IMemberWaitlistClient` (C4) no estaba registrado en el cliente; `/app/clases` habría fallado en la app real (los tests registran sus propios falsos).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L4-1:** cualquier staff retira un logro manual (igual que otorgarlo). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L4-2:** volver a otorgar un logro retirado no genera aviso nuevo (misma fila, aviso idempotente). ¿Avisar otra vez?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L4-3:** se guarda el id de quien otorgó, pero la UI no muestra su nombre (exigiría leer de Identity).
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **L4-4:** en `/app/logros` los manuales no ganados se ven bloqueados. ¿Se ocultan?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **L4-5:** el aviso dice "Desbloqueaste «X»" también para los manuales. ¿Otro texto?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **CO4-1:** un programado que ya no puede salir (audiencia vacía o caducado) vuelve a borrador solo con un log. ¿Avisar al autor?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO4-2:** el correo y el push aún no incluyen la imagen (el dato ya viaja en el evento).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **CO4-3:** dos ejecuciones simultáneas de la tarea podrían publicar el mismo anuncio (sin claim atómico). Con una sola tarea de Dokploy no debería pasar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS5-1:** se permiten varias tiqueteras vigentes; se gasta la que vence primero. ¿O se rechaza comprar otra?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS5-2:** si un plan por tiempo cubre el día, manda y la tiquetera no se toca. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS5-3:** una tiquetera cobra matrícula si es la primera membresía (§4.1 literal). Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **MS5-4:** la lista "Por vencer" y el dashboard siguen contando solo por fecha (no por ≤ 2 entradas).
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **MS5-5:** agotar la tiquetera no avisa al miembro.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **E4-1:** el aviso "tu reporte se resolvió" usa la categoría `News` (configurable, respeta el horario sin avisos). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **E4-2:** el texto al miembro es neutro ("Lo que reportaste de «X» ya quedó resuelto"). Confirmar.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **E4-3:** al volver una máquina a `available`, los reportes abiertos no se ofrecen cerrar automáticamente (solo se listan).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **E4-4:** un reporte `unsafe` nunca se agrupa con otros. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **Encontrado al integrar (corregido):** `IMemberWaitlistClient` (C4) no estaba registrado en el cliente; `/app/clases` habría fallado en la app real (los tests registran sus propios falsos).
 
-- **C7-1:** "ya entró al gym hoy" se lee con `IAttendanceReader` (Classes → Attendance en lectura; Attendance ya consume eventos de Classes). ¿Aceptable o se prefiere otra vía?
-- **C7-2:** con reserva cancelada o marcada `no_show` por el staff, el miembro no puede marcarse (409, "habla con recepción"). Confirmar.
-- **C7-3:** en clase con cupo, sin reserva no se puede marcar; una oferta de lista de espera sin confirmar no cuenta. Ventana ±15 min del inicio. Confirmar.
-- **C7-4:** "Estoy en clase" cancela el recordatorio de 10 min del miembro (C8 aún no existe).
-- **S3-1:** "se inhabilitará pronto" en pruebas solo sale si `trial_grace_days > 3` (con 3 coincide con "tu prueba terminó"). Confirmar.
-- **S3-2:** el aviso de límite de miembros solo va a los Owners; el SuperAdmin no recibe aviso propio (su cartera ya muestra usados/límite). ¿Hace falta?
-- **S3-3:** "pago registrado" no avisa en la renovación sin pago ni en el primer pago del alta. El motivo de la suspensión no se muestra al Owner. Enlace de los avisos = "/" (no hay pantalla de suscripción en el panel). ¿Se crea una?
-- **S3-4:** avisos de calendario una vez por periodo; un gym inhabilitado que sigue sin pagar no recibe más.
-- **L6-1:** sin fecha de nacimiento cuenta como menor y no puede participar en el ranking. Confirmar.
-- **L6-2:** el ranking exige `ShowRanking` (nuevo, por defecto encendido) y `ShowGamification`.
-- **L6-3:** alias único por gym sin distinguir mayúsculas (409), sin foto ni apellido. Salirse borra la participación y retira también del podio del mes anterior.
-- **L6-4:** empates: gana quien llegó antes al número de días, luego antigüedad en el ranking; sin posiciones compartidas.
-- **L6-5:** cuando exista A6, las entradas fuera del radio no deben contar en el ranking (revisar al unir A6).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C7-1:** "ya entró al gym hoy" se lee con `IAttendanceReader` (Classes → Attendance en lectura; Attendance ya consume eventos de Classes). ¿Aceptable o se prefiere otra vía?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C7-2:** con reserva cancelada o marcada `no_show` por el staff, el miembro no puede marcarse (409, "habla con recepción"). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C7-3:** en clase con cupo, sin reserva no se puede marcar; una oferta de lista de espera sin confirmar no cuenta. Ventana ±15 min del inicio. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C7-4:** "Estoy en clase" cancela el recordatorio de 10 min del miembro (C8 aún no existe).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S3-1:** "se inhabilitará pronto" en pruebas solo sale si `trial_grace_days > 3` (con 3 coincide con "tu prueba terminó"). Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S3-2:** el aviso de límite de miembros solo va a los Owners; el SuperAdmin no recibe aviso propio (su cartera ya muestra usados/límite). ¿Hace falta?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **S3-3:** "pago registrado" no avisa en la renovación sin pago ni en el primer pago del alta. El motivo de la suspensión no se muestra al Owner. Enlace de los avisos = "/" (no hay pantalla de suscripción en el panel). ¿Se crea una?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S3-4:** avisos de calendario una vez por periodo; un gym inhabilitado que sigue sin pagar no recibe más.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L6-1:** sin fecha de nacimiento cuenta como menor y no puede participar en el ranking. Confirmar.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L6-2:** el ranking exige `ShowRanking` (nuevo, por defecto encendido) y `ShowGamification`.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L6-3:** alias único por gym sin distinguir mayúsculas (409), sin foto ni apellido. Salirse borra la participación y retira también del podio del mes anterior.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L6-4:** empates: gana quien llegó antes al número de días, luego antigüedad en el ranking; sin posiciones compartidas.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L6-5:** cuando exista A6, las entradas fuera del radio no deben contar en el ranking (revisar al unir A6).
 
-- **MS7-1:** en un plan de grupo la matrícula la paga solo el titular (si es su primera membresía); los beneficiarios no pagan matrícula ni precio.
-- **MS7-2:** cada renovación crea un grupo nuevo con el mismo titular; conserva a los beneficiarios por defecto.
-- **MS7-3:** un grupo no admite cambio de plan (409): se cancela y se asigna otro. El titular no se puede transferir; cancelar al titular cancela el grupo, cancelar a un beneficiario lo saca.
-- **MS7-4:** solo planes por tiempo pueden ser de grupo (cupos 1..500). No se agrega beneficiario con congelamiento abierto/programado.
-- **MS7-5:** al congelar, cada integrante valida su límite; si uno no cabe, no se congela nadie.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS7-1:** en un plan de grupo la matrícula la paga solo el titular (si es su primera membresía); los beneficiarios no pagan matrícula ni precio.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS7-2:** cada renovación crea un grupo nuevo con el mismo titular; conserva a los beneficiarios por defecto.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS7-3:** un grupo no admite cambio de plan (409): se cancela y se asigna otro. El titular no se puede transferir; cancelar al titular cancela el grupo, cancelar a un beneficiario lo saca.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS7-4:** solo planes por tiempo pueden ser de grupo (cupos 1..500). No se agrega beneficiario con congelamiento abierto/programado.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **MS7-5:** al congelar, cada integrante valida su límite; si uno no cabe, no se congela nadie.
 
-- **R7-1:** la primera marca de un ejercicio es línea base, no récord (el "primer récord" de L3 sale con la segunda sesión que mejora).
-- **R7-2:** el evento `PersonalRecordSet` solo se publica para ejercicios `RepsWeight` (peso, volumen de serie, volumen de sesión); los demás tipos tienen récords visibles pero sin evento. Las rutinas auto-asignadas cuentan para el progreso, no para logros.
-- **R7-3:** el progreso lo ve cualquier staff, sin permiso especial. ¿Debería exigir `Trainer`?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R7-1:** la primera marca de un ejercicio es línea base, no récord (el "primer récord" de L3 sale con la segunda sesión que mejora).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R7-2:** el evento `PersonalRecordSet` solo se publica para ejercicios `RepsWeight` (peso, volumen de serie, volumen de sesión); los demás tipos tienen récords visibles pero sin evento. Las rutinas auto-asignadas cuentan para el progreso, no para logros.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R7-3:** el progreso lo ve cualquier staff, sin permiso especial. ¿Debería exigir `Trainer`?
 
-- **A6-1:** cuentan para racha/logros/ranking las entradas `inside` y las sin dato (historial, QR rotativo, documento, recepción); se excluyen `outside` y `denied`. Ocupación y tiqueteras cuentan todas. Ubicación inválida = `denied`; el servidor nunca rechaza por ubicación.
-- **A6-2:** se añadió `GET /api/attendance/checkin/location-policy` para no pedir permiso de ubicación con el QR rotativo.
-- **A6-3:** si la entrada del día no cuenta (fuera del radio), volver a escanear da `already_checked_in` (salvo entradas múltiples). ¿Se permite reintentar?
-- **A6-4:** la parte Android (`MauiDeviceLocation`) está sin probar en dispositivo.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A6-1:** cuentan para racha/logros/ranking las entradas `inside` y las sin dato (historial, QR rotativo, documento, recepción); se excluyen `outside` y `denied`. Ocupación y tiqueteras cuentan todas. Ubicación inválida = `denied`; el servidor nunca rechaza por ubicación.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A6-2:** se añadió `GET /api/attendance/checkin/location-policy` para no pedir permiso de ubicación con el QR rotativo.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A6-3:** si la entrada del día no cuenta (fuera del radio), volver a escanear da `already_checked_in` (salvo entradas múltiples). ¿Se permite reintentar?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **A6-4:** la parte Android (`MauiDeviceLocation`) está sin probar en dispositivo.
 
-- **G5-1:** Gyms lee de Equipment, Memberships, Members e Identity para los pasos (solo lecturas; hay ciclo de namespaces con Equipment/Members). ¿Se mueve a un compositor aparte, como `MemberStreak`?
-- **G5-2:** el paso de dirección exige dirección y ciudad, no el pin del mapa. ¿Condicionar el pin al QR fijo?
-- **G5-3:** las plantillas de planes (Día, Mensual, Trimestral, Anual) viven en el cliente; matrícula y gracia quedan fuera del asistente.
-- **G5-4:** completado es definitivo (no vuelve a bloquear). Los gyms existentes quedan marcados como completos. El bloqueo solo está en el frontend y falla abierto. El SuperAdmin impersonando no se bloquea.
-- **G5-5:** la omisión desde SuperAdmin se audita en `gym_onboarding` y en el log, no en `impersonation_actions`.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G5-1:** Gyms lee de Equipment, Memberships, Members e Identity para los pasos (solo lecturas; hay ciclo de namespaces con Equipment/Members). ¿Se mueve a un compositor aparte, como `MemberStreak`?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G5-2:** el paso de dirección exige dirección y ciudad, no el pin del mapa. ¿Condicionar el pin al QR fijo?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G5-3:** las plantillas de planes (Día, Mensual, Trimestral, Anual) viven en el cliente; matrícula y gracia quedan fuera del asistente.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G5-4:** completado es definitivo (no vuelve a bloquear). Los gyms existentes quedan marcados como completos. El bloqueo solo está en el frontend y falla abierto. El SuperAdmin impersonando no se bloquea.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G5-5:** la omisión desde SuperAdmin se audita en `gym_onboarding` y en el log, no en `impersonation_actions`.
 
-- **M5-1:** en "Mi perfil" el miembro no edita objetivo ni género (solo contacto, emergencia, salud y foto). ¿Debe poder fijar su objetivo?
-- **M5-2:** campos de identidad en el PUT: distinto a lo guardado → 403, igual → se acepta. Email distinto → 422 (va por el cambio con código de I6). El miembro no borra mediciones.
-- **M5-3:** sin autorización de datos, la salud tampoco se muestra (no solo no se edita). Un menor ve su salud pero no la edita.
-- **S4-1:** en el catálogo del sistema nada se borra: ejercicios y modelos de máquina solo se desactivan; desactivar un modelo no toca las máquinas ya creadas por los gyms.
-- **S4-2:** no hay "ejercicios que usan este modelo" ni ligado desde la pestaña de Máquinas (exigiría que Equipment lea Routines).
-- **LG5-1:** las alertas del SuperAdmin no pasan por `notifications.notifications` (exige `gym_id`): viven en `logs.platform_alerts` y Notifications solo da el canal (correo y push). ¿O una campana propia del SuperAdmin?
-- **LG5-2:** `/admin` todavía no registra push: hasta entonces el push de las alertas queda `skipped` y solo llega el correo.
-- **LG5-3:** "5 fallas seguidas" del proveedor = 5 o más en 10 min (no se guardan los éxitos). Un grupo resuelto que reaparece no vuelve a dar "error nuevo". Toda tarea `*_job` se asume al menos cada 30 min.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **M5-1:** en "Mi perfil" el miembro no edita objetivo ni género (solo contacto, emergencia, salud y foto). ¿Debe poder fijar su objetivo?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M5-2:** campos de identidad en el PUT: distinto a lo guardado → 403, igual → se acepta. Email distinto → 422 (va por el cambio con código de I6). El miembro no borra mediciones.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M5-3:** sin autorización de datos, la salud tampoco se muestra (no solo no se edita). Un menor ve su salud pero no la edita.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S4-1:** en el catálogo del sistema nada se borra: ejercicios y modelos de máquina solo se desactivan; desactivar un modelo no toca las máquinas ya creadas por los gyms.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **S4-2:** no hay "ejercicios que usan este modelo" ni ligado desde la pestaña de Máquinas (exigiría que Equipment lea Routines).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG5-1:** las alertas del SuperAdmin no pasan por `notifications.notifications` (exige `gym_id`): viven en `logs.platform_alerts` y Notifications solo da el canal (correo y push). ¿O una campana propia del SuperAdmin?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG5-2:** `/admin` todavía no registra push: hasta entonces el push de las alertas queda `skipped` y solo llega el correo.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **LG5-3:** "5 fallas seguidas" del proveedor = 5 o más en 10 min (no se guardan los éxitos). Un grupo resuelto que reaparece no vuelve a dar "error nuevo". Toda tarea `*_job` se asume al menos cada 30 min.
 
-- **G6-1:** "entrada con documento" se deja en `CheckinSettings.ByDocument` (A4), no se duplica como flag del gym como pide §7. ¿Migrar el dato al flag?
-- **G6-2:** Membresías, Rutinas y Equipos no tienen sección propia todavía (sus flags siguen en "Módulos"; la gracia vive en la pestaña Check-in). Se añadió la sección "Clases", que §7 no lista.
-- **G6-3:** se quitó `CommunityComments` de punta a punta (columna incluida): cambio incompatible del contrato; la app nativa debe regenerarse junto con la web.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G6-1:** "entrada con documento" se deja en `CheckinSettings.ByDocument` (A4), no se duplica como flag del gym como pide §7. ¿Migrar el dato al flag?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **G6-2:** Membresías, Rutinas y Equipos no tienen sección propia todavía (sus flags siguen en "Módulos"; la gracia vive en la pestaña Check-in). Se añadió la sección "Clases", que §7 no lista.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **G6-3:** se quitó `CommunityComments` de punta a punta (columna incluida): cambio incompatible del contrato; la app nativa debe regenerarse junto con la web.
 
-- **C8-1:** el aviso de clase nueva es un anuncio en Novedades ("Nueva clase: …"), con interruptor "Avisar a los miembros" al crear (editar nunca avisa); respeta la preferencia de Novedades. Sin botón "Ver horario" (el aviso apunta a `/app`); los textos no llevan salón ni número de reservas.
-- **L3-1:** el récord cuenta por día y ejercicio (no por tipo de marca); el volumen excluye calentamientos (la spec dice "todas las series") y solo rutinas asignadas.
-- **L3-2:** el volumen se evalúa al primer registro del día o al batir un récord; registros posteriores del mismo día esperan al siguiente evento. Los gyms existentes no reciben el logro "Primer récord" (solo los nuevos).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **C8-1:** el aviso de clase nueva es un anuncio en Novedades ("Nueva clase: …"), con interruptor "Avisar a los miembros" al crear (editar nunca avisa); respeta la preferencia de Novedades. Sin botón "Ver horario" (el aviso apunta a `/app`); los textos no llevan salón ni número de reservas.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L3-1:** el récord cuenta por día y ejercicio (no por tipo de marca); el volumen excluye calentamientos (la spec dice "todas las series") y solo rutinas asignadas.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **L3-2:** el volumen se evalúa al primer registro del día o al batir un récord; registros posteriores del mismo día esperan al siguiente evento. Los gyms existentes no reciben el logro "Primer récord" (solo los nuevos).
 
-- **R8-1:** "marcar revisada" corre la fecha a hoy + N semanas (no a la fecha anterior + N); cambiar el ajuste no recalcula rutinas ya asignadas. Ventana de la lista: atrasadas y próximos 7 días (fija).
-- **R8-2:** las rutinas auto-asignadas no entran a "por revisar". Cualquier staff puede marcar revisada (el entrenador es referencia, no candado). El entrenador ve por defecto solo sus miembros.
-- **M6-1:** las bajas que ya existían toman "hoy" como fecha de baja (nada se anonimiza de golpe). ¿Usar la fecha real del historial?
-- **M6-2:** se conservan etiquetas (texto libre), mediciones, autorizaciones, género, objetivo y fuente; no se tocan textos libres de otros módulos (motivos de "Dejar pasar", notas de pagos, motivos de cancelación). ¿Se limpian también?
-- **M6-3:** también se vacían título y texto de los avisos del miembro y sus correos (desvío más amplio que la spec). La cuenta sin otros accesos se elimina y libera el email.
-- **M6-4:** documento anonimizado = `ANON-` + 20 hex (la columna admite 30). Aviso al Owner fijo a 7 días. El staff aún puede añadir notas o mediciones a una ficha anonimizada (sin guarda).
-- **R9-1:** el aviso de salud en el editor solo existe en el editor del staff; con `ViewMemberHealth` muestra condiciones y restricciones (no medicamentos) y cada apertura queda en el registro de consultas. ¿Botón "Ver detalle" para no inflar el registro?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R8-1:** "marcar revisada" corre la fecha a hoy + N semanas (no a la fecha anterior + N); cambiar el ajuste no recalcula rutinas ya asignadas. Ventana de la lista: atrasadas y próximos 7 días (fija).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **R8-2:** las rutinas auto-asignadas no entran a "por revisar". Cualquier staff puede marcar revisada (el entrenador es referencia, no candado). El entrenador ve por defecto solo sus miembros.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M6-1:** las bajas que ya existían toman "hoy" como fecha de baja (nada se anonimiza de golpe). ¿Usar la fecha real del historial?
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **M6-2:** se conservan etiquetas (texto libre), mediciones, autorizaciones, género, objetivo y fuente; no se tocan textos libres de otros módulos (motivos de "Dejar pasar", notas de pagos, motivos de cancelación). ¿Se limpian también?
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **M6-3:** también se vacían título y texto de los avisos del miembro y sus correos (desvío más amplio que la spec). La cuenta sin otros accesos se elimina y libera el email.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **M6-4:** documento anonimizado = `ANON-` + 20 hex (la columna admite 30). Aviso al Owner fijo a 7 días. El staff aún puede añadir notas o mediciones a una ficha anonimizada (sin guarda).
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **R9-1:** el aviso de salud en el editor solo existe en el editor del staff; con `ViewMemberHealth` muestra condiciones y restricciones (no medicamentos) y cada apertura queda en el registro de consultas. ¿Botón "Ver detalle" para no inflar el registro?
 
-- **AP6-1:** solo se adaptó Inicio y el menú lateral a escritorio; Rutina, Clases y Mi progreso funcionan con el contenedor ancho pero sin los dos paneles de la spec (queda `.gsm-m-split` listo). Inicio en escritorio no ofrece escanear ("regístrate desde el celular o en recepción").
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **AP6-1:** solo se adaptó Inicio y el menú lateral a escritorio; Rutina, Clases y Mi progreso funcionan con el contenedor ancho pero sin los dos paneles de la spec (queda `.gsm-m-split` listo). Inicio en escritorio no ofrece escanear ("regístrate desde el celular o en recepción").
 
-- **D3-1:** gym inactivo = no suspendido ni inhabilitado, con 7+ días de vida y 7+ días sin entradas (o nunca). "Arranque" usa el onboarding persistido: un gym cuyo Owner nunca abrió el asistente figura "sin terminar". Solo los bloques nuevos llegan en `null` si fallan.
-- **D3-2:** el conteo para "Límites" hace una consulta por gym (N+1); aceptable con pocos gyms.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **D3-1:** gym inactivo = no suspendido ni inhabilitado, con 7+ días de vida y 7+ días sin entradas (o nunca). "Arranque" usa el onboarding persistido: un gym cuyo Owner nunca abrió el asistente figura "sin terminar". Solo los bloques nuevos llegan en `null` si fallan.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **D3-2:** el conteo para "Límites" hace una consulta por gym (N+1); aceptable con pocos gyms.
 
-- **R11-1:** plantillas de rutina solo por gym (sin plantillas del sistema), copia sin vínculo con las rutinas asignadas; el cuerpo se guarda como JSON. Borrado físico. Cualquier staff las crea y borra (¿limitar a Owner/`Trainer`?). Al asignar no se renombra.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **R11-1:** plantillas de rutina solo por gym (sin plantillas del sistema), copia sin vínculo con las rutinas asignadas; el cuerpo se guarda como JSON. Borrado físico. Cualquier staff las crea y borra (¿limitar a Owner/`Trainer`?). Al asignar no se renombra.
 
-- **D1-1:** el límite de miembros del plan sigue como tarjeta aparte (no viaja en el bloque); la afluencia no se filtra por el horario del gym (rango 5–21 h); "por vencer y en gracia" máx. 10 filas, los vencidos pasada la gracia solo como conteo.
-- **D1-2:** "Mis miembros" solo para quien tiene `Trainer` (clases de hoy, rutinas por revisar, miembros sin rutina). La caja: con `ViewFinances` se ven todas las abiertas; el resto, solo la suya.
-- **MS8-1:** "Mi membresía" (`/app/membresia`) no muestra dinero ni motivos internos; solo se llega desde el perfil (Inicio no enlaza todavía).
-- **L7-1:** "Mi progreso" vive en `/app/logros` (pestañas Racha, Logros, Ranking) y `/app/progreso` pasa a llamarse "Mis récords". La barra inferior sigue diciendo "Logros". La mejor racha se recalcula (aproximada, no se guarda); los días futuros de la rutina no se marcan en el calendario.
-- **AP4-1:** el cambio de modo usa el `switch-gym` de I2 (sin backend nuevo). En la app nativa, un staff en modo staff verá "no encontrado" hasta AP3 (panel en la app).
-- **AP7-1:** las tablas de planes, ejercicios y equipos se apilan en celular con `DataLabel` (no tarjetas de `ServerTable`). Falta mirarlas a 375 px en el navegador.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **D1-1:** el límite de miembros del plan sigue como tarjeta aparte (no viaja en el bloque); la afluencia no se filtra por el horario del gym (rango 5–21 h); "por vencer y en gracia" máx. 10 filas, los vencidos pasada la gracia solo como conteo.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **D1-2:** "Mis miembros" solo para quien tiene `Trainer` (clases de hoy, rutinas por revisar, miembros sin rutina). La caja: con `ViewFinances` se ven todas las abiertas; el resto, solo la suya.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **MS8-1:** "Mi membresía" (`/app/membresia`) no muestra dinero ni motivos internos; solo se llega desde el perfil (Inicio no enlaza todavía).
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **L7-1:** "Mi progreso" vive en `/app/logros` (pestañas Racha, Logros, Ranking) y `/app/progreso` pasa a llamarse "Mis récords". La barra inferior sigue diciendo "Logros". La mejor racha se recalcula (aproximada, no se guarda); los días futuros de la rutina no se marcan en el calendario.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **AP4-1:** el cambio de modo usa el `switch-gym` de I2 (sin backend nuevo). En la app nativa, un staff en modo staff verá "no encontrado" hasta AP3 (panel en la app).
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **AP7-1:** las tablas de planes, ejercicios y equipos se apilan en celular con `DataLabel` (no tarjetas de `ServerTable`). Falta mirarlas a 375 px en el navegador.
 
-- **R6-1:** video del ejercicio: solo MP4 hasta 50 MB (la spec no fija límite de video). No hay "quitar medio" sin reemplazarlo; vaciar la URL deja el archivo huérfano en R2. Un archivo compartido con un duplicado no se borra mientras alguien lo use.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **R6-1:** video del ejercicio: solo MP4 hasta 50 MB (la spec no fija límite de video). No hay "quitar medio" sin reemplazarlo; vaciar la URL deja el archivo huérfano en R2. Un archivo compartido con un duplicado no se borra mientras alguien lo use.
 
-- **AP5-1:** el bloqueo en modo staff también salta al abrir la app en frío (no solo tras 15 min en segundo plano); 5 PIN erróneos cierran la sesión. PIN propio de 4–6 dígitos (PBKDF2 con sal). Paquete nuevo `Plugin.Fingerprint` 2.1.5 (solo Android), **sin verificar que compile en .NET 10**; alternativa: `Xamarin.AndroidX.Biometric`. Nada probado en dispositivo.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **AP5-1:** el bloqueo en modo staff también salta al abrir la app en frío (no solo tras 15 min en segundo plano); 5 PIN erróneos cierran la sesión. PIN propio de 4–6 dígitos (PBKDF2 con sal). Paquete nuevo `Plugin.Fingerprint` 2.1.5 (solo Android), **sin verificar que compile en .NET 10**; alternativa: `Xamarin.AndroidX.Biometric`. Nada probado en dispositivo.
 
-- **AP3-1:** el panel ya se monta en `GSM.Mobile` y el push de Android usa FCM inicializado por código desde `GET /api/push/config` (sin `google-services.json`). Paquete `Xamarin.Firebase.Messaging` 124.1.2.2 **sin verificar**. Nada probado en dispositivo; falta proyecto de Firebase (`com.gsm.mobile`) y `Notifications:Fcm:*`.
-- **AP3-2:** tocar un aviso de otro gym solo navega, no cambia de gym (la spec dice que sí). El staff no tiene "olvidé mi contraseña" en la app. Si el token FCM rota con la app cerrada, se actualiza en la siguiente apertura.
+- **[DECIDIDA 2026-10-17: se acepta como está.]** **AP3-1:** el panel ya se monta en `GSM.Mobile` y el push de Android usa FCM inicializado por código desde `GET /api/push/config` (sin `google-services.json`). Paquete `Xamarin.Firebase.Messaging` 124.1.2.2 **sin verificar**. Nada probado en dispositivo; falta proyecto de Firebase (`com.gsm.mobile`) y `Notifications:Fcm:*`.
+- **[DECIDIDA 2026-10-17: cambio recomendado, hecho (tandas Q1–Q7).]** **AP3-2:** tocar un aviso de otro gym solo navega, no cambia de gym (la spec dice que sí). El staff no tiene "olvidé mi contraseña" en la app. Si el token FCM rota con la app cerrada, se actualiza en la siguiente apertura.
 
 ## 3. Gestiones operativas pendientes
 
