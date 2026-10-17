@@ -9,7 +9,7 @@
 }
 else
 {
-    <p class="gsm-modules-intro">Activa o desactiva lo que ven tus miembros en su app. Lo que apagues deja de mostrarse; no se borra ningún dato.</p>
+    <p class="gsm-modules-intro">Activa o desactiva lo que ven tus miembros en su app. Lo que apagues deja de mostrarse; no se borra ningún dato. Rutinas y reporte de fallas de máquinas se configuran en sus propias secciones.</p>
 
     <section class="gsm-module-section" aria-labelledby="mod-ops">
         <h2 id="mod-ops" class="gsm-module-section__title">Acceso</h2>
@@ -23,15 +23,6 @@ else
     <section class="gsm-module-section" aria-labelledby="mod-train">
         <h2 id="mod-train" class="gsm-module-section__title">Entrenamiento</h2>
         <div class="gsm-module-grid">
-            @ModuleCard(Icons.Material.Outlined.FitnessCenter, "Rutinas",
-                "Cada miembro ve su rutina asignada y registra lo que entrena por ejercicio.",
-                _flagsModel.ShowRoutines, v => _flagsModel.ShowRoutines = v)
-            @ModuleCard(Icons.Material.Outlined.EditNote, "Rutinas propias",
-                "Los miembros pueden crear su propia rutina sin esperar a que el staff se la arme.",
-                _flagsModel.MembersCanCreateRoutines, v => _flagsModel.MembersCanCreateRoutines = v)
-            @ModuleCard(Icons.Material.Outlined.ReportProblem, "Reportar fallas de máquinas",
-                "Los miembros pueden avisar desde la app cuando una máquina falla. Si lo apagas, solo el equipo reporta.",
-                _flagsModel.MembersCanReportEquipment, v => _flagsModel.MembersCanReportEquipment = v)
             @ModuleCard(Icons.Material.Outlined.Leaderboard, "Ranking de constancia",
                 "Ranking mensual voluntario de días entrenados. Solo aparece quien acepta participar; los menores de edad no pueden.",
                 _flagsModel.ShowRanking, v => _flagsModel.ShowRanking = v)
@@ -63,6 +54,7 @@ else
 
 @code {
     private readonly FlagsModel _flagsModel = new();
+    private GymFeatureFlagsResponse? _loaded;
 
     private bool _loadingFlags = true;
     private bool _savingFlags;
@@ -74,15 +66,12 @@ else
         _loadingFlags = true;
         try
         {
-            var flags = await Gym.FeatureFlagsGETAsync();
-            _flagsModel.ShowRoutines = flags.ShowRoutines;
+            var flags = _loaded = await Gym.FeatureFlagsGETAsync();
             _flagsModel.ShowClasses = flags.ShowClasses;
             _flagsModel.ShowProgress = flags.ShowProgress;
             _flagsModel.ShowGamification = flags.ShowGamification;
             _flagsModel.ShowCommunity = flags.ShowCommunity;
             _flagsModel.CheckinQr = flags.CheckinQr;
-            _flagsModel.MembersCanCreateRoutines = flags.MembersCanCreateRoutines;
-            _flagsModel.MembersCanReportEquipment = flags.MembersCanReportEquipment;
             _flagsModel.ShowRanking = flags.ShowRanking;
         }
         catch (GsmApiException ex)
@@ -100,16 +89,17 @@ else
         _savingFlags = true;
         try
         {
+            // Rutinas y fallas de máquinas se editan en sus secciones: aquí se conservan tal como están.
             await Gym.FeatureFlagsPUTAsync(new UpdateFeatureFlagsRequest
             {
-                ShowRoutines = _flagsModel.ShowRoutines,
+                ShowRoutines = _loaded?.ShowRoutines ?? true,
                 ShowClasses = _flagsModel.ShowClasses,
                 ShowProgress = _flagsModel.ShowProgress,
                 ShowGamification = _flagsModel.ShowGamification,
                 ShowCommunity = _flagsModel.ShowCommunity,
                 CheckinQr = _flagsModel.CheckinQr,
-                MembersCanCreateRoutines = _flagsModel.MembersCanCreateRoutines,
-                MembersCanReportEquipment = _flagsModel.MembersCanReportEquipment,
+                MembersCanCreateRoutines = _loaded?.MembersCanCreateRoutines ?? false,
+                MembersCanReportEquipment = _loaded?.MembersCanReportEquipment ?? false,
                 ShowRanking = _flagsModel.ShowRanking,
             });
             await Session.BootstrapAsync();
@@ -141,14 +131,11 @@ else
 
     private sealed class FlagsModel
     {
-        public bool ShowRoutines { get; set; }
         public bool ShowClasses { get; set; }
         public bool ShowProgress { get; set; }
         public bool ShowGamification { get; set; }
         public bool ShowCommunity { get; set; }
         public bool CheckinQr { get; set; }
-        public bool MembersCanCreateRoutines { get; set; }
-        public bool MembersCanReportEquipment { get; set; }
         public bool ShowRanking { get; set; } = true;
     }
 }

@@ -1,0 +1,78 @@
+@* Sección "Membresías" de la configuración (Gyms §7, Memberships MS2): matrícula, días de gracia y días de "por vencer".
+   Viven en memberships.membership_settings. Solo Owner. *@
+@inject IMembershipSettingsClient MembershipSettings
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <div class="gsm-membership-settings">
+        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_enrollmentFee"
+                         Label="Matrícula (COP)" Min="0" id="enrollment-fee"
+                         HelperText="Se suma a la primera membresía de un miembro nuevo. 0 = el gym no cobra matrícula. Recepción puede exonerarla con motivo."
+                         Class="mb-4" Style="max-width:420px" />
+        <MudNumericField T="int" @bind-Value="_graceDays" Label="Días de gracia" Min="0" Max="30" id="grace-days"
+                         HelperText="Días después de vencer la membresía en que el miembro aún entra, con letrero. Pasado ese plazo se rechaza y el gym recibe la alerta; recepción puede dejarlo pasar con motivo."
+                         Class="mb-4" Style="max-width:420px" />
+        <MudNumericField T="int" @bind-Value="_expiringDays" Label="Días para 'por vencer'" Min="1" Max="60" id="expiring-days"
+                         HelperText="Con estos días o menos para vencer, el miembro figura 'por vencer' y ve un letrero al entrar."
+                         Class="mb-4" Style="max-width:420px" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving" id="membership-settings-save">
+            @(_saving ? "Guardando..." : "Guardar cambios")
+        </MudButton>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private int _graceDays = 3;
+    private int _expiringDays = 7;
+    private decimal _enrollmentFee;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Apply(await MembershipSettings.MembershipSettingsGETAsync());
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Apply(MembershipSettingsResponse settings)
+    {
+        _graceDays = settings.GraceDays;
+        _expiringDays = settings.ExpiringDays;
+        _enrollmentFee = (decimal)settings.EnrollmentFee;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            Apply(await MembershipSettings.MembershipSettingsPUTAsync(
+                new UpdateMembershipSettingsRequest { GraceDays = _graceDays, ExpiringDays = _expiringDays, EnrollmentFee = (double)_enrollmentFee }));
+            Snackbar.Add("Ajustes de membresías guardados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

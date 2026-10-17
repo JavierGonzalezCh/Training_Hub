@@ -1,6 +1,8 @@
 using System.Reflection;
 using Bunit;
 using GSM.Client.Generated;
+using GSM.Client.Http;
+using GSM.UI.Shared.Auth;
 using GSM.Panel.UI.Navigation.Modules;
 using GSM.Panel.UI.Pages.RoutineReview;
 using GSM.Panel.UI.Pages.Settings;
@@ -44,6 +46,23 @@ public class RoutineReviewUiTests : TestContext
         Assert.Contains(module.SettingsSections, s => s.Component == typeof(RoutineSettingsTab));
     }
 
+    private FakeClient RegisterGymAndSession(GymFeatureFlagsResponse flags)
+    {
+        var (gym, gymFake) = Fake<IGymClient>();
+        gymFake.Handlers["FeatureFlagsGETAsync"] = _ => flags;
+        gymFake.Handlers["FeatureFlagsPUTAsync"] = _ => flags;
+        Services.AddSingleton(gym);
+        var (auth, authFake) = Fake<IAuthClient>();
+        authFake.Handlers["MeAsync"] = _ => new MeResponse();
+        Services.AddSingleton(auth);
+        var store = new InMemoryTokenStore();
+        Services.AddSingleton<ITokenStore>(store);
+        Services.AddSingleton(new GsmAuthenticationStateProvider(store));
+        Services.AddSingleton<GymContext>();
+        Services.AddSingleton<SessionService>();
+        return gymFake;
+    }
+
     [Fact]
     public void The_settings_tab_shows_the_saved_weeks_and_saves_the_edited_value()
     {
@@ -54,6 +73,7 @@ public class RoutineReviewUiTests : TestContext
         fake.Handlers["UpdateRoutineSettingsAsync"] = args =>
             new RoutineSettingsResponse { ReviewWeeks = ((UpdateRoutineSettingsRequest)args[0]!).ReviewWeeks };
         Services.AddSingleton(client);
+        var gymFake = RegisterGymAndSession(new GymFeatureFlagsResponse { ShowRoutines = true, MembersCanCreateRoutines = false });
         RenderComponent<MudPopoverProvider>();
 
         var tab = RenderComponent<RoutineSettingsTab>();
@@ -67,6 +87,63 @@ public class RoutineReviewUiTests : TestContext
         {
             var put = Assert.Single(fake.Calls, c => c.Method == "UpdateRoutineSettingsAsync");
             Assert.Equal(4, Assert.IsType<UpdateRoutineSettingsRequest>(put.Args[0]).ReviewWeeks);
+        });
+        // Los flags no cambiaron: no se toca el PUT de módulos.
+        Assert.DoesNotContain(gymFake.Calls, c => c.Method == "FeatureFlagsPUTAsync");
+    }
+
+    [Fact]
+    public void The_settings_tab_owns_the_routine_flags_and_keeps_the_other_ones()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var (client, fake) = Fake<IRoutineSettingsClient>();
+        fake.Handlers["GetRoutineSettingsAsync"] = _ => new RoutineSettingsResponse { ReviewWeeks = 6 };
+        fake.Handlers["UpdateRoutineSettingsAsync"] = _ => new RoutineSettingsResponse { ReviewWeeks = 6 };
+        Services.AddSingleton(client);
+        var gymFake = RegisterGymAndSession(new GymFeatureFlagsResponse
+        {
+            ShowRoutines = true, MembersCanCreateRoutines = false, ShowClasses = true, MembersCanReportEquipment = true,
+        });
+        RenderComponent<MudPopoverProvider>();
+
+        var tab = RenderComponent<RoutineSettingsTab>();
+
+        tab.WaitForAssertion(() => Assert.NotEmpty(tab.FindAll("[data-testid='members-can-create-routines']")));
+        tab.Find("[data-testid='members-can-create-routines']").Change(true);
+        tab.Find("#routine-settings-save").Click();
+
+        tab.WaitForAssertion(() =>
+        {
+            var put = Assert.Single(gymFake.Calls, c => c.Method == "FeatureFlagsPUTAsync");
+            var request = Assert.IsType<UpdateFeatureFlagsRequest>(put.Args[0]);
+            Assert.True(request.MembersCanCreateRoutines);
+            Assert.True(request.ShowRoutines);
+            Assert.True(request.ShowClasses);
+            Assert.True(request.MembersCanReportEquipment);
+        });
+    }
+
+    [Fact]
+    public void The_equipment_tab_owns_the_report_flag()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var gymFake = RegisterGymAndSession(new GymFeatureFlagsResponse { ShowRoutines = true, MembersCanReportEquipment = false });
+        RenderComponent<MudPopoverProvider>();
+
+        var tab = RenderComponent<EquipmentSettingsTab>();
+
+        tab.WaitForAssertion(() => Assert.NotEmpty(tab.FindAll("[data-testid='members-can-report-equipment']")));
+        tab.Find("[data-testid='members-can-report-equipment']").Change(true);
+        tab.Find("#equipment-settings-save").Click();
+
+        tab.WaitForAssertion(() =>
+        {
+            var put = Assert.Single(gymFake.Calls, c => c.Method == "FeatureFlagsPUTAsync");
+            var request = Assert.IsType<UpdateFeatureFlagsRequest>(put.Args[0]);
+            Assert.True(request.MembersCanReportEquipment);
+            Assert.True(request.ShowRoutines);
         });
     }
 

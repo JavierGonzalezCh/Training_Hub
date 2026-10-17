@@ -176,6 +176,7 @@ public class EntryRuleUiTests : TestContext
         var whatsApp = DispatchProxy.Create<IWhatsAppClient, FakeClient>();
         ((FakeClient)(object)whatsApp).Handlers["StatesAsync"] = _ => new List<WhatsAppMemberStateResponse>();
         Services.AddSingleton(whatsApp);
+        Services.AddSingleton(CommercialStatusUiTests.Fake<GSM.Client.Generated.ICashShiftsClient>().Client); // P3-4: recepción muestra la barra de caja
 
         this.AddTestAuthorization().SetAuthorized("staff");
         RenderComponent<MudPopoverProvider>();

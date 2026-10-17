@@ -203,6 +203,15 @@ public sealed class AttendanceController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, outcome.Entry);
     }
 
+    /// <summary>Código fijo vigente para imprimir el cartel. Solo Owner. 409 si el gym no está en modo de cartel fijo; 403 si el check-in con QR está apagado.</summary>
+    [HttpGet("static-code")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [EndpointName("GetStaticCode")]
+    [ProducesResponseType<KioskCodeResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<KioskCodeResponse>> GetStaticCode(
+        [FromServices] GetStaticCodeHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     /// <summary>Invalida el cartel impreso actual. Solo en modo fijo (409 en rotativo).</summary>
     [HttpPost("kiosk-code/regenerate")]
     [Authorize(Policy = AuthPolicies.RequireOwner)]

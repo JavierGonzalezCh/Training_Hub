@@ -76,6 +76,29 @@ public sealed class GetKioskCodeHandler(
     }
 }
 
+/// <summary>El código fijo vigente para que el Owner imprima el cartel (A3-1). Solo en modo cartel impreso.</summary>
+public sealed class GetStaticCodeHandler(
+    ICurrentUserService currentUser,
+    IClock clock,
+    IGymReader gyms,
+    ICheckinSettingsRepository settings,
+    ICheckinCodeSigner signer)
+{
+    public async Task<KioskCodeResponse> HandleAsync(CancellationToken cancellationToken)
+    {
+        var gymId = currentUser.RequireGymId();
+        await KioskCode.EnsureEnabledAsync(gyms, gymId, cancellationToken);
+
+        var current = await settings.GetAsync(gymId, cancellationToken);
+        if (current is null || current.Mode != CheckinMode.Static)
+        {
+            throw new ConflictException("El cartel impreso solo existe en el modo de cartel fijo.");
+        }
+
+        return KioskCode.Build(signer, clock, gymId, current);
+    }
+}
+
 public sealed class RegenerateStaticCodeHandler(
     ICurrentUserService currentUser,
     IClock clock,

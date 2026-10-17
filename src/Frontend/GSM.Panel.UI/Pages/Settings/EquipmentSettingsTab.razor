@@ -1,0 +1,74 @@
+@* Sección "Equipos" de la configuración (Gyms §7): quién puede reportar fallas de máquinas. Solo Owner. *@
+@inject IGymClient Gym
+@inject SessionService Session
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <div class="gsm-equipment-settings">
+        <MudSwitch T="bool" @bind-Value="_membersCanReport" Color="Color.Primary" data-testid="members-can-report-equipment"
+                   Label="Los miembros pueden reportar fallas de máquinas" Class="mb-1" />
+        <p class="gsm-choice__hint mb-4">
+            Los miembros avisan desde la app cuando una máquina falla. Si lo apagas, solo el equipo reporta.
+        </p>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving" id="equipment-settings-save">
+            @(_saving ? "Guardando..." : "Guardar cambios")
+        </MudButton>
+    </div>
+}
+
+@code {
+    private GymFeatureFlagsResponse? _flags;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _membersCanReport;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _flags = await Gym.FeatureFlagsGETAsync();
+            _membersCanReport = _flags.MembersCanReportEquipment;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_flags is null)
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var request = FeatureFlagsRequests.From(_flags);
+            request.MembersCanReportEquipment = _membersCanReport;
+            await Gym.FeatureFlagsPUTAsync(request);
+            _flags.MembersCanReportEquipment = _membersCanReport;
+            await Session.BootstrapAsync();
+            Snackbar.Add("Ajustes de equipos guardados.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

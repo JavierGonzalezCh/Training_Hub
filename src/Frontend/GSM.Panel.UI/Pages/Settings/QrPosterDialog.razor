@@ -1,0 +1,44 @@
+@* Cartel para imprimir con el QR fijo del gym (Attendance A3-1). En pantalla se ve el cartel; al imprimir, la regla
+   @media print de gsm.css (.gsm-poster) deja visible solo el cartel. *@
+@inject NavigationManager Navigation
+@inject GymContext GymContext
+@inject IJSRuntime JS
+
+<MudDialog>
+    <DialogContent>
+        <div class="gsm-poster-preview" data-testid="qr-poster-preview"
+             style="display:flex;flex-direction:column;align-items:center;gap:1rem;text-align:center;padding:1rem 0">
+            <div style="font-size:1.75rem;font-weight:700" data-testid="qr-poster-gym">@GymName</div>
+            <QrCodeSvg Value="@Link" SizePx="360" />
+            <div style="font-size:1.25rem">Escanea para registrar tu entrada</div>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Usa la cámara de tu teléfono o la app del gimnasio.</MudText>
+        </div>
+
+        @* Lo único que se ve al imprimir. *@
+        <div class="gsm-poster" style="position:fixed" aria-hidden="true">
+            <div class="gsm-poster__gym">@GymName</div>
+            <QrCodeSvg Value="@Link" SizePx="520" />
+            <div class="gsm-poster__text">Escanea para registrar tu entrada</div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())" data-testid="qr-poster-close">Cerrar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Outlined.Print"
+                   OnClick="PrintAsync" data-testid="qr-poster-print">Imprimir</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>El código fijo vigente del gym.</summary>
+    [Parameter, EditorRequired]
+    public string Code { get; set; } = string.Empty;
+
+    private string GymName => GymContext.Gym?.Name ?? "Tu gimnasio";
+
+    private string Link => $"{Navigation.BaseUri}app/checkin?t={Uri.EscapeDataString(Code)}";
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("window.print");
+}

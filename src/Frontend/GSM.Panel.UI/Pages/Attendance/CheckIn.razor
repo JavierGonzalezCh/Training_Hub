@@ -1,6 +1,7 @@
 @page "/attendance/checkin"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Members
+@using GSM.Panel.UI.Pages.Payments
 @inject IAttendanceClient Attendance
 @inject IMembersClient Members
 @inject IDialogService Dialogs
@@ -12,6 +13,9 @@
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
     Busca al miembro por nombre o documento, revisa su tarjeta y registra la entrada. Los miembros entran solos escaneando el QR del kiosco.
 </MudText>
+
+@* P3-4: la misma barra de la caja que en Pagos, para cobrar sin salir de recepción. *@
+<CashDrawerBar />
 
 <RequireRole Roles="@GsmRoles.Owner">
     <MudButton Variant="Variant.Outlined" Href="/settings" StartIcon="@Icons.Material.Outlined.QrCode2" Class="mb-6">Configurar kiosco</MudButton>

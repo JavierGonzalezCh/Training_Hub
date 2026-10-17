@@ -1,7 +1,6 @@
-@* Pestaña "Check-in" de la configuración: tipo de QR del gym, días de gracia y regeneración del
-   cartel impreso. Solo Owner. Ver docs/CHECKIN-QR-BUILD-PLAN.md. *@
+@* Pestaña "Check-in" de la configuración: tipo de QR del gym, documento en el kiosco, permanencia asumida y cartel impreso.
+   La gracia, "por vencer" y la matrícula están en la sección Membresías. Solo Owner. Ver docs/CHECKIN-QR-BUILD-PLAN.md. *@
 @inject IAttendanceClient Attendance
-@inject IMembershipSettingsClient MembershipSettings
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
@@ -40,20 +39,9 @@ else
             y solo vale una entrada por día. Apagada por defecto.
         </p>
 
-        <MudNumericField T="int" @bind-Value="_graceDays" Label="Días de gracia" Min="0" Max="30"
-                         HelperText="Días después de vencer la membresía en que el miembro aún entra, con letrero. Pasado ese plazo se rechaza y el gym recibe la alerta; recepción puede dejarlo pasar con motivo."
-                         Class="mb-4" Style="max-width:420px" />
         <MudNumericField T="int" @bind-Value="_stayMinutes" Label="Permanencia asumida (minutos)" Min="15" Max="480"
                          HelperText="Para saber cuánta gente hay en el gimnasio se asume que cada persona se queda este tiempo tras entrar, porque no se registra la salida. Es una estimación; se compara con el aforo del gimnasio."
                          Class="mb-4" Style="max-width:420px" data-testid="assumed-stay" />
-        <MudNumericField T="int" @bind-Value="_expiringDays" Label="Días para 'por vencer'" Min="1" Max="60"
-                         HelperText="Con estos días o menos para vencer, el miembro figura 'por vencer' y ve un letrero al entrar."
-                         Class="mb-4" Style="max-width:420px" />
-        <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_enrollmentFee"
-                         Label="Matrícula (COP)" Min="0" id="enrollment-fee"
-                         HelperText="Se suma a la primera membresía de un miembro nuevo. 0 = el gym no cobra matrícula. Recepción puede exonerarla con motivo."
-                         Class="mb-4" Style="max-width:420px" />
-
         <div class="d-flex flex-wrap" style="gap:0.75rem">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
                 @(_saving ? "Guardando..." : "Guardar cambios")
@@ -61,6 +49,10 @@ else
             <MudButton Variant="Variant.Outlined" Href="/settings" StartIcon="@Icons.Material.Outlined.QrCode2">Configurar kiosco</MudButton>
             @if (_savedMode == Static)
             {
+                <MudButton Variant="Variant.Outlined" OnClick="ShowPosterAsync" Disabled="_loadingPoster"
+                           StartIcon="@Icons.Material.Outlined.Print" data-testid="show-qr-poster">
+                    Ver cartel para imprimir
+                </MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="RegenerateAsync" Disabled="_regenerating"
                            StartIcon="@Icons.Material.Outlined.Refresh">
                     Regenerar código
@@ -81,9 +73,7 @@ else
     private string _savedMode = Rotating;
     private bool _byDocument;
     private int _stayMinutes = 120;
-    private int _graceDays = 3;
-    private int _expiringDays = 7;
-    private decimal _enrollmentFee;
+    private bool _loadingPoster;
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,10 +83,6 @@ else
             _mode = _savedMode = settings.Mode;
             _byDocument = settings.ByDocument;
             _stayMinutes = settings.AssumedStayMinutes;
-            var membership = await MembershipSettings.MembershipSettingsGETAsync();
-            _graceDays = membership.GraceDays;
-            _expiringDays = membership.ExpiringDays;
-            _enrollmentFee = (decimal)membership.EnrollmentFee;
         }
         catch (GsmApiException ex)
         {
@@ -113,16 +99,10 @@ else
         _saving = true;
         try
         {
-            // La gracia ya no es de Attendance: vive en los ajustes de membresías (dos llamadas, cada una a su módulo).
             var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode, ByDocument = _byDocument, AssumedStayMinutes = _stayMinutes });
-            var membership = await MembershipSettings.MembershipSettingsPUTAsync(
-                new UpdateMembershipSettingsRequest { GraceDays = _graceDays, ExpiringDays = _expiringDays, EnrollmentFee = (double)_enrollmentFee });
             _mode = _savedMode = saved.Mode;
             _byDocument = saved.ByDocument;
             _stayMinutes = saved.AssumedStayMinutes;
-            _graceDays = membership.GraceDays;
-            _expiringDays = membership.ExpiringDays;
-            _enrollmentFee = (decimal)membership.EnrollmentFee;
             Snackbar.Add("Ajustes de check-in guardados.", Severity.Success);
         }
         catch (GsmApiException ex)
@@ -132,6 +112,26 @@ else
         finally
         {
             _saving = false;
+        }
+    }
+
+    // A3-1: el cartel con el QR fijo vigente, listo para imprimir. Solo existe en modo de cartel fijo.
+    private async Task ShowPosterAsync()
+    {
+        _loadingPoster = true;
+        try
+        {
+            var code = await Attendance.GetStaticCodeAsync();
+            var parameters = new DialogParameters<QrPosterDialog> { { x => x.Code, code.Code } };
+            await Dialogs.ShowAsync<QrPosterDialog>("Cartel del QR", parameters, new DialogOptions { FullScreen = true, CloseButton = true });
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loadingPoster = false;
         }
     }
 
@@ -150,7 +150,7 @@ else
         try
         {
             await Attendance.RegenerateAsync();
-            Snackbar.Add("Código regenerado. Imprime el cartel nuevo desde el kiosco.", Severity.Success);
+            Snackbar.Add("Código regenerado. Imprime el cartel nuevo con "Ver cartel para imprimir".", Severity.Success);
         }
         catch (GsmApiException ex)
         {
