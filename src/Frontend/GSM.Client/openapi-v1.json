@@ -5993,6 +5993,36 @@
         }
       }
     },
+    "/api/attendance/kiosk/branding": {
+      "get": {
+        "tags": [
+          "Attendance"
+        ],
+        "operationId": "KioskBranding",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGymBrandingResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGymBrandingResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGymBrandingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/attendance/kiosk/document-entry": {
       "post": {
         "tags": [
@@ -6096,6 +6126,36 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/static-code": {
+      "get": {
+        "tags": [
+          "Attendance"
+        ],
+        "operationId": "GetStaticCode",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KioskCodeResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KioskCodeResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KioskCodeResponse"
                 }
               }
             }

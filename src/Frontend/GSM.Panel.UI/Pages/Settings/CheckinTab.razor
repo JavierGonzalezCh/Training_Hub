@@ -150,7 +150,7 @@ else
         try
         {
             await Attendance.RegenerateAsync();
-            Snackbar.Add("Código regenerado. Imprime el cartel nuevo con "Ver cartel para imprimir".", Severity.Success);
+            Snackbar.Add("Código regenerado. Imprime el cartel nuevo con «Ver cartel para imprimir».", Severity.Success);
         }
         catch (GsmApiException ex)
         {

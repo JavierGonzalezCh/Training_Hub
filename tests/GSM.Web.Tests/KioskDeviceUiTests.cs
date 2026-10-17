@@ -82,6 +82,8 @@ public class KioskDeviceUiTests : TestContext
                 ? throw new GsmApiException("404", 404, "{}", new Dictionary<string, IEnumerable<string>>(), null)
                 : Task.FromResult(Branding);
 
+        public Task<KioskCodeResponse> GetStaticCodeAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<KioskCodeResponse> KioskCodeAsync(CancellationToken cancellationToken = default)
         {
             Calls++;
