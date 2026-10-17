@@ -411,6 +411,38 @@ public sealed class ExerciseAlternativesTests(ApiFactory factory) : IClassFixtur
     }
 
     [Fact]
+    public async Task Staff_sees_the_recent_substitutions_of_a_member_and_not_the_exercises_done_as_planned()
+    {
+        var w = await SeedAsync();
+        var ids = new List<Guid>();
+        try
+        {
+            var planned = await CreateAsync(w, "Planeado", Muscle.Neck, []);
+            var other = await CreateAsync(w, "Otro", Muscle.Neck, []);
+            var kept = await CreateAsync(w, "Tal cual", Muscle.Neck, []);
+            ids.AddRange([planned, other, kept]);
+            var (_, lineId, _) = await AssignAsync(w, planned);
+            var (_, keptLineId, _) = await AssignAsync(w, kept);
+
+            await LogAsync(w, keptLineId, new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", 10, 20m, null, null, null)]));
+            await LogAsync(w, lineId, new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", 12, 30m, null, null, null)], other));
+
+            using var scope = Staff(w);
+            var handler = scope.ServiceProvider.GetRequiredService<GetMemberSubstitutionsHandler>();
+            var item = Assert.Single(await handler.HandleAsync(w.MemberId, default));
+            Assert.Equal(Day, item.PerformedOn);
+            Assert.Equal("Planeado " + w.Suffix, item.PlannedExerciseName);
+            Assert.Equal("Otro " + w.Suffix, item.PerformedExerciseName);
+
+            await Assert.ThrowsAsync<NotFoundException>(() => handler.HandleAsync(Guid.NewGuid(), default));
+        }
+        finally
+        {
+            await CleanupAsync(w, ids);
+        }
+    }
+
+    [Fact]
     public async Task A_replacement_outside_the_alternatives_list_is_rejected_and_nothing_is_logged()
     {
         var w = await SeedAsync();

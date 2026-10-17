@@ -94,6 +94,15 @@ public sealed class MemberRoutinesController : ControllerBase
         [FromServices] GetMemberExerciseProgressHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(memberId, exerciseId, cancellationToken));
 
+    /// <summary>Sustituciones recientes (R5-4): los días en que el miembro hizo otro ejercicio "en lugar de" el planeado.</summary>
+    [HttpGet("substitutions")]
+    [EndpointName("GetMemberSubstitutions")]
+    [ProducesResponseType<IReadOnlyList<ExerciseSubstitutionItem>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<ExerciseSubstitutionItem>>> Substitutions(
+        Guid memberId, [FromServices] GetMemberSubstitutionsHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(memberId, cancellationToken));
+
     [HttpPost]
     [ProducesResponseType<RoutineResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

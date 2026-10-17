@@ -35,14 +35,20 @@ public sealed class AchievementReader(
     public async Task<IReadOnlyList<MemberAchievementView>> GetForMemberAsync(
         Guid memberId, Guid gymId, CancellationToken cancellationToken = default)
     {
-        var achievements = await dbContext.Set<Achievement>()
-            .Where(a => a.GymId == gymId && a.IsActive)
-            .OrderBy(a => a.ConditionType).ThenBy(a => a.ConditionValue)
-            .ToListAsync(cancellationToken);
-
         var unlocked = await dbContext.Set<MemberAchievement>()
             .Where(u => u.MemberId == memberId && u.RevokedAt == null)
             .ToDictionaryAsync(u => u.AchievementId, cancellationToken);
+
+        // L5-3: un logro desactivado deja de verse, salvo el que el miembro ganó y aún tiene un premio por reclamar.
+        var withPendingReward = unlocked.Values
+            .Where(u => u.RewardStatus == RewardStatus.Pending)
+            .Select(u => u.AchievementId)
+            .ToList();
+
+        var achievements = await dbContext.Set<Achievement>()
+            .Where(a => a.GymId == gymId && (a.IsActive || withPendingReward.Contains(a.Id)))
+            .OrderBy(a => a.ConditionType).ThenBy(a => a.ConditionValue)
+            .ToListAsync(cancellationToken);
         var now = clock.UtcNow;
 
         var (visits, streak, sessions, classAttendance, tenure, referrals, records, volume) = await AchievementMetrics.ComputeAsync(

@@ -91,6 +91,32 @@ public class ProgressUiTests : TestContext
     }
 
     [Fact]
+    public void Substitutions_list_shows_the_date_the_planned_and_the_performed_exercise()
+    {
+        var planned = Guid.NewGuid();
+        var cut = RenderComponent<SubstitutionsList>(p => p.Add(x => x.Load, () => Task.FromResult<ICollection<ExerciseSubstitutionItem>>(
+        [
+            new ExerciseSubstitutionItem
+            {
+                PerformedOn = new DateOnly(2026, 6, 8), PlannedExerciseId = planned, PlannedExerciseName = "Press de banca",
+                PerformedExerciseId = Guid.NewGuid(), PerformedExerciseName = "Press con mancuernas",
+            },
+        ])));
+
+        var row = cut.Find($"[data-testid='substitution-2026-06-08-{planned}']").TextContent;
+        Assert.Contains("Press con mancuernas", row);
+        Assert.Contains("en lugar de Press de banca", row);
+    }
+
+    [Fact]
+    public void Substitutions_list_says_so_when_there_are_none()
+    {
+        var cut = RenderComponent<SubstitutionsList>(p => p.Add(x => x.Load, () => Task.FromResult<ICollection<ExerciseSubstitutionItem>>([])));
+
+        Assert.Contains("Sin sustituciones", cut.Find("[data-testid='substitutions-empty']").TextContent);
+    }
+
+    [Fact]
     public void Labels_format_values_by_unit_and_pick_the_measure_the_exercise_tracks()
     {
         Assert.Equal("85 kg", ProgressLabels.FormatValue(85, "kg"));

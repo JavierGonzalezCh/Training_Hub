@@ -47,3 +47,14 @@ public sealed record ExerciseProgressResponse(
     int Sessions,
     IReadOnlyList<ProgressPoint> Points,
     IReadOnlyList<PersonalRecordItem> Records);
+
+/// <summary>
+/// Un día en que el miembro hizo un ejercicio alternativo "en lugar de" el planeado (R5-4). Lo ve el staff en el
+/// progreso del miembro.
+/// </summary>
+public sealed record ExerciseSubstitutionItem(
+    DateOnly PerformedOn,
+    Guid PlannedExerciseId,
+    string PlannedExerciseName,
+    Guid PerformedExerciseId,
+    string PerformedExerciseName);

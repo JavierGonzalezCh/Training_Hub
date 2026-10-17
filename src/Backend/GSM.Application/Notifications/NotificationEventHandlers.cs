@@ -99,7 +99,8 @@ public sealed class AchievementUnlockedCreatesNotice(
                 new MemberNotice(
                     domainEvent.GymId, domainEvent.MemberId, NotificationType.AchievementUnlocked,
                     NotificationCategory.Progress, domainEvent.MemberAchievementId,
-                    $"Desbloqueaste «{name}»", "Ya aparece en tus logros.", "/app/logros"),
+                    domainEvent.IsManual ? $"Te otorgaron «{name}»" : $"Desbloqueaste «{name}»",
+                    "Ya aparece en tus logros.", "/app/logros"),
                 sendEmail: false, cancellationToken))
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);

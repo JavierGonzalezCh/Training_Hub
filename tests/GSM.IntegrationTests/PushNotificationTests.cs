@@ -138,6 +138,29 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
     }
 
     [Fact]
+    public async Task The_reward_expiring_notice_also_goes_out_as_push_and_respects_the_progress_preference()
+    {
+        var world = await SeedAsync(1);
+        var person = world.Members[0];
+        var token = NewToken();
+        await RegisterAsync(world.GymId, person.UserId, token, "web_member");
+        var push = factory.Services.GetRequiredService<CapturingPushSender>();
+        var noon = AtLocal(Today, 12);
+
+        await NotifyAsync(world.GymId, person.Id, NotificationType.RewardExpiring, NotificationCategory.Progress, "Tu premio vence el 15 oct");
+        await RunDispatcherAtAsync(noon, Today, world.GymId);
+
+        Assert.Equal("Tu premio vence el 15 oct", Assert.Single(push.SentTo(token)).Title);
+
+        await SetPushAsync(world.GymId, person.UserId, "Progress", push: false);
+        await NotifyAsync(world.GymId, person.Id, NotificationType.RewardExpiring, NotificationCategory.Progress, "Tu premio vence el 20 oct");
+        await RunDispatcherAtAsync(noon, Today, world.GymId);
+
+        Assert.Single(push.SentTo(token));
+        Assert.Equal(2, await CountNoticesAsync(person.Id, NotificationType.RewardExpiring));
+    }
+
+    [Fact]
     public async Task A_token_the_provider_rejects_revokes_the_device_and_a_member_without_devices_gets_no_push()
     {
         var world = await SeedAsync(2);

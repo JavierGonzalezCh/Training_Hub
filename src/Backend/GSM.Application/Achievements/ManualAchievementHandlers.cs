@@ -83,7 +83,7 @@ public sealed class GrantManualAchievementHandler(
             "Logro manual {AchievementId} otorgado al miembro {MemberId} por {StaffId}", achievementId, member.Id, staffId);
 
         await events.PublishAsync(
-            new AchievementUnlockedEvent(row.Id, member.Id, gymId, achievementId), cancellationToken);
+            new AchievementUnlockedEvent(row.Id, member.Id, gymId, achievementId, IsManual: true), cancellationToken);
 
         return new MemberAchievementItem(
             achievement.Id, achievement.Name, achievement.Description, achievement.IconUrl,
