@@ -413,13 +413,14 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
         using (var scope = Scope(world.GymId, asking, UserRole.Staff))
         {
             var defaults = await scope.ServiceProvider.GetRequiredService<GetMyStaffPushPreferencesHandler>().HandleAsync(default);
-            var item = Assert.Single(defaults.Items);
-            Assert.Equal("CheckinRejected", item.Type);
+            var item = Assert.Single(defaults.Items, i => i.Type == "CheckinRejected");
             Assert.False(item.Push);
+            // N5-4: el recordatorio de clase al instructor también se configura, y empieza encendido.
+            Assert.True(Assert.Single(defaults.Items, i => i.Type == "InstructorClassReminder").Push);
 
             var updated = await scope.ServiceProvider.GetRequiredService<UpdateMyStaffPushPreferencesHandler>().HandleAsync(
                 new UpdateStaffPushPreferencesRequest([new StaffPushPreferenceUpdate("CheckinRejected", true)]), default);
-            Assert.True(updated.Items[0].Push);
+            Assert.True(updated.Items.Single(i => i.Type == "CheckinRejected").Push);
         }
 
         using (var scope = System())
@@ -435,6 +436,42 @@ public sealed class PushNotificationTests(ApiFactory factory) : IClassFixture<Ap
 
         Assert.Single(push.SentTo(askingToken));
         Assert.Empty(push.SentTo(silentToken));
+    }
+
+    [Fact]
+    public async Task The_instructor_can_turn_off_the_class_reminder_push_and_it_still_reaches_the_bell()
+    {
+        var world = await SeedAsync(0);
+        var instructor = Guid.CreateVersion7();
+        var other = Guid.CreateVersion7();
+        var instructorToken = NewToken();
+        var otherToken = NewToken();
+        await RegisterStaffAsync(world.GymId, instructor, instructorToken);
+        await RegisterStaffAsync(world.GymId, other, otherToken);
+
+        using (var scope = Scope(world.GymId, instructor, UserRole.Staff))
+        {
+            await scope.ServiceProvider.GetRequiredService<UpdateMyStaffPushPreferencesHandler>().HandleAsync(
+                new UpdateStaffPushPreferencesRequest([new StaffPushPreferenceUpdate("InstructorClassReminder", false)]), default);
+        }
+
+        using (var scope = System())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+            db.Add(Notification.CreateForUser(
+                world.GymId, instructor, NotificationType.InstructorClassReminder, Guid.CreateVersion7(),
+                "Yoga empieza en 10 minutos", "Das la clase hoy.", "/classes/mine", AtLocal(Today, 12)));
+            db.Add(Notification.CreateForUser(
+                world.GymId, other, NotificationType.InstructorClassReminder, Guid.CreateVersion7(),
+                "Spinning empieza en 10 minutos", "Das la clase hoy.", "/classes/mine", AtLocal(Today, 12)));
+            await db.SaveChangesAsync();
+        }
+
+        var push = factory.Services.GetRequiredService<CapturingPushSender>();
+        await RunDispatcherAtAsync(AtLocal(Today, 12), Today, world.GymId);
+
+        Assert.Empty(push.SentTo(instructorToken));
+        Assert.Single(push.SentTo(otherToken));
     }
 
     // ---------- helpers ----------

@@ -11,7 +11,8 @@ namespace GSM.Domain.Notifications;
 public sealed class StaffNotificationPreference : BaseEntity, ITenantEntity
 {
     /// <summary>Tipos de aviso al staff que se pueden configurar, en el orden en que se muestran.</summary>
-    public static readonly IReadOnlyList<NotificationType> Configurable = [NotificationType.CheckinRejected];
+    public static readonly IReadOnlyList<NotificationType> Configurable =
+        [NotificationType.CheckinRejected, NotificationType.InstructorClassReminder];
 
     private StaffNotificationPreference()
     {
@@ -29,6 +30,7 @@ public sealed class StaffNotificationPreference : BaseEntity, ITenantEntity
 
     /// <summary>
     /// Por defecto (§8): encendido, salvo el intento de entrada rechazado ("puede haber muchos al día").
+    /// El recordatorio de clase al instructor (N5-4) empieza encendido y se puede apagar.
     /// </summary>
     public static bool DefaultPush(NotificationType type) => type != NotificationType.CheckinRejected;
 
