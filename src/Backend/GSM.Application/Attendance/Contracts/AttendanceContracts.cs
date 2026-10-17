@@ -131,8 +131,12 @@ public sealed record OccupancyResponse(int PeopleInside, int? Capacity, int? Per
 /// <summary>Lo que ve el miembro: solo el nivel (<c>calm</c>, <c>moderate</c>, <c>full</c>), sin número. Nulo si el gym no tiene aforo.</summary>
 public sealed record MemberOccupancyResponse(string? Level);
 
-/// <summary>Código vigente del gym. <c>ExpiresAtUtc</c> solo en modo rotativo. <c>ByDocument</c>: el kiosco muestra el teclado del documento.</summary>
-public sealed record KioskCodeResponse(string Mode, string Code, DateTimeOffset? ExpiresAtUtc, bool ByDocument);
+/// <summary>
+/// Código vigente del gym. <c>ExpiresAtUtc</c> solo en modo rotativo. <c>ByDocument</c>: el kiosco muestra el teclado del
+/// documento. <c>QrDisabled</c> (A4-2): el check-in con QR está apagado y solo queda el documento; <c>Code</c> viene vacío
+/// y el kiosco no dibuja el QR.
+/// </summary>
+public sealed record KioskCodeResponse(string Mode, string Code, DateTimeOffset? ExpiresAtUtc, bool ByDocument, bool QrDisabled);
 
 /// <summary>Documento digitado en el teclado numérico del kiosco (solo dígitos, 4 a 20).</summary>
 public sealed record KioskDocumentEntryRequest(string Document);

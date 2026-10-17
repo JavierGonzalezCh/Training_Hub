@@ -155,6 +155,22 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Kiosk_code_with_qr_off_but_document_on_is_served_without_the_code()
+    {
+        var gymId = await SeedGymAsync(checkinQr: false);
+
+        using var scope = Owner(gymId);
+        await scope.ServiceProvider.GetRequiredService<UpdateCheckinSettingsHandler>()
+            .HandleAsync(new UpdateCheckinSettingsRequest("Rotating", ByDocument: true), default);
+
+        var r = await scope.ServiceProvider.GetRequiredService<GetKioskCodeHandler>().HandleAsync(default);
+        Assert.True(r.QrDisabled);
+        Assert.True(r.ByDocument);
+        Assert.Equal(string.Empty, r.Code);
+        Assert.Null(r.ExpiresAtUtc);
+    }
+
+    [Fact]
     public async Task Http_validates_the_mode_and_only_the_owner_can_update()
     {
         var gymId = await SeedGymAsync();

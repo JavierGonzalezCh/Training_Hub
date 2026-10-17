@@ -11,6 +11,7 @@ using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Memberships;
+using GSM.Domain.Notifications;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -218,6 +219,57 @@ public sealed class MembershipPassTests(ApiFactory factory) : IClassFixture<ApiF
     }
 
     [Fact]
+    public async Task A_pass_with_two_entries_or_fewer_shows_in_the_expiring_list_even_if_its_date_is_far()
+    {
+        var w = await SeedAsync();
+        await AssignPassAsync(w, entries: 3, validityDays: 60);
+
+        // Con 3 entradas y 60 días de vigencia no está por vencer.
+        using (var s = Scope(w, NoonOf(Today)))
+        {
+            Assert.Empty(await s.ServiceProvider.GetRequiredService<GetExpiringMembershipsHandler>().HandleAsync(7, default));
+            Assert.Equal(0, await s.ServiceProvider.GetRequiredService<IMembershipReader>().GetExpiringCountAsync(w.GymId, 7));
+        }
+
+        // Al gastar una (quedan 2) entra a la lista aunque su fecha esté a ~60 días.
+        await CheckInAsync(w, NoonOf(Today));
+        using (var s = Scope(w, NoonOf(Today.AddDays(1))))
+        {
+            var item = Assert.Single(await s.ServiceProvider.GetRequiredService<GetExpiringMembershipsHandler>().HandleAsync(7, default));
+            Assert.Equal(w.MemberId, item.MemberId);
+            Assert.Equal(1, await s.ServiceProvider.GetRequiredService<IMembershipReader>().GetExpiringCountAsync(w.GymId, 7));
+            var views = await s.ServiceProvider.GetRequiredService<IMembershipReader>().GetExpiringAsync(w.GymId, 7);
+            Assert.Single(views);
+        }
+    }
+
+    [Fact]
+    public async Task Spending_the_last_entry_notifies_the_member_once()
+    {
+        var w = await SeedAsync();
+        await AssignPassAsync(w, entries: 2, validityDays: 30);
+
+        await CheckInAsync(w, NoonOf(Today));
+        Assert.Empty(await PassNoticesAsync(w));
+
+        var last = await CheckInAsync(w, NoonOf(Today.AddDays(1)));
+        Assert.Equal(0, last.EntriesLeft);
+        var notice = Assert.Single(await PassNoticesAsync(w));
+        Assert.Equal(NotificationCategory.Membership, notice.Category);
+        Assert.Contains("última entrada", notice.Title);
+
+        // Reprocesar el mismo evento no duplica el aviso.
+        using (var s = Scope(w, NoonOf(Today.AddDays(1))))
+        {
+            var membershipId = notice.ReferenceId;
+            await s.ServiceProvider.GetRequiredService<IDomainEventPublisher>()
+                .PublishAsync(new GSM.Application.Memberships.Events.PassExhausted(membershipId, w.MemberId, w.GymId), default);
+        }
+
+        Assert.Single(await PassNoticesAsync(w));
+    }
+
+    [Fact]
     public async Task Consuming_is_idempotent_per_attendance_entry()
     {
         var w = await SeedAsync();
@@ -253,6 +305,25 @@ public sealed class MembershipPassTests(ApiFactory factory) : IClassFixture<ApiF
 
         Assert.Equal(3, second.EntriesLeft);
         Assert.Equal(3, await BalanceAsync(w, NoonOf(Today).AddHours(4)));
+    }
+
+    [Fact]
+    public async Task Today_count_is_distinct_people_not_entries()
+    {
+        var w = await SeedAsync();
+        await AssignPassAsync(w, 5, 30);
+        using (var s = Scope(w, NoonOf(Today)))
+        {
+            await s.ServiceProvider.GetRequiredService<SetEntryRuleHandler>()
+                .HandleAsync(w.MemberId, new SetEntryRuleRequest(2, "Doble sesión", null), default);
+        }
+
+        await CheckInAsync(w, NoonOf(Today));
+        await CheckInAsync(w, NoonOf(Today).AddHours(3));
+
+        using var db = Scope(w, NoonOf(Today).AddHours(4));
+        Assert.Equal(1, await db.ServiceProvider.GetRequiredService<GSM.Application.Attendance.Public.IAttendanceReader>()
+            .GetTodayCountAsync(w.GymId));
     }
 
     [Fact]
@@ -495,6 +566,14 @@ public sealed class MembershipPassTests(ApiFactory factory) : IClassFixture<ApiF
         var (response, _) = await s.ServiceProvider.GetRequiredService<CheckInHandler>()
             .HandleAsync(new CheckInRequest(w.MemberId, null), default);
         return response;
+    }
+
+    private async Task<List<GSM.Domain.Notifications.Notification>> PassNoticesAsync(World w)
+    {
+        using var s = Scope(w, NoonOf(Today.AddDays(2)));
+        return await s.ServiceProvider.GetRequiredService<GsmDbContext>().Set<GSM.Domain.Notifications.Notification>()
+            .Where(n => n.GymId == w.GymId && n.RecipientMemberId == w.MemberId && n.Type == NotificationType.PassExhausted)
+            .ToListAsync();
     }
 
     private async Task<int?> BalanceAsync(World w, DateTimeOffset now)

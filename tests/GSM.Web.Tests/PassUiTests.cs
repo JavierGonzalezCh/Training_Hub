@@ -83,6 +83,23 @@ public class PassUiTests : TestContext
     }
 
     [Fact]
+    public async Task A_new_plan_form_starts_with_thirty_freeze_days()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var plans = System.Reflection.DispatchProxy.Create<IMembershipPlansClient, FakeClient>();
+        Services.AddSingleton(plans);
+
+        RenderComponent<MudPopoverProvider>();
+        var provider = RenderComponent<MudDialogProvider>();
+        var dialogs = Services.GetRequiredService<IDialogService>();
+        await provider.InvokeAsync(() => dialogs.ShowAsync<PlanFormDialog>("Plan"));
+
+        provider.WaitForAssertion(() =>
+            Assert.Equal("30", provider.Find("input#plan-max-freeze").GetAttribute("value")));
+    }
+
+    [Fact]
     public async Task Editing_a_time_plan_does_not_send_entries()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

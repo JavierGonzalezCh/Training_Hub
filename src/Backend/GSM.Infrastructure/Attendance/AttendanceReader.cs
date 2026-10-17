@@ -103,8 +103,11 @@ public sealed class AttendanceReader(
     }
 
     public Task<int> GetTodayCountAsync(Guid gymId, CancellationToken cancellationToken = default)
-        => Attendances.CountAsync(
-            a => a.GymId == gymId && a.AttendanceDate == clock.Today, cancellationToken);
+        => Attendances
+            .Where(a => a.GymId == gymId && a.AttendanceDate == clock.Today && a.VoidedAt == null)
+            .Select(a => a.MemberId)
+            .Distinct()
+            .CountAsync(cancellationToken);
 
     public async Task<IReadOnlyDictionary<Guid, int>> GetMonthlyCountsByGymAsync(
         int year, int month, CancellationToken cancellationToken = default)
@@ -114,9 +117,9 @@ public sealed class AttendanceReader(
         var firstOfNext = firstDay.AddMonths(1);
 
         return await Attendances
-            .Where(a => a.AttendanceDate >= firstDay && a.AttendanceDate < firstOfNext)
+            .Where(a => a.AttendanceDate >= firstDay && a.AttendanceDate < firstOfNext && a.VoidedAt == null)
             .GroupBy(a => a.GymId)
-            .Select(g => new { GymId = g.Key, Count = g.Count() })
+            .Select(g => new { GymId = g.Key, Count = g.Select(a => a.MemberId).Distinct().Count() })
             .ToDictionaryAsync(x => x.GymId, x => x.Count, cancellationToken);
     }
 

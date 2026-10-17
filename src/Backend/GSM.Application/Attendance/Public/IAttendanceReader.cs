@@ -34,9 +34,10 @@ public interface IAttendanceReader
     Task<IReadOnlyList<UncountedEntryDay>> GetUncountedEntryDaysAsync(
         Guid memberId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 
+    /// <summary>A1b-6: <b>personas distintas</b> con una entrada válida hoy (no entradas).</summary>
     Task<int> GetTodayCountAsync(Guid gymId, CancellationToken cancellationToken = default);
 
-    /// <summary>Check-ins por gym en un mes de negocio, en una sola consulta (panel de SuperAdmin).</summary>
+    /// <summary>Personas distintas con entrada válida por gym en un mes de negocio (A1b-6), en una sola consulta (panel de SuperAdmin).</summary>
     Task<IReadOnlyDictionary<Guid, int>> GetMonthlyCountsByGymAsync(
         int year, int month, CancellationToken cancellationToken = default);
 

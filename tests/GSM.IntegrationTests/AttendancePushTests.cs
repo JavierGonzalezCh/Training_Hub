@@ -88,19 +88,45 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
     }
 
     [Fact]
-    public async Task A_rejected_entry_pushes_only_to_staff_who_turned_it_on_and_the_owner_is_not_forced()
+    public async Task A_rejected_entry_pushes_to_the_owner_by_default_and_to_staff_only_if_they_turned_it_on()
     {
         var world = await SeedAsync();
+        var owner = await AddOwnerAsync(world.GymId);
+        var mutedOwner = await AddOwnerAsync(world.GymId);
         var asking = Guid.CreateVersion7();
         var silent = Guid.CreateVersion7();
+        var ownerToken = NewToken();
+        var mutedOwnerToken = NewToken();
         var askingToken = NewToken();
         var silentToken = NewToken();
+        await RegisterAsync(world.GymId, owner, ownerToken, UserRole.Owner, "web_panel");
+        await RegisterAsync(world.GymId, mutedOwner, mutedOwnerToken, UserRole.Owner, "web_panel");
         await RegisterAsync(world.GymId, asking, askingToken, UserRole.Staff, "web_panel");
-        await RegisterAsync(world.GymId, silent, silentToken, UserRole.Owner, "web_panel");
+        await RegisterAsync(world.GymId, silent, silentToken, UserRole.Staff, "web_panel");
+
+        // A7-1: el Owner la ve encendida por defecto; el resto del equipo, apagada.
+        using (var scope = Scope(world.GymId, owner, UserRole.Owner))
+        {
+            var prefs = await scope.ServiceProvider.GetRequiredService<GetMyStaffPushPreferencesHandler>().HandleAsync(default);
+            Assert.True(Assert.Single(prefs.Items).Push);
+        }
+
+        using (var scope = Scope(world.GymId, silent, UserRole.Staff))
+        {
+            var prefs = await scope.ServiceProvider.GetRequiredService<GetMyStaffPushPreferencesHandler>().HandleAsync(default);
+            Assert.False(Assert.Single(prefs.Items).Push);
+        }
+
         using (var scope = Scope(world.GymId, asking, UserRole.Staff))
         {
             await scope.ServiceProvider.GetRequiredService<UpdateMyStaffPushPreferencesHandler>().HandleAsync(
                 new UpdateStaffPushPreferencesRequest([new StaffPushPreferenceUpdate("CheckinRejected", true)]), default);
+        }
+
+        using (var scope = Scope(world.GymId, mutedOwner, UserRole.Owner))
+        {
+            await scope.ServiceProvider.GetRequiredService<UpdateMyStaffPushPreferencesHandler>().HandleAsync(
+                new UpdateStaffPushPreferencesRequest([new StaffPushPreferenceUpdate("CheckinRejected", false)]), default);
         }
 
         var push = factory.Services.GetRequiredService<CapturingPushSender>();
@@ -110,7 +136,22 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
 
         var sent = Assert.Single(push.SentTo(askingToken));
         Assert.Equal("Entrada rechazada", sent.Title);
-        Assert.Empty(push.SentTo(silentToken)); // por defecto apagado, también para el Owner
+        Assert.Single(push.SentTo(ownerToken));        // Owner sin preferencia guardada: por defecto encendido
+        Assert.Empty(push.SentTo(mutedOwnerToken));    // Owner que la apagó: se respeta
+        Assert.Empty(push.SentTo(silentToken));        // staff sin pedirla: apagado
+    }
+
+    private async Task<Guid> AddOwnerAsync(Guid gymId)
+    {
+        using var scope = System();
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var users = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<GSM.Infrastructure.Identity.AppUser>>();
+        var email = $"a7-owner-{Guid.NewGuid():N}@test.local";
+        var user = new GSM.Infrastructure.Identity.AppUser { UserName = email, Email = email, EmailConfirmed = true, FullName = "Dueño A7", IsActive = true };
+        Assert.True((await users.CreateAsync(user)).Succeeded);
+        db.GymAccesses.Add(GymAccess.Grant(user.Id, gymId, UserRole.Owner));
+        await db.SaveChangesAsync();
+        return user.Id;
     }
 
     // ---------- helpers ----------

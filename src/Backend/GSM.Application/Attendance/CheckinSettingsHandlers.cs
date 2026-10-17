@@ -61,10 +61,17 @@ public sealed class GetKioskCodeHandler(
     public async Task<KioskCodeResponse> HandleAsync(CancellationToken cancellationToken)
     {
         var gymId = currentUser.RequireGymId();
-        await KioskCode.EnsureEnabledAsync(gyms, gymId, cancellationToken);
+        var flags = await gyms.GetFeatureFlagsAsync(gymId, cancellationToken)
+            ?? throw new NotFoundException("Gimnasio no encontrado.");
 
+        // A4-2: el kiosco solo está desactivado si QR y documento están apagados; con solo documento sigue sirviendo.
         var current = await settings.GetAsync(gymId, cancellationToken) ?? CheckinSettings.Default(gymId);
-        return KioskCode.Build(signer, clock, gymId, current);
+        if (!flags.CheckinQr && !current.ByDocument)
+        {
+            throw new ForbiddenDomainException("El kiosco está desactivado: ni el check-in con QR ni la entrada con documento están activos.");
+        }
+
+        return KioskCode.Build(signer, clock, gymId, current, qrEnabled: flags.CheckinQr);
     }
 }
 
@@ -110,8 +117,14 @@ internal static class KioskCode
         }
     }
 
-    public static KioskCodeResponse Build(ICheckinCodeSigner signer, IClock clock, Guid gymId, CheckinSettings s)
+    public static KioskCodeResponse Build(
+        ICheckinCodeSigner signer, IClock clock, Guid gymId, CheckinSettings s, bool qrEnabled = true)
     {
+        if (!qrEnabled)
+        {
+            return new KioskCodeResponse(s.Mode.ToString(), string.Empty, null, s.ByDocument, QrDisabled: true);
+        }
+
         var now = clock.UtcNow;
         var code = signer.Generate(gymId, s.Mode, s.StaticCodeVersion, now);
 
@@ -122,6 +135,6 @@ internal static class KioskCode
             expires = DateTimeOffset.FromUnixTimeSeconds((window + 1) * CheckinCodeWindow.Seconds);
         }
 
-        return new KioskCodeResponse(s.Mode.ToString(), code, expires, s.ByDocument);
+        return new KioskCodeResponse(s.Mode.ToString(), code, expires, s.ByDocument, QrDisabled: false);
     }
 }

@@ -151,15 +151,6 @@ public sealed class MembershipReminderDueCreatesNotice(
 {
     private static readonly CultureInfo Colombia = CultureInfo.GetCultureInfo("es-CO");
 
-    /// <summary>
-    /// El recordatorio de "N días antes" usa el id de la membresía como referencia (como siempre); los otros
-    /// dos, un id estable derivado de la membresía y el paso, así cada uno es único por
-    /// <c>(tipo, miembro, referencia)</c> sin tocar el enum de tipos.
-    /// </summary>
-    private static Guid ReferenceFor(Guid membershipId, string step)
-        => new(System.Security.Cryptography.MD5.HashData(
-            System.Text.Encoding.UTF8.GetBytes($"{membershipId:N}:{step}")));
-
     public async Task HandleAsync(MembershipReminderDue domainEvent, CancellationToken cancellationToken = default)
     {
         var contact = await members.GetContactAsync(domainEvent.MemberId, cancellationToken);
@@ -176,12 +167,12 @@ public sealed class MembershipReminderDueCreatesNotice(
         {
             MembershipReminderKind.ExpiresToday => (
                 $"Tu plan {domainEvent.PlanName} vence hoy", renewBody,
-                ReferenceFor(domainEvent.MembershipId, "expires_today")),
+                MembershipReminderReferences.For(domainEvent.MembershipId, MembershipReminderReferences.ExpiresToday)),
             MembershipReminderKind.LastGraceDay => (
                 "Hoy es tu último día para renovar sin perder tu fecha",
                 $"Tu plan {domainEvent.PlanName} venció el {domainEvent.EndDate.ToString("d 'de' MMMM", Colombia)}. "
                     + "Renueva hoy en recepción para conservar tu fecha de renovación.",
-                ReferenceFor(domainEvent.MembershipId, "last_grace_day")),
+                MembershipReminderReferences.For(domainEvent.MembershipId, MembershipReminderReferences.LastGraceDay)),
             _ => ($"Tu plan {domainEvent.PlanName} vence {when}", renewBody, domainEvent.MembershipId),
         };
 

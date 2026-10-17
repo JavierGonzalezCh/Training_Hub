@@ -57,7 +57,7 @@
                 <MudGrid Spacing="2" Class="mt-1">
                     <MudItem xs="6">
                         <MudNumericField T="int" @bind-Value="_model.MaxFreezeDays" Label="Máx. días de congelamiento" Min="0" Max="365" id="plan-max-freeze"
-                                         HelperText="0 = no se congela." />
+                                         HelperText="0 = no se congela. Por defecto 30." />
                     </MudItem>
                     <MudItem xs="6">
                         <MudNumericField T="int" @bind-Value="_model.MinFreezeDays" Label="Mínimo por congelamiento (días)" Min="1" Max="365" id="plan-min-freeze" />
@@ -200,7 +200,7 @@
         public decimal Price { get; set; }
         public int DurationValue { get; set; } = 30;
         public string DurationUnit { get; set; } = PlanDurationLabels.Days;
-        public int MaxFreezeDays { get; set; }
+        public int MaxFreezeDays { get; set; } = 30;
         public int MinFreezeDays { get; set; } = 1;
         public int Seats { get; set; } = 1;
         public string Kind { get; set; } = PlanDurationLabels.KindTime;

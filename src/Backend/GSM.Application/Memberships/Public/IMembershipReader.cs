@@ -70,6 +70,7 @@ public interface IMembershipReader
     /// <summary>
     /// Miembros del gym que cuentan hoy para el límite de su plan del SaaS: los que tienen una membresía
     /// que los cubre (al día, por vencer, en gracia o congelados; ver <see cref="CommercialStatusExtensions"/>).
+    /// Los miembros desactivados no cuentan aunque conserven una membresía vigente (S2-3).
     /// Por gym explícito, para que SuperAdmin pueda preguntar por cualquiera.
     /// </summary>
     Task<int> GetCountedMemberCountAsync(Guid gymId, CancellationToken cancellationToken = default);

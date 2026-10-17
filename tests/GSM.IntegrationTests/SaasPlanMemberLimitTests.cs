@@ -1,5 +1,6 @@
 using GSM.Application.Memberships;
 using GSM.Application.Memberships.Contracts;
+using GSM.Application.Memberships.Public;
 using GSM.Application.SuperAdmin;
 using GSM.Application.SuperAdmin.Abstractions;
 using GSM.Application.SuperAdmin.Contracts;
@@ -269,6 +270,35 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
     }
 
     // ---- Helpers ----
+
+    [Fact]
+    public async Task A_deactivated_member_with_a_current_membership_does_not_count_toward_the_limit()
+    {
+        var w = await SeedAsync(GymPlan.Enterprise, limitOverride: 5);
+        await AddMembershipAsync(w, w.Members[0], Today.AddDays(-2));
+        await AddMembershipAsync(w, w.Members[1], Today.AddDays(-2));
+
+        using (var scope = SuperAdmin())
+        {
+            Assert.Equal(2, await scope.ServiceProvider.GetRequiredService<IMembershipReader>()
+                .GetCountedMemberCountAsync(w.GymId, default));
+        }
+
+        using (var scope = factory.CreateScopeWithMigration())
+        {
+            scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+            var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+            var member = await db.Set<GSM.Domain.Members.Member>().SingleAsync(m => m.Id == w.Members[1]);
+            member.Deactivate(Today);
+            await db.SaveChangesAsync();
+        }
+
+        using (var scope = SuperAdmin())
+        {
+            Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<IMembershipReader>()
+                .GetCountedMemberCountAsync(w.GymId, default));
+        }
+    }
 
     private IServiceScope SuperAdmin()
     {

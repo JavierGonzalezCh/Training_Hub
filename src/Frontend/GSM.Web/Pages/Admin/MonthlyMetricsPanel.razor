@@ -29,7 +29,7 @@ else
             <MudTh>Churn</MudTh>
             <MudTh title="Gyms en prueba que se perdieron sin pagar. No cuentan para el churn.">Pruebas no convertidas</MudTh>
             <MudTh>Miembros activos</MudTh>
-            <MudTh>Entradas</MudTh>
+            <MudTh title="Personas distintas que entraron en el mes.">Personas que entraron</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Mes">@MonthLabel(context.Month)</MudTd>
@@ -45,7 +45,7 @@ else
             <MudTd DataLabel="Churn">@ChurnLabel(context.Churn)</MudTd>
             <MudTd DataLabel="Pruebas no convertidas">@context.TrialsNotConverted</MudTd>
             <MudTd DataLabel="Miembros activos">@context.ActiveMembers</MudTd>
-            <MudTd DataLabel="Entradas">@context.CheckIns</MudTd>
+            <MudTd DataLabel="Personas que entraron">@context.CheckIns</MudTd>
         </RowTemplate>
     </MudTable>
 }

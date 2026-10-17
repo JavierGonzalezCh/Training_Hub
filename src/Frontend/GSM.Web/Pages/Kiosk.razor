@@ -36,8 +36,8 @@ else if (_disabled)
 {
     <section class="gsm-kiosk gsm-kiosk--centered" data-testid="kiosk-disabled">
         <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="gsm-empty-icon" />
-        <h1 class="gsm-kiosk__title">El check-in con QR está desactivado</h1>
-        <p class="gsm-kiosk__hint">Pídele al dueño que lo active en Configuración para que los miembros puedan registrar su entrada.</p>
+        <h1 class="gsm-kiosk__title">El kiosco está desactivado</h1>
+        <p class="gsm-kiosk__hint">Pídele al dueño que active el check-in con QR o la entrada con documento en Configuración para que los miembros puedan registrar su entrada.</p>
     </section>
 }
 else
@@ -45,12 +45,14 @@ else
     <section class="gsm-kiosk">
         <header class="gsm-kiosk__top">
             <div>
-                <h1 class="gsm-kiosk__title">Escanea para entrar</h1>
+                <h1 class="gsm-kiosk__title">@(QrOff ? "Digita tu documento para entrar" : "Escanea para entrar")</h1>
             </div>
             <div class="gsm-kiosk__clock" aria-hidden="true">@GsmFormat.Time(_now)</div>
         </header>
 
         <div class="gsm-kiosk__main">
+            @if (!QrOff)
+            {
             <div class="gsm-kiosk__qr-card">
                 @if (_code is not null)
                 {
@@ -71,11 +73,15 @@ else
                     <MudProgressCircular Indeterminate="true" />
                 }
             </div>
+            }
 
             @* Sin nombres: la entrada es pública y un rechazo a la vista expone al miembro (Memberships §5.3). *@
             <aside class="gsm-kiosk__activity">
                 <h2 class="gsm-panel__title">Bienvenido</h2>
-                <p class="gsm-kiosk__hint">Escanea el código con la cámara de tu teléfono o con la app del gimnasio.</p>
+                @if (!QrOff)
+                {
+                    <p class="gsm-kiosk__hint">Escanea el código con la cámara de tu teléfono o con la app del gimnasio.</p>
+                }
                 <p class="gsm-kiosk__hint">¿Problemas para ingresar? Acércate a recepción.</p>
 
                 @if (_code?.ByDocument == true)
@@ -83,7 +89,7 @@ else
                     @* A4: entrada con documento. La pantalla es pública: solo nombre de pila y foto al entrar, un mismo
                        mensaje ante cualquier rechazo y el número digitado va enmascarado. *@
                     <section class="gsm-kiosk-doc" data-testid="kiosk-doc">
-                        <h2 class="gsm-panel__title">¿No tienes la app? Digita tu documento</h2>
+                        <h2 class="gsm-panel__title">@(QrOff ? "Digita tu documento" : "¿No tienes la app? Digita tu documento")</h2>
 
                         @if (_welcome is not null)
                         {
@@ -136,7 +142,7 @@ else
 
         <footer class="gsm-kiosk__bar">
             <span class="gsm-kiosk__spacer"></span>
-            @if (_code?.Mode == "Static")
+            @if (!QrOff && _code?.Mode == "Static")
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PrintAsync" StartIcon="@Icons.Material.Outlined.Print">Imprimir cartel</MudButton>
             }
@@ -144,7 +150,7 @@ else
         </footer>
     </section>
 
-    @if (_code?.Mode == "Static")
+    @if (!QrOff && _code?.Mode == "Static")
     {
         @* Cartel: solo se ve al imprimir (ver @media print en gsm.css). *@
         <div class="gsm-poster" aria-hidden="true">
@@ -177,6 +183,9 @@ else
     private KioskDocumentEntryResponse? _welcome;
     private DateTimeOffset _welcomeUntil;
     private DateTimeOffset? _lockedUntil;
+
+    // A4-2: con el QR apagado y solo el documento activo, el kiosco muestra únicamente el teclado.
+    private bool QrOff => _code?.QrDisabled == true;
 
     private bool IsLocked => _lockedUntil is { } until && until > _now;
 

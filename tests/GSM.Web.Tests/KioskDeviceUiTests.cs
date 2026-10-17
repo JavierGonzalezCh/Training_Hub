@@ -57,6 +57,7 @@ public class KioskDeviceUiTests : TestContext
 
         /// <summary>A4: el gym tiene encendida la entrada con documento.</summary>
         public bool ByDocument { get; set; }
+        public bool QrDisabled { get; set; }
 
         /// <summary>A4: status con el que falla la entrada con documento (409 rechazo, 429 bloqueo); nulo = entra.</summary>
         public int? DocumentFailWith { get; set; }
@@ -84,7 +85,7 @@ public class KioskDeviceUiTests : TestContext
 
             return Task.FromResult(new KioskCodeResponse
             {
-                Mode = "Rotating", Code = "abc123", ExpiresAtUtc = DateTimeOffset.UtcNow.AddSeconds(30), ByDocument = ByDocument,
+                Mode = "Rotating", Code = "abc123", ExpiresAtUtc = DateTimeOffset.UtcNow.AddSeconds(30), ByDocument = ByDocument, QrDisabled = QrDisabled,
             });
         }
 
@@ -205,6 +206,20 @@ public class KioskDeviceUiTests : TestContext
         Assert.DoesNotContain("Volver al panel", cut.Markup);
         Assert.Empty(cut.FindAll("table"));
         Assert.Empty(cut.FindAll("a[href='/']"));
+    }
+
+    [Fact]
+    public void Kiosk_with_the_qr_off_but_document_on_shows_the_keypad_without_the_qr()
+    {
+        var (_, attendance, _) = Setup(GsmRoles.Kiosk);
+        attendance.ByDocument = true;
+        attendance.QrDisabled = true;
+
+        var cut = RenderComponent<Kiosk>();
+
+        Assert.NotNull(cut.Find("[data-testid='kiosk-doc']"));
+        Assert.Empty(cut.FindAll("[data-testid='kiosk-disabled']"));
+        Assert.Empty(cut.FindAll(".gsm-kiosk__qr-card"));
     }
 
     [Fact]

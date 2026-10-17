@@ -129,7 +129,8 @@ public sealed class GetMyStaffPushPreferencesHandler(
     {
         var gymId = currentUser.RequireGymId();
         var userId = currentUser.UserId ?? throw new UnauthorizedDomainException("Sin usuario en el contexto.");
-        return StaffPushMapper.ToResponse(await preferences.GetForUserAsync(gymId, userId, cancellationToken));
+        return StaffPushMapper.ToResponse(
+            await preferences.GetForUserAsync(gymId, userId, cancellationToken), currentUser.Role == UserRole.Owner);
     }
 }
 
@@ -164,19 +165,19 @@ public sealed class UpdateMyStaffPushPreferencesHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Usuario {UserId}: preferencias de push del staff actualizadas", userId);
-        return StaffPushMapper.ToResponse(rows);
+        return StaffPushMapper.ToResponse(rows, currentUser.Role == UserRole.Owner);
     }
 }
 
 internal static class StaffPushMapper
 {
-    public static StaffPushPreferencesResponse ToResponse(IEnumerable<StaffNotificationPreference> rows)
+    public static StaffPushPreferencesResponse ToResponse(IEnumerable<StaffNotificationPreference> rows, bool isOwner)
     {
         var byType = rows.ToDictionary(r => r.Type);
         return new StaffPushPreferencesResponse(StaffNotificationPreference.Configurable.Select(type =>
             new StaffPushPreferenceItem(
                 type.ToString(), Label(type),
-                byType.TryGetValue(type, out var row) ? row.Push : StaffNotificationPreference.DefaultPush(type))).ToList());
+                byType.TryGetValue(type, out var row) ? row.Push : StaffNotificationPreference.DefaultPush(type, isOwner))).ToList());
     }
 
     public static NotificationType ParseType(string value)

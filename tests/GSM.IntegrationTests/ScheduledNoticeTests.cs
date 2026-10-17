@@ -234,6 +234,41 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
         Assert.Equal(noon, expiresToday.ScheduledFor);
     }
 
+    [Fact]
+    public async Task A_scheduled_expiry_reminder_is_cancelled_when_the_member_renews_or_the_membership_is_cancelled()
+    {
+        var w = await SeedAsync(1);
+        var day = NextMonday;
+        var dawn = AtLocal(day, 0, 5);
+        var memberId = w.MemberIds[0];
+
+        // Dos membresías con su recordatorio programado para las 8:00 (los de "vence hoy" usan otra referencia).
+        var renewedMembership = Guid.CreateVersion7();
+        var cancelledMembership = Guid.CreateVersion7();
+        await PublishAtAsync(w.GymId, dawn,
+            new MembershipReminderDue(w.GymId, memberId, renewedMembership, "Mensual", day, 0, MembershipReminderKind.ExpiresToday));
+        await PublishAtAsync(w.GymId, dawn,
+            new MembershipReminderDue(w.GymId, memberId, cancelledMembership, "Mensual", day.AddDays(2), 2, MembershipReminderKind.DaysBefore));
+        Assert.Equal(2, await CountByStatusAsync(w.GymId, NotificationType.MembershipExpiring, NotificationStatus.Pending));
+
+        // Renueva la primera: su recordatorio se cancela; el de la otra sigue.
+        await PublishAtAsync(w.GymId, dawn,
+            new GSM.Application.Memberships.Events.MembershipRenewed(Guid.CreateVersion7(), memberId, w.GymId, Guid.CreateVersion7(), renewedMembership));
+        Assert.Equal(1, await CountByStatusAsync(w.GymId, NotificationType.MembershipExpiring, NotificationStatus.Cancelled));
+        Assert.Equal(1, await CountByStatusAsync(w.GymId, NotificationType.MembershipExpiring, NotificationStatus.Pending));
+
+        // Cancela la segunda: también se cancela. Repetir el evento no cambia nada.
+        var cancelled = new GSM.Application.Memberships.Events.MembershipCancelled(cancelledMembership, memberId, w.GymId);
+        await PublishAtAsync(w.GymId, dawn, cancelled);
+        await PublishAtAsync(w.GymId, dawn, cancelled);
+        Assert.Equal(2, await CountByStatusAsync(w.GymId, NotificationType.MembershipExpiring, NotificationStatus.Cancelled));
+
+        // El dispatcher no envía nada de lo cancelado.
+        await RunDispatcherAtAsync(AtLocal(day, 8), day, w.GymId);
+        Assert.Equal(0, await CountByStatusAsync(w.GymId, NotificationType.MembershipExpiring, NotificationStatus.Sent));
+        Assert.Empty(await InboxAsync(w, 0, AtLocal(day, 9)));
+    }
+
     // ---------- siembra y ayudas ----------
 
     private async Task BookAsync(World w, int memberIndex)

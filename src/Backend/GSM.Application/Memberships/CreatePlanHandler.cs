@@ -26,7 +26,7 @@ public sealed class CreatePlanHandler(
         var kind = PlanDuration.ParseKind(request.Kind);
         var plan = MembershipPlan.Create(gymId, name, request.Description, request.Price,
             PlanDuration.EffectiveDuration(kind, request.DurationValue, request.ValidityDays),
-            PlanDuration.ParseUnit(request.DurationUnit), request.MaxFreezeDays ?? 0,
+            PlanDuration.ParseUnit(request.DurationUnit), request.MaxFreezeDays ?? MembershipPlan.DefaultMaxFreezeDays,
             request.MinFreezeDays ?? MembershipPlan.DefaultMinFreezeDays, kind, request.Entries, request.Seats ?? 1);
         memberships.Add(plan);
         await unitOfWork.SaveChangesAsync(cancellationToken);

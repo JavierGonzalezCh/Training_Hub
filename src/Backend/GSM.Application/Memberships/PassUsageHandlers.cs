@@ -2,6 +2,7 @@ using GSM.Application.Attendance.Events;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Application.Memberships.Abstractions;
+using GSM.Application.Memberships.Events;
 using GSM.Domain.Memberships;
 using Microsoft.Extensions.Logging;
 
@@ -20,6 +21,7 @@ namespace GSM.Application.Memberships;
 public sealed class ConsumePassEntryOnCheckInHandler(
     IMembershipRepository memberships,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<ConsumePassEntryOnCheckInHandler> logger) : IDomainEventHandler<CheckInRegistered>
 {
     public async Task HandleAsync(CheckInRegistered domainEvent, CancellationToken cancellationToken = default)
@@ -58,6 +60,12 @@ public sealed class ConsumePassEntryOnCheckInHandler(
         logger.LogInformation(
             "Entrada {AttendanceId} descontó una entrada de la tiquetera {MembershipId} ({Left} restantes)",
             domainEvent.AttendanceId, pass.Id, (pass.EntriesTotal ?? 0) - used.GetValueOrDefault(pass.Id) - 1);
+
+        // MS5-5: se gastó la última; el miembro recibe el aviso por evento (Notifications, idempotente por membresía).
+        if ((pass.EntriesTotal ?? 0) - used.GetValueOrDefault(pass.Id) - 1 <= 0)
+        {
+            await events.PublishAsync(new PassExhausted(pass.Id, domainEvent.MemberId, domainEvent.GymId), cancellationToken);
+        }
     }
 }
 

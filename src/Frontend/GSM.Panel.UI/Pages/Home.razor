@@ -301,9 +301,9 @@ else if (_dashboard is { } dashboard)
             <section class="gsm-kpi-grid gsm-kpi-grid--compact" aria-label="Indicadores">
                 <StatCard Label="Miembros activos" Value="@indicators.ActiveMembers.ToString()"
                           Hint="Con estado activo en el gym" />
-                <StatCard Label="Check-ins hoy" Value="@indicators.CheckInsToday.ToString()" Accent="Color.Info"
+                <StatCard Label="Personas hoy" Value="@indicators.CheckInsToday.ToString()" Accent="Color.Info"
                           Meter="@Ratio(indicators.CheckInsToday, indicators.ActiveMembers)"
-                          Hint="@($"{Percent(indicators.CheckInsToday, indicators.ActiveMembers)} de los activos")" />
+                          Hint="@($"{Percent(indicators.CheckInsToday, indicators.ActiveMembers)} de los activos (personas distintas)")" />
                 @if (d.Finances is { } finances)
                 {
                     <div data-testid="finances-revenue">

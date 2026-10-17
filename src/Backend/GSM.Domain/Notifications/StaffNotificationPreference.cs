@@ -28,9 +28,11 @@ public sealed class StaffNotificationPreference : BaseEntity, ITenantEntity
     public static bool IsConfigurable(NotificationType type) => Configurable.Contains(type);
 
     /// <summary>
-    /// Por defecto (§8): encendido, salvo el intento de entrada rechazado ("puede haber muchos al día").
+    /// Por defecto (§8): encendido, salvo el intento de entrada rechazado ("puede haber muchos al día"), que desde
+    /// A7-1 viene encendido para el <b>Owner</b> y apagado para el resto del equipo.
     /// </summary>
-    public static bool DefaultPush(NotificationType type) => type != NotificationType.CheckinRejected;
+    public static bool DefaultPush(NotificationType type, bool isOwner = false)
+        => type != NotificationType.CheckinRejected || isOwner;
 
     public static StaffNotificationPreference Create(Guid gymId, Guid userId, NotificationType type, bool push)
     {
