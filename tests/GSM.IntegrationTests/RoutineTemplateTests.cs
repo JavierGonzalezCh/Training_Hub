@@ -197,6 +197,32 @@ public sealed class RoutineTemplateTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Any_staff_creates_templates_but_only_the_owner_and_trainers_delete_them()
+    {
+        var w = await SeedAsync();
+
+        Guid templateId;
+        using (var scope = AsStaff(w.Gym))
+        {
+            templateId = (await scope.ServiceProvider.GetRequiredService<CreateRoutineTemplateHandler>()
+                .HandleAsync(new SaveRoutineTemplateRequest("Del staff", null, TwoDayRequest(w)), default)).Id;
+
+            await Assert.ThrowsAsync<ForbiddenDomainException>(() =>
+                scope.ServiceProvider.GetRequiredService<DeleteRoutineTemplateHandler>().HandleAsync(templateId, default));
+        }
+
+        using (var trainer = AsStaff(w.Gym))
+        {
+            trainer.ServiceProvider.GetRequiredService<MutableCurrentUser>().Permissions.Add(StaffPermission.Trainer);
+            await trainer.ServiceProvider.GetRequiredService<DeleteRoutineTemplateHandler>().HandleAsync(templateId, default);
+        }
+
+        using var owner = AsOwner(w.Gym);
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            owner.ServiceProvider.GetRequiredService<GetRoutineTemplateHandler>().HandleAsync(templateId, default));
+    }
+
+    [Fact]
     public async Task Assigning_to_a_missing_member_or_template_is_404()
     {
         var w = await SeedAsync();
@@ -221,6 +247,14 @@ public sealed class RoutineTemplateTests(ApiFactory factory) : IClassFixture<Api
     {
         var scope = factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAs(gym.OwnerId, gym.GymId, UserRole.Owner);
+        scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(Day);
+        return scope;
+    }
+
+    private IServiceScope AsStaff((Guid GymId, Guid OwnerId) gym)
+    {
+        var scope = factory.CreateScopeWithMigration();
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAs(Guid.CreateVersion7(), gym.GymId, UserRole.Staff);
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(Day);
         return scope;
     }

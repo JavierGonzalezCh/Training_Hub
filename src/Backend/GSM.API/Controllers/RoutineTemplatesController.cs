@@ -1,6 +1,7 @@
 using GSM.API.Auth;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
+using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -52,9 +53,12 @@ public sealed class RoutineTemplatesController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, request, cancellationToken));
 
+    /// <summary>Borrar una plantilla (R11-1): solo el Owner y el staff con el permiso <c>Trainer</c>; al resto, 403.</summary>
     [HttpDelete("{id:guid}")]
+    [RequirePermission(StaffPermission.Trainer)]
     [EndpointName("DeleteRoutineTemplate")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(
         Guid id, [FromServices] DeleteRoutineTemplateHandler handler, CancellationToken cancellationToken)
