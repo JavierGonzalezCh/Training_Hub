@@ -26,13 +26,15 @@ public sealed class AuthController : ControllerBase
 
     /// <summary>
     /// "Enviarme un código": manda al correo un código de 6 dígitos (vence en 10 minutos, un solo uso, 5 intentos;
-    /// uno por minuto y 5 por hora por persona). Responde 202 igual exista o no la cuenta del miembro.
+    /// uno por minuto y 5 por hora por persona). Responde 202 igual exista o no la cuenta del miembro; solo una cuenta
+    /// real que superó el límite recibe 409.
     /// </summary>
     [HttpPost("request-login-code")]
     [AllowAnonymous]
     [SubscriptionGateExempt]
     [EnableRateLimiting(RateLimitPolicies.Login)]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RequestLoginCode(
         RequestLoginCodeRequest request,
         [FromServices] RequestLoginCodeHandler handler,

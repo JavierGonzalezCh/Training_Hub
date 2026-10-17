@@ -253,8 +253,9 @@ public sealed class MemberLoginCodeTests(ApiFactory factory) : IClassFixture<Api
             clock.PinTo(start.AddSeconds(30), DateOnly.FromDateTime(DateTime.UtcNow));
             var throttled = await RequestCodeAsync(client, w.MemberEmail);
 
-            // La respuesta no cambia, pero no sale un segundo correo.
-            Assert.Equal(HttpStatusCode.Accepted, throttled.StatusCode);
+            // I5-7: una cuenta real que supera el límite recibe 409 con el aviso, y no sale un segundo correo.
+            Assert.Equal(HttpStatusCode.Conflict, throttled.StatusCode);
+            Assert.Contains("Pediste demasiados códigos. Espera unos minutos e inténtalo de nuevo.", await throttled.Content.ReadAsStringAsync());
             Assert.Single(emails.Sent, m => LoginCodeEmailTo(m, w.MemberEmail));
 
             clock.PinTo(start.AddSeconds(61), DateOnly.FromDateTime(DateTime.UtcNow));

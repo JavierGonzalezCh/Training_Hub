@@ -162,6 +162,47 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
     }
 
     [Fact]
+    public async Task Confirming_closes_the_other_sessions_and_keeps_the_one_that_sent_its_refresh_token()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var emails = host.Services.GetRequiredService<CapturingEmailSender>();
+        var client = await LoggedInAsync(host, w.MemberEmail);
+
+        // Dos sesiones de la misma persona: la actual (A) y otra (B).
+        var (sessionA, refreshA) = await SessionAsync(host, w.MemberEmail);
+        var (_, refreshB) = await SessionAsync(host, w.MemberEmail);
+
+        await RequestAsync(client, w.NewEmail);
+        var confirm = await sessionA.PostAsJsonAsync(
+            "/api/me/confirm-email-change",
+            new ConfirmEmailChangeRequest(CodeSentTo(emails, w.NewEmail), CurrentCodeSentTo(emails, w.MemberEmail), refreshA));
+        Assert.Equal(HttpStatusCode.OK, confirm.StatusCode);
+
+        var anonymous = host.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await anonymous.PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(refreshB))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,
+            (await anonymous.PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(refreshA))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Confirming_without_a_refresh_token_closes_every_session()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var emails = host.Services.GetRequiredService<CapturingEmailSender>();
+        var (client, refresh) = await SessionAsync(host, w.MemberEmail);
+
+        await RequestAsync(client, w.NewEmail);
+        var confirm = await ConfirmAsync(client, CodeSentTo(emails, w.NewEmail), CurrentCodeSentTo(emails, w.MemberEmail));
+        Assert.Equal(HttpStatusCode.OK, confirm.StatusCode);
+
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await host.CreateClient().PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(refresh))).StatusCode);
+    }
+
+    [Fact]
     public async Task Without_the_code_of_the_current_email_the_change_is_rejected_and_counts_as_a_miss()
     {
         var w = await SeedAsync();
@@ -397,6 +438,27 @@ public sealed class EmailChangeTests(ApiFactory factory) : IClassFixture<ApiFact
             ?? throw new InvalidOperationException($"No se envió ningún código de autorización a {to}.");
         var match = Regex.Match(message.TextBody ?? string.Empty, @": (?<code>\d{6}) \(");
         return match.Success ? match.Groups["code"].Value : throw new InvalidOperationException("Correo sin código.");
+    }
+
+    /// <summary>Una sesión nueva (cliente con su access token y el refresh token de esa sesión).</summary>
+    private async Task<(HttpClient Client, string RefreshToken)> SessionAsync(
+        WebApplicationFactory<Program> host, string email)
+    {
+        var client = host.CreateClient();
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, Password));
+        login.EnsureSuccessStatusCode();
+        var body = (await login.Content.ReadFromJsonAsync<LoginResponse>())!;
+        var tokens = body.Tokens;
+        if (body.RequiresGymSelection)
+        {
+            var select = await client.PostAsJsonAsync(
+                "/api/auth/select-gym", new SelectGymRequest(body.SelectionToken!, body.Accesses!.First().AccessId));
+            select.EnsureSuccessStatusCode();
+            tokens = await select.Content.ReadFromJsonAsync<AuthTokensResponse>();
+        }
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
+        return (client, tokens.RefreshToken);
     }
 
     private async Task<HttpClient> LoggedInAsync(WebApplicationFactory<Program> host, string email)

@@ -37,6 +37,8 @@ public class ChangeEmailUiTests : TestContext
                 case "RequestEmailChangeAsync":
                     Requests.Add((RequestEmailChangeRequest)args![0]!);
                     return Task.CompletedTask;
+                case "MeAsync":
+                    return Task.FromResult(new MeResponse());
                 case "ConfirmEmailChangeAsync":
                     var confirm = (ConfirmEmailChangeRequest)args![0]!;
                     Confirmations.Add(confirm);

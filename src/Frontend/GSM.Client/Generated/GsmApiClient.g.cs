@@ -44875,6 +44875,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("currentEmailCode")]
         public string CurrentEmailCode { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("refreshToken")]
+        public string? RefreshToken { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

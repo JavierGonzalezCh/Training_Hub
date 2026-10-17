@@ -22,6 +22,7 @@ public class MemberLoginUiTests : TestContext
         public List<VerifyLoginCodeRequest> CodeVerifications { get; } = [];
         public List<LoginRequest> Logins { get; } = [];
         public bool VerifyFails { get; set; }
+        public bool RequestThrottled { get; set; }
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
@@ -30,6 +31,14 @@ public class MemberLoginUiTests : TestContext
             {
                 case "RequestLoginCodeAsync":
                     CodeRequests.Add((RequestLoginCodeRequest)args![0]!);
+                    if (RequestThrottled)
+                    {
+                        throw new GsmApiException(
+                            "409", 409,
+                            "{\"status\":409,\"detail\":\"Pediste demasiados códigos. Espera unos minutos e inténtalo de nuevo.\"}",
+                            new Dictionary<string, IEnumerable<string>>(), null);
+                    }
+
                     break;
                 case "VerifyLoginCodeAsync":
                     CodeVerifications.Add((VerifyLoginCodeRequest)args![0]!);
@@ -151,6 +160,22 @@ public class MemberLoginUiTests : TestContext
         Assert.Equal("iron-demo", request.GymSlug);
         Assert.Equal(2, cut.FindAll("input").Count);
         Assert.Contains("Reenviar el código en", cut.Find("[data-testid='resend-code']").TextContent);
+    }
+
+    [Fact]
+    public void Asking_for_too_many_codes_shows_the_server_message()
+    {
+        var (auth, _, _) = Setup();
+        auth.RequestThrottled = true;
+        var cut = RenderComponent<MemberLogin>();
+
+        cut.Find("[data-testid='use-code']").Click();
+        cut.FindAll("input")[0].Input("ana@test.local");
+        cut.Find("[data-testid='send-code']").Click();
+
+        cut.WaitForAssertion(() => Assert.Contains(
+            "Pediste demasiados códigos. Espera unos minutos e inténtalo de nuevo.",
+            cut.Find("[data-testid='login-error']").TextContent));
     }
 
     [Fact]

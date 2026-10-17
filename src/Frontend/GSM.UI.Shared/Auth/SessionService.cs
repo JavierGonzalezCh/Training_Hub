@@ -157,7 +157,13 @@ public sealed class SessionService(
     {
         try
         {
-            var response = await auth.ConfirmEmailChangeAsync(new ConfirmEmailChangeRequest { Code = code, CurrentEmailCode = currentEmailCode }, cancellationToken);
+            // Como en el cambio de contraseña: primero una llamada autenticada (si el access token venció, el refresh
+            // ocurre ahora) y luego se manda el refresh token vigente para que esa sesión sobreviva (I6-5).
+            await auth.MeAsync(cancellationToken);
+            var tokens = await tokenStore.GetAsync(cancellationToken);
+            var response = await auth.ConfirmEmailChangeAsync(
+                new ConfirmEmailChangeRequest { Code = code, CurrentEmailCode = currentEmailCode, RefreshToken = tokens?.RefreshToken },
+                cancellationToken);
             return response.Email;
         }
         catch (GsmApiException ex)

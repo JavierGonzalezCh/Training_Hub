@@ -67,11 +67,13 @@ public sealed class RequestEmailChangeHandler(
 /// <summary>
 /// <c>POST /api/me/confirm-email-change</c>: confirma los dos códigos, cambia el email de la cuenta, publica
 /// <see cref="UserEmailChanged"/> (Members sincroniza las fichas) y avisa al correo viejo. Código malo, vencido o
-/// agotado: 422 (no 401: la sesión sigue siendo válida).
+/// agotado: 422 (no 401: la sesión sigue siendo válida). Al cambiar el email se cierran las otras sesiones de la persona
+/// (I6-5): se conserva la del refresh token que manda el cliente; sin él, se cierran todas.
 /// </summary>
 public sealed class ConfirmEmailChangeHandler(
     ICurrentUserService currentUser,
     IEmailChangeService emailChanges,
+    IRefreshTokenService refreshTokens,
     IEmailSender emailSender,
     IDomainEventPublisher events,
     ILogger<ConfirmEmailChangeHandler> logger)
@@ -98,7 +100,8 @@ public sealed class ConfirmEmailChangeHandler(
                 throw new ConflictException("Ese email ya está en uso por otra cuenta.");
         }
 
-        logger.LogInformation("Email de la cuenta {UserId} cambiado", userId);
+        await refreshTokens.RevokeAllForUserAsync(userId, request.RefreshToken, cancellationToken);
+        logger.LogInformation("Email de la cuenta {UserId} cambiado; las otras sesiones se cerraron", userId);
         await events.PublishAsync(new UserEmailChanged(userId, result.OldEmail!, result.NewEmail!), cancellationToken);
 
         try
