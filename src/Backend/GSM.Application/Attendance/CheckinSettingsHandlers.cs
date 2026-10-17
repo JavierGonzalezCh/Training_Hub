@@ -1,6 +1,7 @@
 using GSM.Application.Attendance.Abstractions;
 using GSM.Application.Attendance.Contracts;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Identity.Contracts;
 using GSM.Application.Gyms.Public;
 using GSM.Domain.Attendance;
 using GSM.Domain.Common.Exceptions;
@@ -136,5 +137,21 @@ internal static class KioskCode
         }
 
         return new KioskCodeResponse(s.Mode.ToString(), code, expires, s.ByDocument, QrDisabled: false);
+    }
+}
+
+/// <summary>
+/// <c>GET /api/attendance/kiosk/branding</c> (A3-3): nombre, logo y colores del gym de la sesión del kiosco, para
+/// mostrarlos arriba del QR. Solo marca pública, nada del negocio.
+/// </summary>
+public sealed class GetKioskBrandingHandler(ICurrentUserService currentUser, IGymReader gyms)
+{
+    public async Task<PublicGymBrandingResponse> HandleAsync(CancellationToken cancellationToken)
+    {
+        var gymId = currentUser.RequireGymId();
+        var branding = await gyms.GetBrandingAsync(gymId, cancellationToken)
+            ?? throw new NotFoundException("Gimnasio no encontrado.");
+        return new PublicGymBrandingResponse(
+            branding.Name, branding.LogoUrl, branding.PrimaryColor, branding.SecondaryColor);
     }
 }

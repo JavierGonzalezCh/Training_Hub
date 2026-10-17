@@ -2,6 +2,7 @@ using GSM.API.Auth;
 using GSM.Application.Attendance;
 using GSM.Application.Attendance.Contracts;
 using GSM.Application.Common;
+using GSM.Application.Identity.Contracts;
 using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -160,6 +161,15 @@ public sealed class AttendanceController : ControllerBase
     [ProducesResponseType<KioskCodeResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<KioskCodeResponse>> GetKioskCode(
         [FromServices] GetKioskCodeHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Nombre, logo y colores del gym del kiosco, para mostrarlos sobre el QR. Solo la cuenta de dispositivo (403 al staff).</summary>
+    [HttpGet("kiosk/branding")]
+    [Authorize(Policy = AuthPolicies.RequireKiosk)]
+    [EndpointName("KioskBranding")]
+    [ProducesResponseType<PublicGymBrandingResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PublicGymBrandingResponse>> KioskBranding(
+        [FromServices] GetKioskBrandingHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
     /// <summary>

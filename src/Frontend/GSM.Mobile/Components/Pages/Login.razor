@@ -26,6 +26,10 @@ else
     <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
         @(_submitting ? "Entrando..." : "Entrar")
     </MudButton>
+
+    <div class="d-flex justify-center mt-4">
+        <MudLink Href="/forgot-password" Typo="Typo.body2" Color="Color.Secondary" data-testid="forgot-password-link">¿Olvidaste tu contraseña?</MudLink>
+    </div>
 }
 
 @code {

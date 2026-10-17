@@ -75,6 +75,13 @@ public class KioskDeviceUiTests : TestContext
             return Task.FromResult(new KioskDocumentEntryResponse { FirstName = "Ana", PhotoUrl = null, ExpiringSoon = true });
         }
 
+        public PublicGymBrandingResponse? Branding { get; set; }
+
+        public Task<PublicGymBrandingResponse> KioskBrandingAsync(CancellationToken cancellationToken = default)
+            => Branding is null
+                ? throw new GsmApiException("404", 404, "{}", new Dictionary<string, IEnumerable<string>>(), null)
+                : Task.FromResult(Branding);
+
         public Task<KioskCodeResponse> KioskCodeAsync(CancellationToken cancellationToken = default)
         {
             Calls++;
@@ -189,6 +196,29 @@ public class KioskDeviceUiTests : TestContext
         var cut = RenderComponent<KioskPair>();
 
         Assert.Contains("desactivado", cut.Find("[data-testid='kiosk-revoked']").TextContent);
+    }
+
+    [Fact]
+    public void Kiosk_shows_the_gym_name_and_logo_above_the_qr()
+    {
+        var (_, attendance, _) = Setup(GsmRoles.Kiosk);
+        attendance.Branding = new PublicGymBrandingResponse { Name = "Iron Gym", LogoUrl = "https://cdn.test/logo.png", PrimaryColor = "#B50016", SecondaryColor = "#0AAFCA" };
+
+        var cut = RenderComponent<Kiosk>();
+
+        Assert.Equal("Iron Gym", cut.Find("[data-testid='kiosk-brand-name']").TextContent);
+        Assert.Equal("https://cdn.test/logo.png", cut.Find("[data-testid='kiosk-brand-logo']").GetAttribute("src"));
+    }
+
+    [Fact]
+    public void Kiosk_without_branding_still_opens()
+    {
+        Setup(GsmRoles.Kiosk);
+
+        var cut = RenderComponent<Kiosk>();
+
+        Assert.Empty(cut.FindAll("[data-testid='kiosk-brand']"));
+        Assert.NotEmpty(cut.FindAll("svg"));
     }
 
     [Fact]
