@@ -202,6 +202,49 @@ public sealed class CashShiftTests(ApiFactory factory) : IClassFixture<ApiFactor
         Assert.Equal(65_000m, status.Shift!.ExpectedCash); // 100k - 40k + 5k
     }
 
+    [Fact]
+    public async Task A_withdrawal_larger_than_the_expected_cash_is_rejected_and_the_exact_amount_is_allowed()
+    {
+        var w = await SeedAsync();
+
+        using var ana = At(w, w.AnaId, UserRole.Staff, Hours(8));
+        await ana.OpenCashAsync(50_000m);
+        await Record(ana, 20_000m, PaymentMethod.Cash);
+        await Record(ana, 90_000m, PaymentMethod.Nequi); // no es efectivo: no cuenta
+
+        var ex = await Assert.ThrowsAsync<ValidationDomainException>(() => Move(ana, "withdrawal", 70_001m, "Banco"));
+        Assert.Equal("No puedes retirar más efectivo del que hay en la caja ($70.000).", ex.Message);
+
+        // Rechazado no deja rastro: el esperado sigue intacto y se puede retirar justo lo que hay.
+        var status = await ana.ServiceProvider.GetRequiredService<GetCashDrawerStatusHandler>().HandleAsync(default);
+        Assert.Equal(70_000m, status.Shift!.ExpectedCash);
+        await Move(ana, "withdrawal", 70_000m, "Banco");
+
+        // Un ingreso nunca se limita por el esperado y sube el tope de los retiros siguientes.
+        await Move(ana, "deposit", 500_000m, "Cambio");
+        await Assert.ThrowsAsync<ValidationDomainException>(() => Move(ana, "withdrawal", 500_001m, "Banco"));
+    }
+
+    [Fact]
+    public async Task Two_simultaneous_openings_leave_the_second_as_a_conflict_not_a_server_error()
+    {
+        var w = await SeedAsync();
+
+        using (var ana = At(w, w.AnaId, UserRole.Staff, Hours(8)))
+        {
+            await ana.OpenCashAsync(10_000m);
+        }
+
+        // La segunda apertura salta la comprobación del caso de uso (la carrera) y choca con el índice único.
+        using var beto = At(w, w.BetoId, UserRole.Staff, Hours(8));
+        beto.ServiceProvider.GetRequiredService<GSM.Application.Payments.Abstractions.ICashShiftRepository>()
+            .Add(CashShift.Open(w.GymId, w.BetoId, Hours(8), 5_000m));
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(
+            () => beto.ServiceProvider.GetRequiredService<GSM.Application.Common.Abstractions.IUnitOfWork>().SaveChangesAsync());
+        Assert.Equal("Ya hay una caja abierta.", ex.Message);
+    }
+
     // ---------------------------------------------------------------- cerrar
 
     [Fact]
