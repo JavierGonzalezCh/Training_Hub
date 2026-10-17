@@ -45,6 +45,16 @@ else
     <section class="gsm-kiosk">
         <header class="gsm-kiosk__top">
             <div>
+                @if (_branding is not null)
+                {
+                    <div class="gsm-kiosk__brand" data-testid="kiosk-brand">
+                        @if (!string.IsNullOrEmpty(_branding.LogoUrl))
+                        {
+                            <img class="gsm-kiosk__logo" src="@_branding.LogoUrl" alt="" data-testid="kiosk-brand-logo" style="max-height:56px;max-width:160px;object-fit:contain;margin-right:12px;" />
+                        }
+                        <span class="gsm-kiosk__gym" data-testid="kiosk-brand-name" style="font-weight:700;font-size:1.25rem;">@_branding.Name</span>
+                    </div>
+                }
                 <h1 class="gsm-kiosk__title">@(QrOff ? "Digita tu documento para entrar" : "Escanea para entrar")</h1>
             </div>
             <div class="gsm-kiosk__clock" aria-hidden="true">@GsmFormat.Time(_now)</div>
@@ -165,6 +175,7 @@ else
 
     private readonly CancellationTokenSource _cts = new();
     private KioskCodeResponse? _code;
+    private PublicGymBrandingResponse? _branding;
     private DateTimeOffset _now = DateTimeOffset.UtcNow;
     private DateTimeOffset _nextCodeFetch = DateTimeOffset.MinValue;
     private bool _disabled;
@@ -265,6 +276,7 @@ else
         }
 
         await RefreshCodeAsync();
+        await LoadBrandingAsync();
         _ready = true;
         if (_disabled || _revoked)
         {
@@ -314,6 +326,21 @@ else
             }
         }
         catch (OperationCanceledException)
+        {
+        }
+    }
+
+    // A3-3: nombre y logo del gym arriba del QR. Si falla, el kiosco sigue sin la marca.
+    private async Task LoadBrandingAsync()
+    {
+        try
+        {
+            _branding = await Attendance.KioskBrandingAsync(_cts.Token);
+        }
+        catch (GsmApiException)
+        {
+        }
+        catch (HttpRequestException)
         {
         }
     }

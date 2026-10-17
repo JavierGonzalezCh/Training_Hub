@@ -181,6 +181,21 @@ public sealed class KioskDocumentEntryTests(ApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task The_kiosk_gets_the_branding_of_its_gym_and_staff_does_not()
+    {
+        var w = await SeedAsync(documentOn: true);
+        await using var host = RealIdentityHost();
+        var kiosk = await PairedKioskAsync(host, w.OwnerEmail);
+
+        var response = await kiosk.GetAsync("/api/attendance/kiosk/branding");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("\"name\":\"Doc Gym\"", await response.Content.ReadAsStringAsync());
+
+        var staff = await LoggedInAsync(host, w.StaffEmail);
+        Assert.Equal(HttpStatusCode.Forbidden, (await staff.GetAsync("/api/attendance/kiosk/branding")).StatusCode);
+    }
+
+    [Fact]
     public async Task A_malformed_document_is_a_form_error()
     {
         var w = await SeedAsync(documentOn: true);
