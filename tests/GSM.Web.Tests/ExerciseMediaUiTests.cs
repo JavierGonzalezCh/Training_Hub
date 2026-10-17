@@ -71,6 +71,7 @@ public class ExerciseMediaUiTests : TestContext
         var handler = new RecordingHandler();
         Services.AddSingleton<IExercisesClient>(
             new ExercisesClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost") }));
+        RenderComponent<MudPopoverProvider>();
         var provider = RenderComponent<MudDialogProvider>();
         var dialogs = Services.GetRequiredService<IDialogService>();
         await provider.InvokeAsync(() => dialogs.ShowAsync<ExerciseFormDialog>(

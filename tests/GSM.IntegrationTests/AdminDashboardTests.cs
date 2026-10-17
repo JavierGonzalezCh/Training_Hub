@@ -88,7 +88,7 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
 
         var disabled = dash.GymUsage.Single(u => u.GymId == w.DisabledGym);
         Assert.Equal(2, disabled.ActiveMembers);                // la baja no cuenta
-        Assert.Equal(3, disabled.CheckInsThisMonth);            // el de agosto no cuenta
+        Assert.Equal(2, disabled.CheckInsThisMonth);            // personas distintas (A1b-6); el de agosto no cuenta
         Assert.Equal(20_000m, disabled.MemberRevenueThisMonth);
         Assert.Equal(new DateOnly(2026, 9, 11), disabled.LastCheckIn);
 
@@ -99,7 +99,7 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.Null(suspended.LastCheckIn);
 
         Assert.Equal(3, dash.Platform.ActiveMembers);
-        Assert.Equal(4, dash.Platform.CheckInsThisMonth);
+        Assert.Equal(3, dash.Platform.CheckInsThisMonth);        // 1 + 2 personas (A1b-6)
     }
 
     private IServiceScope Admin()

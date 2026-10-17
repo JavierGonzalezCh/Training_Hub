@@ -109,13 +109,13 @@ public sealed class AttendancePushTests(ApiFactory factory) : IClassFixture<ApiF
         using (var scope = Scope(world.GymId, owner, UserRole.Owner))
         {
             var prefs = await scope.ServiceProvider.GetRequiredService<GetMyStaffPushPreferencesHandler>().HandleAsync(default);
-            Assert.True(Assert.Single(prefs.Items).Push);
+            Assert.True(prefs.Items.Single(i => i.Type == nameof(NotificationType.CheckinRejected)).Push);
         }
 
         using (var scope = Scope(world.GymId, silent, UserRole.Staff))
         {
             var prefs = await scope.ServiceProvider.GetRequiredService<GetMyStaffPushPreferencesHandler>().HandleAsync(default);
-            Assert.False(Assert.Single(prefs.Items).Push);
+            Assert.False(prefs.Items.Single(i => i.Type == nameof(NotificationType.CheckinRejected)).Push);
         }
 
         using (var scope = Scope(world.GymId, asking, UserRole.Staff))

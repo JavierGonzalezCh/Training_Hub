@@ -5,6 +5,7 @@ using GSM.Client.Generated;
 using GSM.Member.UI.Auth;
 using GSM.Member.UI.Pages;
 using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
 using MudBlazor.Services;
 
 namespace GSM.Web.Tests;
@@ -95,6 +96,7 @@ public class MyProfileUiTests : TestContext
             DispatchProxy.Create<IMeClient, DefaultsStub>(),
             DispatchProxy.Create<IMembersClient, DefaultsStub>(),
             new MemberContext()));
+        RenderComponent<MudPopoverProvider>(); // el selector de objetivo (M5-1) abre un popover
         return (ProfileStub)(object)profile;
     }
 
