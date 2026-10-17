@@ -100,6 +100,31 @@ public sealed class ExercisesController : ControllerBase
         Guid id, IFormFile file, [FromServices] UploadExerciseVideoHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(id, file.ToFileToStore(), cancellationToken));
 
+    /// <summary>
+    /// Quita la imagen del ejercicio (R6-1) y borra el archivo si ningún otro ejercicio lo usa. Mismas reglas de quién
+    /// puede que al subirla.
+    /// </summary>
+    [HttpDelete("{id:guid}/image")]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
+    [ProducesResponseType<ExerciseResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("ExercisesRemoveImage")]
+    public async Task<ActionResult<ExerciseResponse>> RemoveImage(
+        Guid id, [FromServices] RemoveExerciseImageHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
+    /// <summary>Quita el video del ejercicio (R6-1), con las mismas reglas que la imagen.</summary>
+    [HttpDelete("{id:guid}/video")]
+    [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
+    [ProducesResponseType<ExerciseResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [EndpointName("ExercisesRemoveVideo")]
+    public async Task<ActionResult<ExerciseResponse>> RemoveVideo(
+        Guid id, [FromServices] RemoveExerciseVideoHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, cancellationToken));
+
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = AuthPolicies.RequireStaffOrSuperAdmin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
