@@ -46,6 +46,11 @@ internal static class ClassBookingRules
                 + $"podrás reservar desde el {CommercialStatusCalculator.ShortDate(sessionDate.AddDays(-rules.BookingWindowDays))}.");
         }
 
+        if (rules.MaxActiveBookings == 0)
+        {
+            return; // C3-1: 0 = sin tope
+        }
+
         var active = await CountActiveAsync(clock, bookings, waitlist, memberId, cancellationToken);
         if (active >= rules.MaxActiveBookings)
         {
@@ -102,6 +107,10 @@ public sealed class BookingPenaltyService(
         }
 
         var rules = await ClassBookingRules.LoadAsync(settings, gymId, cancellationToken);
+        if (rules.NoShowLimit == 0)
+        {
+            return null; // C3-1: 0 = regla apagada, nunca se penaliza
+        }
 
         var since = clock.UtcNow.AddDays(-rules.NoShowWindowDays);
         if (await blocks.GetLastAppliedAtAsync(memberId, cancellationToken) is { } lastBlock && lastBlock > since)

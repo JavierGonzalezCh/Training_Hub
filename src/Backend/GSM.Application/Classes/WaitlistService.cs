@@ -7,6 +7,22 @@ using Microsoft.Extensions.Logging;
 
 namespace GSM.Application.Classes;
 
+/// <summary>C4-2: cierra la lista de espera de una sesión que se cancela y devuelve a quién avisar.</summary>
+internal static class WaitlistClosing
+{
+    public static async Task<List<Guid>> CloseAsync(
+        IWaitlistRepository waitlist, Guid sessionId, CancellationToken cancellationToken)
+    {
+        var open = await waitlist.ListOpenForSessionAsync(sessionId, cancellationToken);
+        foreach (var entry in open)
+        {
+            entry.Expire();
+        }
+
+        return open.Select(e => e.MemberId).Distinct().ToList();
+    }
+}
+
 /// <summary>Lo que hizo una pasada sobre la lista de espera de una sesión.</summary>
 public sealed record WaitlistProcessResult(int OffersMade, int OffersExpired);
 

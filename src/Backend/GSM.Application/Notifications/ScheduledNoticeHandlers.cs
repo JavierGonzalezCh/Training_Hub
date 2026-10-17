@@ -81,8 +81,19 @@ public sealed class ClassBookingCancelledCancelsReminder(
     public async Task HandleAsync(ClassBookingCancelled domainEvent, CancellationToken cancellationToken = default)
     {
         var reference = ClassSessionCancelledCreatesNotices.SessionReference(domainEvent.ClassId, domainEvent.SessionDate);
-        if (await scheduler.CancelForMemberAsync(
-                NotificationType.ClassReminder, domainEvent.MemberId, reference, cancellationToken))
+        var cancelled = await scheduler.CancelForMemberAsync(
+            NotificationType.ClassReminder, domainEvent.MemberId, reference, cancellationToken);
+
+        // N5-3: si la sesión se queda sin reservas activas, el instructor no tiene a quién dar clase: se cancela su
+        // recordatorio (una nueva reserva lo reactiva al programarlo de nuevo).
+        if (domainEvent.RemainingActiveBookings == 0
+            && await scheduler.CancelAllByReferenceAsync(
+                [NotificationType.InstructorClassReminder], reference, cancellationToken) > 0)
+        {
+            cancelled = true;
+        }
+
+        if (cancelled)
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }

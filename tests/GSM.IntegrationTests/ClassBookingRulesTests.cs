@@ -61,7 +61,61 @@ public sealed class ClassBookingRulesTests(ApiFactory factory) : IClassFixture<A
         using var scope = Owner(w);
         await Assert.ThrowsAsync<ValidationDomainException>(() => scope.ServiceProvider
             .GetRequiredService<UpdateClassSettingsHandler>()
-            .HandleAsync(new UpdateClassSettingsRequest(2, 0, 30, 7, 7, 5), default));
+            .HandleAsync(new UpdateClassSettingsRequest(2, 21, 30, 7, 7, 5), default));
+        await Assert.ThrowsAsync<ValidationDomainException>(() => scope.ServiceProvider
+            .GetRequiredService<UpdateClassSettingsHandler>()
+            .HandleAsync(new UpdateClassSettingsRequest(2, 3, 0, 7, 7, 5), default));
+    }
+
+    // ---------- C3-1: 0 = regla apagada ----------
+
+    [Fact]
+    public async Task Zero_no_show_limit_turns_the_penalty_off_and_zero_max_means_no_cap()
+    {
+        var w = await SeedAsync(1);
+        var classId = await CreateClassAsync(w, [ClassDayOfWeek.Monday, ClassDayOfWeek.Tuesday, ClassDayOfWeek.Wednesday]);
+
+        // 0 es válido en el límite de inasistencias y en el máximo de reservas; la ventana sigue con mínimo 1.
+        await UpdateSettingsAsync(w, new UpdateClassSettingsRequest(2, 0, 30, 7, 14, 0));
+        using (var scope = Owner(w))
+        {
+            var s = await scope.ServiceProvider.GetRequiredService<GetClassSettingsHandler>().HandleAsync(default);
+            Assert.Equal(0, s.NoShowLimit);
+            Assert.Equal(0, s.MaxActiveBookings);
+        }
+
+        // Sin tope: más reservas que el máximo por defecto (5), repartidas en ocho semanas.
+        await UpdateSettingsAsync(w, new UpdateClassSettingsRequest(2, 0, 30, 7, 60, 0));
+        for (var i = 0; i < 7; i++)
+        {
+            await BookAsync(w, 0, classId, NextMonday.AddDays(7 * i));
+        }
+
+        // Sin penalización: ni siquiera con inasistencias marcadas y cancelaciones tardías.
+        using (var scope = AsMember(w, 0, NextMonday, 6))
+        {
+            var r = await scope.ServiceProvider.GetRequiredService<CancelBookingHandler>()
+                .HandleAsync(classId, NextMonday, default);
+            Assert.True(r.CountedAsNoShow);
+            Assert.Null(r.BlockedUntil);
+        }
+
+        await MarkNoShowAsync(w, classId, NextMonday.AddDays(7), w.MemberIds[0]);
+        await MarkNoShowAsync(w, classId, NextMonday.AddDays(14), w.MemberIds[0]);
+        await MarkNoShowAsync(w, classId, NextMonday.AddDays(21), w.MemberIds[0]);
+
+        using (var scope = Owner(w))
+        {
+            Assert.Empty(await scope.ServiceProvider.GetRequiredService<ListBookingBlocksHandler>().HandleAsync(default));
+        }
+
+        // La ventana sigue exigiendo al menos 1 día.
+        using (var scope = Owner(w))
+        {
+            await Assert.ThrowsAsync<ValidationDomainException>(() => scope.ServiceProvider
+                .GetRequiredService<UpdateClassSettingsHandler>()
+                .HandleAsync(new UpdateClassSettingsRequest(2, 0, 30, 7, 0, 0), default));
+        }
     }
 
     // ---------- Ventana de reserva ----------

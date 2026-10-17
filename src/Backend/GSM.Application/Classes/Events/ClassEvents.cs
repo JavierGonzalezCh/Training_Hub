@@ -21,11 +21,13 @@ public sealed record BookingPenaltyApplied(Guid MemberId, Guid GymId, DateOnly B
 public sealed record BookingPenaltyLifted(Guid MemberId, Guid GymId) : IDomainEvent;
 
 /// <summary>
-/// Publicado al cancelar una ocurrencia puntual. Hoy sin consumidores; cuando exista push, es el
-/// disparador natural del aviso a los miembros afectados.
+/// Publicado al cancelar una ocurrencia. <paramref name="AffectedMemberIds"/> son quienes tenían reserva;
+/// <paramref name="WaitlistMemberIds"/> (C4-2) quienes estaban en la lista de espera (esperando u oferta en curso),
+/// que también reciben el aviso. Un miembro no está en las dos listas a la vez.
 /// </summary>
 public sealed record ClassSessionCancelled(
-    Guid ClassId, Guid GymId, DateOnly SessionDate, IReadOnlyList<Guid> AffectedMemberIds) : IDomainEvent;
+    Guid ClassId, Guid GymId, DateOnly SessionDate, IReadOnlyList<Guid> AffectedMemberIds,
+    IReadOnlyList<Guid>? WaitlistMemberIds = null) : IDomainEvent;
 
 /// <summary>
 /// N5: el miembro reservó una plaza (o la reactivó). Notifications programa el recordatorio de 10 minutos
@@ -40,9 +42,12 @@ public sealed record ClassBooked(
     TimeOnly StartTime,
     Guid? InstructorUserId) : IDomainEvent;
 
-/// <summary>N5: el miembro canceló su reserva. Notifications cancela el recordatorio programado.</summary>
+/// <summary>
+/// N5: el miembro canceló su reserva. Notifications cancela el recordatorio programado. <paramref name="RemainingActiveBookings"/>
+/// (N5-3) son las reservas activas que le quedan a la sesión; con 0 también se cancela el recordatorio del instructor.
+/// </summary>
 public sealed record ClassBookingCancelled(
-    Guid GymId, Guid MemberId, Guid ClassId, DateOnly SessionDate) : IDomainEvent;
+    Guid GymId, Guid MemberId, Guid ClassId, DateOnly SessionDate, int? RemainingActiveBookings = null) : IDomainEvent;
 
 /// <summary>
 /// C4: se le ofreció un cupo liberado al primero de la lista de espera; tiene hasta

@@ -201,6 +201,7 @@ public sealed class CancelSessionHandler(
     IClassRepository classes,
     IClassSessionRepository sessions,
     IClassBookingRepository bookings,
+    IWaitlistRepository waitlist,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<CancelSessionHandler> logger)
@@ -225,6 +226,7 @@ public sealed class CancelSessionHandler(
             ?? await ClassSessionMaterializer.GetOrCreateAsync(sessions, unitOfWork, gymClass, date, cancellationToken);
 
         var affected = new List<Guid>();
+        var waiting = new List<Guid>();
 
         if (!session.IsCancelled)
         {
@@ -239,6 +241,9 @@ public sealed class CancelSessionHandler(
                 }
             }
 
+            // C4-2: quienes esperaban cupo también reciben el aviso, y la lista se cierra.
+            waiting = await WaitlistClosing.CloseAsync(waitlist, session.Id, cancellationToken);
+
             await unitOfWork.SaveChangesAsync(cancellationToken);
             logger.LogInformation(
                 "Sesión de la clase {ClassId} del {Date} cancelada ({Affected} reservas)",
@@ -246,7 +251,7 @@ public sealed class CancelSessionHandler(
         }
 
         await events.PublishAsync(
-            new ClassSessionCancelled(classId, gymId, date, affected), cancellationToken);
+            new ClassSessionCancelled(classId, gymId, date, affected, waiting), cancellationToken);
 
         return new ScheduleEntry(
             gymClass.Id, gymClass.Name, gymClass.Description, session.InstructorName, session.Capacity,
@@ -266,6 +271,7 @@ public sealed class CancelSessionHandler(
 public sealed class ClosedSessionCanceller(
     IClock clock,
     IClassBookingRepository bookings,
+    IWaitlistRepository waitlist,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<ClosedSessionCanceller> logger)
@@ -285,7 +291,7 @@ public sealed class ClosedSessionCanceller(
             return false;
         }
 
-        var cancelled = new List<(ClassSession Session, List<Guid> Affected)>();
+        var cancelled = new List<(ClassSession Session, List<Guid> Affected, List<Guid> Waiting)>();
 
         foreach (var session in materialized)
         {
@@ -297,7 +303,8 @@ public sealed class ClosedSessionCanceller(
 
             var active = (await bookings.ListForSessionAsync(session.Id, cancellationToken))
                 .Where(b => b.IsActive).ToList();
-            if (active.Count == 0)
+            var openWaitlist = await waitlist.ListOpenForSessionAsync(session.Id, cancellationToken);
+            if (active.Count == 0 && openWaitlist.Count == 0)
             {
                 continue;
             }
@@ -308,7 +315,9 @@ public sealed class ClosedSessionCanceller(
                 booking.CancelBySessionCancellation(clock.UtcNow);
             }
 
-            cancelled.Add((session, active.Select(b => b.MemberId).ToList()));
+            // C4-2: la lista de espera también recibe el aviso.
+            var waiting = await WaitlistClosing.CloseAsync(waitlist, session.Id, cancellationToken);
+            cancelled.Add((session, active.Select(b => b.MemberId).ToList(), waiting));
         }
 
         if (cancelled.Count == 0)
@@ -318,14 +327,14 @@ public sealed class ClosedSessionCanceller(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        foreach (var (session, affected) in cancelled)
+        foreach (var (session, affected, waiting) in cancelled)
         {
             logger.LogInformation(
                 "Sesión {SessionId} del {Date} cancelada por quedar fuera del horario del gym ({Affected} reservas)",
                 session.Id, session.SessionDate, affected.Count);
 
             await events.PublishAsync(
-                new ClassSessionCancelled(session.ClassId, gymId, session.SessionDate, affected), cancellationToken);
+                new ClassSessionCancelled(session.ClassId, gymId, session.SessionDate, affected, waiting), cancellationToken);
         }
 
         return true;

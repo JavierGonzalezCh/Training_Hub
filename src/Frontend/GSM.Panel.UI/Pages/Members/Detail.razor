@@ -125,6 +125,11 @@ else if (_member is not null)
         </MudAlert>
     }
 
+    @if (_member.IsAnonymized != true)
+    {
+        <MemberBookingBlockNotice MemberId="Id" />
+    }
+
     @if (MemberLabels.IncompleteReasons(_member.BirthDate, _member.Phone) is { Count: > 0 } reasons)
     {
         <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4" role="status">

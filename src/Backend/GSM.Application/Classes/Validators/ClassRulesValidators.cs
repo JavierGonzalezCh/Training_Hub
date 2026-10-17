@@ -9,11 +9,11 @@ public sealed class UpdateClassSettingsRequestValidator : AbstractValidator<Upda
     public UpdateClassSettingsRequestValidator()
     {
         RuleFor(x => x.CancelDeadlineHours).InclusiveBetween(0, ClassSettings.MaxCancelDeadlineHours);
-        RuleFor(x => x.NoShowLimit).InclusiveBetween(1, ClassSettings.MaxNoShowLimit);
+        RuleFor(x => x.NoShowLimit).InclusiveBetween(0, ClassSettings.MaxNoShowLimit);
         RuleFor(x => x.NoShowWindowDays).InclusiveBetween(1, ClassSettings.MaxNoShowWindowDays);
         RuleFor(x => x.NoShowBlockDays).InclusiveBetween(1, ClassSettings.MaxNoShowBlockDays);
         RuleFor(x => x.BookingWindowDays).InclusiveBetween(1, ClassSettings.MaxBookingWindowDays);
-        RuleFor(x => x.MaxActiveBookings).InclusiveBetween(1, ClassSettings.MaxActiveBookingsLimit);
+        RuleFor(x => x.MaxActiveBookings).InclusiveBetween(0, ClassSettings.MaxActiveBookingsLimit);
         RuleFor(x => x.WaitlistOfferMinutes)
             .InclusiveBetween(ClassSettings.MinWaitlistOfferMinutes, ClassSettings.MaxWaitlistOfferMinutes)
             .When(x => x.WaitlistOfferMinutes is not null);

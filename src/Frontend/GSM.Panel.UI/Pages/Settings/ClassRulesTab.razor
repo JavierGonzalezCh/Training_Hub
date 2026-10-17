@@ -16,8 +16,8 @@ else
         <MudNumericField T="int" @bind-Value="_bookingWindowDays" Label="Ventana de reserva (días)" Min="1" Max="60"
                          HelperText="Las reservas de una clase abren esta cantidad de días antes."
                          Class="mb-4" Style="max-width:420px" id="rule-booking-window" />
-        <MudNumericField T="int" @bind-Value="_maxActiveBookings" Label="Máximo de reservas activas" Min="1" Max="50"
-                         HelperText="Reservas futuras que un miembro puede tener a la vez."
+        <MudNumericField T="int" @bind-Value="_maxActiveBookings" Label="Máximo de reservas activas" Min="0" Max="50"
+                         HelperText="Reservas futuras que un miembro puede tener a la vez. 0 = sin tope."
                          Class="mb-4" Style="max-width:420px" id="rule-max-active" />
 
         <MudNumericField T="int" @bind-Value="_waitlistOfferMinutes" Label="Tiempo para confirmar un cupo (minutos)" Min="5" Max="720"
@@ -25,8 +25,8 @@ else
                          Class="mb-4" Style="max-width:420px" id="rule-waitlist-minutes" />
 
         <MudText Typo="Typo.subtitle1" Class="mb-2">Penalización por inasistencia</MudText>
-        <MudNumericField T="int" @bind-Value="_noShowLimit" Label="Inasistencias para penalizar" Min="1" Max="20"
-                         HelperText="Reservas marcadas como 'no vino' o canceladas fuera de plazo. Una reserva que nadie marcó no cuenta."
+        <MudNumericField T="int" @bind-Value="_noShowLimit" Label="Inasistencias para penalizar" Min="0" Max="20"
+                         HelperText="0 = nunca se penaliza. Reservas marcadas como 'no vino' o canceladas fuera de plazo. Una reserva que nadie marcó no cuenta."
                          Class="mb-4" Style="max-width:420px" id="rule-no-show-limit" />
         <MudNumericField T="int" @bind-Value="_noShowWindowDays" Label="Dentro de (días)" Min="1" Max="180"
                          Class="mb-4" Style="max-width:420px" id="rule-no-show-window" />

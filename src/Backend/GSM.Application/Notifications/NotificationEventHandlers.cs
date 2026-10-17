@@ -34,7 +34,8 @@ public sealed class ClassSessionCancelledCreatesNotices(
 
     public async Task HandleAsync(ClassSessionCancelled domainEvent, CancellationToken cancellationToken = default)
     {
-        if (domainEvent.AffectedMemberIds.Count == 0)
+        IReadOnlyList<Guid> waitlist = domainEvent.WaitlistMemberIds ?? Array.Empty<Guid>();
+        if (domainEvent.AffectedMemberIds.Count == 0 && waitlist.Count == 0)
         {
             return;
         }
@@ -45,8 +46,10 @@ public sealed class ClassSessionCancelledCreatesNotices(
         // La referencia es la ocurrencia (clase + día): la misma clase cancelada otro día es otro aviso.
         var reference = SessionReference(domainEvent.ClassId, domainEvent.SessionDate);
         var created = 0;
-        foreach (var memberId in domainEvent.AffectedMemberIds.Distinct())
+        var booked = domainEvent.AffectedMemberIds.Distinct().ToHashSet();
+        foreach (var memberId in booked.Concat(waitlist.Distinct().Where(id => !booked.Contains(id))))
         {
+            var onWaitlist = !booked.Contains(memberId);
             var member = await members.GetAsync(memberId, cancellationToken);
             if (member is null || member.Status != MemberStatus.Active)
             {
@@ -58,7 +61,9 @@ public sealed class ClassSessionCancelledCreatesNotices(
                         domainEvent.GymId, memberId, NotificationType.ClassCancelled, NotificationCategory.Classes,
                         reference,
                         $"{className} del {day} se canceló",
-                        "Tu reserva quedó anulada. Revisa el horario para apuntarte a otra sesión.",
+                        onWaitlist
+                            ? "Estabas en la lista de espera y la sesión se canceló. Revisa el horario para apuntarte a otra."
+                            : "Tu reserva quedó anulada. Revisa el horario para apuntarte a otra sesión.",
                         "/app/clases"),
                     sendEmail: true, cancellationToken))
             {

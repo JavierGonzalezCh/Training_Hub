@@ -158,10 +158,17 @@ public sealed class UpdateClassHandler(
     IEquipmentReader equipment,
     IClassRepository classes,
     IClassSessionRepository sessions,
+    IClassBookingRepository bookings,
+    IWaitlistRepository waitlist,
+    WaitlistService waitlistService,
     IClassEquipmentRepository equipmentLinks,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<UpdateClassHandler> logger)
 {
+    /// <summary>C5-3: motivo con que se cancelan las sesiones que quedan después del nuevo fin de la serie.</summary>
+    public const string EndedEarlyReason = "La clase terminó antes";
+
     public async Task<ClassResponse> HandleAsync(
         Guid classId, SaveClassRequest request, CancellationToken cancellationToken)
     {
@@ -172,6 +179,8 @@ public sealed class UpdateClassHandler(
 
         var previousUserId = gymClass.InstructorUserId;
         var previousName = gymClass.InstructorName;
+        var previousCapacity = gymClass.Capacity;
+        var previousEndsOn = gymClass.EndsOn;
         request = await ClassInstructor.ResolveAsync(identity, gymId, request, previousUserId, cancellationToken);
         gymClass.Update(ClassMapper.ToDraft(request));
 
@@ -180,14 +189,51 @@ public sealed class UpdateClassHandler(
 
         // C2: reasignar el instructor alcanza también a las sesiones futuras ya materializadas (el roster y
         // "Mis clases" salen de ellas); las pasadas conservan quién la dio.
+        var futureSessions = await sessions.ListFromAsync(classId, clock.Today, cancellationToken);
         if (previousUserId != gymClass.InstructorUserId || previousName != gymClass.InstructorName)
         {
-            foreach (var session in await sessions.ListFromAsync(classId, clock.Today, cancellationToken))
+            foreach (var session in futureSessions)
             {
                 if (!session.IsCancelled)
                 {
                     session.ReassignInstructor(gymClass.InstructorUserId, gymClass.InstructorName);
                 }
+            }
+        }
+
+        // C4-1: el cupo nuevo rige también en las sesiones futuras ya materializadas (las que tienen reservas o
+        // lista de espera); bajarlo nunca cancela reservas existentes.
+        var capacityChanged = previousCapacity != gymClass.Capacity;
+        if (capacityChanged)
+        {
+            foreach (var session in futureSessions.Where(s => !s.IsCancelled))
+            {
+                session.ChangeCapacity(gymClass.Capacity);
+            }
+        }
+
+        // C5-3: acortar el fin de la serie cancela las sesiones posteriores que ya tenían reservas o lista de espera.
+        var cancelledByEnd = new List<(DateOnly Date, List<Guid> Affected, List<Guid> Waiting)>();
+        if (gymClass.EndsOn is { } newEnd && (previousEndsOn is null || newEnd < previousEndsOn))
+        {
+            foreach (var session in futureSessions.Where(s => !s.IsCancelled && s.SessionDate > newEnd))
+            {
+                var active = (await bookings.ListForSessionAsync(session.Id, cancellationToken))
+                    .Where(b => b.IsActive).ToList();
+                var openWaitlist = await waitlist.ListOpenForSessionAsync(session.Id, cancellationToken);
+                if (active.Count == 0 && openWaitlist.Count == 0)
+                {
+                    continue;
+                }
+
+                session.Cancel(EndedEarlyReason);
+                foreach (var booking in active)
+                {
+                    booking.CancelBySessionCancellation(clock.UtcNow);
+                }
+
+                var waiting = await WaitlistClosing.CloseAsync(waitlist, session.Id, cancellationToken);
+                cancelledByEnd.Add((session.SessionDate, active.Select(b => b.MemberId).ToList(), waiting));
             }
         }
 
@@ -208,6 +254,24 @@ public sealed class UpdateClassHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Clase {ClassId} actualizada", gymClass.Id);
+
+        foreach (var (date, affected, waiting) in cancelledByEnd)
+        {
+            await events.PublishAsync(new ClassSessionCancelled(classId, gymId, date, affected, waiting), cancellationToken);
+        }
+
+        // C4-1: si el cupo subió, los lugares nuevos se ofrecen a la lista de espera como cuando se libera una plaza.
+        if (capacityChanged && gymClass.Capacity is not null && gymClass.Capacity > previousCapacity)
+        {
+            var candidates = futureSessions.Where(s => !s.IsCancelled).Select(s => s.Id).ToList();
+            var withWaitlist = (await waitlist.ListOpenForSessionsAsync(candidates, cancellationToken))
+                .Select(w => w.SessionId).Distinct().ToList();
+            foreach (var sessionId in withWaitlist)
+            {
+                await waitlistService.ProcessAsync(sessionId, cancellationToken);
+            }
+        }
+
         return ClassMapper.ToResponse(gymClass, equipmentItemIds: desired);
     }
 }
@@ -224,6 +288,7 @@ public sealed class DeactivateClassHandler(
     IClassRepository classes,
     IClassSessionRepository sessions,
     IClassBookingRepository bookings,
+    IWaitlistRepository waitlist,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<DeactivateClassHandler> logger)
@@ -245,7 +310,7 @@ public sealed class DeactivateClassHandler(
         var today = clock.Today;
         gymClass.Deactivate(today);
 
-        var cancelled = new List<(DateOnly Date, List<Guid> Affected)>();
+        var cancelled = new List<(DateOnly Date, List<Guid> Affected, List<Guid> Waiting)>();
         foreach (var session in await sessions.ListFromAsync(classId, today, cancellationToken))
         {
             if (session.IsCancelled)
@@ -255,7 +320,8 @@ public sealed class DeactivateClassHandler(
 
             var active = (await bookings.ListForSessionAsync(session.Id, cancellationToken))
                 .Where(b => b.IsActive).ToList();
-            if (active.Count == 0)
+            var openWaitlist = await waitlist.ListOpenForSessionAsync(session.Id, cancellationToken);
+            if (active.Count == 0 && openWaitlist.Count == 0)
             {
                 continue;
             }
@@ -266,7 +332,9 @@ public sealed class DeactivateClassHandler(
                 booking.CancelBySessionCancellation(clock.UtcNow);
             }
 
-            cancelled.Add((session.SessionDate, active.Select(b => b.MemberId).ToList()));
+            // C4-2: la lista de espera también recibe el aviso.
+            var waiting = await WaitlistClosing.CloseAsync(waitlist, session.Id, cancellationToken);
+            cancelled.Add((session.SessionDate, active.Select(b => b.MemberId).ToList(), waiting));
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -274,9 +342,9 @@ public sealed class DeactivateClassHandler(
             "Clase {ClassId} dada de baja el {Date}: {Sessions} sesiones futuras canceladas",
             gymClass.Id, gymClass.DeactivatedOn, cancelled.Count);
 
-        foreach (var (date, affected) in cancelled)
+        foreach (var (date, affected, waiting) in cancelled)
         {
-            await events.PublishAsync(new ClassSessionCancelled(classId, gymId, date, affected), cancellationToken);
+            await events.PublishAsync(new ClassSessionCancelled(classId, gymId, date, affected, waiting), cancellationToken);
         }
     }
 }

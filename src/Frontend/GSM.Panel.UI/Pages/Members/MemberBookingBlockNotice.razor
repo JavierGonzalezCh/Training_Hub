@@ -1,0 +1,89 @@
+@* Penalización de reservas vigente del miembro (Classes v2, C3-4): avisa en la ficha y deja al staff levantarla con motivo. *@
+@inject IClassBookingBlocksClient Blocks
+@inject ISnackbar Snackbar
+
+@if (_block is not null)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4" role="status" data-testid="booking-block-alert">
+        <div class="d-flex flex-wrap align-center" style="gap:0.75rem">
+            <span>No puede reservar clases hasta el @GsmFormat.Day(_block.BlockedUntil) por inasistencias.</span>
+            @if (!_lifting)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="StartLift" data-testid="booking-block-lift">
+                    Levantar penalización
+                </MudButton>
+            }
+        </div>
+        @if (_lifting)
+        {
+            <MudTextField @bind-Value="_reason" Label="Motivo" Immediate="true" Class="mt-2" Style="max-width:420px"
+                          data-testid="booking-block-reason" />
+            <div class="d-flex mt-2" style="gap:0.5rem">
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="ConfirmLiftAsync"
+                           Disabled="@(string.IsNullOrWhiteSpace(_reason) || _saving)" data-testid="booking-block-confirm">
+                    Confirmar
+                </MudButton>
+                <MudButton Size="Size.Small" OnClick="CancelLift">Cancelar</MudButton>
+            </div>
+        }
+    </MudAlert>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private BookingBlockResponse? _block;
+    private bool _lifting;
+    private bool _saving;
+    private string? _reason;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var all = await Blocks.ClassBookingBlocksAsync();
+            _block = all?.FirstOrDefault(b => b.MemberId == MemberId);
+        }
+        catch (GsmApiException)
+        {
+            // Sin la lectura de penalizaciones la ficha sigue siendo útil: el aviso simplemente no aparece.
+            _block = null;
+        }
+    }
+
+    private void StartLift()
+    {
+        _lifting = true;
+        _reason = null;
+    }
+
+    private void CancelLift() => _lifting = false;
+
+    private async Task ConfirmLiftAsync()
+    {
+        if (_block is null || string.IsNullOrWhiteSpace(_reason))
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await Blocks.LiftAsync(_block.Id, new LiftBookingBlockRequest { Reason = _reason.Trim() });
+            Snackbar.Add("Penalización levantada.", Severity.Success);
+            _block = null;
+            _lifting = false;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

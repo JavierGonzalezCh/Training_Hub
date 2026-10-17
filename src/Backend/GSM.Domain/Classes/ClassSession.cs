@@ -75,6 +75,12 @@ public sealed class ClassSession : BaseEntity, ITenantEntity
         InstructorName = instructorName;
     }
 
+    /// <summary>
+    /// C4-1: propaga el cupo nuevo de la clase a una sesión futura ya materializada. Bajarlo nunca cancela
+    /// reservas existentes: la sesión queda por encima de su cupo hasta que alguien cancele.
+    /// </summary>
+    public void ChangeCapacity(int? capacity) => Capacity = capacity;
+
     public void Cancel(string? reason)
     {
         Status = ClassSessionStatus.Cancelled;

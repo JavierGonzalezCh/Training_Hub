@@ -2,6 +2,7 @@ using System.Reflection;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Panel.UI.Pages.Classes;
+using GSM.Panel.UI.Pages.Members;
 using GSM.Panel.UI.Pages.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
@@ -82,5 +83,56 @@ public class ClassBookingRulesUiTests : TestContext
 
         provider.WaitForAssertion(() =>
             Assert.True(provider.Find("#lift-confirm").HasAttribute("disabled")));
+    }
+    [Fact]
+    public void The_member_page_shows_an_active_penalty_and_staff_can_lift_it_with_a_reason()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var memberId = Guid.NewGuid();
+        var blockId = Guid.NewGuid();
+        var proxy = DispatchProxy.Create<IClassBookingBlocksClient, FakeClient>();
+        var fake = (FakeClient)(object)proxy;
+        fake.Handlers["ClassBookingBlocksAsync"] = _ => new List<BookingBlockResponse>
+        {
+            new() { Id = Guid.NewGuid(), MemberId = Guid.NewGuid(), MemberName = "Otra Persona", BlockedUntil = new DateOnly(2026, 10, 20), StrikeCount = 3 },
+            new() { Id = blockId, MemberId = memberId, MemberName = "Ana Pérez", BlockedUntil = new DateOnly(2026, 10, 20), StrikeCount = 3 },
+        };
+        fake.Handlers["LiftAsync"] = _ => null;
+        Services.AddSingleton(proxy);
+        RenderComponent<MudPopoverProvider>();
+
+        var cut = RenderComponent<MemberBookingBlockNotice>(p => p.Add(x => x.MemberId, memberId));
+
+        cut.WaitForAssertion(() => Assert.Contains("No puede reservar clases hasta el", cut.Markup));
+        cut.Find("[data-testid=booking-block-lift]").Click();
+        Assert.True(cut.Find("[data-testid=booking-block-confirm]").HasAttribute("disabled"));
+
+        cut.Find("[data-testid=booking-block-reason]").Input("Estuvo hospitalizado");
+        cut.Find("[data-testid=booking-block-confirm]").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var lift = Assert.Single(fake.Calls, c => c.Method == "LiftAsync");
+            Assert.Equal(blockId, lift.Args[0]);
+            Assert.Empty(cut.FindAll("[data-testid=booking-block-alert]"));
+        });
+    }
+
+    [Fact]
+    public void The_member_page_shows_nothing_without_a_penalty()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var proxy = DispatchProxy.Create<IClassBookingBlocksClient, FakeClient>();
+        var fake = (FakeClient)(object)proxy;
+        fake.Handlers["ClassBookingBlocksAsync"] = _ => new List<BookingBlockResponse>();
+        Services.AddSingleton(proxy);
+        RenderComponent<MudPopoverProvider>();
+
+        var cut = RenderComponent<MemberBookingBlockNotice>(p => p.Add(x => x.MemberId, Guid.NewGuid()));
+
+        cut.WaitForState(() => fake.Calls.Any(c => c.Method == "ClassBookingBlocksAsync"));
+        Assert.Empty(cut.FindAll("[data-testid=booking-block-alert]"));
     }
 }
