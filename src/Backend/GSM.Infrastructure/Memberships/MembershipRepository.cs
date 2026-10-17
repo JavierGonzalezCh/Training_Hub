@@ -1,3 +1,4 @@
+using GSM.Application.Memberships;
 using GSM.Application.Memberships.Abstractions;
 using GSM.Domain.Memberships;
 using GSM.Infrastructure.Persistence;
@@ -73,12 +74,15 @@ public sealed class MembershipRepository(GsmDbContext dbContext) : IMembershipRe
     {
         var limit = today.AddDays(withinDays);
         var freezes = Freezes;
+        var usages = PassUsages;
 
         // Una membresía congelada hoy no está "por vencer": su fin se corre al reanudar.
         return await Memberships
             .Where(m => m.Status == MembershipStatus.Active
                 && m.EndDate >= today
-                && m.EndDate <= limit
+                && (m.EndDate <= limit
+                    || (m.EntriesTotal != null
+                        && m.EntriesTotal.Value - usages.Count(u => u.MembershipId == m.Id) <= CommercialStatusCalculator.PassLowEntries))
                 && !freezes.Any(f => f.MembershipId == m.Id && f.StartsOn <= today && (f.EndsOn == null || f.EndsOn >= today)))
             .OrderBy(m => m.EndDate)
             .Join(Plans, m => m.PlanId, p => p.Id,

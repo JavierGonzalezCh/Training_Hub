@@ -55,8 +55,19 @@ public sealed class PushDeliveryPlanner(
         }
         else if (notification.RequiresAction)
         {
-            var userIds = await staffPreferences.GetUserIdsWithPushAsync(
-                notification.GymId, notification.Type, cancellationToken);
+            var userIds = (await staffPreferences.GetUserIdsWithPushAsync(
+                notification.GymId, notification.Type, cancellationToken)).ToList();
+
+            // A7-1: el push del intento rechazado viene encendido para el Owner mientras no lo apague: se suman los
+            // Owners activos sin preferencia guardada (con fila manda su elección, ya sea en la lista o no).
+            if (StaffNotificationPreference.DefaultPush(notification.Type, isOwner: true))
+            {
+                var owners = (await identity.ListActiveOwnersAsync(notification.GymId, cancellationToken))
+                    .Select(o => o.UserId).ToList();
+                var saved = await staffPreferences.GetForUsersAsync(notification.GymId, owners, cancellationToken);
+                userIds.AddRange(owners.Where(id => !saved.ContainsKey((id, notification.Type)) && !userIds.Contains(id)));
+            }
+
             // N1b: un aviso con permisos requeridos solo va a quien los tenga (el Owner siempre).
             IReadOnlySet<Guid>? allowed = null;
             if (notification.RequiredPermissions is { Length: > 0 } required)

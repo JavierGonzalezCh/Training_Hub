@@ -29416,7 +29416,8 @@
           "mode",
           "code",
           "expiresAtUtc",
-          "byDocument"
+          "byDocument",
+          "qrDisabled"
         ],
         "type": "object",
         "properties": {
@@ -29434,6 +29435,9 @@
             "format": "date-time"
           },
           "byDocument": {
+            "type": "boolean"
+          },
+          "qrDisabled": {
             "type": "boolean"
           }
         }

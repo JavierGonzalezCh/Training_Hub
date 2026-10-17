@@ -1,4 +1,5 @@
 ﻿using GSM.Application.Common.Abstractions;
+using GSM.Application.Members.Public;
 using GSM.Application.Memberships;
 using GSM.Application.Memberships.Public;
 using GSM.Domain.Memberships;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GSM.Infrastructure.Memberships;
 
 /// <summary>Lectura para otros módulos. Respeta el Global Query Filter (datos de tenant).</summary>
-public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMembershipReader
+public sealed class MembershipReader(GsmDbContext dbContext, IClock clock, IMemberReader members) : IMembershipReader
 {
     private IQueryable<Membership> Memberships => dbContext.Set<Membership>();
 
@@ -160,7 +161,10 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
             .ToListAsync(cancellationToken);
 
         var computed = await ComputeAsync(rows, cancellationToken);
-        return computed.Count(kv => kv.Value.CountsTowardMemberLimit());
+
+        // S2-3: un miembro desactivado no cuenta para el límite aunque conserve una membresía vigente.
+        var active = (await members.GetActiveMemberIdsAsync(gymId, cancellationToken)).ToHashSet();
+        return computed.Count(kv => kv.Value.CountsTowardMemberLimit() && active.Contains(kv.Key));
     }
 
     private static IReadOnlyList<FreezeSpan> FreezesOf(IReadOnlyList<MembershipFreeze> freezes, Guid membershipId)
@@ -238,10 +242,16 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
         var today = clock.Today;
         var limit = today.AddDays(withinDays);
 
+        var usages = dbContext.Set<PassUsage>();
+
+        // MS5-4: además de las que vencen por fecha, las tiqueteras vigentes con pocas entradas restantes.
         return await NotFrozenOn(today)
             .Where(m => m.GymId == gymId
                 && m.Status == MembershipStatus.Active
-                && m.EndDate >= today && m.EndDate <= limit)
+                && m.EndDate >= today
+                && (m.EndDate <= limit
+                    || (m.EntriesTotal != null
+                        && m.EntriesTotal.Value - usages.Count(u => u.MembershipId == m.Id) <= CommercialStatusCalculator.PassLowEntries)))
             .OrderBy(m => m.EndDate)
             .Join(Plans, m => m.PlanId, p => p.Id,
                 (m, p) => new { m.Id, m.MemberId, p.Name, m.EndDate })
@@ -305,10 +315,14 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock) : IMe
     {
         var today = clock.Today;
         var limit = today.AddDays(withinDays);
+        var usages = dbContext.Set<PassUsage>();
         return NotFrozenOn(today).CountAsync(
             m => m.GymId == gymId
                 && m.Status == MembershipStatus.Active
-                && m.EndDate >= today && m.EndDate <= limit,
+                && m.EndDate >= today
+                && (m.EndDate <= limit
+                    || (m.EntriesTotal != null
+                        && m.EntriesTotal.Value - usages.Count(u => u.MembershipId == m.Id) <= CommercialStatusCalculator.PassLowEntries)),
             cancellationToken);
     }
 

@@ -53,7 +53,7 @@ else if (_dashboard is { } d)
             <MudTh>Gym</MudTh>
             <MudTh>Estado</MudTh>
             <MudTh>Miembros (límite)</MudTh>
-            <MudTh>Check-ins del mes</MudTh>
+            <MudTh title="Personas distintas que entraron en el mes.">Personas que entraron</MudTh>
             <MudTh>Ingresos del mes</MudTh>
             <MudTh>Última visita</MudTh>
         </HeaderContent>
@@ -71,7 +71,7 @@ else if (_dashboard is { } d)
             <MudTd DataLabel="Miembros (límite)" Class="gsm-mono">
                 @(context.CountedMembers is { } counted ? SuperAdminLabels.MemberUsage(counted, context.MemberLimit) : context.ActiveMembers.ToString())
             </MudTd>
-            <MudTd DataLabel="Check-ins del mes">@context.CheckInsThisMonth</MudTd>
+            <MudTd DataLabel="Personas que entraron">@context.CheckInsThisMonth</MudTd>
             <MudTd DataLabel="Ingresos del mes" Class="gsm-mono">@GsmFormat.Money((decimal)context.MemberRevenueThisMonth)</MudTd>
             <MudTd DataLabel="Última visita">
                 @(context.LastCheckIn is { } d2 ? GsmFormat.Day(d2) : "—")
@@ -96,7 +96,7 @@ else if (_dashboard is { } d)
             <StatCard Label="Miembros activos" Value="@d.Platform.ActiveMembers.ToString()" />
         </MudItem>
         <MudItem xs="12" sm="4">
-            <StatCard Label="Check-ins del mes" Value="@d.Platform.CheckInsThisMonth.ToString()" />
+            <StatCard Label="Personas que entraron en el mes" Value="@d.Platform.CheckInsThisMonth.ToString()" />
         </MudItem>
     </MudGrid>
 }

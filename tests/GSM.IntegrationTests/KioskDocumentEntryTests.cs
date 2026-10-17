@@ -69,6 +69,21 @@ public sealed class KioskDocumentEntryTests(ApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task The_document_entry_works_even_when_the_qr_checkin_is_off()
+    {
+        var w = await SeedAsync(documentOn: true, qrOn: false);
+        await using var host = RealIdentityHost();
+        var kiosk = await PairedKioskAsync(host, w.OwnerEmail);
+
+        var code = await kiosk.GetAsync("/api/attendance/kiosk-code");
+        Assert.Equal(HttpStatusCode.OK, code.StatusCode);
+        Assert.Contains("\"qrDisabled\":true", await code.Content.ReadAsStringAsync());
+
+        var response = await kiosk.PostAsJsonAsync(Path, new { document = w.Document });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Unknown_other_gym_and_blocked_documents_get_the_same_rejection_without_revealing_anything()
     {
         var w = await SeedAsync(documentOn: true);
@@ -225,7 +240,7 @@ public sealed class KioskDocumentEntryTests(ApiFactory factory) : IClassFixture<
 
     private static string NewDocument() => Random.Shared.NextInt64(10_000_000, 99_999_999).ToString();
 
-    private async Task<World> SeedAsync(bool documentOn)
+    private async Task<World> SeedAsync(bool documentOn, bool qrOn = true)
     {
         using var scope = factory.CreateScopeWithMigration();
         scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
@@ -235,7 +250,13 @@ public sealed class KioskDocumentEntryTests(ApiFactory factory) : IClassFixture<
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var gym = Gym.Create("Doc Gym", $"doc-{suffix}");
-        db.AddRange(gym, GymFeatureFlags.Default(gym.Id));
+        var flags = GymFeatureFlags.Default(gym.Id);
+        if (!qrOn)
+        {
+            flags.Update(true, true, true, true, true, false, false);
+        }
+
+        db.AddRange(gym, flags);
 
         var document = NewDocument();
         var member = Member.Create(gym.Id, "Ana", "Prueba", document, today.AddDays(-9000));

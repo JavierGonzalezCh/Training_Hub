@@ -117,6 +117,12 @@ public enum NotificationType
 
     /// <summary>C3-5: el staff levantó la penalización; ya puede reservar. Referencia: miembro + día en que se levantó.</summary>
     BookingPenaltyLifted,
+
+    /// <summary>
+    /// MS5-5: un check-in gastó la última entrada de la tiquetera ("renueva en recepción para seguir entrando").
+    /// Categoría Membresía, sin correo. Referencia: la membresía (tiquetera).
+    /// </summary>
+    PassExhausted,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

@@ -62,6 +62,16 @@ public sealed class MembershipFreezeTests(ApiFactory factory) : IClassFixture<Ap
     }
 
     [Fact]
+    public async Task A_new_plan_without_freeze_days_is_born_with_thirty()
+    {
+        var (gymId, ownerId, _) = await SeedAsync();
+        using var scope = Actor(gymId, ownerId, UserRole.Owner, Day);
+        var plan = await scope.ServiceProvider.GetRequiredService<CreatePlanHandler>().HandleAsync(
+            new CreatePlanRequest($"Mensual {Guid.NewGuid():N}"[..20], null, 80000m, 30), default);
+        Assert.Equal(30, plan.MaxFreezeDays);
+    }
+
+    [Fact]
     public async Task Only_the_owner_can_override_the_limit_and_it_is_recorded()
     {
         var (gymId, ownerId, memberId) = await SeedAsync();

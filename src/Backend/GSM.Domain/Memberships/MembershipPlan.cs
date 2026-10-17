@@ -59,6 +59,9 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
 
     public const int DefaultMinFreezeDays = 1;
 
+    /// <summary>Días de congelamiento con que nace un plan nuevo (MS4-1); el Owner lo puede dejar en 0.</summary>
+    public const int DefaultMaxFreezeDays = 30;
+
     public const int MaxEntries = 1000;
 
     public const int MaxFreezeDaysLimit = 365;
@@ -69,7 +72,7 @@ public sealed class MembershipPlan : BaseEntity, ITenantEntity
 
     public static MembershipPlan Create(
         Guid gymId, string name, string? description, decimal price, int durationValue,
-        DurationUnit durationUnit = DurationUnit.Days, int maxFreezeDays = 0, int minFreezeDays = DefaultMinFreezeDays,
+        DurationUnit durationUnit = DurationUnit.Days, int maxFreezeDays = DefaultMaxFreezeDays, int minFreezeDays = DefaultMinFreezeDays,
         PlanKind kind = PlanKind.Time, int? entries = null, int seats = 1)
     {
         if (gymId == Guid.Empty)

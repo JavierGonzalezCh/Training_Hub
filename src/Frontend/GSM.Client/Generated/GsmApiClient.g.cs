@@ -47530,6 +47530,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("byDocument")]
         public bool ByDocument { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("qrDisabled")]
+        public bool QrDisabled { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

@@ -9,6 +9,9 @@ public sealed record MembershipCreated(
 public sealed record MembershipRenewed(
     Guid MembershipId, Guid MemberId, Guid GymId, Guid PlanId, Guid PreviousMembershipId) : IDomainEvent;
 
+/// <summary>MS5-5: un check-in gastó la última entrada de una tiquetera (le quedan 0).</summary>
+public sealed record PassExhausted(Guid MembershipId, Guid MemberId, Guid GymId) : IDomainEvent;
+
 public sealed record MembershipCancelled(Guid MembershipId, Guid MemberId, Guid GymId) : IDomainEvent;
 
 /// <summary>
