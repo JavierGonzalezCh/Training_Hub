@@ -12327,6 +12327,56 @@
         }
       }
     },
+    "/api/gym/subscription": {
+      "get": {
+        "tags": [
+          "Gym"
+        ],
+        "operationId": "OwnSubscription",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnSubscriptionResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnSubscriptionResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gym/billing-contact": {
       "get": {
         "tags": [
@@ -26511,7 +26561,7 @@
           "nit",
           "phone",
           "email",
-          "plan",
+          "saasPlanId",
           "owner"
         ],
         "type": "object",
@@ -26540,8 +26590,12 @@
               "string"
             ]
           },
-          "plan": {
-            "$ref": "#/components/schemas/GymPlan"
+          "saasPlanId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           },
           "owner": {
             "$ref": "#/components/schemas/CreateGymOwner"
@@ -28843,9 +28897,6 @@
           }
         }
       },
-      "GymPlan": {
-        "type": "integer"
-      },
       "GymResponse": {
         "required": [
           "id",
@@ -28859,7 +28910,6 @@
           "secondaryColor",
           "capacity",
           "isActive",
-          "plan",
           "status",
           "ownerId",
           "createdAt",
@@ -28928,9 +28978,6 @@
           },
           "isActive": {
             "type": "boolean"
-          },
-          "plan": {
-            "type": "string"
           },
           "status": {
             "type": "string"
@@ -33098,6 +33145,126 @@
           },
           "hasUnsafeIssue": {
             "type": "boolean"
+          }
+        }
+      },
+      "OwnSubscriptionPayment": {
+        "required": [
+          "id",
+          "amount",
+          "method",
+          "coversFrom",
+          "coversThrough",
+          "paidAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "method": {
+            "type": "string"
+          },
+          "coversFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "coversThrough": {
+            "type": "string",
+            "format": "date"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OwnSubscriptionResponse": {
+        "required": [
+          "plan",
+          "monthlyPrice",
+          "effectiveStatus",
+          "suspensionReason",
+          "trialEndsOn",
+          "paidThrough",
+          "daysUntilDisabled",
+          "memberLimit",
+          "countedMembers",
+          "recentPayments"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          },
+          "monthlyPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "effectiveStatus": {
+            "type": "string"
+          },
+          "suspensionReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trialEndsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "paidThrough": {
+            "type": "string",
+            "format": "date"
+          },
+          "daysUntilDisabled": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "memberLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "countedMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "recentPayments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnSubscriptionPayment"
+            }
           }
         }
       },
@@ -40037,14 +40204,10 @@
       },
       "UpdateSubscriptionRequest": {
         "required": [
-          "plan",
           "monthlyPrice"
         ],
         "type": "object",
         "properties": {
-          "plan": {
-            "$ref": "#/components/schemas/GymPlan"
-          },
           "monthlyPrice": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [

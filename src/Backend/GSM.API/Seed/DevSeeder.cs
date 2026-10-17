@@ -41,6 +41,7 @@ public static class DevSeeder
                 Nit: "900123456-7",
                 Phone: "3000000000",
                 Email: "contacto@demo.local",
+                SaasPlanId: null,
                 Owner: new CreateGymOwner("owner@demo.local", "Demo Owner"),
                 TrialDays: 30),
             "ChangeMe_123456",

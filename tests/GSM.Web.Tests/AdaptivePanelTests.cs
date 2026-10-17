@@ -101,7 +101,7 @@ public class AdaptivePanelTests : TestContext
 
         var titles = registry.GetSettingsSections(user).Select(s => s.Title).ToArray();
 
-        Assert.Equal(["Datos del gym", "Módulos", "Horario", "Suscripción", "Check-in", "Autorizaciones", "Privacidad", "Comunicaciones", "Reservas de clases", "Avisos", "Rutinas", "Staff", "Kioscos", "Logros del gym", "Máquinas y fallas"], titles);
+        Assert.Equal(["Datos del gym", "Módulos", "Horario", "Suscripción", "Membresías", "Check-in", "Autorizaciones", "Privacidad", "Comunicaciones", "Reservas de clases", "Avisos", "Rutinas", "Equipos", "Staff", "Kioscos", "Logros del gym", "Máquinas y fallas"], titles);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class AdaptivePanelTests : TestContext
         var groups = registry.GetSettingsGroups(user);
 
         Assert.Equal(
-            ["Gym", "Equipo", "Entrada al gym", "Rutinas", "Clases", "Comunicaciones", "Logros", "Miembros", "Módulos", "Otros"],
+            ["Gym", "Equipo", "Membresías", "Entrada al gym", "Rutinas", "Equipos", "Clases", "Comunicaciones", "Logros", "Miembros", "Módulos", "Otros"],
             groups.Select(g => g.Name).ToArray());
         Assert.Equal(["Datos del gym", "Horario", "Suscripción"], groups.Single(g => g.Name == "Gym").Sections.Select(s => s.Title).ToArray());
         Assert.Equal(["Check-in", "Kioscos"], groups.Single(g => g.Name == "Entrada al gym").Sections.Select(s => s.Title).ToArray());

@@ -21908,6 +21908,16 @@ namespace GSM.Client.Generated
                             return objectResponse_.Object;
                         }
                         else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
                         {
                             var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
                             throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
@@ -49601,84 +49611,6 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class OwnSubscriptionResponse
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("plan")]
-        public string Plan { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("monthlyPrice")]
-        public double MonthlyPrice { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("effectiveStatus")]
-        public string EffectiveStatus { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("suspensionReason")]
-        public string? SuspensionReason { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("trialEndsOn")]
-        public System.DateOnly? TrialEndsOn { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("paidThrough")]
-        public System.DateOnly PaidThrough { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("daysUntilDisabled")]
-        public int? DaysUntilDisabled { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("memberLimit")]
-        public int? MemberLimit { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("countedMembers")]
-        public int CountedMembers { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("recentPayments")]
-        public System.Collections.Generic.ICollection<OwnSubscriptionPayment> RecentPayments { get; set; } = new System.Collections.ObjectModel.Collection<OwnSubscriptionPayment>();
-
-        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class OwnSubscriptionPayment
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public System.Guid Id { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("amount")]
-        public double Amount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("method")]
-        public string Method { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("coversFrom")]
-        public System.DateOnly CoversFrom { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("coversThrough")]
-        public System.DateOnly CoversThrough { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("paidAt")]
-        public System.DateTimeOffset PaidAt { get; set; } = default!;
-
-        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class MeResponse
     {
 
@@ -50521,6 +50453,84 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("hasUnsafeIssue")]
         public bool HasUnsafeIssue { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class OwnSubscriptionPayment
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("amount")]
+        public double Amount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("method")]
+        public string Method { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("coversFrom")]
+        public System.DateOnly CoversFrom { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("coversThrough")]
+        public System.DateOnly CoversThrough { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("paidAt")]
+        public System.DateTimeOffset PaidAt { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class OwnSubscriptionResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("plan")]
+        public string Plan { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("monthlyPrice")]
+        public double MonthlyPrice { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("effectiveStatus")]
+        public string EffectiveStatus { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("suspensionReason")]
+        public string? SuspensionReason { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("trialEndsOn")]
+        public System.DateOnly? TrialEndsOn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("paidThrough")]
+        public System.DateOnly PaidThrough { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("daysUntilDisabled")]
+        public int? DaysUntilDisabled { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberLimit")]
+        public int? MemberLimit { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("countedMembers")]
+        public int CountedMembers { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recentPayments")]
+        public System.Collections.Generic.ICollection<OwnSubscriptionPayment> RecentPayments { get; set; } = new System.Collections.ObjectModel.Collection<OwnSubscriptionPayment>();
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

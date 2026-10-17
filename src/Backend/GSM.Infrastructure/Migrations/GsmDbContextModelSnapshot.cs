@@ -53,7 +53,6 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_issue_status", new[] { "open", "in_progress", "resolved", "dismissed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_status", new[] { "available", "maintenance", "out_of_service" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_type", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_plan", new[] { "basic", "pro", "enterprise" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_access_audit_action", new[] { "invited", "profile_changed", "permission_granted", "permission_revoked", "link_copied", "owner_added", "owner_promoted", "owner_removed", "owner_demoted" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_permission", new[] { "view_member_health", "trainer", "manage_attendance", "void_payments", "view_finances" });
@@ -1807,10 +1806,6 @@ namespace GSM.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("phone");
-
-                    b.Property<GymPlan>("Plan")
-                        .HasColumnType("gyms.gym_plan")
-                        .HasColumnName("plan");
 
                     b.Property<string>("PrimaryColor")
                         .IsRequired()
@@ -4528,10 +4523,6 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<DateOnly>("PaidThrough")
                         .HasColumnType("date")
                         .HasColumnName("paid_through");
-
-                    b.Property<GymPlan>("Plan")
-                        .HasColumnType("gyms.gym_plan")
-                        .HasColumnName("plan");
 
                     b.Property<Guid?>("SaasPlanId")
                         .HasColumnType("uuid")

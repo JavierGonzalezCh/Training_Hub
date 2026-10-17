@@ -34,7 +34,7 @@ else if (_data is { } s)
         <tbody>
             <tr>
                 <td>Precio mensual</td>
-                <td data-testid="subscription-price">@GsmFormat.Money(s.MonthlyPrice)</td>
+                <td data-testid="subscription-price">@GsmFormat.Money((decimal)s.MonthlyPrice)</td>
             </tr>
             @if (s.EffectiveStatus == "Trial" && s.TrialEndsOn is { } trialEnd)
             {

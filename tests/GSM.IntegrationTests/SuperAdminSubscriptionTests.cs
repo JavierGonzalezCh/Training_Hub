@@ -1,6 +1,7 @@
 ﻿using GSM.Application.Gyms;
 using GSM.Application.Gyms.Contracts;
 using GSM.Application.SuperAdmin;
+using GSM.Application.SuperAdmin.Abstractions;
 using GSM.Application.SuperAdmin.Contracts;
 using GSM.Application.SuperAdmin.Public;
 using GSM.Domain.Gyms;

@@ -277,6 +277,17 @@ public class KioskDeviceUiTests : TestContext
         Assert.EndsWith("/kiosk/emparejar?revocado=1", Services.GetRequiredService<FakeNavigationManager>().Uri);
     }
 
+    /// <summary>
+    /// La pantalla carga los ajustes y la marca del gym en segundo plano: bajo la carga de la suite completa tarda más
+    /// que el segundo por defecto de bUnit, así que se espera el teclado antes de escribir.
+    /// </summary>
+    private IRenderedComponent<Kiosk> RenderKeypad()
+    {
+        var cut = RenderComponent<Kiosk>();
+        cut.WaitForElement("button[data-testid='kiosk-key-enter']", TimeSpan.FromSeconds(10));
+        return cut;
+    }
+
     private static void Type(IRenderedComponent<Kiosk> cut, string digits)
     {
         foreach (var d in digits)
@@ -325,11 +336,12 @@ public class KioskDeviceUiTests : TestContext
     {
         var (_, attendance, _) = Setup(GsmRoles.Kiosk);
         attendance.ByDocument = true;
-        var cut = RenderComponent<Kiosk>();
+        var cut = RenderKeypad();
 
         Type(cut, "1234567");
         cut.Find("button[data-testid='kiosk-key-enter']").Click();
 
+        cut.WaitForElement("[data-testid='kiosk-doc-welcome']", TimeSpan.FromSeconds(10));
         Assert.Equal(["1234567"], attendance.Documents);
         var welcome = cut.Find("[data-testid='kiosk-doc-welcome']").TextContent;
         Assert.Contains("Ana", welcome);
@@ -343,11 +355,12 @@ public class KioskDeviceUiTests : TestContext
         var (_, attendance, _) = Setup(GsmRoles.Kiosk);
         attendance.ByDocument = true;
         attendance.DocumentFailWith = 409;
-        var cut = RenderComponent<Kiosk>();
+        var cut = RenderKeypad();
 
         Type(cut, "99999999");
         cut.Find("button[data-testid='kiosk-key-enter']").Click();
 
+        cut.WaitForElement("[data-testid='kiosk-doc-rejected']", TimeSpan.FromSeconds(10));
         Assert.Equal(
             "No pudimos registrar tu entrada. Comunícate con un asesor.",
             cut.Find("[data-testid='kiosk-doc-rejected']").TextContent);
@@ -360,12 +373,12 @@ public class KioskDeviceUiTests : TestContext
         var (_, attendance, _) = Setup(GsmRoles.Kiosk);
         attendance.ByDocument = true;
         attendance.DocumentFailWith = 429;
-        var cut = RenderComponent<Kiosk>();
+        var cut = RenderKeypad();
 
         Type(cut, "99999999");
         cut.Find("button[data-testid='kiosk-key-enter']").Click();
 
-        Assert.NotNull(cut.Find("[data-testid='kiosk-doc-locked']"));
+        cut.WaitForElement("[data-testid='kiosk-doc-locked']", TimeSpan.FromSeconds(10));
         Assert.True(cut.Find("button[data-testid='kiosk-key-5']").HasAttribute("disabled"));
         Assert.True(cut.Find("button[data-testid='kiosk-key-enter']").HasAttribute("disabled"));
     }
