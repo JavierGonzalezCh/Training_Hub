@@ -6,6 +6,7 @@ using GSM.Domain.Attendance;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Notifications;
+using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
