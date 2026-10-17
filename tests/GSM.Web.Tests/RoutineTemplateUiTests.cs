@@ -1,6 +1,10 @@
 using System.Reflection;
+using System.Security.Claims;
 using Bunit;
+using GSM.Client;
 using GSM.Client.Generated;
+using GSM.UI.Shared.Auth;
+using Microsoft.AspNetCore.Components.Authorization;
 using GSM.Panel.UI.Navigation.Modules;
 using GSM.Panel.UI.Pages.Members;
 using Microsoft.Extensions.DependencyInjection;
@@ -63,6 +67,44 @@ public class RoutineTemplateUiTests : TestContext
             Assert.Contains("Semanal", page.Markup);
             Assert.Contains("Rotativo", page.Markup);
         });
+    }
+
+    private IRenderedComponent<TemplatesIndex> RenderListAs(string role, params string[] permissions)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var (client, fake) = Fake<IRoutineTemplatesClient>();
+        fake.Handlers["ListRoutineTemplatesAsync"] = _ => new List<RoutineTemplateListItem> { Item("Fuerza 3 días") };
+        Services.AddSingleton(client);
+        RenderComponent<MudPopoverProvider>();
+
+        var claims = new List<Claim> { new(ClaimTypes.Name, "ana"), new(ClaimTypes.Role, role) };
+        claims.AddRange(permissions.Select(p => new Claim(GsmAuthenticationStateProvider.PermissionClaim, p)));
+        var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "test", ClaimTypes.Name, ClaimTypes.Role));
+        return RenderComponent<TemplatesIndex>(p => p.AddCascadingValue(Task.FromResult(new AuthenticationState(user))));
+    }
+
+    [Fact]
+    public void Only_the_owner_and_staff_with_the_trainer_permission_see_the_delete_button()
+    {
+        var plain = RenderListAs("staff");
+        plain.WaitForAssertion(() => Assert.Contains("Fuerza 3 días", plain.Markup));
+        Assert.Empty(plain.FindAll("[data-testid^='template-delete-']"));
+        Assert.NotEmpty(plain.FindAll("[data-testid^='template-edit-']"));
+    }
+
+    [Fact]
+    public void A_trainer_sees_the_delete_button()
+    {
+        var trainer = RenderListAs("staff", GsmPermissions.Trainer);
+        trainer.WaitForAssertion(() => Assert.NotEmpty(trainer.FindAll("[data-testid^='template-delete-']")));
+    }
+
+    [Fact]
+    public void The_owner_sees_the_delete_button()
+    {
+        var owner = RenderListAs("owner");
+        owner.WaitForAssertion(() => Assert.NotEmpty(owner.FindAll("[data-testid^='template-delete-']")));
     }
 
     [Fact]

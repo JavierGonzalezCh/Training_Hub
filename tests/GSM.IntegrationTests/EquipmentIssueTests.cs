@@ -294,6 +294,49 @@ public sealed class EquipmentIssueTests(ApiFactory factory) : IClassFixture<ApiF
     }
 
     [Fact]
+    public async Task Making_a_machine_available_can_close_its_open_reports_in_the_same_step()
+    {
+        var w = await SeedAsync(2);
+        await using var host = RealIdentityHost();
+        var staff = await LoggedInAsync(host, w.StaffEmail);
+        var a = await LoggedInAsync(host, w.Members[0].Email);
+        var b = await LoggedInAsync(host, w.Members[1].Email);
+        var fixedMachine = await CreateMachineAsync(staff, "Prensa 45");
+        var untouched = await CreateMachineAsync(staff, "Remo 3");
+
+        await ReportAsync(a, fixedMachine, "NotWorking");
+        await ReportAsync(b, fixedMachine, "StrangeNoise");
+        await ReportAsync(a, untouched, "NotWorking");
+        Assert.Equal(HttpStatusCode.OK,
+            (await staff.PostAsJsonAsync($"/api/equipment/{fixedMachine}/status", new { status = "Maintenance", reason = "Revisión" })).StatusCode);
+
+        // Sin la casilla, volver a disponible no toca los reportes.
+        Assert.Equal(HttpStatusCode.OK,
+            (await staff.PostAsJsonAsync($"/api/equipment/{untouched}/status", new { status = "Maintenance", reason = "Revisión" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,
+            (await staff.PostAsJsonAsync($"/api/equipment/{untouched}/status", new { status = "Available" })).StatusCode);
+        Assert.Single(await IssuesAsync(w.GymId), i => i.ItemId == untouched && !i.IsClosed);
+
+        // Con la casilla, se resuelven los de esa máquina (y solo los de esa).
+        Assert.Equal(HttpStatusCode.OK,
+            (await staff.PostAsJsonAsync($"/api/equipment/{fixedMachine}/status", new { status = "Available", closeOpenIssues = true })).StatusCode);
+
+        var issues = await IssuesAsync(w.GymId);
+        Assert.All(issues.Where(i => i.ItemId == fixedMachine), i =>
+        {
+            Assert.Equal(EquipmentIssueStatus.Resolved, i.Status);
+            Assert.False(string.IsNullOrWhiteSpace(i.Resolution));
+        });
+        Assert.Single(issues, i => i.ItemId == untouched && !i.IsClosed);
+
+        // Cada miembro que reportó recibe «tu reporte se resolvió» y el aviso de la campana de esa máquina se atiende.
+        Assert.Equal(2, (await NoticesAsync(w.GymId, NotificationType.EquipmentIssueResolved)).Count);
+        var bell = await NoticesAsync(w.GymId, NotificationType.EquipmentIssueReported);
+        Assert.Contains(bell, n => n.ResolvedAt is not null);
+        Assert.Contains(bell, n => n.ResolvedAt is null);
+    }
+
+    [Fact]
     public async Task A_dismissed_report_clears_the_bell_but_does_not_notify_the_member()
     {
         var w = await SeedAsync(1);

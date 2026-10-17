@@ -154,6 +154,69 @@ public sealed class ExerciseMediaTests(ApiFactory factory) : IClassFixture<ApiFa
         }
     }
 
+    [Fact]
+    public async Task Removing_the_video_empties_it_and_deletes_the_file_unless_a_duplicate_still_uses_it()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var gymId = Guid.CreateVersion7();
+        var storage = new FakeStorage();
+        try
+        {
+            using var scope = Staff(gymId);
+            var id = await CreateAsync(scope, suffix);
+            var uploaded = await Video(scope, storage).HandleAsync(id, Mp4(), default);
+            var image = await Image(scope, storage).HandleAsync(id, Png(), default);
+
+            var copy = await scope.ServiceProvider.GetRequiredService<DuplicateExerciseHandler>().HandleAsync(
+                id, new DuplicateExerciseRequest(), default);
+            Assert.Equal(uploaded.VideoUrl, copy.VideoUrl);
+
+            // El original lo quita, pero la copia lo comparte: el archivo sigue vivo y la imagen no se toca.
+            var removed = await RemoveVideo(scope, storage).HandleAsync(id, default);
+            Assert.Null(removed.VideoUrl);
+            Assert.Equal(image.ImageUrl, removed.ImageUrl);
+            Assert.Empty(storage.Deleted);
+
+            // Cuando la copia también lo quita, ya nadie lo usa y se borra.
+            await RemoveVideo(scope, storage).HandleAsync(copy.Id, default);
+            Assert.Equal(uploaded.VideoUrl, Assert.Single(storage.Deleted));
+
+            // Quitar lo que ya está vacío no falla ni borra nada más.
+            await RemoveVideo(scope, storage).HandleAsync(id, default);
+            Assert.Single(storage.Deleted);
+        }
+        finally
+        {
+            await DeleteExercisesAsync(suffix);
+        }
+    }
+
+    [Fact]
+    public async Task Removing_the_image_deletes_its_file_and_staff_cannot_touch_a_system_exercise()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var storage = new FakeStorage();
+        try
+        {
+            using var scope = Staff(Guid.CreateVersion7());
+            var id = await CreateAsync(scope, suffix);
+            var withImage = await Image(scope, storage).HandleAsync(id, Png(), default);
+
+            var removed = await RemoveImage(scope, storage).HandleAsync(id, default);
+            Assert.Null(removed.ImageUrl);
+            Assert.Equal(withImage.ImageUrl, Assert.Single(storage.Deleted));
+
+            var systemExercise = await scope.ServiceProvider.GetRequiredService<GsmDbContext>()
+                .Set<Exercise>().Where(e => e.GymId == null).Select(e => e.Id).FirstAsync();
+            await Assert.ThrowsAsync<ForbiddenDomainException>(() =>
+                RemoveImage(scope, storage).HandleAsync(systemExercise, default));
+        }
+        finally
+        {
+            await DeleteExercisesAsync(suffix);
+        }
+    }
+
     // --- Ayudas ---
 
     private static async Task<Guid> CreateAsync(IServiceScope scope, string suffix, string? videoUrl = null)
@@ -169,6 +232,22 @@ public sealed class ExerciseMediaTests(ApiFactory factory) : IClassFixture<ApiFa
             scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
 
     private static UploadExerciseVideoHandler Video(IServiceScope scope, IFileStorage storage)
+        => new(
+            scope.ServiceProvider.GetRequiredService<ICurrentUserService>(),
+            scope.ServiceProvider.GetRequiredService<IExerciseRepository>(),
+            scope.ServiceProvider.GetRequiredService<ExerciseEquipmentResolver>(),
+            storage,
+            scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
+
+    private static RemoveExerciseImageHandler RemoveImage(IServiceScope scope, IFileStorage storage)
+        => new(
+            scope.ServiceProvider.GetRequiredService<ICurrentUserService>(),
+            scope.ServiceProvider.GetRequiredService<IExerciseRepository>(),
+            scope.ServiceProvider.GetRequiredService<ExerciseEquipmentResolver>(),
+            storage,
+            scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
+
+    private static RemoveExerciseVideoHandler RemoveVideo(IServiceScope scope, IFileStorage storage)
         => new(
             scope.ServiceProvider.GetRequiredService<ICurrentUserService>(),
             scope.ServiceProvider.GetRequiredService<IExerciseRepository>(),

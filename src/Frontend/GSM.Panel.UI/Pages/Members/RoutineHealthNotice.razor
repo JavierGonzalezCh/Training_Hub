@@ -1,6 +1,7 @@
 @* Aviso de salud en el editor de rutinas (Routines v2, R9). Todos los del staff ven "tiene alertas de
-   salud"; el detalle solo lo ve quien tiene el permiso ViewMemberHealth, y pedirlo queda registrado como
-   cualquier consulta de salud (M3). Si el miembro no autorizó el tratamiento de datos, solo el aviso. *@
+   salud"; el detalle solo lo ve quien tiene el permiso ViewMemberHealth, y solo cuando pulsa "Ver detalle"
+   (R9-1): abrir el editor no consulta la salud; pedir el detalle queda registrado como cualquier consulta de
+   salud (M3). Si el miembro no autorizó el tratamiento de datos, solo el aviso. *@
 @inject IMembersClient Members
 @inject AuthenticationStateProvider AuthState
 
@@ -8,6 +9,15 @@
 {
     <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4 gsm-routine-health" data-testid="routine-health-notice">
         <span class="gsm-routine-health__generic">Este miembro tiene alertas de salud.</span>
+        @if (_canViewDetail && !_detailRequested)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Text" Class="ml-2" Disabled="_loadingDetail"
+                       OnClick="LoadDetailAsync" data-testid="routine-health-detail-button">Ver detalle</MudButton>
+        }
+        @if (_detailRequested && _detail is null && !_loadingDetail)
+        {
+            <div class="gsm-routine-health__no-detail" data-testid="routine-health-no-detail">El detalle no está disponible: el miembro no ha autorizado el tratamiento de sus datos de salud.</div>
+        }
         @if (_detail is not null)
         {
             @if (!string.IsNullOrWhiteSpace(_detail.MedicalConditions))
@@ -27,15 +37,20 @@
     public Guid MemberId { get; set; }
 
     private bool _hasAlerts;
+    private bool _canViewDetail;
+    private bool _detailRequested;
+    private bool _loadingDetail;
     private MemberHealth? _detail;
 
     protected override async Task OnParametersSetAsync()
     {
         _hasAlerts = false;
+        _canViewDetail = false;
+        _detailRequested = false;
         _detail = null;
         try
         {
-            // La ficha trae solo la bandera; el detalle no viaja por ahí.
+            // La ficha trae solo la bandera; el detalle no viaja por ahí ni se pide hasta que se pulse "Ver detalle".
             var member = await Members.MembersGET2Async(MemberId);
             _hasAlerts = member.HasHealthAlerts == true;
             if (!_hasAlerts)
@@ -44,21 +59,30 @@
             }
 
             var user = (await AuthState.GetAuthenticationStateAsync()).User;
-            if (!user.HasPermission(GsmPermissions.ViewMemberHealth))
-            {
-                return;
-            }
-
-            var view = await Members.GetMemberHealthAsync(MemberId);
-            if (!view.ConsentRequired)
-            {
-                _detail = view.Health;
-            }
+            _canViewDetail = user.HasPermission(GsmPermissions.ViewMemberHealth);
         }
         catch (GsmApiException)
         {
-            // El aviso es informativo: si falla la consulta, el editor sigue funcionando sin él
-            // (y sin detalle: ante la duda, lo conservador es no mostrar más).
+            // El aviso es informativo: si falla la consulta, el editor sigue funcionando sin él.
+        }
+    }
+
+    private async Task LoadDetailAsync()
+    {
+        _loadingDetail = true;
+        try
+        {
+            var view = await Members.GetMemberHealthAsync(MemberId);
+            _detail = view.ConsentRequired ? null : view.Health;
+            _detailRequested = true;
+        }
+        catch (GsmApiException)
+        {
+            // Ante la duda, lo conservador es no mostrar más: el botón sigue disponible para reintentar.
+        }
+        finally
+        {
+            _loadingDetail = false;
         }
     }
 }

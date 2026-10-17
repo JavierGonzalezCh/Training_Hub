@@ -189,6 +189,7 @@ internal static class StaffPushMapper
     private static string Label(NotificationType type) => type switch
     {
         NotificationType.CheckinRejected => "Intento de entrada rechazado",
+        NotificationType.InstructorClassReminder => "Recordatorio de mi clase",
         _ => type.ToString(),
     };
 }

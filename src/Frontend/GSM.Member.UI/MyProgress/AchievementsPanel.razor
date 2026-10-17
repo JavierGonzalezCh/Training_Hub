@@ -1,5 +1,5 @@
-@* "Mi progreso" → Logros (L7, Achievements v2 §8.2): premios pendientes arriba, los ganados con su fecha y los que faltan
-   ordenados por los más cercanos a ganarse. Los logros manuales muestran el motivo. *@
+@* "Mi progreso" → Logros (L7, Achievements v2 §8.2): premios pendientes arriba, los ganados con su fecha y los automáticos que faltan
+   ordenados por los más cercanos a ganarse. Los manuales solo aparecen cuando se ganan (muestran el motivo). *@
 @inject GymContext GymCtx
 @inject IMeClient Me
 @inject ISnackbar Snackbar
@@ -74,11 +74,10 @@ else
         .OrderByDescending(a => a.UnlockedAt ?? DateTimeOffset.MinValue)
         .ToList();
 
-    /// <summary>Por ganar: los más cercanos primero (progreso sobre la meta); los manuales, al final.</summary>
+    /// <summary>Por ganar: los más cercanos primero (progreso sobre la meta). Los manuales sin ganar no se muestran (L4-4).</summary>
     private List<MemberAchievementItem> Locked => _achievements
-        .Where(a => !a.Unlocked)
-        .OrderBy(a => a.IsManual ? 1 : 0)
-        .ThenByDescending(a => a.ConditionValue > 0 ? (double)a.Progress / a.ConditionValue : 0d)
+        .Where(a => !a.Unlocked && !a.IsManual)
+        .OrderByDescending(a => a.ConditionValue > 0 ? (double)a.Progress / a.ConditionValue : 0d)
         .ThenBy(a => a.Name)
         .ToList();
 

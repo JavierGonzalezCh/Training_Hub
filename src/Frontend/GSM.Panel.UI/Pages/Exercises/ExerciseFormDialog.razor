@@ -78,6 +78,11 @@
                             </MudButton>
                         </ActivatorContent>
                     </MudFileUpload>
+                    @if (!string.IsNullOrWhiteSpace(_model.VideoUrl))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Disabled="_removing"
+                                   OnClick="RemoveVideoAsync" data-testid="video-remove">Quitar video</MudButton>
+                    }
                     <p class="gsm-editor__hint">MP4, hasta 50 MB. Subirlo reemplaza el enlace.</p>
                 </div>
                 <MudTextField T="string" @bind-Value="_model.ImageUrl" Label="Imagen (URL)" Class="mb-1" />
@@ -93,6 +98,11 @@
                             </MudButton>
                         </ActivatorContent>
                     </MudFileUpload>
+                    @if (!string.IsNullOrWhiteSpace(_model.ImageUrl))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Disabled="_removing"
+                                   OnClick="RemoveImageAsync" data-testid="image-remove">Quitar imagen</MudButton>
+                    }
                     <p class="gsm-editor__hint">JPG, PNG o WebP, hasta 5 MB. Subirla reemplaza el enlace.</p>
                 </div>
             </MudForm>
@@ -127,6 +137,47 @@
 
     private const long MaxImageBytes = 5 * 1024 * 1024;
     private const long MaxVideoBytes = 50 * 1024 * 1024;
+
+    private bool _removing;
+
+    /// <summary>
+    /// "Quitar imagen" (R6-1): vacía el medio y borra el archivo en el servidor si ningún otro ejercicio lo usa. Un ejercicio
+    /// que aún no se guardó no tiene nada que borrar allá: solo se limpia el campo.
+    /// </summary>
+    private async Task RemoveImageAsync()
+    {
+        await RemoveMediaAsync(id => Exercises.ExercisesRemoveImageAsync(id), () => _model.ImageUrl = null);
+        _pendingImage = null;
+    }
+
+    private async Task RemoveVideoAsync()
+    {
+        await RemoveMediaAsync(id => Exercises.ExercisesRemoveVideoAsync(id), () => _model.VideoUrl = null);
+        _pendingVideo = null;
+    }
+
+    private async Task RemoveMediaAsync(Func<Guid, Task<ExerciseResponse>> remove, Action clearField)
+    {
+        _error = null;
+        _removing = true;
+        try
+        {
+            if ((ExerciseId ?? _createdId) is { } id)
+            {
+                await remove(id);
+            }
+
+            clearField();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _removing = false;
+        }
+    }
 
     private void OnImageChosen(IBrowserFile? file) => _pendingImage = file;
 

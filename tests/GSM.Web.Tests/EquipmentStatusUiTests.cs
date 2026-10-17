@@ -25,6 +25,9 @@ public class EquipmentStatusUiTests : TestContext
 
         public bool Overdue { get; set; }
 
+        /// <summary>Reportes sin cerrar que devuelve <c>GET /api/equipment/issues</c>.</summary>
+        public int OpenIssues { get; set; }
+
         public HttpStatusCode ChangeResult { get; set; } = HttpStatusCode.OK;
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -58,6 +61,11 @@ public class EquipmentStatusUiTests : TestContext
             else if (path.StartsWith("/api/equipment/zones"))
             {
                 json = "[]";
+            }
+            else if (path.StartsWith("/api/equipment/issues"))
+            {
+                json = JsonSerializer.Serialize(Enumerable.Range(0, OpenIssues)
+                    .Select(_ => new { id = Guid.NewGuid(), itemId = MachineId, status = "Open" }));
             }
             else if (path.StartsWith($"/api/equipment/{MachineId}"))
             {
@@ -180,6 +188,41 @@ public class EquipmentStatusUiTests : TestContext
         using var doc = JsonDocument.Parse(post.Body);
         Assert.Equal(0, doc.RootElement.GetProperty("status").GetInt32());
         Assert.Equal(JsonValueKind.Null, doc.RootElement.GetProperty("reason").ValueKind);
+    }
+
+    [Fact]
+    public async Task Dialog_offers_closing_the_open_reports_when_making_the_machine_available()
+    {
+        _api.OpenIssues = 2;
+        var provider = await OpenDialogAsync("Maintenance");
+
+        Assert.NotNull(provider.Find("[data-testid='status-close-issues']"));
+        Assert.Contains("Cerrar también los 2 reportes abiertos", provider.Markup);
+
+        await provider.InvokeAsync(() => provider.Find("[data-testid='status-save']").Click());
+
+        var post = Assert.Single(_api.Requests, r => r.Method == HttpMethod.Post);
+        using var doc = JsonDocument.Parse(post.Body);
+        Assert.Equal(0, doc.RootElement.GetProperty("status").GetInt32());
+        Assert.True(doc.RootElement.GetProperty("closeOpenIssues").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Dialog_does_not_offer_closing_reports_when_there_are_none()
+    {
+        _api.OpenIssues = 0;
+        var provider = await OpenDialogAsync("Maintenance");
+
+        Assert.Empty(provider.FindAll("[data-testid='status-close-issues']"));
+    }
+
+    [Fact]
+    public async Task Dialog_does_not_offer_closing_reports_when_taking_the_machine_out_of_service()
+    {
+        _api.OpenIssues = 1;
+        var provider = await OpenDialogAsync("Available");   // los destinos son mantenimiento o fuera de servicio
+
+        Assert.Empty(provider.FindAll("[data-testid='status-close-issues']"));
     }
 
     [Fact]

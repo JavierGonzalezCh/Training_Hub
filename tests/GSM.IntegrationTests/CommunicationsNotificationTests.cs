@@ -54,6 +54,21 @@ public sealed class CommunicationsNotificationTests(ApiFactory factory) : IClass
     }
 
     [Fact]
+    public async Task A_manually_granted_achievement_says_they_gave_it_to_the_member()
+    {
+        var world = await SeedAsync(1);
+        var achievementId = await SeedAchievementAsync(world.GymId, "Campeón de abril");
+        var evt = new AchievementUnlockedEvent(Guid.CreateVersion7(), world.Members[0].Id, world.GymId, achievementId, IsManual: true);
+
+        await PublishAsStaffAsync(world.GymId, evt);
+
+        using var scope = Member(world.GymId, world.Members[0].UserId);
+        var item = Assert.Single((await scope.ServiceProvider.GetRequiredService<ListMyNotificationsHandler>()
+            .HandleAsync(1, 20, default)).Items);
+        Assert.Equal("Te otorgaron «Campeón de abril»", item.Title);
+    }
+
+    [Fact]
     public async Task Unlocking_an_achievement_creates_an_in_app_notice_without_email()
     {
         var world = await SeedAsync(1);

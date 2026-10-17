@@ -1,0 +1,52 @@
+@* Sustituciones recientes (R5-4): los días en que el miembro hizo otro ejercicio "en lugar de" el planeado.
+   Lista simple, la más reciente primero; el staff la ve en la ficha del miembro, pestaña Rutina. *@
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true">@_error</MudAlert>
+}
+else if (_items.Count == 0)
+{
+    <MudText Color="Color.Secondary" data-testid="substitutions-empty">Sin sustituciones recientes.</MudText>
+}
+else
+{
+    <ul class="gsm-substitutions" data-testid="substitutions">
+        @foreach (var item in _items)
+        {
+            <li data-testid="@($"substitution-{item.PerformedOn:yyyy-MM-dd}-{item.PlannedExerciseId}")">
+                <span class="gsm-substitutions__date">@GsmFormat.Day(item.PerformedOn)</span>
+                Hizo <strong>@item.PerformedExerciseName</strong> en lugar de @item.PlannedExerciseName
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    /// <summary>Carga las sustituciones recientes del miembro.</summary>
+    [Parameter, EditorRequired] public Func<Task<ICollection<ExerciseSubstitutionItem>>> Load { get; set; } = default!;
+
+    private bool _loading = true;
+    private string? _error;
+    private List<ExerciseSubstitutionItem> _items = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = (await Load()).ToList();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

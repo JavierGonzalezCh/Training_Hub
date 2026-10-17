@@ -119,3 +119,36 @@ public sealed class GetMemberExerciseProgressHandler(
         return await progress.GetAsync(memberId, exerciseId, cancellationToken);
     }
 }
+
+/// <summary>
+/// Las sustituciones recientes del miembro (hizo un ejercicio alternativo en lugar del planeado), de la más
+/// reciente a la más antigua: lo que cubre los últimos <see cref="WindowDays"/> días, hasta
+/// <see cref="MaxItems"/> filas. Para el staff, en la pestaña Rutina de la ficha (R5-4).
+/// </summary>
+public sealed class GetMemberSubstitutionsHandler(
+    ICurrentUserService currentUser, IClock clock, IMemberReader members, IRoutineLogRepository logs)
+{
+    public const int WindowDays = 90;
+    public const int MaxItems = 20;
+
+    public async Task<IReadOnlyList<ExerciseSubstitutionItem>> HandleAsync(
+        Guid memberId, CancellationToken cancellationToken)
+    {
+        _ = currentUser.RequireGymId();
+        if (!await members.ExistsAsync(memberId, cancellationToken))
+        {
+            throw new NotFoundException("Miembro no encontrado.");
+        }
+
+        var today = clock.Today;
+        var rows = await logs.GetHistoryAsync(memberId, today.AddDays(-WindowDays), today, cancellationToken);
+        return rows
+            .Where(r => r.PlannedExerciseId != r.ExerciseId)
+            .OrderByDescending(r => r.PerformedOn)
+            .ThenByDescending(r => r.CompletedAt)
+            .Take(MaxItems)
+            .Select(r => new ExerciseSubstitutionItem(
+                r.PerformedOn, r.PlannedExerciseId, r.PlannedExerciseName, r.ExerciseId, r.ExerciseName))
+            .ToList();
+    }
+}

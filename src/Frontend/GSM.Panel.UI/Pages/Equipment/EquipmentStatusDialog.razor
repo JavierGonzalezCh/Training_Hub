@@ -40,6 +40,11 @@
         </div>
         <MudTextField T="string" @bind-Value="_reason" Label="@(_status == 0 ? "Motivo (opcional)" : "Motivo (obligatorio)")"
                       Lines="2" MaxLength="500" Immediate="true" data-testid="status-reason" />
+        @if (_status == 0 && _openIssues > 0)
+        {
+            <MudCheckBox T="bool" @bind-Value="_closeOpenIssues" Color="Color.Primary" Class="mt-2"
+                         Label="@CloseIssuesLabel" data-testid="status-close-issues" />
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
@@ -65,13 +70,35 @@
     public string CurrentStatus { get; set; } = "Available";
 
     private int _status;
+    /// <summary>E4-3: reportes sin cerrar de la máquina; si hay y se deja disponible, se ofrece cerrarlos en el mismo paso.</summary>
+    private int _openIssues;
+    private bool _closeOpenIssues = true;
     private string? _reason;
     private DateOnly? _expectedBackOn;
     private bool _submitting;
     private string? _error;
 
-    protected override void OnInitialized()
-        => _status = EquipmentDisplay.Statuses.First(s => s.Name != CurrentStatus).Value;
+    private string CloseIssuesLabel => _openIssues == 1
+        ? "Cerrar también el reporte abierto"
+        : $"Cerrar también los {_openIssues} reportes abiertos";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = EquipmentDisplay.Statuses.First(s => s.Name != CurrentStatus).Value;
+        if (CurrentStatus == "Available")
+        {
+            return; // ya está disponible: el cambio posible no es «dejarla disponible»
+        }
+
+        try
+        {
+            _openIssues = (await Equipment.ListEquipmentIssuesAsync(null, EquipmentId, true))?.Count ?? 0;
+        }
+        catch (GsmApiException)
+        {
+            _openIssues = 0; // la casilla es un atajo: sin ella el cambio de estado sigue funcionando
+        }
+    }
 
     private void OnStatusChanged(ChangeEventArgs e)
     {
@@ -107,6 +134,7 @@
                 Status = _status,
                 Reason = string.IsNullOrWhiteSpace(_reason) ? null : _reason.Trim(),
                 ExpectedBackOn = _status == 0 ? null : _expectedBackOn,
+                CloseOpenIssues = _status == 0 && _openIssues > 0 && _closeOpenIssues,
             });
             MudDialog.Close(DialogResult.Ok(true));
         }

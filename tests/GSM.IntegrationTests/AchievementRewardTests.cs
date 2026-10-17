@@ -176,6 +176,29 @@ public sealed class AchievementRewardTests(ApiFactory factory) : IClassFixture<A
     }
 
     [Fact]
+    public async Task A_deactivated_achievement_still_shows_to_the_member_while_its_reward_is_pending()
+    {
+        var w = await SeedAsync();
+        var withReward = await CreateAsync(w, "Constante", "Camiseta del gym", 10);
+        var plain = await CreateAsync(w, "Solo honor", null, null);
+        await UnlockAsync(w);
+
+        using (var scope = Owner(w, Today))
+        {
+            var delete = scope.ServiceProvider.GetRequiredService<DeleteAchievementHandler>();
+            await delete.HandleAsync(withReward, default);
+            await delete.HandleAsync(plain, default);
+        }
+
+        using var memberScope = Owner(w, Today);
+        var items = await memberScope.ServiceProvider.GetRequiredService<GetMemberAchievementsHandler>()
+            .HandleAsync(w.MemberId, default);
+        var pending = Assert.Single(items);
+        Assert.Equal(withReward, pending.AchievementId);
+        Assert.Equal("Pending", pending.RewardStatus);
+    }
+
+    [Fact]
     public async Task A_retroactive_grant_leaves_the_reward_pending_for_everyone_who_received_it()
     {
         var w = await SeedAsync();

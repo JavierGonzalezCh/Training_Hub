@@ -54,8 +54,11 @@ else
             <MudTd Style="text-align:right">
                 <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => Edit(context))"
                            data-testid="@($"template-edit-{context.Id}")">Editar</MudButton>
-                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Disabled="_busy.Contains(context.Id)"
-                           OnClick="@(() => DeleteAsync(context))" data-testid="@($"template-delete-{context.Id}")">Eliminar</MudButton>
+                @if (_canDelete)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Disabled="_busy.Contains(context.Id)"
+                               OnClick="@(() => DeleteAsync(context))" data-testid="@($"template-delete-{context.Id}")">Eliminar</MudButton>
+                }
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -66,7 +69,21 @@ else
     private List<RoutineTemplateListItem> _items = [];
     private bool _loading = true;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    /// <summary>R11-1: borrar una plantilla es del Owner y del staff con el permiso Trainer; crear y editar, de cualquiera.</summary>
+    private bool _canDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationState is not null)
+        {
+            _canDelete = (await AuthenticationState).User.HasPermission(GsmPermissions.Trainer);
+        }
+
+        await LoadAsync();
+    }
 
     private void Edit(RoutineTemplateListItem item) => Navigation.NavigateTo($"/routine-templates/{item.Id}");
 

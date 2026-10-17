@@ -123,6 +123,12 @@ public enum NotificationType
     /// Categoría Membresía, sin correo. Referencia: la membresía (tiquetera).
     /// </summary>
     PassExhausted,
+
+    /// <summary>
+    /// CO4-1: un anuncio programado no pudo salir a su hora (audiencia vacía o caducado) y volvió a borrador. Aviso
+    /// informativo en la campana del autor. Referencia: un id propio de cada fallo.
+    /// </summary>
+    AnnouncementNotPublished,
 }
 
 /// <summary>Categoría para las preferencias del miembro (N4). Nula en los avisos del staff.</summary>

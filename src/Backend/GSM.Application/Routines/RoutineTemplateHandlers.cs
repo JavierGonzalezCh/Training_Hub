@@ -3,6 +3,7 @@ using GSM.Application.Common.Abstractions;
 using GSM.Application.Routines.Abstractions;
 using GSM.Application.Routines.Contracts;
 using GSM.Domain.Common.Exceptions;
+using GSM.Domain.Identity;
 using GSM.Domain.Routines;
 using Microsoft.Extensions.Logging;
 
@@ -201,10 +202,18 @@ public sealed class DeleteRoutineTemplateHandler(
     IUnitOfWork unitOfWork,
     ILogger<DeleteRoutineTemplateHandler> logger)
 {
-    /// <summary>Borra la plantilla; las rutinas que salieron de ella no dependen de ella y quedan intactas.</summary>
+    /// <summary>
+    /// Borra la plantilla; las rutinas que salieron de ella no dependen de ella y quedan intactas. Solo el Owner y el
+    /// staff con el permiso <c>Trainer</c> (R11-1); crear y editar siguen abiertos a cualquier staff.
+    /// </summary>
     public async Task HandleAsync(Guid templateId, CancellationToken cancellationToken)
     {
         _ = currentUser.RequireGymId();
+        if (!currentUser.HasPermission(StaffPermission.Trainer))
+        {
+            throw new ForbiddenDomainException("Solo el Owner o un entrenador puede eliminar plantillas de rutina.");
+        }
+
         var template = await templates.GetAsync(templateId, cancellationToken)
             ?? throw new NotFoundException("Plantilla no encontrada.");
 

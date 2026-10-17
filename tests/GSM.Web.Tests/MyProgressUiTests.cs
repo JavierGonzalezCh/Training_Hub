@@ -209,6 +209,27 @@ public class MyProgressUiTests : TestContext
         Assert.True(locked.IndexOf("Cercano", StringComparison.Ordinal) < locked.IndexOf("Lejano", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Manual_achievements_not_yet_earned_are_not_shown_but_automatic_ones_still_are()
+    {
+        RegisterGym();
+        var manual = Guid.NewGuid();
+        var automatic = Guid.NewGuid();
+        var me = RegisterMe();
+        me.Handlers["AchievementsAll2Async"] = _ => new List<MemberAchievementItem>
+        {
+            new() { AchievementId = manual, Name = "Campeón de abril", ConditionType = "Manual", ConditionValue = 1, IsManual = true, RewardStatus = "None" },
+            new() { AchievementId = automatic, Name = "Cien visitas", ConditionType = "Visits", ConditionValue = 100, Progress = 5, RewardStatus = "None" },
+        };
+
+        RenderComponent<MudPopoverProvider>();
+        var cut = RenderComponent<GSM.Member.UI.MyProgress.AchievementsPanel>();
+
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='achievements-locked']")));
+        Assert.DoesNotContain("Campeón de abril", cut.Markup);
+        Assert.Contains("Cien visitas", cut.Markup);
+    }
+
     // ---------- Mi membresía (MS8) ----------
 
     private static MyMembershipsResponse Memberships() => new()

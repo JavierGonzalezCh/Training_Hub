@@ -49,15 +49,22 @@ public class RoutineHealthNoticeUiTests : TestContext
     }
 
     [Fact]
-    public void With_the_permission_the_detail_is_shown()
+    public void With_the_permission_the_detail_is_shown_only_after_pressing_see_detail()
     {
         var (fake, id) = Setup(hasAlerts: true, withPermission: true);
 
         var cut = RenderComponent<RoutineHealthNotice>(p => p.Add(x => x.MemberId, id));
 
-        Assert.Contains("Asma leve", cut.Find(".gsm-routine-health__conditions").TextContent);
+        // Abrir el editor no consulta la salud ni deja rastro en el registro de consultas (R9-1).
+        Assert.DoesNotContain("Asma", cut.Markup);
+        Assert.DoesNotContain(fake.Calls, c => c.Method == "GetMemberHealthAsync");
+
+        cut.Find("[data-testid='routine-health-detail-button']").Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("Asma leve", cut.Find(".gsm-routine-health__conditions").TextContent));
         Assert.Contains("Sin saltos", cut.Find(".gsm-routine-health__restrictions").TextContent);
         Assert.Single(fake.Calls, c => c.Method == "GetMemberHealthAsync");
+        Assert.Empty(cut.FindAll("[data-testid='routine-health-detail-button']"));
     }
 
     [Fact]
@@ -78,6 +85,9 @@ public class RoutineHealthNoticeUiTests : TestContext
 
         var cut = RenderComponent<RoutineHealthNotice>(p => p.Add(x => x.MemberId, id));
 
+        cut.Find("[data-testid='routine-health-detail-button']").Click();
+
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='routine-health-no-detail']")));
         Assert.Contains("tiene alertas de salud", cut.Markup);
         Assert.Empty(cut.FindAll(".gsm-routine-health__conditions"));
     }

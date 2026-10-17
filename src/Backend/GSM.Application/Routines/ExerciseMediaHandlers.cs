@@ -81,6 +81,73 @@ public sealed class UploadExerciseVideoHandler(
     }
 }
 
+/// <summary>
+/// Quita la imagen de un ejercicio (R6-1): deja <c>ImageUrl</c> vacío y borra el archivo de R2 si era una subida
+/// nuestra y ningún otro ejercicio —un duplicado, por ejemplo— usa la misma URL. Mismas reglas de quién puede que la subida.
+/// </summary>
+public sealed class RemoveExerciseImageHandler(
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
+    IFileStorage storage,
+    IUnitOfWork unitOfWork)
+{
+    public async Task<ExerciseResponse> HandleAsync(Guid exerciseId, CancellationToken cancellationToken)
+    {
+        var exercise = await exercises.GetVisibleByIdAsync(exerciseId, cancellationToken)
+            ?? throw new NotFoundException("Ejercicio no encontrado.");
+
+        ExerciseAccess.EnsureCanManage(currentUser, exercise);
+
+        var previous = exercise.ImageUrl;
+        if (!string.IsNullOrWhiteSpace(previous))
+        {
+            exercise.Update(
+                exercise.Name, exercise.Description, exercise.PrimaryMuscle, exercise.SecondaryMuscles,
+                exercise.Equipment, exercise.VideoUrl, null, exercise.ExerciseType, exercise.TrackingType,
+                exercise.IsUnilateral, exercise.Difficulty);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await ExerciseMediaCleanup.DeletePreviousAsync(exercises, storage, exercise.Id, previous, cancellationToken);
+        }
+
+        return ExerciseMapper.ToResponse(
+            exercise, false, await equipment.ResolveOneAsync(exercise, cancellationToken));
+    }
+}
+
+/// <summary>Quita el video de un ejercicio (R6-1), con las mismas reglas que <see cref="RemoveExerciseImageHandler"/>.</summary>
+public sealed class RemoveExerciseVideoHandler(
+    ICurrentUserService currentUser,
+    IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment,
+    IFileStorage storage,
+    IUnitOfWork unitOfWork)
+{
+    public async Task<ExerciseResponse> HandleAsync(Guid exerciseId, CancellationToken cancellationToken)
+    {
+        var exercise = await exercises.GetVisibleByIdAsync(exerciseId, cancellationToken)
+            ?? throw new NotFoundException("Ejercicio no encontrado.");
+
+        ExerciseAccess.EnsureCanManage(currentUser, exercise);
+
+        var previous = exercise.VideoUrl;
+        if (!string.IsNullOrWhiteSpace(previous))
+        {
+            exercise.Update(
+                exercise.Name, exercise.Description, exercise.PrimaryMuscle, exercise.SecondaryMuscles,
+                exercise.Equipment, null, exercise.ImageUrl, exercise.ExerciseType, exercise.TrackingType,
+                exercise.IsUnilateral, exercise.Difficulty);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await ExerciseMediaCleanup.DeletePreviousAsync(exercises, storage, exercise.Id, previous, cancellationToken);
+        }
+
+        return ExerciseMapper.ToResponse(
+            exercise, false, await equipment.ResolveOneAsync(exercise, cancellationToken));
+    }
+}
+
 internal static class ExerciseMediaCleanup
 {
     /// <summary>
