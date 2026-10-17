@@ -252,7 +252,10 @@ public sealed class CancelBookingHandler(
 
         // N5: Notifications cancela el recordatorio programado de esa reserva.
         await events.PublishAsync(
-            new ClassBookingCancelled(gymId, self.Id, classId, session.SessionDate), cancellationToken);
+            new ClassBookingCancelled(
+                gymId, self.Id, classId, session.SessionDate,
+                await bookings.CountActiveAsync(session.Id, cancellationToken)),
+            cancellationToken);
 
         // C4: el cupo liberado se le ofrece al primero de la lista de espera.
         await waitlistService.ProcessAsync(session.Id, cancellationToken);

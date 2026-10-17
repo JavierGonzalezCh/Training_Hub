@@ -145,6 +145,34 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
         Assert.Equal(1, await CountByStatusAsync(w.GymId, NotificationType.ClassReminder, NotificationStatus.Cancelled));
     }
 
+    [Fact]
+    public async Task The_instructor_reminder_is_cancelled_when_the_last_booking_goes_and_a_new_booking_reactivates_it()
+    {
+        var w = await SeedAsync(2);
+        await BookAsync(w, 0);
+        await BookAsync(w, 1);
+
+        // Queda una reserva: el instructor todavía tiene a quién dar clase.
+        await CancelBookingAsync(w, 0);
+        Assert.Equal(
+            NotificationStatus.Pending,
+            (await SingleNoticeAsync(w.GymId, NotificationType.InstructorClassReminder, userId: w.InstructorUserId)).Status);
+
+        // La última reserva se cancela: el recordatorio del instructor deja de salir.
+        await CancelBookingAsync(w, 1);
+        var cancelled = await SingleNoticeAsync(w.GymId, NotificationType.InstructorClassReminder, userId: w.InstructorUserId);
+        Assert.Equal(NotificationStatus.Cancelled, cancelled.Status);
+
+        await RunDispatcherAtAsync(AtLocal(NextMonday, 6, 51), NextMonday, w.GymId);
+        Assert.Equal(0, await CountByStatusAsync(w.GymId, NotificationType.InstructorClassReminder, NotificationStatus.Sent));
+
+        // Una reserva nueva lo reactiva (el mismo aviso) y esta vez sale.
+        await BookAsync(w, 0);
+        var again = await SingleNoticeAsync(w.GymId, NotificationType.InstructorClassReminder, userId: w.InstructorUserId);
+        Assert.Equal(cancelled.Id, again.Id);
+        Assert.Equal(NotificationStatus.Pending, again.Status);
+    }
+
     // ---------- 2 · cumpleaños (el mecanismo que usará CO5) ----------
 
     [Fact]
@@ -212,6 +240,12 @@ public sealed class ScheduledNoticeTests(ApiFactory factory) : IClassFixture<Api
     {
         using var scope = AsMember(w, memberIndex, AtLocal(Monday, 12));
         await scope.ServiceProvider.GetRequiredService<BookClassHandler>().HandleAsync(w.ClassId, NextMonday, default);
+    }
+
+    private async Task CancelBookingAsync(World w, int memberIndex)
+    {
+        using var scope = AsMember(w, memberIndex, AtLocal(Monday, 12));
+        await scope.ServiceProvider.GetRequiredService<CancelBookingHandler>().HandleAsync(w.ClassId, NextMonday, default);
     }
 
     private async Task<IReadOnlyList<GSM.Application.Notifications.Contracts.NotificationItem>> InboxAsync(

@@ -36,7 +36,7 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
     /// <summary>Horas antes del inicio hasta las que el miembro puede cancelar sin que cuente como no-show.</summary>
     public int CancelDeadlineHours { get; private set; }
 
-    /// <summary>Inasistencias (o cancelaciones tardías) que disparan el bloqueo, dentro de <see cref="NoShowWindowDays"/>.</summary>
+    /// <summary>Inasistencias (o cancelaciones tardías) que disparan el bloqueo, dentro de <see cref="NoShowWindowDays"/>. 0 = regla apagada: nunca se penaliza.</summary>
     public int NoShowLimit { get; private set; }
 
     public int NoShowWindowDays { get; private set; }
@@ -47,7 +47,7 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
     /// <summary>Las reservas de una sesión abren esta cantidad de días antes.</summary>
     public int BookingWindowDays { get; private set; }
 
-    /// <summary>Reservas futuras activas que un miembro puede tener a la vez.</summary>
+    /// <summary>Reservas futuras activas que un miembro puede tener a la vez. 0 = sin tope.</summary>
     public int MaxActiveBookings { get; private set; }
 
     /// <summary>C4: minutos que tiene un miembro para confirmar el cupo que se le ofrece (nunca más allá del inicio de la clase).</summary>
@@ -78,11 +78,11 @@ public sealed class ClassSettings : BaseEntity, ITenantEntity
         int noShowBlockDays, int bookingWindowDays, int maxActiveBookings, int? waitlistOfferMinutes = null)
     {
         Check(cancelDeadlineHours, 0, MaxCancelDeadlineHours, "El plazo de cancelación");
-        Check(noShowLimit, 1, MaxNoShowLimit, "El límite de inasistencias");
+        Check(noShowLimit, 0, MaxNoShowLimit, "El límite de inasistencias");
         Check(noShowWindowDays, 1, MaxNoShowWindowDays, "La ventana de inasistencias");
         Check(noShowBlockDays, 1, MaxNoShowBlockDays, "Los días de bloqueo");
         Check(bookingWindowDays, 1, MaxBookingWindowDays, "La ventana de reserva");
-        Check(maxActiveBookings, 1, MaxActiveBookingsLimit, "El máximo de reservas activas");
+        Check(maxActiveBookings, 0, MaxActiveBookingsLimit, "El máximo de reservas activas");
         var offerMinutes = waitlistOfferMinutes ?? WaitlistOfferMinutes;
         Check(offerMinutes, MinWaitlistOfferMinutes, MaxWaitlistOfferMinutes, "El tiempo para confirmar una oferta");
 

@@ -160,8 +160,20 @@ public sealed class ConfirmWaitlistOfferHandler(
 
         // Estar al día ese día y no tener penalización: lo mismo que para reservar (ventana y máximo ya se
         // comprobaron al anotarse, y la entrada de la lista ya cuenta para el máximo).
-        var access = await ClassAccess.EnsureCoveredAsync(
-            memberships, self.Id, date, "confirmar tu cupo", cancellationToken);
+        // C4-3: si ya no está al día la oferta se marca vencida y el cupo pasa de inmediato al siguiente de la lista
+        // (no se aparta hasta que venza); el miembro recibe el 409 de siempre.
+        AccessStatus access;
+        try
+        {
+            access = await ClassAccess.EnsureCoveredAsync(
+                memberships, self.Id, date, "confirmar tu cupo", cancellationToken);
+        }
+        catch (ConflictException)
+        {
+            await ReleaseOfferAsync(session, self.Id, cancellationToken);
+            throw;
+        }
+
         if (await blocks.GetActiveAsync(self.Id, clock.Today, cancellationToken) is { } block)
         {
             throw new ConflictException(
@@ -224,6 +236,29 @@ public sealed class ConfirmWaitlistOfferHandler(
         return new BookingResponse(
             booking!.Id, session.Id, classId, session.SessionDate, booking.Status.ToString(),
             MembershipExpired: access.Kind == AccessKind.Grace, AccessNotice: access.Notice);
+    }
+
+    /// <summary>Marca vencida la oferta del miembro (si la tiene) y pasa el cupo al siguiente de la lista.</summary>
+    private async Task ReleaseOfferAsync(ClassSession session, Guid memberId, CancellationToken cancellationToken)
+    {
+        List<IDomainEvent> raised = [];
+
+        await unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            await sessions.LockAsync(session.Id, ct);
+
+            var mine = await waitlist.GetOpenAsync(session.Id, memberId, ct);
+            if (mine is { Status: WaitlistEntryStatus.Offered })
+            {
+                mine.Expire();
+                await unitOfWork.SaveChangesAsync(ct);
+
+                raised = await service.ProcessCoreAsync(session, ct);
+                await unitOfWork.SaveChangesAsync(ct);
+            }
+        }, cancellationToken);
+
+        await service.PublishAsync(raised, cancellationToken);
     }
 }
 
