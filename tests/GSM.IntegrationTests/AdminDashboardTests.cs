@@ -177,7 +177,7 @@ public sealed class AdminDashboardTests(ApiFactory factory) : IClassFixture<ApiF
 
         db.Add(gym);
         db.Add(GymFeatureFlags.Default(gym.Id));
-        db.Add(GymSubscription.Create(gym.Id, GymPlan.Basic, price, LastDayOfSeptember.AddDays(-60), paidThrough));
+        db.Add(GymSubscription.Create(gym.Id, price, LastDayOfSeptember.AddDays(-60), paidThrough));
         return gym.Id;
     }
 

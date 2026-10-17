@@ -72,8 +72,6 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
 
     public bool IsActive { get; private set; } = true;
 
-    public GymPlan Plan { get; private set; } = GymPlan.Basic;
-
     public GymStatus Status { get; private set; } = GymStatus.Trial;
 
     /// <summary>
@@ -102,7 +100,6 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
     public static Gym Create(
         string name,
         string slug,
-        GymPlan plan = GymPlan.Basic,
         string? nit = null,
         string? phone = null,
         string? email = null,
@@ -117,7 +114,6 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
             Email = Trim(email),
             PrimaryColor = NormalizeColor(primaryColor, DefaultPrimaryColor),
             SecondaryColor = NormalizeColor(secondaryColor, DefaultSecondaryColor),
-            Plan = plan,
             Status = GymStatus.Trial,
             IsActive = true,
         };

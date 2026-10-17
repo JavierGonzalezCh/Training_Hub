@@ -41,8 +41,10 @@ public sealed class GymCreatedProvisionsSubscriptionHandler(
 
         var today = clock.Today;
 
-        // El plan del alta (enum de Gyms) se enlaza con su fila de superadmin.saas_plans por nombre (S2).
-        var saasPlan = await saasPlans.GetByNameAsync(domainEvent.Plan.ToString(), cancellationToken);
+        // El plan del SaaS que eligió el SuperAdmin en el alta (puede faltar en eventos antiguos).
+        var saasPlan = domainEvent.SaasPlanId is { } saasPlanId
+            ? await saasPlans.GetByIdAsync(saasPlanId, cancellationToken)
+            : null;
 
         if (domainEvent.FirstPayment is { } first)
         {
@@ -51,7 +53,6 @@ public sealed class GymCreatedProvisionsSubscriptionHandler(
 
             var paidSubscription = GymSubscription.Create(
                 domainEvent.GymId,
-                domainEvent.Plan,
                 domainEvent.MonthlyPrice,
                 startedOn: today,
                 paidThrough: first.CoversThrough,
@@ -88,7 +89,6 @@ public sealed class GymCreatedProvisionsSubscriptionHandler(
         // El precio se negocia con el cliente: si no se indicó en el alta nace en 0 y el superadmin lo fija con el PUT.
         var trialSubscription = GymSubscription.Create(
             domainEvent.GymId,
-            domainEvent.Plan,
             monthlyPrice: domainEvent.MonthlyPrice,
             startedOn: today,
             paidThrough: trialEndsOn,
@@ -104,6 +104,6 @@ public sealed class GymCreatedProvisionsSubscriptionHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation(
             "Suscripción de prueba creada para el gym {GymId}: plan {Plan}, prueba hasta {TrialEndsOn}",
-            domainEvent.GymId, domainEvent.Plan, trialEndsOn);
+            domainEvent.GymId, saasPlan?.Name, trialEndsOn);
     }
 }

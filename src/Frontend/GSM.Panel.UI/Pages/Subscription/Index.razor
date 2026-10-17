@@ -1,0 +1,9 @@
+@page "/subscription"
+@attribute [Authorize(Roles = GsmRoles.Owner)]
+
+<PageTitle>Suscripción — GSM</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-6">Suscripción</MudText>
+
+@* Los avisos de suscripción llevan aquí; el mismo contenido vive como pestaña en /settings. *@
+<GSM.Panel.UI.Pages.Settings.SubscriptionTab />

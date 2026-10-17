@@ -15,14 +15,14 @@ public interface ISaasPlanRepository
 
     Task<IReadOnlyList<SaasPlan>> ListAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Plan cuyo nombre coincide (sin distinguir mayúsculas), o <c>null</c>. Sirve al enum heredado.</summary>
+    /// <summary>Plan cuyo nombre coincide (sin distinguir mayúsculas), o <c>null</c>. </summary>
     Task<SaasPlan?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
 
     Task<bool> NameExistsAsync(string name, Guid? excludingId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Límite de miembros efectivo de un gym (override del cliente, o el de su plan), o <c>null</c> si el gym
-    /// no tiene suscripción. Si la suscripción no apunta a un plan, se resuelve por el nombre del plan heredado.
+    /// no tiene suscripción. Si la suscripción no apunta a un plan, no hay límite de plan.
     /// </summary>
     Task<GymMemberLimit?> GetGymLimitAsync(Guid gymId, CancellationToken cancellationToken = default);
 }

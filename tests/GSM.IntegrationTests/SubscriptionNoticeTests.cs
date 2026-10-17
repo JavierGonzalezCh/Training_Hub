@@ -134,6 +134,9 @@ public sealed class SubscriptionNoticeTests(ApiFactory factory) : IClassFixture<
 
         await RunNoticesAsync(paidThrough.AddDays(1));
         Assert.Equal(2, await CountAsync(NotificationType.SubscriptionOverdue));
+
+        // S3-3: los avisos llevan a la pantalla de suscripción del Owner, no a la raíz.
+        Assert.All(await NoticesAsync(w.GymId, NotificationType.SubscriptionOverdue), n => Assert.Equal("/subscription", n.Link));
         Assert.Equal(0, await CountAsync(NotificationType.SubscriptionDisableSoon));
 
         await RunNoticesAsync(paidThrough.AddDays(12)); // 15 de gracia: quedan 3
@@ -289,10 +292,9 @@ public sealed class SubscriptionNoticeTests(ApiFactory factory) : IClassFixture<
     [Fact]
     public async Task A_gym_without_a_member_limit_gets_no_limit_notice()
     {
-        // El plan Enterprise heredado no tiene límite.
+        // Sin plan ni override no hay límite.
         var w = await SeedAsync(
-            GymStatus.Active, startedOn: Today.AddDays(-90), trialEndsOn: null, paidThrough: Today.AddDays(60),
-            plan: GymPlan.Enterprise);
+            GymStatus.Active, startedOn: Today.AddDays(-90), trialEndsOn: null, paidThrough: Today.AddDays(60));
         await AddCoveredMembersAsync(w.GymId, 12);
 
         await RunNoticesAsync(Today);
@@ -394,8 +396,7 @@ public sealed class SubscriptionNoticeTests(ApiFactory factory) : IClassFixture<
 
     private async Task<World> SeedAsync(
         GymStatus status, DateOnly startedOn, DateOnly? trialEndsOn, DateOnly paidThrough,
-        int trialGraceDays = GymSubscription.DefaultTrialGraceDays, int? memberLimit = null,
-        GymPlan plan = GymPlan.Basic)
+        int trialGraceDays = GymSubscription.DefaultTrialGraceDays, int? memberLimit = null)
     {
         using var scope = System(Today);
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
@@ -407,7 +408,7 @@ public sealed class SubscriptionNoticeTests(ApiFactory factory) : IClassFixture<
             gym.SetCommercialStatus(status);
         }
 
-        var subscription = GymSubscription.Create(gym.Id, plan, 100_000m, startedOn, paidThrough, trialEndsOn);
+        var subscription = GymSubscription.Create(gym.Id, 100_000m, startedOn, paidThrough, trialEndsOn);
         subscription.SetTrialGraceDays(trialGraceDays);
         if (memberLimit is { } limit)
         {

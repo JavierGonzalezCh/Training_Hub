@@ -118,9 +118,10 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
         Guid gymId;
         using (var scope = SuperAdmin())
         {
+            var pro = await scope.ServiceProvider.GetRequiredService<ISaasPlanRepository>().GetByNameAsync("Pro", default);
             var created = await scope.ServiceProvider.GetRequiredService<CreateGymHandler>()
                 .HandleAsync(new CreateGymRequest(
-                    "Nuevo Gym", $"nuevo-{Guid.NewGuid():N}"[..18], null, null, null, GymPlan.Pro,
+                    "Nuevo Gym", $"nuevo-{Guid.NewGuid():N}"[..18], null, null, null, pro!.Id,
                     new CreateGymOwner($"owner-{Guid.NewGuid():N}@nuevo.local", "Nuevo Owner"), TrialDays: 30),
                     default);
             gymId = created.GymId;
@@ -144,8 +145,9 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
         var world = await SeedAsync();
 
         using var scope = SuperAdmin();
+        var enterprise = await scope.ServiceProvider.GetRequiredService<ISaasPlanRepository>().GetByNameAsync("Enterprise", default);
         var detail = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
-            .HandleAsync(world.NoSubscriptionGym, new UpdateSubscriptionRequest(GymPlan.Enterprise, 250_000m), default);
+            .HandleAsync(world.NoSubscriptionGym, new UpdateSubscriptionRequest(250_000m, SaasPlanId: enterprise!.Id), default);
 
         Assert.Equal("Enterprise", detail.Plan);
         Assert.Equal(250_000m, detail.MonthlyPrice);
@@ -204,7 +206,7 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
 
         using var scope = SuperAdmin();
         var detail = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
-            .HandleAsync(gymId, new UpdateSubscriptionRequest(GymPlan.Basic, 100_000m, TrialGraceDays: 7), default);
+            .HandleAsync(gymId, new UpdateSubscriptionRequest(100_000m, TrialGraceDays: 7), default);
 
         Assert.Equal(7, detail.TrialGraceDays);
         Assert.Equal("TrialEnded", detail.EffectiveStatus);
@@ -212,11 +214,11 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
 
         // Omitir el campo no lo reinicia.
         var again = await scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
-            .HandleAsync(gymId, new UpdateSubscriptionRequest(GymPlan.Basic, 100_000m), default);
+            .HandleAsync(gymId, new UpdateSubscriptionRequest(100_000m), default);
         Assert.Equal(7, again.TrialGraceDays);
 
         await Assert.ThrowsAnyAsync<Exception>(() => scope.ServiceProvider.GetRequiredService<UpdateSubscriptionHandler>()
-            .HandleAsync(gymId, new UpdateSubscriptionRequest(GymPlan.Basic, 100_000m, TrialGraceDays: -1), default));
+            .HandleAsync(gymId, new UpdateSubscriptionRequest(100_000m, TrialGraceDays: -1), default));
     }
 
     [Fact]
@@ -238,7 +240,7 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
         var end = Today.AddDays(-trialEndedDaysAgo);
         var id = MakeGym(db, "sa-trial", gymId =>
-            GymSubscription.Create(gymId, GymPlan.Basic, 100_000m, end.AddDays(-30), end, trialEndsOn: end));
+            GymSubscription.Create(gymId, 100_000m, end.AddDays(-30), end, trialEndsOn: end));
         await db.SaveChangesAsync();
         return id;
     }
@@ -262,9 +264,9 @@ public sealed class SuperAdminSubscriptionTests(ApiFactory factory) : IClassFixt
             "truncate table identity.users, gyms.gyms, gyms.gym_feature_flags, superadmin.gym_subscriptions restart identity cascade;");
 
         var active = MakeGym(db, "sa-active", gymId =>
-            GymSubscription.Create(gymId, GymPlan.Basic, 100_000m, Today.AddDays(-10), Today.AddDays(20)));
+            GymSubscription.Create(gymId, 100_000m, Today.AddDays(-10), Today.AddDays(20)));
         var overdue = MakeGym(db, "sa-overdue", gymId =>
-            GymSubscription.Create(gymId, GymPlan.Basic, 100_000m, Today.AddDays(-40), Today.AddDays(-1)));
+            GymSubscription.Create(gymId, 100_000m, Today.AddDays(-40), Today.AddDays(-1)));
         var noSub = MakeGym(db, "sa-nosub", withSubscription: null);
 
         await db.SaveChangesAsync();

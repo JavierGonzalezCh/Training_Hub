@@ -101,7 +101,7 @@ public class AdaptivePanelTests : TestContext
 
         var titles = registry.GetSettingsSections(user).Select(s => s.Title).ToArray();
 
-        Assert.Equal(["Datos del gym", "Módulos", "Horario", "Check-in", "Autorizaciones", "Privacidad", "Comunicaciones", "Reservas de clases", "Avisos", "Rutinas", "Staff", "Kioscos", "Logros del gym", "Máquinas y fallas"], titles);
+        Assert.Equal(["Datos del gym", "Módulos", "Horario", "Suscripción", "Check-in", "Autorizaciones", "Privacidad", "Comunicaciones", "Reservas de clases", "Avisos", "Rutinas", "Staff", "Kioscos", "Logros del gym", "Máquinas y fallas"], titles);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class AdaptivePanelTests : TestContext
         Assert.Equal(
             ["Gym", "Equipo", "Entrada al gym", "Rutinas", "Clases", "Comunicaciones", "Logros", "Miembros", "Módulos", "Otros"],
             groups.Select(g => g.Name).ToArray());
-        Assert.Equal(["Datos del gym", "Horario"], groups.Single(g => g.Name == "Gym").Sections.Select(s => s.Title).ToArray());
+        Assert.Equal(["Datos del gym", "Horario", "Suscripción"], groups.Single(g => g.Name == "Gym").Sections.Select(s => s.Title).ToArray());
         Assert.Equal(["Check-in", "Kioscos"], groups.Single(g => g.Name == "Entrada al gym").Sections.Select(s => s.Title).ToArray());
         Assert.Equal(["Comunicaciones", "Avisos"], groups.Single(g => g.Name == "Comunicaciones").Sections.Select(s => s.Title).ToArray());
         // Una pestaña sin grupo cae en "Otros", al final.

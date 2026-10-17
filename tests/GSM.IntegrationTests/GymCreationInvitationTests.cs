@@ -29,7 +29,7 @@ public sealed class GymCreationInvitationTests(ApiFactory factory) : IClassFixtu
     private static CreateGymRequest Request(
         string ownerEmail, int? trialDays = null, CreateGymFirstPayment? payment = null, decimal? price = null)
         => new(
-            "Gym Alta", Unique("alta"), null, null, null, GymPlan.Pro,
+            "Gym Alta", Unique("alta"), null, null, null, null,
             new CreateGymOwner(ownerEmail, "Dueño Nuevo"),
             TrialDays: trialDays, MonthlyPrice: price, FirstPayment: payment);
 

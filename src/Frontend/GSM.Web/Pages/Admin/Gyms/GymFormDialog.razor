@@ -1,4 +1,5 @@
 @inject IGymsClient Gyms
+@inject IAdminPlansClient AdminPlans
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -14,10 +15,10 @@
             <MudTextField T="string" @bind-Value="_nit" Label="NIT" Class="mb-3" />
             <MudTextField T="string" @bind-Value="_phone" Label="Teléfono" Class="mb-3" />
             <MudTextField T="string" @bind-Value="_email" Label="Email del gym" InputType="InputType.Email" Class="mb-3" />
-            <MudSelect T="int" @bind-Value="_plan" Label="Plan" Class="mb-4">
-                @foreach (var (value, label) in SuperAdminLabels.Plans)
+            <MudSelect T="Guid?" @bind-Value="_planId" Label="Plan" Class="mb-4" data-testid="plan-select">
+                @foreach (var plan in _plans)
                 {
-                    <MudSelectItem Value="value">@label</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)plan.Id)">@SubscriptionFormDialog.PlanLabel(plan)</MudSelectItem>
                 }
             </MudSelect>
 
@@ -72,7 +73,8 @@
     private string? _nit;
     private string? _phone;
     private string? _email;
-    private int _plan;
+    private Guid? _planId;
+    private List<SaasPlanItem> _plans = [];
     private string _ownerName = string.Empty;
     private string _ownerEmail = string.Empty;
     private decimal _monthlyPrice;
@@ -83,6 +85,19 @@
     private string? _paymentReference;
     private bool _submitting;
     private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _plans = (await AdminPlans.PlansAllAsync()).Where(p => p.IsActive == true).ToList();
+            _planId = _plans.FirstOrDefault()?.Id;
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+    }
 
     private async Task SubmitAsync()
     {
@@ -115,7 +130,7 @@
                 Nit = _nit,
                 Phone = _phone,
                 Email = _email,
-                Plan = _plan,
+                SaasPlanId = _planId,
                 Owner = new CreateGymOwner { Email = _ownerEmail, FullName = _ownerName },
                 MonthlyPrice = (double)_monthlyPrice,
                 TrialDays = _withTrial ? _trialDays : null,

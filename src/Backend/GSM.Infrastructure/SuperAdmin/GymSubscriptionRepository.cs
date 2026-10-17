@@ -24,7 +24,7 @@ public sealed class GymSubscriptionRepository(GsmDbContext dbContext) : IGymSubs
                 from s in Subscriptions.AsNoTracking()
                 join g in dbContext.Set<Gym>().IgnoreQueryFilters() on s.GymId equals g.Id
                 select new PortfolioRow(
-                    g.Id, g.Name, g.Slug, g.Status, s.Plan, s.MonthlyPrice,
+                    g.Id, g.Name, g.Slug, g.Status, s.MonthlyPrice,
                     s.StartedOn, s.TrialEndsOn, s.PaidThrough, s.SaasPlanId, s.MemberLimitOverride, s.TrialGraceDays))
             .ToListAsync(cancellationToken);
 }

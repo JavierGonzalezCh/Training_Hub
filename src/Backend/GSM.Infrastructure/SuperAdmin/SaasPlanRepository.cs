@@ -37,27 +37,21 @@ public sealed class SaasPlanRepository(GsmDbContext dbContext) : ISaasPlanReposi
     {
         var sub = await dbContext.Set<GymSubscription>().AsNoTracking()
             .Where(s => s.GymId == gymId)
-            .Select(s => new { s.SaasPlanId, s.Plan, s.MemberLimitOverride })
+            .Select(s => new { s.SaasPlanId, s.MemberLimitOverride })
             .FirstOrDefaultAsync(cancellationToken);
         if (sub is null)
         {
             return null;
         }
 
-        SaasPlan? plan;
+        // Suscripción sin plan elegido: no hay límite de plan (solo el override, si existe).
+        SaasPlan? plan = null;
         if (sub.SaasPlanId is { } planId)
         {
             plan = await Plans.AsNoTracking().FirstOrDefaultAsync(p => p.Id == planId, cancellationToken);
         }
-        else
-        {
-            // Suscripción sin plan elegido: el nombre del enum heredado ("Basic", "Pro", "Enterprise").
-            var legacyName = sub.Plan.ToString().ToLower();
-            plan = await Plans.AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Name.ToLower() == legacyName, cancellationToken);
-        }
 
-        return new GymMemberLimit(plan?.Id, plan?.Name ?? sub.Plan.ToString(), plan?.MemberLimit, sub.MemberLimitOverride);
+        return new GymMemberLimit(plan?.Id, plan?.Name ?? "Sin plan", plan?.MemberLimit, sub.MemberLimitOverride);
     }
 }
 

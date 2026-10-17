@@ -1,5 +1,4 @@
 using GSM.Application.Common.Events;
-using GSM.Domain.Gyms;
 using GSM.Domain.Payments;
 
 namespace GSM.Application.Gyms.Events;
@@ -8,6 +7,7 @@ namespace GSM.Application.Gyms.Events;
 /// Se publica tras crear un gym (y su owner). Achievements lo consume para sembrar logros y
 /// SuperAdmin para dar de alta su suscripción.
 /// </summary>
+/// <param name="SaasPlanId">Plan del SaaS que eligió el SuperAdmin (<c>superadmin.saas_plans</c>); sin FK, lo valida SuperAdmin.</param>
 /// <param name="TrialDays">Días de prueba que eligió el SuperAdmin; <c>null</c> si no hay prueba.</param>
 /// <param name="FirstPayment">Primer pago ya resuelto (fechas incluidas) cuando no hay prueba.</param>
 /// <param name="MonthlyPrice">Precio mensual negociado; 0 si aún no se fija.</param>
@@ -19,7 +19,7 @@ namespace GSM.Application.Gyms.Events;
 public sealed record GymCreated(
     Guid GymId,
     string Name,
-    GymPlan Plan,
+    Guid? SaasPlanId = null,
     int? TrialDays = null,
     GymFirstPayment? FirstPayment = null,
     decimal MonthlyPrice = 0m,

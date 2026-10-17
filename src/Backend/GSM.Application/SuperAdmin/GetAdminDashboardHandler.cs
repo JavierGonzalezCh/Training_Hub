@@ -165,21 +165,20 @@ public sealed class GetAdminDashboardHandler(
 
     /// <summary>
     /// Límite efectivo por gym con el mismo criterio que la cartera: el override del cliente, o el del plan elegido,
-    /// o el del enum heredado por nombre. Nulo = sin límite.
+    /// o ninguno. Nulo = sin límite.
     /// </summary>
     private async Task<Dictionary<Guid, (int? Limit, int Counted)>> LoadLimitsAsync(
         IReadOnlyList<PortfolioRow> rows, CancellationToken cancellationToken)
     {
         var planList = await saasPlans.ListAsync(cancellationToken);
         var plansById = planList.ToDictionary(p => p.Id);
-        var plansByName = planList.ToDictionary(p => p.Name.ToLowerInvariant());
         var result = new Dictionary<Guid, (int? Limit, int Counted)>(rows.Count);
 
         foreach (var row in rows)
         {
             var plan = row.SaasPlanId is { } planId
                 ? plansById.GetValueOrDefault(planId)
-                : plansByName.GetValueOrDefault(row.Plan.ToString().ToLowerInvariant());
+                : null;
             var counted = await memberships.GetCountedMemberCountAsync(row.GymId, cancellationToken);
             result[row.GymId] = (row.MemberLimitOverride ?? plan?.MemberLimit, counted);
         }

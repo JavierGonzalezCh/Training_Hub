@@ -8,7 +8,6 @@ public sealed class UpdateSubscriptionRequestValidator : AbstractValidator<Updat
 {
     public UpdateSubscriptionRequestValidator()
     {
-        RuleFor(x => x.Plan).IsInEnum();
         RuleFor(x => x.MonthlyPrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.MemberLimitOverride).GreaterThanOrEqualTo(1).When(x => x.MemberLimitOverride.HasValue);
         RuleFor(x => x.TrialGraceDays).InclusiveBetween(0, GymSubscription.MaxTrialGraceDays)

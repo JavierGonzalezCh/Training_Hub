@@ -10,7 +10,6 @@ public sealed class GymSubscriptionConfiguration : IEntityTypeConfiguration<GymS
     {
         builder.ToTable("gym_subscriptions", "superadmin");
 
-        builder.Property(s => s.Plan).HasColumnName("plan");
         builder.Property(s => s.MonthlyPrice).HasColumnType("decimal(12,2)");
         builder.Property(s => s.Notes).HasMaxLength(1000);
 

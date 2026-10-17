@@ -7,7 +7,6 @@ public sealed class GymsEnums : IModuleEnums
 {
     public IEnumerable<PgEnumMapping> Enums { get; } =
     [
-        PgEnumMapping.Of<GSM.Domain.Gyms.GymPlan>("gym_plan", "gyms", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Gyms.GymStatus>("gym_status", "gyms", LowerCaseNameTranslator.Instance),
     ];
 }

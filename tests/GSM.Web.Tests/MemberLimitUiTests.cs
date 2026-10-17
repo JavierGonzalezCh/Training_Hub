@@ -79,7 +79,5 @@ public class MemberLimitUiTests : TestContext
         Assert.Equal("12 / sin límite", SuperAdminLabels.MemberUsage(12, null));
         Assert.Null(SuperAdminLabels.MemberUsageRatio(12, null));
         Assert.Equal(1.0, SuperAdminLabels.MemberUsageRatio(200, 150));
-        Assert.Equal(1, SuperAdminLabels.LegacyPlanValue("Pro"));
-        Assert.Equal(0, SuperAdminLabels.LegacyPlanValue("Nuevo plan"));
     }
 }

@@ -23,7 +23,6 @@ public sealed record PortfolioRow(
     string GymName,
     string GymSlug,
     GSM.Domain.Gyms.GymStatus ManualStatus,
-    GSM.Domain.Gyms.GymPlan Plan,
     decimal MonthlyPrice,
     DateOnly StartedOn,
     DateOnly? TrialEndsOn,

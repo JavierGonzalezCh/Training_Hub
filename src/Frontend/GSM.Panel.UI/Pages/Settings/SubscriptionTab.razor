@@ -1,0 +1,119 @@
+@* Pestaña "Suscripción" de la configuración (la registra SubscriptionPanelModule) y contenido de /subscription.
+   Solo lectura, solo Owner (S3-3): el gym no paga desde el sistema. *@
+@inject IGymClient Gym
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4" data-testid="subscription-error">@_error</MudAlert>
+}
+else if (_data is { } s)
+{
+    <div class="d-flex align-center flex-wrap gap-3 mt-2 mb-3">
+        <MudText Typo="Typo.h6" data-testid="subscription-plan">@s.Plan</MudText>
+        <MudChip T="string" Size="Size.Small" Color="@SuperAdminLabels.StatusColor(s.EffectiveStatus)"
+                 data-testid="subscription-status">@SuperAdminLabels.OwnerStatusLabel(s.EffectiveStatus)</MudChip>
+    </div>
+
+    @if (SuperAdminLabels.OwnerStatusHint(s.EffectiveStatus) is { Length: > 0 } hint)
+    {
+        <MudAlert Severity="@(s.EffectiveStatus is "Disabled" or "Suspended" ? Severity.Error : Severity.Warning)"
+                  Dense="true" Class="mb-3" data-testid="subscription-hint">
+            @hint
+            @if (s.EffectiveStatus == "Suspended" && !string.IsNullOrWhiteSpace(s.SuspensionReason))
+            {
+                <div data-testid="subscription-reason">Motivo: @s.SuspensionReason</div>
+            }
+        </MudAlert>
+    }
+
+    <MudSimpleTable Dense="true" Hover="false" Class="mb-4" Style="max-width:560px">
+        <tbody>
+            <tr>
+                <td>Precio mensual</td>
+                <td data-testid="subscription-price">@GsmFormat.Money(s.MonthlyPrice)</td>
+            </tr>
+            @if (s.EffectiveStatus == "Trial" && s.TrialEndsOn is { } trialEnd)
+            {
+                <tr>
+                    <td>La prueba termina</td>
+                    <td data-testid="subscription-trial-end">@GsmFormat.Day(trialEnd)</td>
+                </tr>
+            }
+            else
+            {
+                <tr>
+                    <td>Pago hasta</td>
+                    <td data-testid="subscription-paid-through">@GsmFormat.Day(s.PaidThrough)</td>
+                </tr>
+            }
+            @if (s.DaysUntilDisabled is { } days)
+            {
+                <tr>
+                    <td>Días antes de quedar inhabilitado</td>
+                    <td data-testid="subscription-days-left">@days</td>
+                </tr>
+            }
+            <tr>
+                <td>Miembros</td>
+                <td data-testid="subscription-members">@SuperAdminLabels.MemberUsage(s.CountedMembers, s.MemberLimit)</td>
+            </tr>
+        </tbody>
+    </MudSimpleTable>
+
+    <MudText Typo="Typo.subtitle1" Class="mb-2">Últimos pagos</MudText>
+    @if (s.RecentPayments.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" data-testid="subscription-no-payments">
+            Aún no hay pagos registrados.
+        </MudText>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Class="mb-4" data-testid="subscription-payments">
+            <thead>
+                <tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Cubre</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var p in s.RecentPayments)
+                {
+                    <tr>
+                        <td>@GsmFormat.Instant(p.PaidAt)</td>
+                        <td>@GsmFormat.Money((decimal)p.Amount)</td>
+                        <td>@PaymentMethodLabels.Label(p.Method)</td>
+                        <td>@GsmFormat.DayRange(p.CoversFrom, p.CoversThrough)</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="subscription-renew-note">
+        Para renovar, comunícate con GSM.
+    </MudText>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private OwnSubscriptionResponse? _data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _data = await Gym.OwnSubscriptionAsync();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

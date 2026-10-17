@@ -257,7 +257,7 @@ public sealed class TenureAndReferralAchievementTests(ApiFactory factory) : ICla
                 .GetServices<GSM.Application.Common.Events.IDomainEventHandler<GSM.Application.Gyms.Events.GymCreated>>()
                 .OfType<SeedDefaultAchievementsHandler>().Single();
             await seed.HandleAsync(
-                new GSM.Application.Gyms.Events.GymCreated(w.GymId, "Tenure Gym", GymPlan.Basic), default);
+                new GSM.Application.Gyms.Events.GymCreated(w.GymId, "Tenure Gym"), default);
         }
 
         using var verify = Owner(w);
