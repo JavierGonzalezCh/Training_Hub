@@ -44,7 +44,7 @@ public sealed record MyProfile(
 /// siendo menor de edad). Los campos de identidad (<c>FirstName</c>, <c>LastName</c>, <c>DocumentType</c>,
 /// <c>DocumentNumber</c>, <c>BirthDate</c>) existen para que un cliente pueda reenviar la ficha completa: si
 /// vienen con un valor distinto al guardado → 403 (solo el staff los cambia). Un <c>Email</c> distinto al
-/// guardado → 422: se cambia con la verificación del correo nuevo. La foto se sube por <c>/api/me/photo</c>.
+/// guardado → 422: se cambia con la verificación del correo nuevo. <c>Goal</c> (objetivo, texto snake_case) se reemplaza como el contacto: vacío lo quita; el género no lo edita el miembro. La foto se sube por <c>/api/me/photo</c>.
 /// </summary>
 public sealed record UpdateMyProfileRequest(
     string? Phone,
@@ -59,4 +59,5 @@ public sealed record UpdateMyProfileRequest(
     string? DocumentType,
     string? DocumentNumber,
     DateOnly? BirthDate,
-    string? Email);
+    string? Email,
+    string? Goal = null);

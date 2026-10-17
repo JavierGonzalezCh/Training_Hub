@@ -111,10 +111,9 @@ public sealed class AddMemberNoteHandler(
     {
         var gymId = currentUser.RequireGymId();
 
-        if (!await members.ExistsAsync(memberId, cancellationToken))
-        {
-            throw new NotFoundException("Miembro no encontrado.");
-        }
+        var member = await members.GetByIdAsync(memberId, cancellationToken)
+            ?? throw new NotFoundException("Miembro no encontrado.");
+        AnonymizedGuard.EnsureNotAnonymized(member);
 
         var note = MemberNote.Add(gymId, memberId, request.Text, currentUser.UserId);
         members.Add(note);
@@ -124,5 +123,17 @@ public sealed class AddMemberNoteHandler(
 
         var names = await AuthorNames.ResolveAsync(identity, [note.AuthorUserId], cancellationToken);
         return ListMemberNotesHandler.ToItem(note, names);
+    }
+}
+
+/// <summary>M6-4: una ficha anonimizada no admite datos nuevos (notas, mediciones).</summary>
+internal static class AnonymizedGuard
+{
+    public static void EnsureNotAnonymized(Member member)
+    {
+        if (member.IsAnonymized)
+        {
+            throw new ValidationDomainException("La ficha está anonimizada.");
+        }
     }
 }

@@ -127,6 +127,19 @@ public class MyProfileUiTests : TestContext
     }
 
     [Fact]
+    public void The_goal_is_editable_and_saving_the_contact_sends_it()
+    {
+        var stub = Register();
+        stub.Profile.Goal = "fitness";
+
+        var cut = RenderComponent<Profile>();
+        Assert.NotEmpty(cut.FindAll(".gsm-profile__goal"));
+        cut.Find(".gsm-profile__save-contact").Click();
+
+        Assert.Equal("fitness", Assert.Single(stub.Updates).Goal);
+    }
+
+    [Fact]
     public void Saving_the_health_section_sends_it_whole()
     {
         var stub = Register();

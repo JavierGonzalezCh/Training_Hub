@@ -20,7 +20,8 @@ public static class LoginCodePolicy
 
 /// <summary>
 /// <c>POST /api/auth/request-login-code</c>: manda el código de 6 dígitos al correo del miembro (Identity §6).
-/// Sale igual exista o no la cuenta, esté limitada o no: no revela nada. El código nunca se escribe en el log.
+/// Para un email sin cuenta de miembro activa responde igual que si la hubiera (202, no revela nada); solo una cuenta
+/// real que superó el límite (1 por minuto, 5 por hora) recibe 409 con el aviso. El código nunca se escribe en el log.
 /// </summary>
 public sealed class RequestLoginCodeHandler(
     ILoginCodeService loginCodes,
@@ -39,7 +40,7 @@ public sealed class RequestLoginCodeHandler(
                 return;
             case LoginCodeIssueStatus.Throttled:
                 logger.LogInformation("Código de acceso pedido por encima del límite (1 por minuto, 5 por hora)");
-                return;
+                throw new ConflictException("Pediste demasiados códigos. Espera unos minutos e inténtalo de nuevo.");
         }
 
         string? gymName = null;

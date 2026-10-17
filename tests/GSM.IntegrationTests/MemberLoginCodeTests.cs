@@ -4,11 +4,13 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Logs;
 using GSM.Application.Identity.Abstractions;
 using GSM.Application.Identity.Contracts;
 using GSM.Application.Identity.Public;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
+using GSM.Infrastructure.Logs;
 using GSM.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -182,6 +184,35 @@ public sealed class MemberLoginCodeTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task The_fifth_wrong_attempt_leaves_a_code_attempts_exceeded_security_event_without_the_code()
+    {
+        var w = await SeedAsync();
+        await using var host = RealIdentityHost();
+        var emails = host.Services.GetRequiredService<CapturingEmailSender>();
+        var client = host.CreateClient();
+
+        await RequestCodeAsync(client, w.MemberEmail);
+        var code = CodeSentTo(emails, w.MemberEmail);
+        var wrong = code == "000000" ? "111111" : "000000";
+
+        HttpResponseMessage fifth = null!;
+        for (var i = 0; i < 5; i++)
+        {
+            fifth = await VerifyAsync(client, w.MemberEmail, wrong);
+            Assert.Equal(HttpStatusCode.Unauthorized, fifth.StatusCode);
+        }
+
+        var traceId = fifth.Headers.GetValues("X-Trace-Id").Single();
+        await host.Services.GetRequiredService<ILogStore>().FlushAsync();
+        await using var logs = host.Services.GetRequiredService<IDbContextFactory<LogsDbContext>>().CreateDbContext();
+
+        // Un solo evento, en el intento que agotó el código; los cuatro anteriores no lo generan.
+        var row = await logs.SecurityEvents.SingleAsync(e => e.EventType == "code_attempts_exceeded" && e.Detail!.Contains(w.MemberEmail));
+        Assert.Equal(traceId, row.TraceId);
+        Assert.Equal($"email={w.MemberEmail}; intentos=5", row.Detail);
+    }
+
+    [Fact]
     public async Task Four_wrong_attempts_still_leave_the_right_code_valid()
     {
         var w = await SeedAsync();
@@ -253,8 +284,9 @@ public sealed class MemberLoginCodeTests(ApiFactory factory) : IClassFixture<Api
             clock.PinTo(start.AddSeconds(30), DateOnly.FromDateTime(DateTime.UtcNow));
             var throttled = await RequestCodeAsync(client, w.MemberEmail);
 
-            // La respuesta no cambia, pero no sale un segundo correo.
-            Assert.Equal(HttpStatusCode.Accepted, throttled.StatusCode);
+            // I5-7: una cuenta real que supera el límite recibe 409 con el aviso, y no sale un segundo correo.
+            Assert.Equal(HttpStatusCode.Conflict, throttled.StatusCode);
+            Assert.Contains("Pediste demasiados códigos. Espera unos minutos e inténtalo de nuevo.", await throttled.Content.ReadAsStringAsync());
             Assert.Single(emails.Sent, m => LoginCodeEmailTo(m, w.MemberEmail));
 
             clock.PinTo(start.AddSeconds(61), DateOnly.FromDateTime(DateTime.UtcNow));

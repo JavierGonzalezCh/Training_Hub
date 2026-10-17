@@ -1,3 +1,4 @@
+using System.Globalization;
 using GSM.Application.Common;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Payments.Abstractions;
@@ -64,7 +65,10 @@ public sealed class OpenCashShiftHandler(
     }
 }
 
-/// <summary>Retiro o ingreso de efectivo a mitad de turno. Lo hace quien abrió la caja o el Owner.</summary>
+/// <summary>
+/// Retiro o ingreso de efectivo a mitad de turno. Lo hace quien abrió la caja o el Owner. Un retiro mayor al efectivo
+/// esperado del turno es 422.
+/// </summary>
 public sealed class RecordCashMovementHandler(
     ICurrentUserService currentUser,
     IClock clock,
@@ -93,6 +97,17 @@ public sealed class RecordCashMovementHandler(
             "deposit" => CashMovementType.Deposit,
             _ => throw new ValidationDomainException("El tipo debe ser withdrawal o deposit."),
         };
+
+        // P3-3: no se puede sacar de la caja más efectivo del que se espera que haya.
+        if (type == CashMovementType.Withdrawal)
+        {
+            var expected = await drawer.ComputeExpectedAsync(open, cancellationToken);
+            if (request.Amount > expected)
+            {
+                throw new ValidationDomainException(
+                    $"No puedes retirar más efectivo del que hay en la caja (${expected.ToString("N0", CultureInfo.GetCultureInfo("es-CO"))}).");
+            }
+        }
 
         var movement = CashMovement.Create(
             gymId, open.Id, type, request.Amount, request.Reason, userId, clock.UtcNow);

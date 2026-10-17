@@ -47,4 +47,11 @@ public interface IAttendanceRepository
     /// </summary>
     Task<int> CountDistinctMembersInWindowAsync(
         Guid gymId, DateTimeOffset sinceUtc, DateTimeOffset untilUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// M6-2: reemplaza por <paramref name="replacement"/> el motivo de "Dejar pasar" de las entradas del miembro.
+    /// Idempotente (no toca las que ya tienen el reemplazo ni las que no tienen motivo).
+    /// </summary>
+    Task ReplaceAuthorizationReasonsForMemberAsync(
+        Guid gymId, Guid memberId, string replacement, CancellationToken cancellationToken = default);
 }

@@ -252,13 +252,14 @@ public sealed class Member : BaseEntity, ITenantEntity
         string? emergencyContactName,
         string? emergencyContactRelationship,
         string? emergencyContactPhone,
+        MemberGoal? goal,
         DateOnly today)
         => UpdateProfile(
             new MemberProfile(
                 FirstName, LastName, DocumentType, DocumentNumber, BirthDate, Gender, PhotoUrl,
                 phone, Email, address, city,
                 emergencyContactName, emergencyContactRelationship, emergencyContactPhone,
-                Source, ReferredByMemberId, Goal, Tags,
+                Source, ReferredByMemberId, goal, Tags,
                 GuardianName, GuardianDocumentType, GuardianDocumentNumber, GuardianPhone, GuardianRelationship),
             joinedAt: null,
             today);

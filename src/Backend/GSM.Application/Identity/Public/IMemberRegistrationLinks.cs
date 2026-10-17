@@ -6,5 +6,6 @@ namespace GSM.Application.Identity.Public;
 /// </summary>
 public interface IMemberRegistrationLinks
 {
-    string RegistrationUrl(string code);
+    /// <param name="gymSlug">Si viene, se añade <c>&amp;gym=&lt;slug&gt;</c> para que la pantalla pinte la marca del gym desde la primera vez (I5-4).</param>
+    string RegistrationUrl(string code, string? gymSlug = null);
 }

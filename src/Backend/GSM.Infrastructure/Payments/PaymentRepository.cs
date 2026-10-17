@@ -91,4 +91,10 @@ public sealed class PaymentRepository(GsmDbContext dbContext) : IPaymentReposito
             .Where(p => p.PaidAt >= fromUtc && p.PaidAt < toUtc)
             .OrderBy(p => p.PaidAt)
             .ToListAsync(cancellationToken);
+
+    public async Task ReplaceNotesForMemberAsync(
+        Guid gymId, Guid memberId, string replacement, CancellationToken cancellationToken = default)
+        => await Payments.IgnoreQueryFilters()
+            .Where(p => p.GymId == gymId && p.MemberId == memberId && p.Notes != null && p.Notes != replacement)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Notes, replacement), cancellationToken);
 }

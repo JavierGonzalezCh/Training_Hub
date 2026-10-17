@@ -78,6 +78,12 @@ else
                       HelperText="Con o sin +57, por ejemplo 3001234567" />
         <MudTextField T="string" @bind-Value="_form.Address" Label="Dirección" Immediate="true" Class="mb-2" />
         <MudTextField T="string" @bind-Value="_form.City" Label="Ciudad" Immediate="true" Class="mb-2" />
+        <MudSelect T="string" @bind-Value="_form.Goal" Label="Objetivo" Clearable="true" Class="mb-2 gsm-profile__goal">
+            @foreach (var (value, label) in MemberLabels.Goals)
+            {
+                <MudSelectItem T="string" Value="@value">@label</MudSelectItem>
+            }
+        </MudSelect>
         <MudText Typo="Typo.subtitle2" Class="mt-2">Contacto de emergencia</MudText>
         <MudTextField T="string" @bind-Value="_form.EmergencyContactName" Label="Nombre" Immediate="true" Class="mb-2 gsm-profile__emergency-name" />
         <MudTextField T="string" @bind-Value="_form.EmergencyContactRelationship" Label="Parentesco" Immediate="true" Class="mb-2" />
@@ -158,6 +164,7 @@ else
         _form.EmergencyContactName = profile.EmergencyContactName;
         _form.EmergencyContactRelationship = profile.EmergencyContactRelationship;
         _form.EmergencyContactPhone = profile.EmergencyContactPhone;
+        _form.Goal = profile.Goal;
         _form.MedicalConditions = profile.Health?.MedicalConditions;
         _form.Medications = profile.Health?.Medications;
         _form.TrainingRestrictions = profile.Health?.TrainingRestrictions;
@@ -186,6 +193,7 @@ else
                 EmergencyContactName = _form.EmergencyContactName,
                 EmergencyContactRelationship = _form.EmergencyContactRelationship,
                 EmergencyContactPhone = _form.EmergencyContactPhone,
+                Goal = string.IsNullOrWhiteSpace(_form.Goal) ? null : _form.Goal,
                 Health = includeHealth
                     ? new UpdateMemberHealthRequest
                     {
@@ -245,6 +253,7 @@ else
         public string? EmergencyContactName { get; set; }
         public string? EmergencyContactRelationship { get; set; }
         public string? EmergencyContactPhone { get; set; }
+        public string? Goal { get; set; }
         public string? MedicalConditions { get; set; }
         public string? Medications { get; set; }
         public string? TrainingRestrictions { get; set; }

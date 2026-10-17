@@ -210,6 +210,29 @@ public sealed class LogsRejectionsSecuritySlowTests(ApiFactory factory) : IClass
     }
 
     [Fact]
+    public async Task A_slow_internal_job_request_is_not_recorded_as_a_slow_request()
+    {
+        await using var host = TestHost(("Logs:SlowRequestMs", "0"));
+        host.Services.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+        var client = host.CreateClient();
+
+        var job = new HttpRequestMessage(HttpMethod.Post, "/internal/jobs/communications/run");
+        job.Headers.Add("X-Job-Secret", "integration-tests-jobs-secret-32-bytes-min!!");
+        var jobResponse = await client.SendAsync(job);
+        Assert.Equal(HttpStatusCode.OK, jobResponse.StatusCode);
+        var jobTrace = TraceOf(jobResponse);
+
+        // Control: con el mismo umbral, una petición normal sí queda como lenta.
+        var control = await client.PostAsJsonAsync("/test-logs/validate", new { name = "Ana", password = "x" });
+        var controlTrace = TraceOf(control);
+
+        await host.Services.GetRequiredService<ILogStore>().FlushAsync();
+        await using var db = OpenLogs(host);
+        Assert.False(await db.SlowRequests.AnyAsync(r => r.TraceId == jobTrace));
+        Assert.True(await db.SlowRequests.AnyAsync(r => r.TraceId == controlTrace));
+    }
+
+    [Fact]
     public async Task Fast_request_under_the_default_threshold_leaves_no_slow_request_row()
     {
         await using var host = TestHost();

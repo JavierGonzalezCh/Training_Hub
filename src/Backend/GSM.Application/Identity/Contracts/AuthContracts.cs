@@ -74,8 +74,12 @@ public sealed record VerifyLoginCodeRequest(string Email, string Code);
 /// </summary>
 public sealed record RequestEmailChangeRequest(string NewEmail);
 
-/// <summary>Confirma el cambio de email con los dos códigos: el del correo nuevo y el del correo actual.</summary>
-public sealed record ConfirmEmailChangeRequest(string Code, string CurrentEmailCode);
+/// <summary>
+/// Confirma el cambio de email con los dos códigos: el del correo nuevo y el del correo actual. <c>RefreshToken</c> es
+/// el de la sesión actual (I6-5): es la única que sobrevive; las demás sesiones de la persona se cierran. Sin él se
+/// cierran todas, también la actual (la persona tendrá que entrar de nuevo).
+/// </summary>
+public sealed record ConfirmEmailChangeRequest(string Code, string CurrentEmailCode, string? RefreshToken = null);
 
 /// <summary>El email que quedó en la cuenta tras confirmar el cambio.</summary>
 public sealed record EmailChangedResponse(string Email);

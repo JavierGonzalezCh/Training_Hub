@@ -7,7 +7,8 @@ namespace GSM.API.Middleware;
 /// LG2: la petición completa a la vista del log. Envuelve al manejador de excepciones, así que ve el código de
 /// estado definitivo. Registra (siempre por <see cref="ILogStore"/>, que nunca espera ni lanza):
 /// <list type="bullet">
-/// <item><c>logs.slow_requests</c>: toda petición que tarda más de <c>Logs:SlowRequestMs</c> (2000 por defecto).</item>
+/// <item><c>logs.slow_requests</c>: toda petición que tarda más de <c>Logs:SlowRequestMs</c> (2000 por defecto),
+/// salvo las de <c>/internal/jobs/*</c>, que ya tienen <c>job_runs</c>.</item>
 /// <item><c>logs.business_rejections</c>: los 400/403/404/409/422 que nadie registró antes con su causa (las
 /// excepciones de dominio y la validación de formularios ya lo hicieron y lo marcan con
 /// <see cref="RejectionLogging.LoggedItemKey"/>): un 403 de política, un 400 de enlace de modelo, un 404
@@ -43,7 +44,8 @@ public sealed class RequestLoggingMiddleware(
         {
             var status = context.Response.StatusCode;
             var durationMs = (int)Math.Min(elapsed.TotalMilliseconds, int.MaxValue);
-            var isSlow = durationMs > _slowRequestMs;
+            // LG2-1: las tareas periódicas (/internal/jobs/*) tardan lo que tarden y ya dejan su fila en job_runs.
+            var isSlow = durationMs > _slowRequestMs && !context.Request.Path.StartsWithSegments("/internal/jobs");
             var isRejection = RejectionLogging.IsRejectionStatus(status) && !RejectionLogging.WasLogged(context);
             if (!isSlow && !isRejection)
             {
