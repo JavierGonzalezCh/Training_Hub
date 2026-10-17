@@ -189,23 +189,112 @@ public class MembershipPricingUiTests : TestContext
     }
 
     [Fact]
-    public void The_settings_tab_edits_the_enrollment_fee()
+    public void The_memberships_settings_tab_edits_the_enrollment_fee_grace_and_expiring_days()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+
+        var settings = System.Reflection.DispatchProxy.Create<IMembershipSettingsClient, CommercialStatusUiTests.FakeClient>();
+        var settingsFake = (CommercialStatusUiTests.FakeClient)(object)settings;
+        settingsFake.Handlers["MembershipSettingsGETAsync"] = _ => new MembershipSettingsResponse { GraceDays = 3, ExpiringDays = 7, EnrollmentFee = 25000 };
+        settingsFake.Handlers["MembershipSettingsPUTAsync"] = args =>
+        {
+            var put = (UpdateMembershipSettingsRequest)args[0]!;
+            return new MembershipSettingsResponse { GraceDays = put.GraceDays, ExpiringDays = put.ExpiringDays, EnrollmentFee = put.EnrollmentFee };
+        };
+        Services.AddSingleton(settings);
+
+        RenderComponent<MudPopoverProvider>();
+        var tab = RenderComponent<MembershipSettingsTab>();
+
+        tab.WaitForAssertion(() => Assert.Contains("Matrícula (COP)", tab.Markup));
+        Assert.NotEmpty(tab.FindAll("#enrollment-fee"));
+        Assert.Equal("3", tab.Find("input#grace-days").GetAttribute("value"));
+        Assert.Equal("7", tab.Find("input#expiring-days").GetAttribute("value"));
+
+        tab.Find("input#grace-days").Change("5");
+        tab.Find("#membership-settings-save").Click();
+
+        tab.WaitForAssertion(() =>
+        {
+            var put = Assert.Single(settingsFake.Calls, c => c.Method == "MembershipSettingsPUTAsync");
+            Assert.Equal(5, Assert.IsType<UpdateMembershipSettingsRequest>(put.Args[0]).GraceDays);
+        });
+    }
+
+    [Fact]
+    public void The_checkin_tab_no_longer_has_the_membership_settings()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
 
         var attendance = System.Reflection.DispatchProxy.Create<IAttendanceClient, CommercialStatusUiTests.FakeClient>();
         ((CommercialStatusUiTests.FakeClient)(object)attendance).Handlers["SettingsGETAsync"] = _ => new CheckinSettingsResponse { Mode = "Rotating" };
-        var settings = System.Reflection.DispatchProxy.Create<IMembershipSettingsClient, CommercialStatusUiTests.FakeClient>();
-        var settingsFake = (CommercialStatusUiTests.FakeClient)(object)settings;
-        settingsFake.Handlers["MembershipSettingsGETAsync"] = _ => new MembershipSettingsResponse { GraceDays = 3, ExpiringDays = 7, EnrollmentFee = 25000 };
         Services.AddSingleton(attendance);
-        Services.AddSingleton(settings);
 
         RenderComponent<MudPopoverProvider>();
         var tab = RenderComponent<CheckinTab>();
 
-        tab.WaitForAssertion(() => Assert.Contains("Matrícula (COP)", tab.Markup));
-        Assert.NotEmpty(tab.FindAll("#enrollment-fee"));
+        tab.WaitForAssertion(() => Assert.Contains("Tipo de QR en la entrada", tab.Markup));
+        Assert.Empty(tab.FindAll("#enrollment-fee"));
+        Assert.DoesNotContain("Días de gracia", tab.Markup);
+        Assert.DoesNotContain("Matrícula", tab.Markup);
+    }
+
+    [Fact]
+    public void The_checkin_poster_is_offered_only_in_static_mode_and_shows_the_fixed_code()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+
+        var attendance = System.Reflection.DispatchProxy.Create<IAttendanceClient, CommercialStatusUiTests.FakeClient>();
+        var fake = (CommercialStatusUiTests.FakeClient)(object)attendance;
+        fake.Handlers["SettingsGETAsync"] = _ => new CheckinSettingsResponse { Mode = "Static" };
+        fake.Handlers["GetStaticCodeAsync"] = _ => new KioskCodeResponse { Mode = "Static", Code = "s1.fixedcode" };
+        Services.AddSingleton(attendance);
+        Services.AddSingleton<GSM.UI.Shared.Auth.GymContext>();
+
+        var provider = RenderComponent<MudDialogProvider>();
+        RenderComponent<MudPopoverProvider>();
+        var tab = RenderComponent<CheckinTab>();
+
+        tab.WaitForAssertion(() => Assert.NotEmpty(tab.FindAll("[data-testid='show-qr-poster']")));
+        tab.Find("[data-testid='show-qr-poster']").Click();
+
+        provider.WaitForAssertion(() => Assert.NotEmpty(provider.FindAll("[data-testid='qr-poster-preview']")));
+        Assert.Contains("Escanea para registrar tu entrada", provider.Markup);
+        Assert.NotEmpty(provider.FindAll("[data-testid='qr-poster-print']"));
+    }
+
+    [Fact]
+    public void The_checkin_poster_button_is_hidden_in_rotating_mode()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+
+        var attendance = System.Reflection.DispatchProxy.Create<IAttendanceClient, CommercialStatusUiTests.FakeClient>();
+        ((CommercialStatusUiTests.FakeClient)(object)attendance).Handlers["SettingsGETAsync"] = _ => new CheckinSettingsResponse { Mode = "Rotating" };
+        Services.AddSingleton(attendance);
+
+        RenderComponent<MudPopoverProvider>();
+        var tab = RenderComponent<CheckinTab>();
+
+        tab.WaitForAssertion(() => Assert.Contains("Tipo de QR en la entrada", tab.Markup));
+        Assert.Empty(tab.FindAll("[data-testid='show-qr-poster']"));
+    }
+
+    [Fact]
+    public void The_modules_register_the_memberships_routines_and_equipment_settings_sections_for_the_owner()
+    {
+        var sections = new GSM.Panel.UI.Navigation.IPanelModule[]
+        {
+            new GSM.Panel.UI.Navigation.Modules.MembershipsPanelModule(),
+            new GSM.Panel.UI.Navigation.Modules.RoutinesPanelModule(),
+            new GSM.Panel.UI.Navigation.Modules.EquipmentPanelModule(),
+        }.SelectMany(m => m.SettingsSections).ToList();
+
+        Assert.Contains(sections, s => s.Component == typeof(MembershipSettingsTab) && s.Roles == "owner" && s.Group == "Membresías");
+        Assert.Contains(sections, s => s.Component == typeof(RoutineSettingsTab) && s.Roles == "owner");
+        Assert.Contains(sections, s => s.Component == typeof(EquipmentSettingsTab) && s.Roles == "owner" && s.Group == "Equipos");
     }
 }

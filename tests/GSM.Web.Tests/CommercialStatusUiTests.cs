@@ -169,6 +169,7 @@ public class CommercialStatusUiTests : TestContext
         var (whatsApp, whatsAppFake) = Fake<IWhatsAppClient>();
         whatsAppFake.Handlers["StatesAsync"] = _ => new List<WhatsAppMemberStateResponse>();
         Services.AddSingleton(whatsApp);
+        Services.AddSingleton(CommercialStatusUiTests.Fake<GSM.Client.Generated.ICashShiftsClient>().Client); // P3-4: recepción muestra la barra de caja
         attendanceFake = a;
         membershipsFake = m;
 

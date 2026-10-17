@@ -131,6 +131,27 @@ public sealed class CheckinSettingsTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Static_code_for_the_poster_is_served_only_in_static_mode_and_matches_the_kiosk_code()
+    {
+        var gymId = await SeedGymAsync();
+
+        using (var scope = Owner(gymId))
+        {
+            await Assert.ThrowsAsync<ConflictException>(() => scope.ServiceProvider
+                .GetRequiredService<GetStaticCodeHandler>().HandleAsync(default));
+            await scope.ServiceProvider.GetRequiredService<UpdateCheckinSettingsHandler>()
+                .HandleAsync(new UpdateCheckinSettingsRequest("Static"), default);
+        }
+
+        using var check = Owner(gymId);
+        var poster = await check.ServiceProvider.GetRequiredService<GetStaticCodeHandler>().HandleAsync(default);
+        var kiosk = await check.ServiceProvider.GetRequiredService<GetKioskCodeHandler>().HandleAsync(default);
+        Assert.Equal("Static", poster.Mode);
+        Assert.Equal(kiosk.Code, poster.Code);
+        Assert.Null(poster.ExpiresAtUtc);
+    }
+
+    [Fact]
     public async Task Kiosk_code_is_forbidden_when_checkin_qr_is_off_and_codes_are_per_gym()
     {
         var gymId = await SeedGymAsync(checkinQr: false);

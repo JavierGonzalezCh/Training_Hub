@@ -1,5 +1,7 @@
-@* Pestaña "Rutinas" de la configuración (Routines R8): cada cuántas semanas se revisa una rutina. Solo Owner. *@
+@* Sección "Rutinas" de la configuración (Gyms §7, Routines R8): qué ven los miembros de rutinas y cada cuántas semanas se revisa una. Solo Owner. *@
 @inject IRoutineSettingsClient RoutineSettings
+@inject IGymClient Gym
+@inject SessionService Session
 @inject ISnackbar Snackbar
 
 @if (_loading)
@@ -9,6 +11,13 @@
 else
 {
     <div class="gsm-routine-settings">
+        <MudSwitch T="bool" @bind-Value="_showRoutines" Color="Color.Primary" data-testid="show-routines"
+                   Label="Rutinas en la app del miembro" Class="mb-1" />
+        <p class="gsm-choice__hint mb-4">Cada miembro ve su rutina asignada y registra lo que entrena por ejercicio.</p>
+        <MudSwitch T="bool" @bind-Value="_membersCanCreate" Color="Color.Primary" data-testid="members-can-create-routines"
+                   Label="Los miembros pueden crear su propia rutina" Class="mb-1" />
+        <p class="gsm-choice__hint mb-4">Sin esperar a que el staff se la arme.</p>
+
         <MudNumericField T="int" @bind-Value="_reviewWeeks" Label="Revisar la rutina cada (semanas)" Min="1" Max="52"
                          HelperText="Al asignar una rutina, y cada vez que se marca como revisada, se fija la próxima revisión a estas semanas. Es un recordatorio para el entrenador: la rutina sigue activa aunque la fecha pase. Cambiarlo no mueve las fechas ya fijadas."
                          Class="mb-4" Style="max-width:420px" id="routine-review-weeks" />
@@ -23,12 +32,18 @@ else
     private bool _loading = true;
     private bool _saving;
     private int _reviewWeeks = 6;
+    private GymFeatureFlagsResponse? _flags;
+    private bool _showRoutines;
+    private bool _membersCanCreate;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _reviewWeeks = (await RoutineSettings.GetRoutineSettingsAsync()).ReviewWeeks;
+            _flags = await Gym.FeatureFlagsGETAsync();
+            _showRoutines = _flags.ShowRoutines;
+            _membersCanCreate = _flags.MembersCanCreateRoutines;
         }
         catch (GsmApiException ex)
         {
@@ -48,6 +63,17 @@ else
             var saved = await RoutineSettings.UpdateRoutineSettingsAsync(
                 new UpdateRoutineSettingsRequest { ReviewWeeks = _reviewWeeks });
             _reviewWeeks = saved.ReviewWeeks;
+            if (_flags is not null && (_flags.ShowRoutines != _showRoutines || _flags.MembersCanCreateRoutines != _membersCanCreate))
+            {
+                var request = FeatureFlagsRequests.From(_flags);
+                request.ShowRoutines = _showRoutines;
+                request.MembersCanCreateRoutines = _membersCanCreate;
+                await Gym.FeatureFlagsPUTAsync(request);
+                _flags.ShowRoutines = _showRoutines;
+                _flags.MembersCanCreateRoutines = _membersCanCreate;
+                await Session.BootstrapAsync();
+            }
+
             Snackbar.Add("Ajustes de rutinas guardados.", Severity.Success);
         }
         catch (GsmApiException ex)

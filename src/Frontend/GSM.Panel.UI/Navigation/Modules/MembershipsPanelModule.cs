@@ -1,3 +1,4 @@
+using GSM.Client;
 using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
@@ -11,4 +12,7 @@ public sealed class MembershipsPanelModule : IPanelModule
     [
         new("Planes", Icons.Material.Outlined.CardMembership, "/plans", PanelSections.Business, 20),
     ];
+
+    public IEnumerable<PanelSettingsSection> SettingsSections =>
+        [new("Membresías", 28, typeof(Pages.Settings.MembershipSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Memberships)];
 }

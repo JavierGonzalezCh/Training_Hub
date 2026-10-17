@@ -141,6 +141,14 @@ public class ReceptionCardUiTests : TestContext
         Assert.Equal("Autorizado por el dueño", request.AuthorizationReason);
     }
 
+    [Fact]
+    public void Reception_shows_the_cash_drawer_bar()
+    {
+        var page = Render(out _, new ReceptionCardResponse());
+
+        Assert.NotEmpty(page.FindAll("[data-testid='cash-drawer-bar']"));
+    }
+
     private IRenderedComponent<CheckIn> Render(out FakeClient attendanceFake, ReceptionCardResponse card)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -156,6 +164,7 @@ public class ReceptionCardUiTests : TestContext
         var whatsApp = DispatchProxy.Create<IWhatsAppClient, FakeClient>();
         ((FakeClient)(object)whatsApp).Handlers["StatesAsync"] = _ => new List<WhatsAppMemberStateResponse>();
         Services.AddSingleton(whatsApp);
+        Services.AddSingleton(CommercialStatusUiTests.Fake<GSM.Client.Generated.ICashShiftsClient>().Client); // P3-4: recepción muestra la barra de caja
 
         this.AddTestAuthorization().SetAuthorized("staff");
         RenderComponent<MudPopoverProvider>();

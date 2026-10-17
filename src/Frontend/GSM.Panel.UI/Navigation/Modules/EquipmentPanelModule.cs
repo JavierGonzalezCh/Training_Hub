@@ -1,3 +1,4 @@
+using GSM.Client;
 using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
@@ -11,4 +12,7 @@ public sealed class EquipmentPanelModule : IPanelModule
     [
         new("Equipos", Icons.Material.Outlined.Inventory2, "/equipment", PanelSections.Training, 30),
     ];
+
+    public IEnumerable<PanelSettingsSection> SettingsSections =>
+        [new("Equipos", 47, typeof(Pages.Settings.EquipmentSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Equipment)];
 }
