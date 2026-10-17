@@ -44532,6 +44532,13 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("expectedBackOn")]
         public System.DateOnly? ExpectedBackOn { get; set; } = default!;
 
+        /// <summary>
+        /// <c>CloseOpenIssues</c> (E4-3): solo cuenta al dejar la máquina disponible; resuelve en el mismo paso los reportes
+        /// <br/>sin cerrar de esa máquina. Por defecto, no.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closeOpenIssues")]
+        public bool? CloseOpenIssues { get; set; } = false;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

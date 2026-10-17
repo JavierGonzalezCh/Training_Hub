@@ -52,7 +52,12 @@ public sealed record SaveEquipmentRequest(
 /// Cambia el estado de una máquina. <c>Reason</c> es obligatorio al pasar a mantenimiento o fuera de
 /// servicio. <c>ExpectedBackOn</c> (opcional) solo aplica fuera de disponible y no puede ser pasada.
 /// </summary>
-public sealed record ChangeEquipmentStatusRequest(EquipmentStatus Status, string? Reason, DateOnly? ExpectedBackOn);
+/// <summary>
+/// <c>CloseOpenIssues</c> (E4-3): solo cuenta al dejar la máquina disponible; resuelve en el mismo paso los reportes
+/// sin cerrar de esa máquina. Por defecto, no.
+/// </summary>
+public sealed record ChangeEquipmentStatusRequest(
+    EquipmentStatus Status, string? Reason, DateOnly? ExpectedBackOn, bool CloseOpenIssues = false);
 
 /// <summary>Una fila del historial de estado. <c>ChangedByName</c> sale de Identity (null si la cuenta ya no existe).</summary>
 public sealed record EquipmentStatusChangeResponse(

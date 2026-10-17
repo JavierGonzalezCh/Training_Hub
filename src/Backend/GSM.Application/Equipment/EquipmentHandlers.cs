@@ -1,7 +1,9 @@
 using GSM.Application.Common;
 using GSM.Application.Common.Abstractions;
+using GSM.Application.Common.Events;
 using GSM.Application.Equipment.Abstractions;
 using GSM.Application.Equipment.Contracts;
+using GSM.Application.Equipment.Events;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Equipment;
 using Microsoft.Extensions.Logging;
@@ -226,31 +228,73 @@ public sealed class AddEquipmentFromModelsHandler(
 /// <summary>
 /// Cambia el estado de una máquina y deja la fila de historial en la misma transacción. Las reglas
 /// (motivo obligatorio, mismo estado, baja, fecha pasada) las hace <see cref="EquipmentItem.ChangeStatus"/>.
+/// <para>
+/// E4-3: al dejarla disponible, con <c>CloseOpenIssues</c> los reportes sin cerrar de la máquina se resuelven en el
+/// mismo paso; cada uno publica <see cref="EquipmentIssueClosed"/> como si se resolviera a mano (el miembro que
+/// reportó recibe su aviso de «tu reporte se resolvió» y el aviso de la campana se atiende).
+/// </para>
 /// </summary>
 public sealed class ChangeEquipmentStatusHandler(
     ICurrentUserService currentUser,
     IEquipmentItemRepository items,
     IEquipmentModelRepository models,
+    IEquipmentIssueRepository issues,
     IClock clock,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher events,
     ILogger<ChangeEquipmentStatusHandler> logger)
 {
+    public const string ResolutionWhenAvailable = "La máquina quedó disponible.";
+
     public async Task<EquipmentItemResponse> HandleAsync(
         Guid id, ChangeEquipmentStatusRequest request, CancellationToken cancellationToken)
     {
-        _ = currentUser.RequireGymId();
+        var gymId = currentUser.RequireGymId();
 
         var item = await items.GetAsync(id, cancellationToken)
             ?? throw new NotFoundException("Equipo no encontrado.");
 
+        var now = clock.UtcNow;
         var change = item.ChangeStatus(
-            request.Status, request.Reason, request.ExpectedBackOn, clock.Today, currentUser.UserId, clock.UtcNow);
-
+            request.Status, request.Reason, request.ExpectedBackOn, clock.Today, currentUser.UserId, now);
         items.AddStatusChange(change);
+
+        var toClose = new List<EquipmentIssue>();
+        IReadOnlyList<EquipmentIssue> all = [];
+        if (request.CloseOpenIssues && request.Status == EquipmentStatus.Available && currentUser.UserId is { } userId)
+        {
+            all = await issues.ListByItemAsync(item.Id, cancellationToken);
+            toClose = all.Where(i => !i.IsClosed).ToList();
+            foreach (var issue in toClose)
+            {
+                issue.ChangeStatus(EquipmentIssueStatus.Resolved, ResolutionWhenAvailable, userId, now);
+            }
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
             "Equipo {EquipmentId}: {From} -> {To}", item.Id, change.FromStatus, change.ToStatus);
+
+        if (toClose.Count > 0)
+        {
+            logger.LogInformation(
+                "Equipo {EquipmentId}: {Count} reportes abiertos resueltos al dejarlo disponible", item.Id, toClose.Count);
+            var allIds = all.Select(i => i.Id).ToList();
+            var left = toClose.Count;
+            foreach (var issue in toClose)
+            {
+                left--;
+                await events.PublishAsync(
+                    new EquipmentIssueClosed(
+                        gymId, issue.Id, issue.ItemId, item.Name,
+                        Dismissed: false,
+                        issue.ReportedByUserId, issue.ReportedByRole, currentUser.UserId!.Value,
+                        OpenIssuesLeft: left, allIds, now),
+                    cancellationToken);
+            }
+        }
+
         return await EquipmentResponses.BuildAsync(item, models, clock, cancellationToken);
     }
 }
