@@ -918,9 +918,13 @@ body,
     background-color: var(--gsm-bg);
     background-image:
         radial-gradient(600px circle at 90% 0%, var(--gsm-accent-soft), transparent 60%),
-        linear-gradient(var(--gsm-grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--gsm-grid-line) 1px, transparent 1px);
+        linear-gradient(var(--gsm-auth-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--gsm-auth-grid-line) 1px, transparent 1px);
     background-size: auto, 42px 42px, 42px 42px;
+    /* La cuadrícula del acceso es textura, no protagonista: la mitad de opaca que en el panel. */
+    --gsm-auth-grid-line: rgba(181, 0, 22, 0.035);
+    /* Radios propios del acceso (la identidad v4.0 usa 2px en el resto del sistema). */
+    --gsm-auth-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -948,21 +952,38 @@ body,
     margin: 0;
 }
 
-/* Imagen de marca provisional (render con fondo oscuro): ancho fluido, nunca en tamaños pequeños. */
+/* Imagen de marca provisional (PNG transparente sacado del render): ancho fluido, nunca en tamaños pequeños. */
 .gsm-brand-hero {
     display: block;
     width: 100%;
-    max-width: 560px;
+    max-width: 520px;
     height: auto;
-    border-radius: 8px;
+}
+
+/* Etiqueta sobre el logo. */
+.gsm-auth-badge {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: var(--gsm-accent-soft);
+    color: var(--gsm-accent-text);
+    font-family: var(--gsm-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
 .gsm-auth-tagline {
-    font-size: 1.125rem;
-    line-height: 1.5;
-    color: var(--gsm-text-2);
+    font-family: var(--gsm-font-ui);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--gsm-text);
     margin: 0;
-    max-width: 30ch;
+    max-width: 18ch;
+    text-wrap: balance;
 }
 
 .gsm-auth-points {
@@ -971,32 +992,63 @@ body,
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.9rem;
 }
 
 .gsm-auth-points li {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--gsm-text-2);
 }
 
 .gsm-auth-points li::before {
-    content: "";
+    content: "✓";
     flex: none;
-    width: 0.5rem;
-    height: 2px;
-    background: var(--gsm-accent);
+    display: inline-grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: var(--gsm-accent-soft);
+    color: var(--gsm-accent-text);
+    font-size: 0.75rem;
+    font-weight: 700;
 }
 
 .gsm-auth-card.mud-paper {
     width: 100%;
     max-width: 400px;
     background: var(--gsm-surface);
-    border: 1px solid var(--gsm-border);
-    border-radius: var(--gsm-radius-lg);
+    border: 1px solid var(--gsm-border-strong);
+    border-radius: 12px;
     padding: 2.25rem 2rem;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Campos en caja con icono y botón con el mismo radio. */
+.gsm-auth-card .mud-input-outlined {
+    background: var(--gsm-surface-2);
+    border-radius: var(--gsm-auth-radius, 8px);
+}
+
+.gsm-auth-card .mud-input-outlined .mud-input-outlined-border {
+    border-radius: var(--gsm-auth-radius, 8px);
+    border-color: var(--gsm-border);
+    transition: border-color 120ms ease;
+}
+
+.gsm-auth-card .mud-input-outlined:hover:not(.mud-disabled) .mud-input-outlined-border {
+    border-color: var(--gsm-border-strong);
+}
+
+.gsm-auth-card .mud-input-adornment-start .mud-icon-root {
+    color: var(--gsm-text-2);
+}
+
+.gsm-auth-card .mud-button-root {
+    border-radius: var(--gsm-auth-radius, 8px);
 }
 
 /* Los enlaces de las tarjetas de acceso deben medir al menos 24px (WCAG 2.2 SC 2.5.8). */
@@ -1027,7 +1079,7 @@ body,
     }
 
     .gsm-auth-tagline {
-        font-size: 1rem;
+        font-size: 1.375rem;
     }
 }
 

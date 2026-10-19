@@ -6,7 +6,7 @@
 
 <PageTitle>Iniciar sesión — GSM</PageTitle>
 
-<img class="gsm-brand-hero mb-6" src="_content/GSM.UI.Shared/brand/traininghub-go.jpg" alt="TrainingHub GO" />
+<img class="gsm-brand-hero mb-6" src="_content/GSM.UI.Shared/brand/traininghub-go.png" alt="TrainingHub GO" />
 
 @if (_error is not null)
 {
@@ -20,8 +20,8 @@
 }
 else
 {
-    <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Class="mb-3" />
-    <MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password" Class="mb-4" />
+    <MudTextField T="string" @bind-Value="_email" Label="Email" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Email" InputType="InputType.Email" Class="mb-3" />
+    <MudTextField T="string" @bind-Value="_password" Label="Contraseña" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Lock" InputType="InputType.Password" Class="mb-4" />
 
     <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
         @(_submitting ? "Entrando..." : "Entrar")

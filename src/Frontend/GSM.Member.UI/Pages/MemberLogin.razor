@@ -32,12 +32,12 @@ else
         <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="login-error">@_error</MudAlert>
     }
 
-    <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Class="mb-3"
+    <MudTextField T="string" @bind-Value="_email" Label="Email" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Email" InputType="InputType.Email" Class="mb-3"
                   Immediate="true" autocomplete="username" Disabled="_codeSent" data-testid="login-email" />
 
     @if (!_useCode)
     {
-        <MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password" Class="mb-2"
+        <MudTextField T="string" @bind-Value="_password" Label="Contraseña" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Lock" InputType="InputType.Password" Class="mb-2"
                       Immediate="true" autocomplete="current-password" OnKeyDown="PasswordKeyDownAsync"
                       data-testid="login-password" />
 
@@ -76,7 +76,7 @@ else
             Si el correo tiene una cuenta de miembro, ya te llegó el código. Revisa también el spam.
         </MudAlert>
 
-        <MudTextField T="string" @bind-Value="_code" Label="Código de 6 dígitos" Class="mb-4 gsm-mono"
+        <MudTextField T="string" @bind-Value="_code" Label="Código de 6 dígitos" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Pin" Class="mb-4 gsm-mono"
                       Immediate="true" autocomplete="one-time-code" InputMode="InputMode.numeric" MaxLength="6"
                       OnKeyDown="CodeKeyDownAsync" data-testid="login-code" />
 
