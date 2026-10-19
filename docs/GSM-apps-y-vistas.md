@@ -146,3 +146,11 @@ y para iPhone mientras no exista la app de iOS.
 ## 10. Pendiente de decidir
 
 - Nada por ahora.
+
+## 11. Una app o dos; marca blanca (decidido 2026-10-19)
+
+- **Se mantiene una sola app nativa** (`GSM.Mobile`) para miembros, staff y Owner. El staff **no** queda limitado al PC: entrenadores y Owner trabajan desde el celular. El modo staff/miembro (§4) y el bloqueo (§7) cubren el doble rol y la privacidad.
+- **A futuro, modelo híbrido:** la app genérica GSM sigue siendo la de todos (miembros de cualquier gym y todo el staff); como plan premium, cada gym puede tener su **app de marca blanca solo de miembro** (nombre, logo y colores del gym). El staff nunca usa una app de marca blanca.
+- **Por qué la de marca blanca es solo de miembro:** el staff que trabaja en varios gyms tendría que instalar una app por gym; un arreglo del panel obligaría a republicar todas; Apple rechaza más fácilmente apps clonadas con un sistema de gestión genérico dentro.
+- **Lo que costará cuando se construya:** un segundo host que cargue solo `GSM.Member.UI` con el gym, colores e ícono fijos; compilación automatizada por gym; publicación en la cuenta de desarrollador del propio gym (Apple lo exige); una app Firebase por paquete; republicar todas en cada cambio del miembro. La marca del gym ya existe en sus datos y se reutiliza.
+- **Disparadores para hacerlo:** gyms dispuestos a pagar marca blanca. Separar el panel en su propia app genérica solo si aparecen reseñas confusas de miembros o el tamaño de descarga molesta.
