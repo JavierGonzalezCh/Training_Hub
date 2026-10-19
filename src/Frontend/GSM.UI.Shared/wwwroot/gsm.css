@@ -948,6 +948,15 @@ body,
     margin: 0;
 }
 
+/* Imagen de marca provisional (render con fondo oscuro): ancho fluido, nunca en tamaños pequeños. */
+.gsm-brand-hero {
+    display: block;
+    width: 100%;
+    max-width: 560px;
+    height: auto;
+    border-radius: 8px;
+}
+
 .gsm-auth-tagline {
     font-size: 1.125rem;
     line-height: 1.5;
