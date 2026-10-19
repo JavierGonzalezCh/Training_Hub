@@ -74,3 +74,16 @@ se decide cambiar va en la especificación del módulo.
 - **Arreglo propuesto:** construir la ocupación, que se decide en la revisión de Attendance, o quitar
   la promesa del texto mientras tanto.
 
+
+## B5 — Cuatro clientes del API sin registrar en DI
+
+- **Encontrado:** 2026-10-19, recorrido en navegador (V1, escritorio).
+- **Qué pasa:** `/routine-templates` se caía con "There is no registered service of type `IRoutineTemplatesClient`". Tampoco estaban registrados `IMembershipGroupsClient`, `IRoutineSettingsClient` ni `IPublicCommunicationsClient`, así que fallaban también los diálogos de grupos de membresía, guardar/asignar plantilla y la pestaña de ajustes de Rutinas. Los bUnit no lo vieron porque cada test registra sus propios dobles.
+- **Corregido (2026-10-19):** registros en `GsmClientServiceCollectionExtensions`. Test `ClientRegistrationTests`: falla si cualquier interfaz `I*Client` generada queda sin registrar.
+
+## B6 — "Rutinas por revisar" con fecha del año 1
+
+- **Encontrado:** 2026-10-19, recorrido en navegador (V1, escritorio).
+- **Qué pasa:** las rutinas que ya existían antes de R8 mostraban "1 ene 0001 · 739907 d de atraso". Npgsql escribe `DateOnly.MinValue` (el valor por defecto de `AddColumn`) como `'-infinity'`, no como `0001-01-01`, así que el `UPDATE` de `V2_R8.sql` no encontraba filas. En `gsm_test` no aparecía porque los tests crean rutinas nuevas.
+- **Corregido (2026-10-19):** `V2_R8.sql` cubre los dos valores; la base local `gsm` se reparó a mano (9 filas). Nada estaba desplegado, así que no hace falta migración nueva.
+- **Lección:** un relleno tras `AddColumn<DateOnly>` no nulo debe buscar `'-infinity'`.

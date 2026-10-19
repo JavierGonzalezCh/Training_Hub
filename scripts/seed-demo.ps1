@@ -102,7 +102,9 @@ function Try-Api {
 }
 
 function Login([string]$Email, [string]$Password) {
-    return (Invoke-Api POST '/api/auth/login' @{ email = $Email; password = $Password }).accessToken
+    $r = Invoke-Api POST '/api/auth/login' @{ email = $Email; password = $Password }
+    if ($r.tokens) { return $r.tokens.accessToken }
+    return $r.accessToken
 }
 
 function Invoke-Sql([string]$Sql) {

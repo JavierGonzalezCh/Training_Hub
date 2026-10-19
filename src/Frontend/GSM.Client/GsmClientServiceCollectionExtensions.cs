@@ -63,10 +63,14 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IMembershipPlansClient, MembershipPlansClient>(services, baseUri);
         AddApiClient<IMembershipsClient, MembershipsClient>(services, baseUri);
         AddApiClient<IMembershipSettingsClient, MembershipSettingsClient>(services, baseUri);
+        AddApiClient<IMembershipGroupsClient, MembershipGroupsClient>(services, baseUri);
+        AddApiClient<IPublicCommunicationsClient, PublicCommunicationsClient>(services, baseUri);
         AddApiClient<IPaymentsClient, PaymentsClient>(services, baseUri);
         AddApiClient<IRoutineExercisesClient, RoutineExercisesClient>(services, baseUri);
         AddApiClient<IRoutinesClient, RoutinesClient>(services, baseUri);
         AddApiClient<IMemberRoutinesClient, MemberRoutinesClient>(services, baseUri);
+        AddApiClient<IRoutineTemplatesClient, RoutineTemplatesClient>(services, baseUri);
+        AddApiClient<IRoutineSettingsClient, RoutineSettingsClient>(services, baseUri);
         AddApiClient<IStaffClient, StaffClient>(services, baseUri);
         AddApiClient<IOwnersClient, OwnersClient>(services, baseUri);
         AddApiClient<IKiosksClient, KiosksClient>(services, baseUri);

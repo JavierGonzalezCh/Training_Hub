@@ -12,4 +12,5 @@
 -- desde el inicio). Solo toca las filas con el vacío de EF, así que re-ejecutarlo no pisa nada.
 UPDATE routines.routines
 SET review_on = starts_on + 42
-WHERE review_on = DATE '0001-01-01';
+-- Npgsql escribe DateOnly.MinValue como '-infinity', no como '0001-01-01': se cubren los dos.
+WHERE review_on = DATE '0001-01-01' OR review_on = '-infinity'::date;
