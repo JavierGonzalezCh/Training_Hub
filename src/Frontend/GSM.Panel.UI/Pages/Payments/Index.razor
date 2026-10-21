@@ -22,7 +22,7 @@
 </div>
 
 @* Caja del turno (Payments v2 §4.4): la ve todo el staff, porque cobrar en efectivo exige caja abierta. *@
-<CashDrawerBar OnChanged="RefreshTableAsync" />
+<CashDrawerBar @ref="_drawer" OnChanged="RefreshTableAsync" />
 
 <AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.VoidPayments)">
     <VoidRequestsInbox OnResolved="RefreshTableAsync" />
@@ -126,6 +126,8 @@
         await _table.RefreshAsync();
     }
 
+    private CashDrawerBar? _drawer;
+
     private async Task OpenRecordAsync()
     {
         var dialog = await Dialogs.ShowAsync<RecordPaymentDialog>("Registrar pago");
@@ -134,6 +136,11 @@
         {
             Snackbar.Add("Pago registrado.", Severity.Success);
             await RefreshTableAsync();
+            // Un cobro en efectivo cambia el efectivo esperado de la caja (B11).
+            if (_drawer is not null)
+            {
+                await _drawer.LoadAsync();
+            }
         }
     }
 }

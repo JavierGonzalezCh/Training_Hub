@@ -127,6 +127,12 @@
             return;
         }
 
+        // La cuenta de kiosco no tiene perfil: /api/auth/me le responde 403 (B9) y el kiosco no usa el panel.
+        if (state.User.IsInRole(GsmRoles.Kiosk))
+        {
+            return;
+        }
+
         if (!GymContext.IsLoaded)
         {
             try

@@ -187,6 +187,7 @@ public class ExerciseAlternativesUiTests : TestContext
         Assert.Contains("Plancha lateral", cut.Find(".gsm-m-ex__name").TextContent);
         Assert.Contains("en lugar de Sentadilla con barra", cut.Find($"[data-testid='replaced-{LineId}']").TextContent);
 
+        cut.Find(".gsm-m-setrow input").Input("5");
         cut.FindAll("button").First(b => b.TextContent.Trim() == "Guardar").Click();
 
         cut.WaitForAssertion(() =>
@@ -198,12 +199,27 @@ public class ExerciseAlternativesUiTests : TestContext
     }
 
     [Fact]
+    public void Set_fields_start_empty_and_saving_without_anything_typed_sends_nothing()
+    {
+        var cut = RenderComponent<Routine>();
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll(".gsm-m-ex__head")));
+        cut.Find(".gsm-m-ex__head").Click();
+
+        Assert.All(cut.FindAll(".gsm-m-setrow input"), i => Assert.True(string.IsNullOrEmpty(i.GetAttribute("value"))));
+
+        cut.FindAll("button").First(b => b.TextContent.Trim() == "Guardar").Click();
+
+        Assert.DoesNotContain(_api.Requests, r => r.Method == HttpMethod.Post && r.Path.Contains("/log"));
+    }
+
+    [Fact]
     public void Without_choosing_an_alternative_the_log_carries_no_replacement()
     {
         var cut = RenderComponent<Routine>();
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll(".gsm-m-ex__head")));
         cut.Find(".gsm-m-ex__head").Click();
 
+        cut.Find(".gsm-m-setrow input").Input("5");
         cut.FindAll("button").First(b => b.TextContent.Trim() == "Guardar").Click();
 
         cut.WaitForAssertion(() =>

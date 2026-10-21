@@ -89,7 +89,7 @@
             </MudLink>
             <span class="gsm-mono">@(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")</span>
         </div>
-        <div class="gsm-card__meta">@GsmFormat.Day(context.AttendanceDate) · @GsmFormat.Instant(context.CheckedInAt)</div>
+        <div class="gsm-card__meta">@GsmFormat.Instant(context.CheckedInAt)</div>
         <div class="gsm-card__meta">
             <CheckInVoidAction Entry="context" OnVoided="@(() => _table.RefreshAsync())" />
         </div>

@@ -1,4 +1,5 @@
-﻿using GSM.Application.Members;
+﻿using GSM.API.Controllers;
+using GSM.Application.Members;
 using GSM.Application.Members.Contracts;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Equipment;
@@ -6,10 +7,12 @@ using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
 using GSM.Domain.Notifications;
+using GSM.Domain.Payments;
 using GSM.Domain.Routines;
 using GSM.Infrastructure.Identity;
 using GSM.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -285,6 +288,31 @@ public sealed class MemberAnonymizationTests(ApiFactory factory) : IClassFixture
     }
 
     // ---------- helpers ----------
+
+    [Fact]
+    public async Task Anonymize_response_keeps_the_recent_payments_of_the_member()
+    {
+        var w = await SeedAsync();
+        var memberId = await AddInactiveMemberAsync(w, Baja);
+        using (var seed = System())
+        {
+            seed.ServiceProvider.GetRequiredService<GsmDbContext>().Add(Payment.Create(
+                w.GymId, memberId, null, 50_000m, PaymentMethod.Cash, "Mensualidad", null, Guid.CreateVersion7(),
+                DateTimeOffset.UtcNow));
+            await seed.ServiceProvider.GetRequiredService<GsmDbContext>().SaveChangesAsync();
+        }
+
+        using var scope = AsOwner(w);
+        var sp = scope.ServiceProvider;
+        var result = await new MembersController().Anonymize(
+            memberId, new AnonymizeMemberRequest(true), sp.GetRequiredService<AnonymizeMemberHandler>(),
+            sp.GetRequiredService<GSM.Application.Memberships.Public.IMembershipReader>(),
+            sp.GetRequiredService<GSM.Application.Payments.Public.IPaymentReader>(), default);
+
+        var detail = Assert.IsType<MemberDetail>(Assert.IsType<OkObjectResult>(result.Result).Value);
+        Assert.True(detail.IsAnonymized);
+        Assert.Single(detail.RecentPayments);
+    }
 
     private async Task RunJobOnAsync(Guid gymId, DateOnly day)
     {

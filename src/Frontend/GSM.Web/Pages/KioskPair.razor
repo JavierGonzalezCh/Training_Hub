@@ -109,6 +109,10 @@ else if (_checked)
         {
             _error = ApiError.FromException(ex).DisplayMessage;
         }
+        catch (HttpRequestException)
+        {
+            _error = "No pudimos conectar con el servidor. Revisa la red e inténtalo de nuevo.";
+        }
         finally
         {
             _busy = false;

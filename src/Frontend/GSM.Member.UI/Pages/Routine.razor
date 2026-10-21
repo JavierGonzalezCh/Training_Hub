@@ -195,14 +195,14 @@ else
                                     <div class="gsm-m-setrow__fields">
                                         @if (fields.Weight)
                                         {
-                                            <MudNumericField T="double?" @bind-Value="row.Weight" Label="Peso (kg)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                            <MudNumericField T="double?" @bind-Value="row.Weight" Label="Peso (kg)" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="@target?.WeightKg?.ToString()"
                                                              Min="0" Max="1000" Step="2.5" HideSpinButtons="true" Immediate="true"
                                                              aria-label="@($"Peso de la serie {index + 1}, en kilos")" />
                                         }
                                         @if (fields.Reps)
                                         {
-                                            <MudNumericField T="int?" @bind-Value="row.Reps" Label="@(unilateral ? "Reps por lado" : "Reps")" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                             Min="0" Max="1000" HideSpinButtons="true" Immediate="true"
+                                            <MudNumericField T="int?" @bind-Value="row.Reps" Label="@(unilateral ? "Reps por lado" : "Reps")" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="@target?.RepsMin?.ToString()"
+                                                             Min="0" Max="500" HideSpinButtons="true" Immediate="true"
                                                              aria-label="@($"Repeticiones de la serie {index + 1}")" />
                                         }
                                         @if (fields.Time)
@@ -320,10 +320,6 @@ else
             var rows = exercise.SetTargets.OrderBy(t => t.Number).Select(t => new SetRow
             {
                 Type = (t.SetType ?? "normal").ToLowerInvariant(),
-                Weight = t.WeightKg,
-                Reps = t.RepsMin,
-                DurationSeconds = t.DurationSeconds,
-                DistanceM = t.DistanceM,
             }).ToList();
             state = new ExerciseState { Rows = rows.Count > 0 ? rows : [new SetRow()] };
             _states[exercise.Id] = state;
@@ -339,12 +335,7 @@ else
             state.Rows.Select(r => new DoneSet(r.Reps, r.Weight, r.DurationSeconds, r.DistanceM, r.Rir)).ToList());
 
     private static IEnumerable<SetRow> RowsFor(string? tracking)
-        => DraftSet.DefaultsFor(tracking).Select(d => new SetRow
-        {
-            Reps = d.RepsMin,
-            DurationSeconds = d.DurationSeconds,
-            DistanceM = d.DistanceM,
-        });
+        => DraftSet.DefaultsFor(tracking).Select(_ => new SetRow());
 
     // El reemplazo vale solo hoy: las series de partida son las del ejercicio elegido, no las del plan.
     private static Task ChooseReplacement(RoutineExerciseResponse exercise, ExerciseState state, ExerciseAlternativeResponse alt)
@@ -361,10 +352,6 @@ else
         state.Rows = exercise.SetTargets.OrderBy(t => t.Number).Select(t => new SetRow
         {
             Type = (t.SetType ?? "normal").ToLowerInvariant(),
-            Weight = t.WeightKg,
-            Reps = t.RepsMin,
-            DurationSeconds = t.DurationSeconds,
-            DistanceM = t.DistanceM,
         }).ToList();
     }
 
@@ -443,13 +430,19 @@ else
 
     private async Task SaveAsync(RoutineExerciseResponse exercise, ExerciseState state)
     {
+        if (state.Rows.All(r => r.Reps is null && r.Weight is null && r.DurationSeconds is null && r.DistanceM is null))
+        {
+            Snackbar.Add("Anota al menos una serie antes de guardar.", Severity.Warning);
+            return;
+        }
+
         state.Saving = true;
         try
         {
             await RoutineExercises.LogPOSTAsync(exercise.Id, new LogRoutineExerciseRequest
             {
                 ReplacementExerciseId = state.Replacement?.Id,
-                Sets = state.Rows.Select(r => new LogSetRequest
+                Sets = state.Rows.Where(r => r.Reps is not null || r.Weight is not null || r.DurationSeconds is not null || r.DistanceM is not null).Select(r => new LogSetRequest
                 {
                     SetType = r.Type,
                     Reps = r.Reps,

@@ -7,7 +7,7 @@
         {
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
         }
-        <MudSelect T="Guid?" @bind-Value="_planId" Label="Plan" Class="mb-3" data-testid="plan-select">
+        <MudSelect T="Guid?" @bind-Value="_planId" Label="Plan" Class="mb-3" data-testid="plan-select" ToStringFunc="PlanText">
             @foreach (var plan in _plans)
             {
                 <MudSelectItem T="Guid?" Value="@plan.Id">@PlanLabel(plan)</MudSelectItem>
@@ -32,6 +32,9 @@
 </MudDialog>
 
 @code {
+    private string PlanText(Guid? id)
+        => _plans.FirstOrDefault(p => p.Id == id) is { } plan ? SubscriptionFormDialog.PlanLabel(plan) : string.Empty;
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 

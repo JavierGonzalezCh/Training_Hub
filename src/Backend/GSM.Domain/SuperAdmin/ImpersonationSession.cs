@@ -12,6 +12,9 @@ public sealed class ImpersonationSession : BaseEntity
 {
     public const int MaxReasonLength = 200;
 
+    /// <summary>Lo que dura el token de una impersonación (el de <c>JwtTokenService</c>): pasado ese plazo la sesión ya no puede actuar.</summary>
+    public static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(15);
+
     private ImpersonationSession()
     {
     }

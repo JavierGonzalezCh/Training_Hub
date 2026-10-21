@@ -165,7 +165,7 @@ else if (_member is not null)
                 <MudText Typo="Typo.overline" Color="Color.Secondary">Racha</MudText>
                 @if (_streak is { } streak)
                 {
-                    <MudText Typo="Typo.h6" Class="gsm-mono">@streak.CurrentStreak días</MudText>
+                    <MudText Typo="Typo.h6" Class="gsm-mono">@streak.CurrentStreak @(streak.CurrentStreak == 1 ? "día" : "días")</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
                         @(streak.LastVisit is { } last ? $"Última visita {GsmFormat.Day(last)}" : "Sin visitas todavía")
                     </MudText>

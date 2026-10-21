@@ -144,6 +144,30 @@ public sealed class ImpersonationTests(ApiFactory factory) : IClassFixture<ApiFa
         Assert.Equal("Revisar reporte de bug", item.Reason);
     }
 
+    [Fact]
+    public async Task A_session_nobody_closed_shows_as_ended_once_its_token_expired()
+    {
+        var w = await SeedAsync();
+        using (var scope = SuperAdmin(w.AdminId))
+        {
+            await scope.ServiceProvider.GetRequiredService<OpenImpersonationHandler>()
+                .HandleAsync(w.GymA, new OpenImpersonationRequest("Se me olvidó finalizar"), default);
+        }
+
+        using var read = SuperAdmin(w.AdminId);
+        var handler = read.ServiceProvider.GetRequiredService<ListImpersonationsHandler>();
+        var open = Assert.Single(await handler.HandleAsync(null, 50, default));
+        Assert.Null(open.EndedAt);
+
+        var db = read.ServiceProvider.GetRequiredService<GsmDbContext>();
+        await db.Database.ExecuteSqlRawAsync(
+            "UPDATE superadmin.impersonation_sessions SET started_at = now() - interval '20 minutes' WHERE gym_id = {0}", w.GymA);
+
+        var expired = Assert.Single(await handler.HandleAsync(null, 50, default));
+        Assert.NotNull(expired.EndedAt);
+        Assert.Equal(expired.StartedAt.AddMinutes(15), expired.EndedAt);
+    }
+
     private IServiceScope SuperAdmin(Guid adminId)
     {
         var scope = factory.CreateScopeWithMigration();

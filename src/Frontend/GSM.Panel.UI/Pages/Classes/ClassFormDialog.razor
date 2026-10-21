@@ -58,7 +58,8 @@
 
                 @if (_model.IsRecurring)
                 {
-                    <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_daysOfWeek" Label="Días de la semana" Required="true">
+                    <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_daysOfWeek" Label="Días de la semana" Required="true"
+                               ToStringFunc="ClassLabels.DayLabel">
                         @foreach (var (value, label) in ClassLabels.DaysOfWeek)
                         {
                             <MudSelectItem Value="value">@label</MudSelectItem>

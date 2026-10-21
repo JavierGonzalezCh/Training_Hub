@@ -100,7 +100,7 @@ else
                             <div class="gsm-cal-card__main">
                                 <h3 class="gsm-cal-card__name">@entry.ClassName</h3>
                                 <p class="gsm-cal-card__meta">
-                                    @entry.DurationMinutes min@(string.IsNullOrWhiteSpace(entry.InstructorName) ? "" : $" · {entry.InstructorName}")@(entry.Capacity is { } cap ? $" · {cap} cupos" : " · entrada libre")
+                                    @entry.DurationMinutes min@(string.IsNullOrWhiteSpace(entry.InstructorName) ? "" : $" · {entry.InstructorName}")@(entry.Capacity is { } cap ? $" · {cap} {(cap == 1 ? "cupo" : "cupos")}" : " · entrada libre")
                                 </p>
                                 @if (cancelled && !string.IsNullOrWhiteSpace(entry.CancellationReason))
                                 {

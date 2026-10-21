@@ -15,7 +15,7 @@
             <MudTextField T="string" @bind-Value="_nit" Label="NIT" Class="mb-3" />
             <MudTextField T="string" @bind-Value="_phone" Label="Teléfono" Class="mb-3" />
             <MudTextField T="string" @bind-Value="_email" Label="Email del gym" InputType="InputType.Email" Class="mb-3" />
-            <MudSelect T="Guid?" @bind-Value="_planId" Label="Plan" Class="mb-4" data-testid="plan-select">
+            <MudSelect T="Guid?" @bind-Value="_planId" Label="Plan" Class="mb-4" data-testid="plan-select" ToStringFunc="PlanText">
                 @foreach (var plan in _plans)
                 {
                     <MudSelectItem T="Guid?" Value="@((Guid?)plan.Id)">@SubscriptionFormDialog.PlanLabel(plan)</MudSelectItem>
@@ -64,6 +64,9 @@
 </MudDialog>
 
 @code {
+    private string PlanText(Guid? id)
+        => _plans.FirstOrDefault(p => p.Id == id) is { } plan ? SubscriptionFormDialog.PlanLabel(plan) : string.Empty;
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 

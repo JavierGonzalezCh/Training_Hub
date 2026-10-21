@@ -85,7 +85,7 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudText Class="mr-auto ml-4" Color="Color.Secondary" data-testid="picked-count">@_picked.Count seleccionados</MudText>
+        <MudText Class="mr-auto ml-4" Color="Color.Secondary" data-testid="picked-count">@_picked.Count @(_picked.Count == 1 ? "seleccionado" : "seleccionados")</MudText>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync"
                    Disabled="_loading || _submitting || _picked.Count == 0" data-testid="catalog-save">

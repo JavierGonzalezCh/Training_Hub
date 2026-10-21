@@ -61,12 +61,23 @@ public sealed class MembersController : ControllerBase
         CancellationToken cancellationToken)
     {
         var member = await handler.HandleAsync(id, cancellationToken);
+        return Ok(await WithCommercialDataAsync(member, id, memberships, payments, cancellationToken));
+    }
 
+    // CurrentMembership, RecentPayments y el estado comercial los compone el controller desde los lectores de
+    // Memberships y Payments: toda respuesta que devuelva un MemberDetail completo debe pasar por aquí (B14).
+    private static async Task<MemberDetail> WithCommercialDataAsync(
+        MemberDetail member,
+        Guid id,
+        IMembershipReader memberships,
+        IPaymentReader payments,
+        CancellationToken cancellationToken)
+    {
         var active = await memberships.GetActiveAsync(id, cancellationToken);
         var recent = await payments.GetRecentByMemberAsync(id, limit: 5, cancellationToken);
         var access = await memberships.GetAccessStatusAsync(id, cancellationToken);
 
-        return Ok(member with
+        return member with
         {
             CommercialStatus = GSM.Domain.Members.EnumText.Snake(access.Commercial)!,
             AccessNotice = access.Notice ?? (access.StartsOn is null ? null : access.BlockMessage),
@@ -80,7 +91,7 @@ public sealed class MembersController : ControllerBase
                 .Select(p => new MemberRecentPayment(
                     p.Id, p.Amount, p.Method.ToString(), p.Concept, p.PaidAt))
                 .ToList(),
-        });
+        };
     }
 
     [HttpPost]
@@ -141,8 +152,11 @@ public sealed class MembersController : ControllerBase
         Guid id,
         AnonymizeMemberRequest request,
         [FromServices] AnonymizeMemberHandler handler,
+        [FromServices] IMembershipReader memberships,
+        [FromServices] IPaymentReader payments,
         CancellationToken cancellationToken)
-        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+        => Ok(await WithCommercialDataAsync(
+            await handler.HandleAsync(id, request, cancellationToken), id, memberships, payments, cancellationToken));
 
     /// <summary>Historial de cambios de la ficha, del más reciente al más antiguo.</summary>
     [HttpGet("{id:guid}/changes")]

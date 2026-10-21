@@ -3376,8 +3376,10 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 1.5rem;
         align-items: start;
+    }
+}
 
-/* AP7 — pantallas no diarias en el celular (configuración, planes, ejercicios, equipos, rutinas).
+/* AP7— pantallas no diarias en el celular (configuración, planes, ejercicios, equipos, rutinas).
    Solo por debajo de 960 px: la vista de escritorio no cambia. */
 @media (max-width: 959.95px) {
     /* Pestañas de configuración: se desplazan de lado en vez de apretarse o desbordar la página. */
@@ -3426,6 +3428,7 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
         min-width: 44px;
         min-height: 44px;
     }
+}
 
 /* ---- Mi progreso (L7): pestañas y calendario de racha ---- */
 .gsm-streak-tabs {

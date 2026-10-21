@@ -23,7 +23,7 @@
             }
             <MudText Typo="Typo.h6">@_group.PlanName</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="group-dates">
-                @GsmFormat.DayRange(_group.StartDate, _group.EndDate) · <span data-testid="group-seats">@_group.SeatsUsed de @_group.Seats cupos</span>
+                @GsmFormat.DayRange(_group.StartDate, _group.EndDate) · <span data-testid="group-seats">@_group.SeatsUsed de @_group.Seats @(_group.Seats == 1 ? "cupo" : "cupos")</span>
             </MudText>
 
             <MudSimpleTable Dense="true" Class="mt-3 mb-3" Elevation="0">
@@ -57,7 +57,7 @@
                                  ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
                                  Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" id="group-add-search"
                                  Disabled="_busy"
-                                 HelperText="@($"Quedan {_group.SeatsFree} cupos. Entra con las fechas actuales del grupo y no paga.")" />
+                                 HelperText="@($"{(_group.SeatsFree == 1 ? "Queda 1 cupo" : $"Quedan {_group.SeatsFree} cupos")}. Entra con las fechas actuales del grupo y no paga.")" />
             }
 
             @if (_renewed is not null)
