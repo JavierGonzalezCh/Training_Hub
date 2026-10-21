@@ -3,6 +3,7 @@ using GSM.Client.Http;
 using GSM.Member.UI;
 using GSM.Mobile.Platform;
 using GSM.Panel.UI.Navigation;
+using System.Reflection;
 using GSM.UI.Shared;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
@@ -53,7 +54,14 @@ public static class MauiProgram
         return builder.Build();
     }
 
-    private static string ApiBaseUrl =>
+    // La URL compilada (-p:GsmApiBaseUrl=...) manda; sin ella, el backend local de desarrollo.
+    private static string ApiBaseUrl => CompiledApiBaseUrl ?? DevelopmentApiBaseUrl;
+
+    private static readonly string? CompiledApiBaseUrl = typeof(MauiProgram).Assembly
+        .GetCustomAttributes<System.Reflection.AssemblyMetadataAttribute>()
+        .FirstOrDefault(a => a.Key == "ApiBaseUrl")?.Value?.TrimEnd('/');
+
+    private static string DevelopmentApiBaseUrl =>
 #if ANDROID
         "http://10.0.2.2:5175";
 #else

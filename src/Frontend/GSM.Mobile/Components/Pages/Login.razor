@@ -56,7 +56,9 @@ else
         }
         catch (ApiErrorException ex)
         {
-            _error = ex.Error.DisplayMessage;
+            // Un 401 al iniciar sesión es "datos incorrectos"; el texto genérico del 401 ("Tu sesión ha caducado")
+            // solo tiene sentido con una sesión ya abierta. Igual que en el login de la web.
+            _error = ex.Error.IsUnauthorized ? "Credenciales inválidas." : ex.Error.DisplayMessage;
         }
         finally
         {

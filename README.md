@@ -120,6 +120,17 @@ dotnet run --launch-profile https
 
 `https://localhost:7220` (panel, `/admin`, `/kiosk` y la app del miembro en `/app`). El cliente de la API se regenera con `scripts/generate-client.ps1` (ver `docs/DESARROLLO.md` §4). La app nativa (`GSM.Mobile`) se compila aparte: `dotnet build src/Frontend/GSM.Mobile -f net10.0-android -p:RuntimeIdentifier=android-arm64`.
 
+### APK de la app Android (release)
+
+La URL de la API se incrusta al compilar (`GsmApiBaseUrl`, obligatoria en Release; sin ella la compilación falla). Para un teléfono (arm64):
+
+```bash
+dotnet publish src/Frontend/GSM.Mobile -f net10.0-android -c Release -p:RuntimeIdentifier=android-arm64 -p:AndroidPackageFormat=apk -p:GsmApiBaseUrl=https://api.midominio.com -o artifacts/apk-arm64
+```
+
+Sale `com.gsm.mobile-Signed.apk`, firmado con la llave de depuración de Android: sirve para instalar a mano, pero no para subir a Google Play (para eso hace falta una llave propia).
+Para el emulador de x64 usa `android-x64`. Hacen falta el SDK de Android y un JDK (`-p:AndroidSdkDirectory=...`, `-p:JavaSdkDirectory=...`).
+
 ## Tests
 
 ```bash

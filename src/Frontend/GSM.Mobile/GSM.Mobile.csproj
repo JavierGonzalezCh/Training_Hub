@@ -54,6 +54,20 @@
         <PackageReference Include="Xamarin.Firebase.Messaging" Version="124.1.2.2" />
     </ItemGroup>
 
+    <!-- URL de la API de la que depende la app. Se pasa al compilar: -p:GsmApiBaseUrl=https://api.midominio.com
+         En Debug se puede omitir (la app usa el backend local: 10.0.2.2:5175 en Android, localhost:7219 en Windows).
+         En Release es obligatoria: un APK sin ella apuntaría al backend de desarrollo. -->
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(GsmApiBaseUrl)' != ''">
+            <_Parameter1>ApiBaseUrl</_Parameter1>
+            <_Parameter2>$(GsmApiBaseUrl)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <Target Name="RequireGsmApiBaseUrl" BeforeTargets="CoreCompile" Condition="'$(Configuration)' == 'Release' And '$(GsmApiBaseUrl)' == ''">
+        <Error Text="Falta GsmApiBaseUrl: compila con -p:GsmApiBaseUrl=https://api.midominio.com (sin barra final)." />
+    </Target>
+
     <ItemGroup>
         <ProjectReference Include="..\GSM.Client\GSM.Client.csproj" />
         <ProjectReference Include="..\GSM.UI.Shared\GSM.UI.Shared.csproj" />
