@@ -1,0 +1,42 @@
+# Para Dokploy: el mismo stack de docker-compose.yml, conectado a la red `dokploy-network`.
+#
+# La base de datos (Postgres de Dokploy) se alcanza por el nombre de su servicio interno
+# (p. ej. Host=base-de-datos-gsm-xxxxxx), que solo se resuelve dentro de `dokploy-network`. Esa misma red es la que
+# usa Traefik para enrutar los dominios a `api` y `web`. En Dokploy: aplicación tipo «Docker Compose», rama `main`,
+# «Compose Path» = ./docker-compose.dokploy.yml.
+#
+# `cron` queda solo en la red del proyecto: habla con `api` por su nombre, y el nombre `api` es genérico para
+# compartirlo en una red común con otras aplicaciones.
+name: gsm
+
+services:
+  migrate:
+    extends:
+      file: docker-compose.yml
+      service: migrate
+    networks: [dokploy-network]
+
+  api:
+    extends:
+      file: docker-compose.yml
+      service: api
+    networks: [default, dokploy-network]
+
+  web:
+    extends:
+      file: docker-compose.yml
+      service: web
+    networks: [default, dokploy-network]
+
+  cron:
+    extends:
+      file: docker-compose.yml
+      service: cron
+    networks: [default]
+
+volumes:
+  dataprotection:
+
+networks:
+  dokploy-network:
+    external: true

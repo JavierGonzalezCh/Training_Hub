@@ -178,4 +178,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build  
 - La URL de la API de la web se escribe al arrancar desde `PUBLIC_API_URL`: la misma imagen sirve para cualquier entorno.
 - Detrás de un proxy (Traefik/Dokploy) la API usa `X-Forwarded-For/Proto`; el compose no publica puertos.
 - Las llaves de Data Protection van en el volumen `dataprotection`, para que los enlaces de restablecimiento sobrevivan a los redespliegues.
-- En Dokploy: aplicación tipo «Docker Compose», rama `main`, dominios `api.` y `app.` hacia el puerto 8080 de `api` y `web`.
+- En Dokploy: aplicación tipo «Docker Compose», rama `main`, «Compose Path» = `./docker-compose.dokploy.yml` (el mismo stack, conectado a
+  `dokploy-network`, donde se resuelve el nombre interno del Postgres de Dokploy y desde donde Traefik enruta), y dominios `api.` y `app.` hacia
+  el puerto 8080 de `api` y `web`.
+- `DB_CONNECTION` con la base de Dokploy: `Host=<nombre-del-servicio-postgres>;Port=5432;Database=<db>;Username=<usuario>;Password=<clave>`.
