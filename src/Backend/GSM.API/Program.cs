@@ -68,7 +68,12 @@ if (app.Environment.IsDevelopment())
     await DevSeeder.SeedAsync(scope.ServiceProvider);
 }
 
-app.UseHttpsRedirection();
+// En desarrollo el emulador de Android entra por http://10.0.2.2:5175; redirigirlo a HTTPS lo manda a
+// un certificado de "localhost" que no puede validar.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors(CorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();

@@ -2,6 +2,8 @@
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
+using Android.Views;
+using AndroidX.Core.View;
 
 namespace GSM.Mobile;
 
@@ -12,8 +14,40 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
+        FitInsideSystemBars();
         GSM.Mobile.Platform.GsmFirebaseMessagingService.EnsureChannel(this);
         PublishPushLink(Intent);
+    }
+
+    // Desde Android 15 la app se dibuja bajo la barra de estado y la de gestos, y el WebView no
+    // informa de esos márgenes a la página. Se aplican como padding a la raíz para que el panel
+    // quede entre ambas, y la barra de estado usa iconos claros sobre el fondo oscuro.
+    private void FitInsideSystemBars()
+    {
+        var background = Android.Graphics.Color.ParseColor("#0F0E0D");
+        Window?.SetBackgroundDrawable(new Android.Graphics.Drawables.ColorDrawable(background));
+
+        var root = FindViewById(Android.Resource.Id.Content);
+        if (root is not null)
+        {
+            ViewCompat.SetOnApplyWindowInsetsListener(root, new SystemBarsInsetsListener());
+        }
+
+        if (Window?.DecorView is { } decor)
+        {
+            new WindowInsetsControllerCompat(Window, decor).AppearanceLightStatusBars = false;
+            new WindowInsetsControllerCompat(Window, decor).AppearanceLightNavigationBars = false;
+        }
+    }
+
+    private sealed class SystemBarsInsetsListener : Java.Lang.Object, IOnApplyWindowInsetsListener
+    {
+        public WindowInsetsCompat? OnApplyWindowInsets(Android.Views.View? v, WindowInsetsCompat? insets)
+        {
+            var bars = insets!.GetInsets(WindowInsetsCompat.Type.SystemBars() | WindowInsetsCompat.Type.DisplayCutout());
+            v!.SetPadding(bars.Left, bars.Top, bars.Right, bars.Bottom);
+            return WindowInsetsCompat.Consumed;
+        }
     }
 
     protected override void OnNewIntent(Intent? intent)
