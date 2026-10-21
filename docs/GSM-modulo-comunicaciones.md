@@ -1,12 +1,12 @@
 # GSM — Módulo Comunicaciones (etapa 13)
 
-> **Estado: construido (2026-10-06).** Decidido con el usuario el 2026-10-05; desviaciones en el plan. Plan de construcción: `docs/COMMUNICATIONS-BUILD-PLAN.md`.
+> **Estado: construido (2026-10-06).** Decidido con el usuario el 2026-10-05.
 >
 > **Sustituye al módulo "Community"** del catálogo (§3 de la especificación técnica, "Feed, likes, comentarios"), **con un alcance reducido a propósito**: publica el gym y los miembros reaccionan. **Los miembros no publican ni comentan.** Una red social completa (publicaciones de miembros, comentarios, moderación) queda fuera, y se especificará aparte si algún día se pide.
 
 ---
 
-## Replanteamiento v2 — en revisión (2026-10-07)
+## Replanteamiento v2 — construido
 
 > Nada de esta sección está construido. Lo que viene después de ella describe **la v1, que es lo
 > construido hoy**. Donde las dos se contradicen, manda esta sección una vez aprobada.
@@ -141,7 +141,7 @@ referencia.
 - **Identity:** la plantilla de invitación usa su enlace; los correos de seguridad no pasan por
   preferencias.
 
-### Propuesta de sub-etapas
+### Sub-etapas (construidas)
 
 | Sub-etapa | Qué |
 |---|---|
@@ -152,12 +152,6 @@ referencia.
 | **CO5** | Cumpleaños. |
 | **CO6** | Horario sin avisos (con Notifications). |
 | **CO7** | Recordatorios de vencimiento alineados con la gracia. |
-
-### Pendiente de decidir
-
-- Nada por ahora.
-
----
 
 ## 1. Qué resuelve
 

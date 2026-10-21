@@ -1,10 +1,11 @@
-# GSM — Backend
+# GSM — TrainingHub
 
-Sistema de gestión de gimnasios B2B SaaS. API en .NET 10 + PostgreSQL.
+Sistema de gestión de gimnasios B2B SaaS (**TrainingHub**: panel OS y app del miembro GO; `GSM` es el codename del código). API en .NET 10 + PostgreSQL y frontend en Blazor WASM + MAUI.
 
 El contexto del proyecto, las convenciones y el estado de cada módulo están en [`CLAUDE.md`](CLAUDE.md);
-la especificación técnica y los planes de construcción, en [`docs/`](docs/). Este archivo solo explica
-**cómo levantar el backend en una máquina de desarrollo**.
+la arquitectura, la especificación de cada módulo y las convenciones de trabajo, en [`docs/`](docs/)
+(empieza por [`docs/DESARROLLO.md`](docs/DESARROLLO.md)). Este archivo solo explica **cómo levantar el
+sistema en una máquina de desarrollo**.
 
 ---
 
@@ -67,7 +68,8 @@ SELECT migration_id FROM "__EFMigrationsHistory" ORDER BY 1 DESC LIMIT 1;
 ```
 
 Un schema de Postgres por módulo: `identity`, `gyms`, `members`, `memberships`, `payments`,
-`attendance`, `achievements`, `routines`, `classes`, `superadmin`.
+`attendance`, `achievements`, `routines`, `classes`, `superadmin`, `communications`, `equipment`,
+`notifications` y `logs`.
 
 ## Arrancar la API
 
@@ -107,6 +109,17 @@ Lo que tiene reglas de negocio pasa por la API. El historial (fechas pasadas) se
 SQL, porque la API solo registra "hoy". Si el script detecta que el gym ya está sembrado, se
 detiene.
 
+## Arrancar la web
+
+Con la API arriba:
+
+```bash
+cd src/Frontend/GSM.Web
+dotnet run --launch-profile https
+```
+
+`https://localhost:7220` (panel, `/admin`, `/kiosk` y la app del miembro en `/app`). El cliente de la API se regenera con `scripts/generate-client.ps1` (ver `docs/DESARROLLO.md` §4). La app nativa (`GSM.Mobile`) se compila aparte: `dotnet build src/Frontend/GSM.Mobile -f net10.0-android -p:RuntimeIdentifier=android-arm64`.
+
 ## Tests
 
 ```bash
@@ -114,7 +127,7 @@ cd src/Backend
 dotnet test GSM.sln
 ```
 
-Son tests de integración **contra Postgres de verdad**, no en memoria: necesitan el servidor
+Son tests de integración **contra Postgres de verdad** (los de la UI, bUnit, están en `tests/GSM.Web.Tests`: `dotnet test tests/GSM.Web.Tests`), no en memoria: necesitan el servidor
 arriba y la base `gsm_test` creada. La suite la migra y la limpia por sí sola.
 
 Si alguna vez queda en mal estado —una ejecución cortada a medias, por ejemplo— se recrea sin
@@ -129,14 +142,15 @@ CREATE DATABASE gsm_test OWNER gsm;
 
 Nada de esto impide desarrollar, pero conviene saber en qué estado está:
 
-- **Comunicaciones** (etapa 13) — `Communications:UnsubscribeSigningKey`, `Communications:PublicApiBaseUrl` y `Jobs:Secret` tienen valores de desarrollo en `appsettings.Development.json`; en producción van por variable de entorno. La tarea periódica (recordatorios y envío de correos) no corre sola: en local se lanza a mano con
+- **Tareas periódicas y claves** — `Communications:UnsubscribeSigningKey`, `Communications:PublicApiBaseUrl` y `Jobs:Secret` tienen valores de desarrollo en `appsettings.Development.json`; en producción van por variable de entorno. La tarea periódica (recordatorios y envío de correos) no corre sola: en local se lanza a mano con
   `curl -k -X POST https://localhost:7219/internal/jobs/communications/run -H "X-Job-Secret: dev-only-jobs-secret-change-me-32-bytes+"`
   y en producción la invoca una tarea programada de Dokploy (ver `docs/DEPLOY-DOKPLOY-PLAN.md`).
 
-- **Despliegue** — no hay `Dockerfile` ni configuración de despliegue (etapa 8, punto 4). Se desplegará con Dokploy en servidor propio: ver `docs/DEPLOY-DOKPLOY-PLAN.md`. En producción
+- **Despliegue** — no hay `Dockerfile` ni configuración de despliegue. Se desplegará con Dokploy en servidor propio: ver `docs/DEPLOY-DOKPLOY-PLAN.md`. En producción
   la base es un Postgres gestionado, no un contenedor propio.
 - **Cloudflare R2** (`Storage:R2`) — sin credenciales, las subidas de archivo responden 500.
 - **Resend** (`Email:Resend`) — sin API key, los correos se escriben en el log en vez de enviarse.
+- **Firebase** (`Notifications:Fcm`) — sin configurar no hay push (web ni Android).
 - **`Checkin:SigningKey`** — clave HMAC (≥ 32 caracteres) de los QR del gym. Vacía en `appsettings.json` y la API
   no arranca sin ella; en desarrollo viene en `appsettings.Development.json`. En producción hay que definirla.
 

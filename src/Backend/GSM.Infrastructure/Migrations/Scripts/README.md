@@ -2,7 +2,7 @@
 
 Todo SQL escrito a mano de la v2 (copiar datos, convertir enums, rellenar columnas) vive aquí como
 `V2_<id>.sql` y la migración lo ejecuta, para que no se pierda cuando el integrador regenera la
-migración sobre el modelo unido (ver `docs/V2-BUILD-PLAN.md` §2.3).
+migración sobre el modelo unido (ver `docs/DESARROLLO.md` §3).
 
 Los archivos se embeben como recurso (`Migrations/Scripts/*.sql`). Uso en una migración:
 

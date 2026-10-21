@@ -1,7 +1,6 @@
 # Módulo Gyms — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Lo construido hoy está
-> en `GSM-especificacion-tecnica.md` (Gyms) y, para la parte comercial, en `GSM-modulo-superadmin.md`.
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 ## 1. Propósito
 
@@ -93,11 +92,11 @@ Decidido 2026-10-07: **no se registran entradas con el gym cerrado.**
      la cuenta. El enlace deja de servir en cuanto el Owner crea su contraseña.
 5. **Prueba opcional** (decidido 2026-10-07, en la revisión de SuperAdmin): el SuperAdmin elige en el
    alta si el gym tiene prueba y cuántos días. Sin prueba, el alta registra el primer pago y el gym nace
-   activo. Hoy el handler de `GymCreated` crea siempre 30 días de prueba a precio 0; eso cambia
-   (`GSM-modulo-superadmin.md` §V2).
+   activo. Antes el handler de `GymCreated` creaba siempre 30 días de prueba a precio 0; ahora la
+   prueba es opcional (`GSM-modulo-superadmin.md` §V2).
 
-Resuelve los huecos de `VERSION-INICIAL-PLAN.md` §2 (enlace en vez de código) y §4 (la ficha de
-SuperAdmin no mostraba al Owner ni permitía reenviarle el acceso).
+Resuelve dos huecos de la v1: el enlace en vez de código y la ficha de SuperAdmin, que no mostraba
+al Owner ni permitía reenviarle el acceso.
 
 ## 5. Onboarding — asistente obligatorio
 
@@ -186,10 +185,6 @@ horario con abierto/cerrado, ocupación, teléfono, WhatsApp y redes. En el inic
   "Reenviar acceso", "Copiar enlace" y "Omitir onboarding" (auditados).
 - **Attendance:** usa coordenadas y radio (geocerca) y el horario (§10).
 - **Equipment, Memberships:** el onboarding usa sus pantallas de "Agregar del catálogo" y de planes.
-
-## 10. Pendiente de decidir
-
-- Nada por ahora.
 
 ## 11. Propuesta de sub-etapas
 

@@ -1,8 +1,6 @@
 # Módulo Payments — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Lo construido hoy está
-> en `GSM-especificacion-tecnica.md` (Payments) y en la sub-etapa 1.1 de `VERSION-INICIAL-PLAN.md`
-> (anular un pago).
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 ## 1. Propósito
 

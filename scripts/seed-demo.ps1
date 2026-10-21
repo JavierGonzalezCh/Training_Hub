@@ -471,7 +471,7 @@ foreach ($m in $withAccount + $members[3..5]) {
     $routines[$m.id] = Invoke-Api POST "/api/members/$($m.id)/routines" $routineBody -Token $owner
 }
 
-Step 'Cuentas de la app del socio (invitación + registro)'
+Step 'Cuentas de la app del miembro (invitación + registro)'
 foreach ($m in $withAccount) {
     $invite = Invoke-Api POST "/api/members/$($m.id)/invite" -Token $owner
     Invoke-Api POST '/api/members/register' @{ code = $invite.code; documentNumber = $m.doc; email = $m.email; password = $MemberPassword } | Out-Null
@@ -565,4 +565,4 @@ if ($imp) { Try-Api POST '/api/admin/impersonate/end' -Token $admin | Out-Null }
 Write-Host ''
 Write-Host 'Listo. Cuentas útiles:' -ForegroundColor Green
 Write-Host "  owner@demo.local / staff@demo.local / admin@gsm.local  (clave del README)"
-Write-Host "  App del socio (/app): $(($withAccount | ForEach-Object { $_.email }) -join ', ')  clave: $MemberPassword"
+Write-Host "  App del miembro (/app): $(($withAccount | ForEach-Object { $_.email }) -join ', ')  clave: $MemberPassword"

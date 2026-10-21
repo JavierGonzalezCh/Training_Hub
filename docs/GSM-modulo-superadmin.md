@@ -1,6 +1,6 @@
 # Módulo SuperAdmin — Especificación
 
-> Fase 3. Complementa `CLAUDE.md` y `docs/GSM-especificacion-tecnica.md`; **si algo aquí contradice a esos dos, ellos mandan.** Sigue las convenciones transversales de `docs/BACKEND-MVP-PLAN.md`.
+> Fase 3. Complementa `CLAUDE.md` y `docs/GSM-especificacion-tecnica.md`; **si algo aquí contradice a esos dos, ellos mandan.** Sigue las convenciones transversales de `docs/DESARROLLO.md`.
 
 **Schema:** `superadmin` · **Toca también:** `identity` (impersonación) y la API (bloqueo por estado)
 
@@ -8,7 +8,7 @@ Este es el módulo que gestiona los gimnasios **como clientes del SaaS**. Es el 
 
 ---
 
-## Replanteamiento v2 — en revisión (2026-10-07)
+## Replanteamiento v2 — construido
 
 > Nada de esta sección está construido. Lo que viene después de ella describe **la v1, que es lo
 > construido hoy**. Donde las dos se contradicen, manda esta sección una vez aprobada.
@@ -160,7 +160,7 @@ Sección **"Catálogos"** en `/admin`, solo para el SuperAdmin:
 - Para resolver el problema de F8 (un SuperAdmin no tiene gym), estas pantallas usan endpoints propios
   `/api/admin/catalog/*` que trabajan solo con filas `gym_id IS NULL`, sin pasar por el contexto de gym.
 
-### Propuesta de sub-etapas
+### Sub-etapas (construidas)
 
 | Sub-etapa | Qué |
 |---|---|
@@ -179,12 +179,6 @@ Sección **"Catálogos"** en `/admin`, solo para el SuperAdmin:
 3. Facturación electrónica → sigue fuera.
 4. Métricas SaaS → foto mensual (§V4).
 5. Notificar al gym su propio estado → §V3.
-
-### Pendiente de decidir
-
-- Nada por ahora.
-
----
 
 ## Decisiones de producto
 
@@ -419,11 +413,3 @@ Todos bajo `[Authorize(Policy = RequireSuperAdmin)]`. `POST /api/gyms` (alta, et
 14. Un usuario no superadmin recibe `403` en todo `/api/admin/*`.
 
 ---
-
-## Decisiones abiertas
-
-1. **Los 15 días de gracia** son constante. Si algún cliente necesita otro plazo, pasa a ser un campo de la suscripción.
-2. **Aviso automático de vencimiento por correo.** Resend está integrado y el dato está; falta decidir cuándo se dispara — y hoy no hay proceso programado que lo haga.
-3. **Facturación electrónica** (numeración, DIAN) no entra. El registro de pagos es control interno, no un documento fiscal.
-4. **Métricas SaaS clásicas** (MRR histórico, churn) necesitan guardar la foto de cada mes; con solo el estado actual no se reconstruyen hacia atrás. Si las quieres, hay que empezar a registrarlas pronto: el histórico que no se guarda no se recupera.
-5. **Notificar al gym su propio estado** por un canal que no sea el panel (correo al owner al pasar a mora) no entra.

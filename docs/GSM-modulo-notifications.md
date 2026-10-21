@@ -1,6 +1,6 @@
 # Módulo Notifications — especificación
 
-> **Estado:** módulo nuevo, propuesta en revisión (2026-10-07). Nada de esto está construido.
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión. Módulo nuevo de la v2.
 
 **Schema:** `notifications` · **Lo alimentan:** todos los módulos, por eventos · **Consume:**
 Identity (destinatarios, permisos), Members, Gyms (zona horaria y horario sin avisos)
@@ -234,7 +234,3 @@ recordatorio de clase **no** usan correo: llegarían tarde.
 | **N4** | Preferencias del miembro por categoría y canal, y horario sin avisos (con Comunicaciones CO1 y CO6). |
 | **N5** | Avisos programados y cancelables: recordatorio de clase, cumpleaños, recordatorios de vencimiento. |
 | **Después** | iOS nativo (APNs a través de FCM). Código por WhatsApp. |
-
-## 12. Pendiente de decidir
-
-- Nada por ahora.

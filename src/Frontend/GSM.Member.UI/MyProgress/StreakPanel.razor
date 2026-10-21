@@ -109,7 +109,13 @@ else
     private int _month;
 
     private string MonthLabel
-        => new DateTime(_year, _month, 1).ToString("MMMM 'de' yyyy", GsmFormat.Colombia);
+    {
+        get
+        {
+            var text = new DateTime(_year, _month, 1).ToString("MMMM 'de' yyyy", GsmFormat.Colombia);
+            return char.ToUpper(text[0], GsmFormat.Colombia) + text[1..];
+        }
+    }
 
     private bool CanGoForward => new DateOnly(_year, _month, 1) < new DateOnly(_today.Year, _today.Month, 1);
 

@@ -1,7 +1,6 @@
 # Módulo Equipment (Equipos) — especificación
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Módulo nuevo que
-> nace del replanteamiento de Routines (`GSM-modulo-routines.md`, sección "Catálogo de ejercicios").
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión. Módulo nuevo de la v2.
 
 **Schema:** `equipment` · **Lo consume:** Routines (por `IEquipmentReader`) · **Consume:** Members
 (`IMemberReader`, para los reportes de miembros)
@@ -264,7 +263,3 @@ Lo hace un manejador de `MemberAnonymized` (`GSM-modulo-members.md` §11).
 
 E1 y E2 van **antes que R5** (alternativas) de Routines, porque las sugerencias filtran por
 disponibilidad.
-
-## 12. Pendiente de decidir
-
-- Nada por ahora.

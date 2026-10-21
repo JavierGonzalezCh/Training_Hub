@@ -1,12 +1,12 @@
 # Módulo Routines — Especificación
 
-> Fase 2, primer módulo fuera del MVP. Complementa `CLAUDE.md` y `docs/GSM-especificacion-tecnica.md`; **si algo aquí contradice a esos dos, ellos mandan.** Sigue las convenciones transversales de `docs/BACKEND-MVP-PLAN.md` (IDs Guid v7, schema propio, `IClock` para fechas, jerarquía de `DomainException`, casos de uso con `HandleAsync`, comunicación entre módulos solo por `Public/` o eventos).
+> Fase 2, primer módulo fuera del MVP. Complementa `CLAUDE.md` y `docs/GSM-especificacion-tecnica.md`; **si algo aquí contradice a esos dos, ellos mandan.** Sigue las convenciones transversales de `docs/DESARROLLO.md` (IDs Guid v7, schema propio, `IClock` para fechas, jerarquía de `DomainException`, casos de uso con `HandleAsync`, comunicación entre módulos solo por `Public/` o eventos).
 
 **Schema:** `routines` · **Toca también:** `achievements` (congelador de racha) y `gyms` (feature flag)
 
 ---
 
-## Replanteamiento v2 — en revisión (2026-10-07)
+## Replanteamiento v2 — construido
 
 > Nada de esta sección está construido. Las secciones que vienen después de ella describen **la v1,
 > que es lo construido hoy**. Donde las dos se contradicen, manda esta sección una vez aprobada.
@@ -280,7 +280,7 @@ datos sensibles.**
 - Routines lo hace en un manejador del evento `MemberAnonymized` que publica Members
   (`GSM-modulo-members.md` §11). No hay escritura cruzada.
 
-### Sub-etapas propuestas
+### Sub-etapas (construidas)
 
 | Sub-etapa | Qué |
 |---|---|
@@ -298,12 +298,6 @@ datos sensibles.**
 | **R10** | Limpieza de notas al anonimizar (depende de M6 de Members). |
 | **R12** | Quitar un ejercicio de las rutinas: desactivar con reemplazo masivo y motivo, aviso al miembro, restablecer a mano (depende de R5 y N1). Decidido 2026-10-11. |
 | **R11** | Plantillas. Al final del replanteamiento. |
-
-### Pendiente de decidir
-
-- Nada por ahora.
-
----
 
 ## Decisiones de producto
 

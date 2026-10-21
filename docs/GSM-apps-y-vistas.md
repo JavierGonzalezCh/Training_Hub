@@ -1,11 +1,10 @@
 # Apps y vistas — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Cambia cómo se
-> organiza el frontend (`FRONTEND-BUILD-PLAN.md`, etapas F0–F8) y toca Identity y Notifications.
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
-## 1. Qué cambia
+## 1. Qué cambió
 
-**Hoy:**
+**Antes de la v2:**
 
 | Quién | Web | App nativa (`GSM.Mobile`) |
 |---|---|---|
@@ -142,10 +141,6 @@ y para iPhone mientras no exista la app de iOS.
 | **AP5** | Bloqueo con huella, rostro o PIN en modo staff. |
 | **AP6** | Vista de escritorio del miembro en `/app`. |
 | **AP7** | Pulir para celular las pantallas no diarias (configuración, planes, rutinas, catálogos). |
-
-## 10. Pendiente de decidir
-
-- Nada por ahora.
 
 ## 11. Una app o dos; marca blanca (decidido 2026-10-19)
 

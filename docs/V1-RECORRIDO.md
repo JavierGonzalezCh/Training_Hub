@@ -14,7 +14,7 @@ anonimizada) y **Gimnasio Demo** del seed. Contraseñas: las de `scripts/seed-de
 
 | Módulo | Qué se probó |
 |---|---|
-| SuperAdmin | Dashboard (las cifras cuadran con los gyms), cartera, alta de gym con prueba de 30 días, owner pendiente, copiar enlace, impersonación en escritura con motivo (la nota queda firmada "GSM" y la acción en auditoría), finalizar, planes, catálogos, cobros, errores (ninguno nuevo en la sesión). |
+| SuperAdmin | Dashboard (las cifras cuadran con los gyms), cartera, alta de gym con prueba de 30 días, owner pendiente, copiar enlace, impersonación en escritura con motivo (la nota queda firmada con el nombre de la plataforma y la acción en auditoría), finalizar, planes, catálogos, cobros, errores (ninguno nuevo en la sesión). |
 | Gyms (G1, G5) | El enlace de activación entra directo al onboarding. Ubicación, horario con plantilla (festivos de Colombia 2026 correctos, "abierto · cierra 22:00" correcto), máquinas del catálogo, planes por plantilla, cierre con "Para completar". |
 | Identity / staff | Alta de staff con perfil y correo, permisos, el backend impide quitar al último Owner (409 con buen mensaje). |
 | Configuración | Las 11 pestañas cargan sin errores. |
@@ -30,9 +30,7 @@ anonimizada) y **Gimnasio Demo** del seed. Contraseñas: las de `scripts/seed-de
 
 ### Mejoras (no son defectos)
 
-- **Marca:** "GSM" se ve en la pantalla de carga, en el correo de bienvenida del Owner ("Bienvenido a
-  GSM"), en el texto de Owners ("suscripción de GSM") y como firma de las escrituras del SuperAdmin.
-  El 404 de `/app` muestra la marca del panel ("Sistema de gestión · B2B SaaS").
+- **Marca:** resuelto el 2026-10-20: el producto pasó a TrainingHub (pantalla de carga, correos, textos y firma del SuperAdmin). El 404 de `/app` muestra la marca del panel ("Sistema de gestión · B2B SaaS").
 - **Cerrar caja:** "Efectivo contado" viene precargado con lo esperado y dice "la caja cuadra" antes
   de contar. Un arqueo a ciegas obliga a contar de verdad.
 - **Cobro en efectivo con la caja cerrada:** "Asignar plan de grupo" (y es de suponer que "Asignar

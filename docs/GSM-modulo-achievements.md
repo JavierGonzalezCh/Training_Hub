@@ -1,8 +1,6 @@
 # Módulo Achievements — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Lo construido hoy está
-> en `GSM-especificacion-tecnica.md` (Achievements), `GSM-modulo-routines.md` (racha con rutina,
-> congelador, logros de sesiones) y `GSM-modulo-classes.md` (logros de clases).
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 ## 1. Propósito
 
@@ -189,7 +187,3 @@ aparecen en la rutina** y la rutina no aparece en "Mi progreso" (decidido 2026-1
 | **L5** | Premios: texto del premio, pendiente/entregado, vencimiento, vista en recepción. |
 | **L6** | Ranking voluntario. |
 | **L7** | "Mi progreso" en la app: calendario de racha, mejor racha, congeladores, logros con premios y ranking. |
-
-## 11. Pendiente de decidir
-
-- Nada por ahora.

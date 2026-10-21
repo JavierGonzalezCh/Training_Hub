@@ -21,7 +21,7 @@ namespace GSM.Application.Attendance;
 /// Registra la entrada. El miembro solo entra con un código válido del gym (QR de la entrada) y
 /// sujeto al veredicto de acceso de Memberships (gracia incluida); el staff registra a mano, sin
 /// código, y fuera de la gracia debe "dejar pasar" con motivo.
-/// Ver docs/CHECKIN-QR-BUILD-PLAN.md.
+/// Ver docs/GSM-modulo-attendance.md.
 /// </summary>
 public sealed class CheckInHandler(
     ICurrentUserService currentUser,

@@ -3481,7 +3481,6 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 
 .gsm-streak-nav__label {
     font-weight: 600;
-    text-transform: capitalize;
 }
 
 .gsm-streak-cal {
@@ -3542,24 +3541,33 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 
 /* ---------- Indicador de carga: la barra del logo de TrainingHub ---------- */
 
+/* Por defecto ocupa todo el ancho de su contenedor y queda centrado, sin importar dónde se declare. */
 .gsm-loader {
-    display: inline-flex;
+    display: flex;
     justify-content: center;
     align-items: center;
-    width: 7rem;
-    max-width: 100%;
+    width: 100%;
+    min-height: 14rem;
     line-height: 0;
-}
-
-.gsm-loader--sm {
-    width: 3.5rem;
 }
 
 .gsm-loader svg {
     display: block;
-    width: 100%;
+    width: 7rem;
+    max-width: 100%;
     height: auto;
     overflow: visible;
+}
+
+/* Compacto: en línea, para botones, celdas y diálogos pequeños. */
+.gsm-loader--sm {
+    display: inline-flex;
+    width: auto;
+    min-height: 0;
+}
+
+.gsm-loader--sm svg {
+    width: 3.5rem;
 }
 
 .gsm-loader__plates rect {
@@ -3612,4 +3620,30 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
         animation: none;
         stroke-dashoffset: 0.45;
     }
+}
+
+/* Selector de archivo de la foto de perfil: el botón nativo en gris del navegador desentona con el resto. */
+.gsm-profile__photo input[type="file"] {
+    max-width: 100%;
+    margin-top: 0.35rem;
+    color: var(--gsm-text-2);
+    font-family: var(--gsm-font-ui);
+    font-size: 0.8rem;
+}
+
+.gsm-profile__photo input[type="file"]::file-selector-button {
+    margin-right: 0.75rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--gsm-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--gsm-text);
+    font-family: var(--gsm-font-ui);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.gsm-profile__photo input[type="file"]::file-selector-button:hover {
+    border-color: var(--gsm-accent);
 }

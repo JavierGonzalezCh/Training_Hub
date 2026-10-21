@@ -1,7 +1,6 @@
 # Logs y errores — especificación
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Es una pieza
-> **transversal**, como `IClock` o el multi-tenancy: no es un módulo de negocio.
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 **Schema:** `logs` · **Lo escriben:** todos los módulos, la API, los procesos en segundo plano y los
 clientes (web y app) · **Lo lee:** solo el SuperAdmin
@@ -244,7 +243,3 @@ panel. Las alertas se agrupan para no repetir la misma más de una vez cada 30 m
 | **LG3** | `external_failures` y `client_errors` (con el reporte desde web y app). |
 | **LG4** | Panel de errores: agrupación, estados, búsqueda por código, reintento de eventos. |
 | **LG5** | Alertas al SuperAdmin (depende de Notifications). |
-
-## 12. Pendiente de decidir
-
-- Nada por ahora.

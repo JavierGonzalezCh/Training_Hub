@@ -1,12 +1,10 @@
 # Dashboards — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Junta datos de casi
-> todos los módulos; cada bloque indica de dónde sale. Ver también `GSM-apps-y-vistas.md` (celular y
-> escritorio).
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 ## 1. Panel del gym (`/`)
 
-**Hoy:** miembros activos, entradas de hoy, ingresos del mes, por vencer en 7 días, afluencia por
+**Antes de la v2:** miembros activos, entradas de hoy, ingresos del mes, por vencer en 7 días, afluencia por
 hora, últimas entradas, intentos rechazados y membresías por vencer. Igual para todos.
 
 **v2:** cambia según los permisos de quien entra.
@@ -37,7 +35,7 @@ La afluencia por hora y la lista "Para completar" quedan al final.
 
 ## 2. Inicio del miembro (`/app`)
 
-**Hoy:** saludo, estado, plan con barra de días, escanear, racha y congeladores, entrenamiento de hoy,
+**Antes de la v2:** saludo, estado, plan con barra de días, escanear, racha y congeladores, entrenamiento de hoy,
 últimas visitas.
 
 **v2**, en orden:
@@ -131,9 +129,9 @@ las que necesita, y si ya las añadió la tarea del módulo, las reutiliza):
 Frontend: el dashboard del panel vive en `GSM.Panel.UI` y el inicio del miembro en `GSM.Member.UI`,
 con el orden de celular y de escritorio de los §1–§2 (`GSM-apps-y-vistas.md` §5–§6).
 
-## 7. Propuesta de sub-etapas
+## 7. Sub-etapas (construidas)
 
-Van en la Ola 5 (`V2-BUILD-PLAN.md`), cuando ya existen casi todos los datos que muestran. Un bloque
+Van en la Ola 5, cuando ya existen casi todos los datos que muestran. Un bloque
 cuyo módulo no esté construido todavía **no se inventa**: se deja fuera y queda anotado en la entrega.
 
 | Sub-etapa | Qué | Depende de |
@@ -148,7 +146,3 @@ Criterios de aceptación comunes, cada uno con su test:
 2. Un reader que lanza deja su bloque en `null` y el resto de la respuesta llega.
 3. Los conteos por día se calculan en la zona del gym (test con `IClock` a las 20:00 hora de Colombia).
 4. Los datos de otro gym nunca aparecen (multi-tenancy), salvo en D3.
-
-## 8. Pendiente de decidir
-
-- Nada por ahora.

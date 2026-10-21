@@ -1,7 +1,6 @@
 # Módulo Identity — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Lo construido hoy está
-> en `GSM-especificacion-tecnica.md` (Identity) y en el hueco H1 de `CLAUDE.md` (cuentas de staff).
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 ## 1. Propósito
 
@@ -68,7 +67,7 @@ Members**, uno por gym (`GSM-modulo-members.md`).
   este gym y se vincula su ficha de Members.
 - **Si no tiene cuenta:** crea su contraseña. **El email ya no se pide**: se usa el de su ficha
   (decisión de Members). Si la ficha no tiene email, lo pide.
-- **Al terminar queda con la sesión iniciada** (hoy no pasa).
+- **Al terminar queda con la sesión iniciada.**
 - Lo mismo aplica al staff y a los Owners invitados: si el email ya tiene cuenta, se agrega el acceso.
 
 ### 3.4 Email y nombre de la cuenta

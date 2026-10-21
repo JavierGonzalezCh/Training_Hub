@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-  Crea un carril de trabajo aislado: worktree + bases de datos propias + .env.lane (docs/V2-BUILD-PLAN.md §2.1).
+  Crea un carril de trabajo aislado: worktree + bases de datos propias + .env.lane (docs/DESARROLLO.md §5).
 
 .DESCRIPTION
   - Worktree en ../gsm-lanes/<carril> desde la rama de integración `v2` (salvo -SkipWorktree).

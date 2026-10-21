@@ -1,7 +1,6 @@
 # Módulo Members — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Sustituye, cuando
-> se apruebe, a la descripción de Members de `GSM-especificacion-tecnica.md` (§5 y §6).
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 ## 1. Propósito
 
@@ -260,9 +259,9 @@ Reglas:
 
 **Plazo:** configurable por gym, **24 meses por defecto** desde la baja (decidido 2026-10-07).
 
-Sigue sin decidir qué más pasa al dar de baja (cancelar la membresía vigente, las reservas,
-bloquear la cuenta de la app). Hoy el evento `MemberDeactivated` no lo escucha nadie. Se decide al
-revisar Memberships y Classes.
+Sin decidir (queda abierto): qué más pasa al dar de baja (cancelar la membresía vigente, las
+reservas, bloquear la cuenta de la app). El evento `MemberDeactivated` se publica, pero ningún
+módulo lo escucha todavía.
 
 ## 12. Propuesta de sub-etapas
 
@@ -279,10 +278,6 @@ Igual que el resto del proyecto: una por vez, con confirmación entre una y otra
 | **M6** | Anonimización: plazo por gym, aviso previo al Owner, ejecución en la tarea periódica, supresión a pedido. |
 
 El registro de consultas de salud (§10) entra en **M3**, junto con la sección de salud.
-
-## 13. Pendiente de decidir
-
-- **Qué más pasa al dar de baja**: se decide al revisar Memberships y Classes.
 
 ## 14. En evaluación (fuera de este módulo por ahora)
 

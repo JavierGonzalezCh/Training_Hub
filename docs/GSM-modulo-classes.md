@@ -1,12 +1,12 @@
 # Módulo Classes — Especificación
 
-> Fase 2, segundo módulo fuera del MVP. Complementa `CLAUDE.md` y `docs/GSM-especificacion-tecnica.md`; **si algo aquí contradice a esos dos, ellos mandan.** Sigue las convenciones transversales de `docs/BACKEND-MVP-PLAN.md`.
+> Fase 2, segundo módulo fuera del MVP. Complementa `CLAUDE.md` y `docs/GSM-especificacion-tecnica.md`; **si algo aquí contradice a esos dos, ellos mandan.** Sigue las convenciones transversales de `docs/DESARROLLO.md`.
 
 **Schema:** `classes` · **Toca también:** `attendance` (check-in por evento), `achievements` (tipo de logro) y `gyms` (flag ya existente)
 
 ---
 
-## Replanteamiento v2 — en revisión (2026-10-07)
+## Replanteamiento v2 — construido
 
 > Nada de esta sección está construido. Lo que viene después de ella describe **la v1, que es lo
 > construido hoy**. Donde las dos se contradicen, manda esta sección una vez aprobada.
@@ -188,7 +188,7 @@ Decidido 2026-10-07. Todos dependen del módulo nuevo **Notifications** (`GSM-mo
   no-show; recordatorio 10 minutos antes; publicación y push de clase nueva (`ClassCreated`).
 - **Members:** la ficha muestra las penalizaciones vigentes y permite levantarlas.
 
-### Propuesta de sub-etapas
+### Sub-etapas (construidas)
 
 | Sub-etapa | Qué |
 |---|---|
@@ -208,12 +208,6 @@ Decidido 2026-10-07. Todos dependen del módulo nuevo **Notifications** (`GSM-mo
 3. Aviso de cancelación al miembro → ya lo hace Comunicaciones; push cuando exista Notifications.
 4. Excepciones de horario de una ocurrencia → siguen fuera: no hay caso de uso.
 5. Clases de pago aparte → no: todos los planes incluyen clases.
-
-### Pendiente de decidir
-
-- Nada por ahora.
-
----
 
 ## Decisiones de producto
 
@@ -398,11 +392,3 @@ Un rol `member` solo alcanza sus propios datos; se reutiliza `MemberSelfAccess`.
 11. Aislamiento entre gyms en clases, sesiones y reservas.
 
 ---
-
-## Decisiones abiertas
-
-1. **No-show repetido.** No hay penalización: quien reserva y no va solo queda marcado. Si se quiere bloquear al reincidente, es una regla sobre este mismo modelo.
-2. **Plazo de cancelación.** Se puede cancelar hasta la hora de inicio. Un plazo mayor (2 h antes) sería un parámetro por gym.
-3. **Aviso de cancelación al miembro.** El evento existe, pero sin push (fuera del MVP) el miembro se entera al abrir la app. Con Resend ya integrado, el correo sería viable si se quiere.
-4. **Excepciones de horario** (cambiar la hora de una ocurrencia sin cancelarla) no entran: el modelo lo permitiría materializando con otra `start_time`, pero no hay caso de uso.
-5. **Clases de pago aparte** (bono de 10 sesiones) no entran; hoy la clase va incluida en la membresía.

@@ -1,8 +1,6 @@
 # Módulo Memberships — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Sustituye, cuando
-> se apruebe, a la descripción de Memberships de `GSM-especificacion-tecnica.md`. Lo construido hoy
-> incluye las sub-etapas 1.2–1.4 de `VERSION-INICIAL-PLAN.md` (cobrar al asignar, cancelar, congelar).
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 ## 1. Propósito
 
@@ -244,10 +242,6 @@ Lo calcula Memberships para cada miembro, a una fecha:
 
 - **App del miembro:** historial de sus membresías, entradas de tiquetera y congelamientos.
 - **Reactivar planes** desactivados.
-
-## 12. Pendiente de decidir
-
-- Nada por ahora.
 
 ## 13. Migración de los datos actuales
 

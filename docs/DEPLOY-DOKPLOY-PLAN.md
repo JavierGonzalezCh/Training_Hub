@@ -1,6 +1,6 @@
 # Plan de despliegue — Dokploy en servidor propio (etapa 8, punto 4)
 
-> **Estado: planificado, sin empezar.** Decidido con el usuario el 2026-10-05: **se despliega en un servidor propio con Dokploy, no en Railway.** Sustituye a la mención de Railway en `docs/BACKEND-MVP-PLAN.md` (etapa 8, punto 4) y en `CLAUDE.md`.
+> **Estado: planificado, sin empezar.** Decidido con el usuario el 2026-10-05: **se despliega en un servidor propio con Dokploy, no en Railway.** Sustituye a la idea original de Railway (etapa 8, punto 4 del backend).
 >
 > Documento de trabajo para el modelo que lo ejecute. Complementa `CLAUDE.md` y `README.md`. **Ritmo:** una fase por vez y con confirmación del usuario entre fases. Las fases D0 y D5 son trabajo **del usuario en el servidor**; el modelo prepara los comandos y la lista, pero no tiene acceso al servidor y no debe pedir credenciales.
 
@@ -126,8 +126,10 @@
    | `Communications__UnsubscribeSigningKey` | aleatoria, ≥ 32, distinta de las demás |
    | `Communications__PublicApiBaseUrl` | `https://api.<dominio>` (base del enlace de baja de los correos) |
    | `Jobs__Secret` | aleatoria, ≥ 32; la usa la tarea programada de Comunicaciones |
+   | `Identity__PublicWebBaseUrl` | `https://app.<dominio>` (enlaces de activación e invitación en los correos) |
+   | `Notifications__Fcm__*` | proyecto de Firebase del ambiente (push web y Android); ver `docs/GSM-modulo-notifications.md` |
 
-   **Tarea programada de Comunicaciones:** en Dokploy, una tarea cada 5–10 min que ejecute `curl -fsS -X POST https://api.<dominio>/internal/jobs/communications/run -H "X-Job-Secret: $JOBS_SECRET"`. Si falla, que avise por el mismo canal que las copias.
+   **Tarea programada (Comunicaciones, avisos de suscripción, anonimización y alertas):** en Dokploy, una tarea cada 5–10 min que ejecute `curl -fsS -X POST https://api.<dominio>/internal/jobs/communications/run -H "X-Job-Secret: $JOBS_SECRET"`. Si falla, que avise por el mismo canal que las copias.
 
    **Ninguna clave va en `appsettings.json` ni en el repositorio.** Las claves se generan con `openssl rand -base64 48`.
 3. **Aplicación `gsm-web`** desde el repositorio (Dockerfile de D2), dominio `app.<dominio>` con HTTPS.
@@ -189,5 +191,4 @@ El modelo escribe el runbook; el usuario lo sigue. Debe contener, con comandos e
   - Railway → Dokploy;
   - las URLs de producción, sin claves.
 - `README.md`: quitar "Despliegue" de "Pendiente de configurar" y enlazar el runbook.
-- `docs/BACKEND-MVP-PLAN.md`, etapa 8 punto 4: marcar como hecho con Dokploy, con referencia a este plan.
 - Este documento: estado "completado", con las desviaciones que haya habido.

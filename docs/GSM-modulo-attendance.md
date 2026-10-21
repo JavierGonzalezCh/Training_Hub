@@ -1,7 +1,6 @@
 # Módulo Attendance — replanteamiento (v2)
 
-> **Estado:** propuesta en revisión (2026-10-07). Nada de esto está construido. Lo construido hoy está
-> en `GSM-especificacion-tecnica.md` (Attendance) y `CHECKIN-QR-BUILD-PLAN.md` (etapa 12).
+> **Estado:** construido en la v2 (rama `v2`, verificado con tests el 2026-10-20). Describe el diseño vigente; lo que quedó sin hacer o sin verificar está en `V2-PENDIENTES.md`. Las frases «hoy…» que contrastan con lo anterior describen la v1, previa a esta versión.
 
 ## 1. Propósito
 
@@ -133,8 +132,8 @@ La entrada autorizada ("Dejar pasar") se guarda como `Attendance` con `Authorize
 
 ## 6. Cuenta de dispositivo para el kiosco
 
-Hoy el kiosco usa una sesión de staff normal, así que **el equipo del kiosco tiene el panel completo
-abierto**. Se crea un rol nuevo en Identity.
+Antes el kiosco usaba una sesión de staff normal, con el panel completo abierto en el equipo de la
+entrada. Se creó un rol nuevo en Identity.
 
 - **Rol `kiosk`:** solo puede mostrar el QR del gym (`GET /api/attendance/kiosk-code`) y registrar
   entradas por documento (§7). No ve miembros, pagos ni configuración.

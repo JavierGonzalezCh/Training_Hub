@@ -30,6 +30,11 @@ html, body {
 }
 
 .gsm-loader--boot {
+    width: auto;
+    min-height: 0;
+}
+
+.gsm-loader--boot svg {
     width: 11rem;
 }
 
