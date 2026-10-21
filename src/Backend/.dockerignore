@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/TestResults/
+**/.vs/
+**/*.user
+**/Dockerfile
+**/.dockerignore
+GSM.API/appsettings.Development.json

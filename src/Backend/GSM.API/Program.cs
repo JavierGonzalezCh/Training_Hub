@@ -68,8 +68,31 @@ builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 builder.Services.AddOpenApi();
 
+// Detrás de Traefik (Dokploy) la API recibe HTTP y la IP del proxy. Sin estas cabeceras el limitador de peticiones vería
+// a todos los usuarios con la misma IP y la redirección a HTTPS podría entrar en bucle. Las listas de redes y proxies
+// de confianza se vacían porque el contenedor solo es alcanzable por el proxy de la red interna de Docker: no se
+// publica el puerto 8080 al exterior (ver docker-compose.yml).
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+        | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
+// Comando de un solo uso para crear el SuperAdmin en producción (DevSeeder no corre fuera de Development y crea un
+// gym demo). Lee Seed:SuperAdmin (variables Seed__SuperAdmin__Email / __Password / __FullName), es idempotente y
+// termina sin levantar el servidor: `dotnet GSM.API.dll --seed-superadmin`.
+if (args.Contains("--seed-superadmin"))
+{
+    await using var seedScope = app.Services.CreateAsyncScope();
+    await GSM.Infrastructure.Identity.IdentityDataSeeder.SeedAsync(seedScope.ServiceProvider);
+    return;
+}
+
+app.UseForwardedHeaders();
 app.UseMiddleware<TraceIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseSerilogRequestLogging();

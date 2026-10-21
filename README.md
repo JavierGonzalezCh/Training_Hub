@@ -146,8 +146,9 @@ Nada de esto impide desarrollar, pero conviene saber en qué estado está:
   `curl -k -X POST https://localhost:7219/internal/jobs/communications/run -H "X-Job-Secret: dev-only-jobs-secret-change-me-32-bytes+"`
   y en producción la invoca una tarea programada de Dokploy (ver `docs/DEPLOY-DOKPLOY-PLAN.md`).
 
-- **Despliegue** — no hay `Dockerfile` ni configuración de despliegue. Se desplegará con Dokploy en servidor propio: ver `docs/DEPLOY-DOKPLOY-PLAN.md`. En producción
-  la base es un Postgres gestionado, no un contenedor propio.
+- **Despliegue** — hay `docker-compose.yml` (API, web, migraciones y tarea periódica; **la base de datos es un Postgres externo**,
+  fuera del compose) y un Dockerfile por servicio. Guía en la sección «Docker» de abajo; el plan completo (servidor, copias, alertas) está
+  en `docs/DEPLOY-DOKPLOY-PLAN.md`.
 - **Cloudflare R2** (`Storage:R2`) — sin credenciales, las subidas de archivo responden 500.
 - **Resend** (`Email:Resend`) — sin API key, los correos se escriben en el log en vez de enviarse.
 - **Firebase** (`Notifications:Fcm`) — sin configurar no hay push (web ni Android).
@@ -156,3 +157,25 @@ Nada de esto impide desarrollar, pero conviene saber en qué estado está:
 
 Para probar el check-in con QR en local, entra como staff y abre `https://localhost:7220/kiosk`: muestra el QR del gym;
 el enlace que lleva abre `/app/checkin` en la app del miembro.
+
+## Docker
+
+Servicios: `migrate` (aplica las migraciones y termina), `api` (puerto 8080), `web` (nginx, puerto 8080) y `cron` (la tarea periódica de
+Comunicaciones). La base de datos **no** está en el compose: se conecta por `DB_CONNECTION`.
+
+```bash
+cp .env.example .env     # rellenar: cadena de conexión, URLs públicas y claves (openssl rand -base64 48)
+docker compose up -d --build
+docker compose run --rm api --seed-superadmin    # solo la primera vez (SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD del .env)
+```
+
+Probarlo en el PC, con el Postgres local (`Host=host.docker.internal` en `DB_CONNECTION`):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build   # API en :8080, web en :8081
+```
+
+- La URL de la API de la web se escribe al arrancar desde `PUBLIC_API_URL`: la misma imagen sirve para cualquier entorno.
+- Detrás de un proxy (Traefik/Dokploy) la API usa `X-Forwarded-For/Proto`; el compose no publica puertos.
+- Las llaves de Data Protection van en el volumen `dataprotection`, para que los enlaces de restablecimiento sobrevivan a los redespliegues.
+- En Dokploy: aplicación tipo «Docker Compose», rama `main`, dominios `api.` y `app.` hacia el puerto 8080 de `api` y `web`.

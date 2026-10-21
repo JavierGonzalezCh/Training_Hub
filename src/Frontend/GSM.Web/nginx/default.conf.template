@@ -1,0 +1,55 @@
+server {
+    listen 8080;
+    server_name _;
+
+    root /srv/www;
+    index index.html;
+
+    # Cabeceras de seguridad, a nivel de server: los location de abajo solo usan `expires` (no add_header), así las
+    # heredan todas. Blazor WASM necesita 'wasm-unsafe-eval'; index.html lleva scripts en línea ('unsafe-inline').
+    # connect-src deja pasar la API (API_BASE_URL) y los servicios de Firebase Cloud Messaging del push web.
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Permissions-Policy "camera=(self), geolocation=(self), microphone=()" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' ${API_BASE_URL} https://fcm.googleapis.com https://fcmregistrations.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
+
+    # Un `types` en el server reemplaza al heredado: se vuelve a incluir mime.types y se añaden .wasm y los
+    # formatos de datos de Blazor. gzip_static sirve los .gz que genera `dotnet publish`.
+    include /etc/nginx/mime.types;
+    types {
+        application/wasm wasm;
+        application/octet-stream dat blat;
+    }
+    gzip on;
+    gzip_static on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_types text/plain text/css application/javascript application/json application/wasm image/svg+xml;
+
+    # Salud para Docker / Dokploy.
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok";
+    }
+
+    # _framework lleva huella de versión en el nombre: caché de un año.
+    location /_framework/ {
+        expires 1y;
+        try_files $uri =404;
+    }
+
+    # Lo que debe revalidarse siempre: el arranque de la PWA, su manifiesto y la configuración de la API.
+    location ~ ^/(index\.html|service-worker\.js|appsettings.*\.json|manifest.*\.json)$ {
+        expires -1;
+        try_files $uri =404;
+    }
+
+    # El resto (css, js, imágenes): se sirve con ETag y se revalida.
+    location / {
+        expires -1;
+        # Rutas de la SPA (/members/..., /app/rutina): las resuelve Blazor, no el servidor.
+        try_files $uri $uri/ /index.html;
+    }
+}
