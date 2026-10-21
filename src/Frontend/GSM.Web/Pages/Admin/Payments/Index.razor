@@ -5,7 +5,7 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Cobros — GSM</PageTitle>
+<PageTitle>Cobros — TrainingHub OS</PageTitle>
 
 <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
     <MudText Typo="Typo.h4">Cobros del periodo</MudText>
@@ -17,7 +17,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_response is { } response)
 {

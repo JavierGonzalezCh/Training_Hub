@@ -6,7 +6,7 @@
 @inject IMeClient Me
 @inject ISnackbar Snackbar
 
-<PageTitle>Preferencias de avisos — GSM</PageTitle>
+<PageTitle>Preferencias de avisos — TrainingHub GO</PageTitle>
 
 <h1 class="gsm-m-section gsm-m-section--page">Preferencias de avisos</h1>
 <p class="gsm-m-card__text mb-4">
@@ -16,7 +16,7 @@
 
 @if (_loading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    <GsmLoader />
 }
 else
 {

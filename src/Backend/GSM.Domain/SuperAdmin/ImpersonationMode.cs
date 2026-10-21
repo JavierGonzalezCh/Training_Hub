@@ -2,7 +2,7 @@ namespace GSM.Domain.SuperAdmin;
 
 /// <summary>
 /// Modo de una sesión de impersonación. <see cref="Read"/> solo admite <c>GET</c>; <see cref="Write"/>
-/// admite todos los métodos y las escrituras quedan firmadas como "GSM" en el historial del gym.
+/// admite todos los métodos y las escrituras quedan firmadas como "TrainingHub" en el historial del gym.
 /// </summary>
 public enum ImpersonationMode
 {

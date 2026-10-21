@@ -1,7 +1,7 @@
 {
   "id": "/panel",
-  "name": "GSM Panel",
-  "short_name": "GSM Panel",
+  "name": "TrainingHub OS",
+  "short_name": "TrainingHub OS",
   "description": "El panel de tu gimnasio, instalado en el teléfono.",
   "start_url": "/",
   "scope": "/",
@@ -9,6 +9,7 @@
   "background_color": "#0F0E0D",
   "theme_color": "#0F0E0D",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

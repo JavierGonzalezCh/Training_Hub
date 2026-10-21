@@ -5,7 +5,7 @@
     <DialogContent>
         @if (_loading)
         {
-            <MudProgressLinear Indeterminate="true" />
+            <GsmLoader />
         }
         else if (_items.Count == 0)
         {

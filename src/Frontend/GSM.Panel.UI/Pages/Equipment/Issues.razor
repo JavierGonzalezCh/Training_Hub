@@ -3,7 +3,7 @@
 @inject IEquipmentClient Equipment
 @inject ISnackbar Snackbar
 
-<PageTitle>Reportes de fallas — GSM</PageTitle>
+<PageTitle>Reportes de fallas — TrainingHub OS</PageTitle>
 
 <MudLink Href="/equipment" Class="mb-3 d-inline-block">&larr; Equipos</MudLink>
 
@@ -16,7 +16,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_items.Count == 0)
 {

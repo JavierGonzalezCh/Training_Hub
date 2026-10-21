@@ -7,7 +7,7 @@
 @* "Mi membresía" (MS8, Memberships v2 §11): mi estado de hoy, el historial de mis membresías, mis congelamientos y,
    en una tiquetera, los días en que gasté cada entrada. Sin precios ni motivos internos del staff. *@
 
-<PageTitle>Mi membresía — GSM</PageTitle>
+<PageTitle>Mi membresía — TrainingHub GO</PageTitle>
 
 <div class="d-flex align-center mb-3">
     <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/app/perfil" aria-label="Volver a mi perfil" />
@@ -16,7 +16,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_response is null)
 {

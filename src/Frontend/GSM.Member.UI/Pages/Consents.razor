@@ -5,7 +5,7 @@
 @inject MemberContext MemberCtx
 @inject ISnackbar Snackbar
 
-<PageTitle>Autorizaciones — GSM</PageTitle>
+<PageTitle>Autorizaciones — TrainingHub GO</PageTitle>
 
 <h1 class="gsm-m-section">Autorizaciones</h1>
 
@@ -18,7 +18,7 @@
 
 @if (_statuses is null)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else
 {

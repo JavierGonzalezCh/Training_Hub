@@ -22,7 +22,7 @@ public sealed class SaasPlanMemberLimitTests(ApiFactory factory) : IClassFixture
 {
     private static readonly DateOnly Today = new(2026, 10, 10);
 
-    private const string AtLimitMessage = "Llegaste al límite de 2 miembros activos de tu plan. Habla con GSM para ampliarlo.";
+    private const string AtLimitMessage = "Llegaste al límite de 2 miembros activos de tu plan. Habla con TrainingHub para ampliarlo.";
 
     [Fact]
     public async Task The_three_historic_plans_are_seeded_with_the_approved_limits()

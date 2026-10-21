@@ -6,7 +6,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-<PageTitle>Cierre diario — GSM</PageTitle>
+<PageTitle>Cierre diario — TrainingHub OS</PageTitle>
 
 <MudTabs Elevation="0" Rounded="false" PanelClass="pt-4" data-testid="cash-register-tabs">
     <MudTabPanel Text="Cierre del día">
@@ -18,7 +18,7 @@
 
         @if (_loading)
         {
-            <MudProgressCircular Indeterminate="true" />
+            <GsmLoader />
         }
         else if (_daily is { } daily)
         {

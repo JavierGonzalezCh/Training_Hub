@@ -4,7 +4,7 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Asistencia — GSM</PageTitle>
+<PageTitle>Asistencia — TrainingHub OS</PageTitle>
 
 <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
     <MudText Typo="Typo.h4">Asistencia</MudText>
@@ -19,7 +19,7 @@
     <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Horas pico (últimos 7 días)</MudText>
     @if (_peakHours is null)
     {
-        <MudProgressCircular Indeterminate="true" />
+        <GsmLoader />
     }
     else if (_peakHours.Sum(b => b.Count) == 0)
     {

@@ -39,11 +39,11 @@ public static class SuperAdminLabels
     /// <summary>Qué significa el estado para el Owner y qué hacer; vacío si no pide nada.</summary>
     public static string OwnerStatusHint(string status) => status switch
     {
-        "Trial" => "Estás probando GSM. Cuando termine la prueba, comunícate con GSM para seguir.",
-        "TrialEnded" => "Tu prueba terminó. Aún puedes trabajar con normalidad unos días; comunícate con GSM para continuar.",
+        "Trial" => "Estás probando TrainingHub. Cuando termine la prueba, comunícate con TrainingHub para seguir.",
+        "TrialEnded" => "Tu prueba terminó. Aún puedes trabajar con normalidad unos días; comunícate con TrainingHub para continuar.",
         "Overdue" => "Tu suscripción está vencida. Pasada la gracia el gym quedará solo en consulta.",
         "Disabled" => "El gym está inhabilitado: solo puedes consultar la información, no registrar cambios.",
-        "Suspended" => "GSM suspendió el gym. Comunícate con GSM para resolverlo.",
+        "Suspended" => "TrainingHub suspendió el gym. Comunícate con TrainingHub para resolverlo.",
         _ => string.Empty,
     };
 

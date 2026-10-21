@@ -31,7 +31,7 @@ public sealed class AssignMembershipHandler(
 {
     /// <summary>Texto al staff cuando el gym llega al límite de su plan (SuperAdmin §V1).</summary>
     public static string LimitMessage(int limit)
-        => $"Llegaste al límite de {limit} miembros activos de tu plan. Habla con GSM para ampliarlo.";
+        => $"Llegaste al límite de {limit} miembros activos de tu plan. Habla con TrainingHub para ampliarlo.";
 
     public async Task<MembershipResponse> HandleAsync(
         Guid memberId, AssignMembershipRequest request, CancellationToken cancellationToken)

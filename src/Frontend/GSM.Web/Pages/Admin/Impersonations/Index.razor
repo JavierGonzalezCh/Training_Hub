@@ -5,13 +5,13 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Impersonaciones — GSM</PageTitle>
+<PageTitle>Impersonaciones — TrainingHub OS</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-6">Historial de impersonaciones</MudText>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_items.Count == 0)
 {
@@ -57,7 +57,7 @@ else
                     <td colspan="7">
                         @if (_actionsLoading)
                         {
-                            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                            <GsmLoader Small="true" />
                         }
                         else if (_actions.Count == 0)
                         {

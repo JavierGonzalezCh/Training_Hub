@@ -97,7 +97,7 @@ body,
 
 /* ---------- Marca ----------------------------------------------------------------------- */
 
-/* Wordmark "GSM": bloque compuesto, segmento final en el acento (imita las barras de peso). */
+/* Wordmark TrainingHub: TRAINING en el color del texto, HUB en el acento y, si aplica, la etiqueta del producto (OS / GO). */
 .gsm-wordmark {
     font-family: var(--gsm-font-display);
     font-style: var(--gsm-display-style);
@@ -112,9 +112,20 @@ body,
 
 .gsm-wordmark .accent {
     color: var(--gsm-accent);
-    border-left: 0.28em solid var(--gsm-accent);
-    padding-left: 0.12em;
-    margin-left: 0.06em;
+}
+
+.gsm-wordmark__tag {
+    align-self: center;
+    margin-left: 0.4em;
+    padding: 0.2em 0.45em 0.15em;
+    border-radius: 4px;
+    background: var(--gsm-accent);
+    color: #fff;
+    font-family: var(--gsm-font-ui);
+    font-size: 0.4em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1;
 }
 
 .gsm-display {
@@ -3527,4 +3538,78 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     vertical-align: middle;
     border: 1px solid var(--gsm-border);
     border-radius: 3px;
+}
+
+/* ---------- Indicador de carga: la barra del logo de TrainingHub ---------- */
+
+.gsm-loader {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 7rem;
+    max-width: 100%;
+    line-height: 0;
+}
+
+.gsm-loader--sm {
+    width: 3.5rem;
+}
+
+.gsm-loader svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.gsm-loader__plates rect {
+    fill: var(--gsm-accent);
+}
+
+.gsm-loader__shine rect {
+    fill: #fff;
+    fill-opacity: 0.22;
+}
+
+.gsm-loader__sleeve rect {
+    fill: #b9bec5;
+}
+
+.gsm-loader__bar {
+    fill: none;
+    stroke: #aeb3ba;
+    stroke-width: 9;
+    stroke-linecap: round;
+}
+
+.gsm-loader__track {
+    fill: none;
+    stroke: var(--gsm-bg, #0f0e0d);
+    stroke-width: 5;
+    stroke-linecap: round;
+}
+
+.gsm-loader__fill {
+    fill: none;
+    stroke: var(--gsm-accent);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    filter: drop-shadow(0 0 3px var(--gsm-accent));
+    animation: gsm-loader-fill 1.6s ease-in-out infinite;
+}
+
+@keyframes gsm-loader-fill {
+    0% { stroke-dashoffset: 1; opacity: 1; }
+    70% { stroke-dashoffset: 0; opacity: 1; }
+    90% { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gsm-loader__fill {
+        animation: none;
+        stroke-dashoffset: 0.45;
+    }
 }

@@ -9,13 +9,13 @@
    fecha de nacimiento los cambia el staff; el correo y la contraseña pasan por /app/cuenta/contrasena. La salud
    y las mediciones están bloqueadas sin la autorización de tratamiento de datos, y un menor no las edita. *@
 
-<PageTitle>Mi perfil — GSM</PageTitle>
+<PageTitle>Mi perfil — TrainingHub GO</PageTitle>
 
 <h1 class="gsm-m-section">Mi perfil</h1>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_profile is null)
 {

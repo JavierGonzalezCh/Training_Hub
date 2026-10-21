@@ -9,7 +9,7 @@
 <MudText Typo="Typo.h6" Class="mb-1">Owners</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3" Style="max-width:640px">
     Los Owners tienen los mismos poderes. Siempre debe quedar al menos uno. El contacto de facturación es quien
-    recibe los avisos de la suscripción de GSM.
+    recibe los avisos de la suscripción de TrainingHub.
 </MudText>
 
 <MudGrid Class="mb-3" Style="max-width:900px">
@@ -30,7 +30,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else
 {

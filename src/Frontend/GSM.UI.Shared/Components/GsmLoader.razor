@@ -1,0 +1,41 @@
+@* Indicador de carga de la marca: la barra del logo de TrainingHub, con el rojo llenándose desde el centro.
+   Reemplaza a MudProgressCircular/Linear indeterminados. Sin ids internos: puede haber varias en la página. *@
+<div class="gsm-loader @(Small ? "gsm-loader--sm" : null) @Class" role="progressbar" aria-label="@Label" aria-busy="true">
+    <svg viewBox="0 0 240 90" aria-hidden="true" focusable="false">
+        @* Discos de la izquierda y de la derecha, con el reflejo claro del logo. *@
+        <g class="gsm-loader__plates">
+            <rect x="6" y="20" width="17" height="50" rx="4" />
+            <rect x="25" y="12" width="17" height="66" rx="4" />
+            <rect x="198" y="12" width="17" height="66" rx="4" />
+            <rect x="217" y="20" width="17" height="50" rx="4" />
+        </g>
+        <g class="gsm-loader__shine">
+            <rect x="9" y="23" width="4" height="44" rx="2" />
+            <rect x="28" y="15" width="4" height="60" rx="2" />
+            <rect x="201" y="15" width="4" height="60" rx="2" />
+            <rect x="220" y="23" width="4" height="44" rx="2" />
+        </g>
+        @* Manguitos plateados. *@
+        <g class="gsm-loader__sleeve">
+            <rect x="42" y="34" width="10" height="22" rx="2" />
+            <rect x="188" y="34" width="10" height="22" rx="2" />
+        </g>
+        @* La barra: pista plateada y, encima, el relleno que sale del centro hacia los dos lados. *@
+        <path class="gsm-loader__bar" d="M52 40 Q120 28 188 40" />
+        <path class="gsm-loader__track" d="M52 40 Q120 28 188 40" />
+        <path class="gsm-loader__fill gsm-loader__fill--left" pathLength="1" d="M120 34 Q86 34 52 40" />
+        <path class="gsm-loader__fill gsm-loader__fill--right" pathLength="1" d="M120 34 Q154 34 188 40" />
+    </svg>
+</div>
+
+@code {
+    /// <summary>Versión compacta para botones, celdas y diálogos pequeños.</summary>
+    [Parameter]
+    public bool Small { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Cargando";
+}

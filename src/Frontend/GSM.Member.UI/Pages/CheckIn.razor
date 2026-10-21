@@ -6,14 +6,14 @@
 @inject NavigationManager Navigation
 @inject IDeviceLocation Location
 
-<PageTitle>Registrar entrada — GSM</PageTitle>
+<PageTitle>Registrar entrada — TrainingHub GO</PageTitle>
 
 @* El código llega en ?t= desde el QR de la entrada. En cuanto hay respuesta se quita de la URL
    (el resultado vive en el estado de la página), para que recargar no repita el intento. *@
 @if (_state == State.Working)
 {
     <div class="d-flex justify-center mt-8" role="status" aria-label="Registrando tu entrada">
-        <MudProgressCircular Indeterminate="true" />
+        <GsmLoader />
     </div>
     @if (_locating)
     {

@@ -4,13 +4,13 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>Reporte de falla — GSM</PageTitle>
+<PageTitle>Reporte de falla — TrainingHub OS</PageTitle>
 
 <MudLink Href="/equipment/issues" Class="mb-3 d-inline-block">&larr; Reportes de fallas</MudLink>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_issue is null)
 {

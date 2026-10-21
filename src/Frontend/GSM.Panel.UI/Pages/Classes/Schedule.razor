@@ -4,7 +4,7 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>Horario semanal — GSM</PageTitle>
+<PageTitle>Horario semanal — TrainingHub OS</PageTitle>
 
 <div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
     <MudText Typo="Typo.h4">Horario semanal</MudText>
@@ -16,7 +16,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else
 {

@@ -39,7 +39,7 @@ public class TrialEndedBannerTests : TestContext
         Assert.Equal(SubscriptionState.TrialEnded, context.SubscriptionState);
         Assert.False(context.ReadOnly); // acceso total
         var banner = cut.Find("[data-testid='trial-ended-banner']");
-        Assert.Contains("Tu prueba terminó. Confirma tu pago para seguir usando GSM", banner.TextContent);
+        Assert.Contains("Tu prueba terminó. Confirma tu pago para seguir usando TrainingHub", banner.TextContent);
         Assert.Contains("Te quedan 2 días", banner.TextContent);
     }
 

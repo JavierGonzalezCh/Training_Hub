@@ -5,7 +5,7 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>Plantillas de rutina — GSM</PageTitle>
+<PageTitle>Plantillas de rutina — TrainingHub OS</PageTitle>
 
 <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
     <MudText Typo="Typo.h4">Plantillas de rutina</MudText>
@@ -22,7 +22,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_items.Count == 0)
 {

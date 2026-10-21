@@ -5,7 +5,7 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>Clases — GSM</PageTitle>
+<PageTitle>Clases — TrainingHub OS</PageTitle>
 
 <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
     <MudText Typo="Typo.h4">Clases</MudText>
@@ -45,7 +45,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_classes.Count == 0)
 {

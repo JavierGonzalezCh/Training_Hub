@@ -6,7 +6,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-<PageTitle>Reporte de turno — GSM</PageTitle>
+<PageTitle>Reporte de turno — TrainingHub OS</PageTitle>
 
 @* Reporte imprimible del turno (Payments v2 §4.4). El @media print oculta el menú y los botones. *@
 <style>
@@ -26,7 +26,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_report is { } report)
 {

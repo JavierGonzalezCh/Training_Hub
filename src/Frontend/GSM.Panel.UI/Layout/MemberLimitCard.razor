@@ -27,7 +27,7 @@
         var left = limit - counted;
         return State(counted, limit) switch
         {
-            LimitState.Full => "Llegaste al límite. Habla con GSM para ampliarlo.",
+            LimitState.Full => "Llegaste al límite. Habla con TrainingHub para ampliarlo.",
             _ => left == 1 ? "Te queda 1 cupo" : $"Te quedan {left} cupos",
         };
     }

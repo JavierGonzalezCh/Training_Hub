@@ -13,13 +13,13 @@
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthState
 
-<PageTitle>@(_member?.FirstName is null ? "Miembro" : $"{_member.FirstName} {_member.LastName}") — GSM</PageTitle>
+<PageTitle>@(_member?.FirstName is null ? "Miembro" : $"{_member.FirstName} {_member.LastName}") — TrainingHub OS</PageTitle>
 
 <MudLink OnClick="@(() => Navigation.NavigateTo("/members"))" Class="mb-4 d-inline-block">← Miembros</MudLink>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_notFound)
 {
@@ -218,7 +218,7 @@ else if (_member is not null)
         <MudTabPanel Text="Membresías">
             @if (_memberships is null)
             {
-                <MudProgressCircular Indeterminate="true" Class="mt-4" />
+                <GsmLoader Class="mt-4" />
             }
             else if (_memberships.Count == 0)
             {
@@ -322,7 +322,7 @@ else if (_member is not null)
             </div>
             @if (_routines is null)
             {
-                <MudProgressCircular Indeterminate="true" />
+                <GsmLoader />
             }
             else if (_routines.Count == 0)
             {
@@ -354,7 +354,7 @@ else if (_member is not null)
                             <ChildContent>
                                 @if (!_routineDetails.TryGetValue(current.Id, out var detail))
                                 {
-                                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                                    <GsmLoader Small="true" />
                                 }
                                 else
                                 {

@@ -5,13 +5,13 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Panel SuperAdmin — GSM</PageTitle>
+<PageTitle>Panel SuperAdmin — TrainingHub OS</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-6">Panel de plataforma</MudText>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_dashboard is { } d)
 {

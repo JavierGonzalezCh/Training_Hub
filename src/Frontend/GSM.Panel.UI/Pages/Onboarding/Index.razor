@@ -9,7 +9,7 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Configura tu gimnasio — GSM</PageTitle>
+<PageTitle>Configura tu gimnasio — TrainingHub OS</PageTitle>
 
 @* Asistente de onboarding (Gyms §5). Cada paso reutiliza la pantalla del módulo que guarda el dato; el avance lo
    dicta el servidor (GET /api/gym/onboarding): un paso está hecho cuando su dato existe, no por pulsar "Siguiente". *@
@@ -20,7 +20,7 @@
 
 @if (_state is null)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    <GsmLoader />
 }
 else
 {

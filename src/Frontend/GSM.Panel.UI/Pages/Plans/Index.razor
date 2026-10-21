@@ -5,7 +5,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-<PageTitle>Planes — GSM</PageTitle>
+<PageTitle>Planes — TrainingHub OS</PageTitle>
 
 <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
     <MudText Typo="Typo.h4">Planes</MudText>
@@ -24,7 +24,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_plans.Count == 0)
 {

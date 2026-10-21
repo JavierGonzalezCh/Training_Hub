@@ -33,7 +33,7 @@
         }
         else
         {
-            <span class="gsm-wordmark" style="font-size:1.3rem">GS<span class="accent">M</span></span>
+            <span class="gsm-wordmark" style="font-size:1.3rem">TRAINING<span class="accent">HUB</span><span class="gsm-wordmark__tag">GO</span></span>
         }
         <MudSpacer />
         <ModeSwitch Accesses="_accesses" Compact="true" />
@@ -75,7 +75,7 @@
             @if (_loading)
             {
                 <div class="d-flex justify-center mt-8">
-                    <MudProgressCircular Indeterminate="true" />
+                    <GsmLoader />
                 </div>
             }
             else

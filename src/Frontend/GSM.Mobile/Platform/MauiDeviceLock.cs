@@ -68,7 +68,7 @@ public sealed class MauiDeviceLock : IDeviceLock
     {
         try
         {
-            var request = new AuthenticationRequestConfiguration("GSM", reason)
+            var request = new AuthenticationRequestConfiguration("TrainingHub", reason)
             {
                 AllowAlternativeAuthentication = true,
             };

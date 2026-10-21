@@ -6,13 +6,13 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Plantilla de rutina — GSM</PageTitle>
+<PageTitle>Plantilla de rutina — TrainingHub OS</PageTitle>
 
 <MudLink OnClick="@(() => Navigation.NavigateTo("/routine-templates"))" Class="mb-4 d-inline-block">← Volver a las plantillas</MudLink>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else
 {

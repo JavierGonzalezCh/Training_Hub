@@ -13,7 +13,7 @@
 else if (GymContext.SubscriptionState == SubscriptionState.TrialEnded)
 {
     <MudAlert Severity="Severity.Warning" Dense="true" Class="gsm-banner" Icon="@Icons.Material.Filled.HourglassBottom" data-testid="trial-ended-banner">
-        Tu prueba terminó. Confirma tu pago para seguir usando GSM.
+        Tu prueba terminó. Confirma tu pago para seguir usando TrainingHub.
         @if (GymContext.Subscription?.DaysUntilDisabled is { } days)
         {
             <span>&nbsp;@(days == 0 ? "Hoy es el último día de acceso completo." : $"Te quedan {days} día{(days == 1 ? "" : "s")} de acceso completo.")</span>

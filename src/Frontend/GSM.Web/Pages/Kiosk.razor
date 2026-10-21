@@ -12,7 +12,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<PageTitle>Kiosco — GSM</PageTitle>
+<PageTitle>Kiosco — TrainingHub OS</PageTitle>
 
 @if (_staffSession)
 {
@@ -29,7 +29,7 @@
 else if (!_ready)
 {
     <section class="gsm-kiosk gsm-kiosk--centered">
-        <MudProgressCircular Indeterminate="true" />
+        <GsmLoader />
     </section>
 }
 else if (_disabled)
@@ -80,7 +80,7 @@ else
                 }
                 else
                 {
-                    <MudProgressCircular Indeterminate="true" />
+                    <GsmLoader />
                 }
             </div>
             }

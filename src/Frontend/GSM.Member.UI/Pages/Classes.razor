@@ -10,7 +10,7 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>Clases — GSM</PageTitle>
+<PageTitle>Clases — TrainingHub GO</PageTitle>
 
 <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Clases</MudText>
 
@@ -72,7 +72,7 @@ else
 
     @if (_loading)
     {
-        <MudProgressCircular Indeterminate="true" />
+        <GsmLoader />
     }
     else
     {

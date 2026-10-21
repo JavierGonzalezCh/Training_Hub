@@ -17,7 +17,7 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Dashboard — GSM</PageTitle>
+<PageTitle>Dashboard — TrainingHub OS</PageTitle>
 
 <PageHeader Eyebrow="@GsmFormat.DayLong(_today)" Title="Resumen de hoy">
     <Subtitle>@(_dashboard is not null ? Headline(_dashboard.Expiring) : (GymContext.Gym?.Name ?? ""))</Subtitle>
@@ -37,7 +37,7 @@
 
 @if (_loading && _dashboard is null)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-6" />
+    <GsmLoader Class="mb-6" />
 }
 else if (_dashboard is { } dashboard)
 {

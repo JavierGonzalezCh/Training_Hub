@@ -9,7 +9,7 @@
 @inject ISnackbar Snackbar
 @inject NewsUnreadState Unread
 
-<PageTitle>Novedades — GSM</PageTitle>
+<PageTitle>Novedades — TrainingHub GO</PageTitle>
 
 <h1 class="gsm-m-section gsm-m-section--page">Novedades</h1>
 
@@ -35,7 +35,7 @@ else
 
     @if (_loading)
     {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        <GsmLoader />
     }
     else if (_tab == Tab.Announcements)
     {

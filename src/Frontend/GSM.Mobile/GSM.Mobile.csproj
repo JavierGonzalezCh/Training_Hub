@@ -15,7 +15,7 @@
         <Nullable>enable</Nullable>
         <MauiXamlInflator>SourceGen</MauiXamlInflator>
 
-        <ApplicationTitle>GSM</ApplicationTitle>
+        <ApplicationTitle>TrainingHub GO</ApplicationTitle>
         <ApplicationId>com.gsm.mobile</ApplicationId>
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>

@@ -4,13 +4,13 @@
 @inject IMeClient Me
 @inject ISnackbar Snackbar
 
-<PageTitle>Mi gimnasio — GSM</PageTitle>
+<PageTitle>Mi gimnasio — TrainingHub GO</PageTitle>
 
 <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Mi gimnasio</MudText>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_gym is null)
 {

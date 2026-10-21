@@ -4,7 +4,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+    <GsmLoader Class="mt-4" />
 }
 else if (_error is not null)
 {
@@ -92,7 +92,7 @@ else if (_data is { } s)
     }
 
     <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="subscription-renew-note">
-        Para renovar, comunícate con GSM.
+        Para renovar, comunícate con TrainingHub.
     </MudText>
 }
 

@@ -5,7 +5,7 @@
 @* Qué avisos quiere recibir esta persona en su teléfono (push), por tipo de aviso (Notifications §8). El horario
    sin avisos del gym no aplica al equipo: cada persona apaga lo que no quiere. *@
 
-<PageTitle>Avisos en el teléfono — GSM</PageTitle>
+<PageTitle>Avisos en el teléfono — TrainingHub OS</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-2">Avisos en el teléfono</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6" Style="max-width:560px">
@@ -20,7 +20,7 @@
 
     @if (_loading)
     {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        <GsmLoader />
     }
     else
     {

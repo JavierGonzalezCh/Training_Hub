@@ -8,13 +8,13 @@
 @inject ISnackbar Snackbar
 @inject IDialogService Dialogs
 
-<PageTitle>Rutina — GSM</PageTitle>
+<PageTitle>Rutina — TrainingHub OS</PageTitle>
 
 <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{MemberId}"))" Class="mb-4 d-inline-block">← Volver a la ficha</MudLink>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else
 {

@@ -7,7 +7,7 @@ public sealed class ResendOptions
 
     public string ApiKey { get; init; } = string.Empty;
 
-    /// <summary>Remitente verificado en Resend, p. ej. "GSM &lt;no-reply@tudominio.com&gt;".</summary>
+    /// <summary>Remitente verificado en Resend, p. ej. "TrainingHub &lt;no-reply@tudominio.com&gt;".</summary>
     public string FromAddress { get; init; } = string.Empty;
 
     public bool IsConfigured =>

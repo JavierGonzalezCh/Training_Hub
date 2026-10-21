@@ -116,40 +116,40 @@ public sealed class SubscriptionNoticeDueNotifiesOwners(
         {
             SubscriptionNoticeKind.TrialEnding => (
                 "Tu prueba termina pronto",
-                $"Tu prueba gratis de GSM termina {When(e.Days, date)}. Confirma tu pago para seguir usando GSM sin interrupciones."),
+                $"Tu prueba gratis de TrainingHub termina {When(e.Days, date)}. Confirma tu pago para seguir usando TrainingHub sin interrupciones."),
             SubscriptionNoticeKind.TrialEnded => (
                 "Tu prueba terminó",
                 $"Tienes hasta el {date} para confirmar tu pago. Pasada esa fecha, tu gimnasio quedará solo en modo consulta."),
             SubscriptionNoticeKind.Expiring => (
                 "Tu suscripción vence pronto",
-                $"Tu suscripción de GSM vence {When(e.Days, date)}. Renueva a tiempo para no perder el acceso completo."),
+                $"Tu suscripción de TrainingHub vence {When(e.Days, date)}. Renueva a tiempo para no perder el acceso completo."),
             SubscriptionNoticeKind.ExpiresToday => (
                 "Tu suscripción vence hoy",
                 "Hoy es el último día cubierto de tu suscripción de GSM. Renueva para no perder el acceso completo."),
             SubscriptionNoticeKind.Overdue => (
                 "Tu gimnasio entró en mora",
-                $"Tu suscripción de GSM venció. Tienes hasta el {date} para pagar; después tu gimnasio quedará solo en modo consulta."),
+                $"Tu suscripción de TrainingHub venció. Tienes hasta el {date} para pagar; después tu gimnasio quedará solo en modo consulta."),
             SubscriptionNoticeKind.DisableSoon => (
                 "Tu gimnasio se inhabilitará pronto",
                 $"Si no confirmas tu pago antes del {date}, tu gimnasio quedará solo en modo consulta."),
             SubscriptionNoticeKind.Disabled => (
                 "Tu gimnasio fue inhabilitado",
-                "Por falta de pago, tu gimnasio quedó solo en modo consulta. Escribe a GSM para reactivarlo."),
+                "Por falta de pago, tu gimnasio quedó solo en modo consulta. Escribe a TrainingHub para reactivarlo."),
             SubscriptionNoticeKind.Suspended => (
                 "Tu gimnasio fue suspendido",
-                "GSM suspendió el acceso de tu gimnasio. Escríbenos para resolverlo."),
+                "TrainingHub suspendió el acceso de tu gimnasio. Escríbenos para resolverlo."),
             SubscriptionNoticeKind.Reactivated => (
                 "Tu gimnasio fue reactivado",
-                "Ya puedes volver a usar GSM con normalidad."),
+                "Ya puedes volver a usar TrainingHub con normalidad."),
             SubscriptionNoticeKind.PaymentRegistered => (
                 "Pago registrado",
                 $"Recibimos tu pago de {Money(e.Amount)}; tu suscripción va hasta el {date}."),
             SubscriptionNoticeKind.MemberLimitNear => (
                 e.Limit - e.Used == 1 ? "Te queda 1 cupo" : $"Te quedan {e.Limit - e.Used} cupos",
-                $"Tienes {e.Used} de {e.Limit} miembros activos de tu plan. Habla con GSM para ampliarlo."),
+                $"Tienes {e.Used} de {e.Limit} miembros activos de tu plan. Habla con TrainingHub para ampliarlo."),
             SubscriptionNoticeKind.MemberLimitReached => (
                 "Llegaste al límite de miembros",
-                $"Llegaste al límite de {e.Limit} miembros activos de tu plan. Habla con GSM para ampliarlo. "
+                $"Llegaste al límite de {e.Limit} miembros activos de tu plan. Habla con TrainingHub para ampliarlo. "
                 + "Renovar a quien ya está activo no se bloquea."),
             _ => throw new ArgumentOutOfRangeException(nameof(e), e.Kind, "Aviso de suscripción desconocido."),
         };

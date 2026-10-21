@@ -9,7 +9,7 @@
 @inject IExercisesClient ExercisesApi
 @inject ISnackbar Snackbar
 
-<PageTitle>Mi rutina — GSM</PageTitle>
+<PageTitle>Mi rutina — TrainingHub GO</PageTitle>
 
 <div class="d-flex align-center justify-space-between mb-4">
     <MudText Typo="Typo.h5" HtmlTag="h1">Mi rutina</MudText>
@@ -26,7 +26,7 @@
 }
 else if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_response?.Routine is null)
 {

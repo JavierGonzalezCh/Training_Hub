@@ -53,7 +53,7 @@ public static class EmailTemplates
             <p><a href="{WebUtility.HtmlEncode(activationUrl)}">Activar mi cuenta</a></p>
             <p>El enlace vence en 72 horas. Si vence, pide otro a quien te dio de alta o usa "¿Olvidaste tu contraseña?" en la pantalla de entrada.</p>
             """;
-        return new EmailMessage(to, "Bienvenido a GSM, activa tu cuenta", html,
+        return new EmailMessage(to, "Bienvenido a TrainingHub, activa tu cuenta", html,
             $"Bienvenido a GSM. Eres el Owner de {gymName}. Activa tu cuenta (vence en 72 horas): {activationUrl}");
     }
 
@@ -65,7 +65,7 @@ public static class EmailTemplates
             <p>Ahora eres Owner del gimnasio <strong>{WebUtility.HtmlEncode(gymName)}</strong> en GSM.</p>
             <p><a href="{WebUtility.HtmlEncode(loginUrl)}">Entrar</a> con tu email y tu contraseña de siempre: al iniciar sesión podrás elegir a qué gimnasio entrar.</p>
             """;
-        return new EmailMessage(to, "Nuevo gimnasio en GSM", html,
+        return new EmailMessage(to, "Nuevo gimnasio en TrainingHub", html,
             $"Ahora eres Owner de {gymName}. Entra con tu contraseña de siempre y elige el gimnasio: {loginUrl}");
     }
 
@@ -97,7 +97,7 @@ public static class EmailTemplates
     /// </summary>
     public static EmailMessage LoginCode(string to, string fullName, string code, string? gymName, int minutes)
     {
-        var where = string.IsNullOrWhiteSpace(gymName) ? "GSM" : gymName;
+        var where = string.IsNullOrWhiteSpace(gymName) ? "TrainingHub" : gymName;
         var html = $"""
             <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
             <p>Tu código para entrar a <strong>{WebUtility.HtmlEncode(where)}</strong> es:</p>
@@ -117,12 +117,12 @@ public static class EmailTemplates
     {
         var html = $"""
             <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
-            <p>Para usar este correo en tu cuenta de GSM, escribe este código:</p>
+            <p>Para usar este correo en tu cuenta de TrainingHub, escribe este código:</p>
             <p><strong style="font-size:28px;letter-spacing:6px">{code}</strong></p>
             <p>Vence en {minutes} minutos y sirve una sola vez. Si no lo pediste tú, ignora este correo y no pasará nada.</p>
             """;
         return new EmailMessage(to, "Confirma tu correo nuevo", html,
-            $"Código para confirmar tu correo nuevo en GSM: {code} (vence en {minutes} minutos, sirve una sola vez).",
+            $"Código para confirmar tu correo nuevo en TrainingHub: {code} (vence en {minutes} minutos, sirve una sola vez).",
             Sensitive: true);
     }
 
@@ -134,12 +134,12 @@ public static class EmailTemplates
     {
         var html = $"""
             <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
-            <p>Pidieron cambiar el correo de tu cuenta de GSM a <strong>{WebUtility.HtmlEncode(newEmail)}</strong>. Para autorizarlo, escribe este código:</p>
+            <p>Pidieron cambiar el correo de tu cuenta de TrainingHub a <strong>{WebUtility.HtmlEncode(newEmail)}</strong>. Para autorizarlo, escribe este código:</p>
             <p><strong style="font-size:28px;letter-spacing:6px">{code}</strong></p>
             <p>Vence en {minutes} minutos y sirve una sola vez. <strong>Si no fuiste tú, no lo compartas</strong>: sin él no se puede cambiar tu correo. Cambia tu contraseña o avisa a tu gimnasio.</p>
             """;
         return new EmailMessage(to, "Autoriza el cambio de tu correo", html,
-            $"Código para autorizar el cambio de tu correo de GSM a {newEmail}: {code} (vence en {minutes} minutos). Si no fuiste tú, no lo compartas.",
+            $"Código para autorizar el cambio de tu correo de TrainingHub a {newEmail}: {code} (vence en {minutes} minutos). Si no fuiste tú, no lo compartas.",
             Sensitive: true);
     }
 
@@ -148,11 +148,11 @@ public static class EmailTemplates
     {
         var html = $"""
             <p>Hola {WebUtility.HtmlEncode(fullName)},</p>
-            <p>El correo de tu cuenta de GSM cambió a <strong>{WebUtility.HtmlEncode(newEmail)}</strong>.</p>
+            <p>El correo de tu cuenta de TrainingHub cambió a <strong>{WebUtility.HtmlEncode(newEmail)}</strong>.</p>
             <p>Si no fuiste tú, avisa a tu gimnasio de inmediato.</p>
             """;
         return new EmailMessage(to, "El correo de tu cuenta cambió", html,
-            $"El correo de tu cuenta de GSM cambió a {newEmail}. Si no fuiste tú, avisa a tu gimnasio de inmediato.");
+            $"El correo de tu cuenta de TrainingHub cambió a {newEmail}. Si no fuiste tú, avisa a tu gimnasio de inmediato.");
     }
 
     /// <summary>Restablecer contraseña: el enlace (24 h) abre el formulario precargado.</summary>

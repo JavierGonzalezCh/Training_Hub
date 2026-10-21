@@ -6,53 +6,31 @@ html, body {
     color: var(--gsm-text);
 }
 
-/* Pantalla de carga del WASM. Mismo fondo que las pantallas de acceso para que la
-   transición a /login no parpadee en blanco. */
-/* :has() acota estas reglas al rato en que el loader existe. Sin ese ancla, el flex y
-   el wordmark del ::before se quedan aplicados sobre la app ya montada. */
-#app:has(.loading-progress) {
+/* Pantalla de carga del WASM: wordmark y la barra del logo llenándose desde el centro (GsmLoader en gsm.css).
+   Mismo fondo que las pantallas de acceso para que la transición a /login no parpadee en blanco. */
+/* :has() acota estas reglas al rato en que el loader existe. */
+#app:has(.gsm-boot) {
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.25rem;
     background-color: var(--gsm-bg);
     background-image: radial-gradient(600px circle at 90% 0%, var(--gsm-accent-soft), transparent 60%);
 }
 
-/* El wordmark se dibuja en CSS: Anton puede no haber cargado todavía y un fallback
-   sans en mayúsculas sigue leyéndose como la marca. */
-#app:has(.loading-progress)::before {
-    content: "GSM";
-    font-family: var(--gsm-font-display);
+.gsm-boot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.gsm-boot .gsm-wordmark {
     font-size: 2.75rem;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    color: var(--gsm-text);
-    line-height: 1;
 }
 
-.loading-progress {
-    position: relative;
-    display: block;
-    width: 3rem;
-    height: 3rem;
-    margin: 0;
-}
-
-.loading-progress circle {
-    fill: none;
-    stroke: var(--gsm-border);
-    stroke-width: 0.35rem;
-    transform-origin: 50% 50%;
-    transform: rotate(-90deg);
-}
-
-.loading-progress circle:last-child {
-    stroke: var(--gsm-accent);
-    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-    transition: stroke-dasharray 0.15s ease-in-out;
+.gsm-loader--boot {
+    width: 11rem;
 }
 
 .loading-progress-text {

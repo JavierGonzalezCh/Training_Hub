@@ -49,7 +49,7 @@ public class OwnSubscriptionUiTests : TestContext
         Assert.Contains("142 / 500", cut.Find("[data-testid='subscription-members']").TextContent);
         Assert.NotEmpty(cut.FindAll("[data-testid='subscription-paid-through']"));
         Assert.NotEmpty(cut.FindAll("[data-testid='subscription-payments']"));
-        Assert.Contains("comunícate con GSM", cut.Find("[data-testid='subscription-renew-note']").TextContent);
+        Assert.Contains("comunícate con TrainingHub", cut.Find("[data-testid='subscription-renew-note']").TextContent);
         Assert.Empty(cut.FindAll("button"));
     }
 

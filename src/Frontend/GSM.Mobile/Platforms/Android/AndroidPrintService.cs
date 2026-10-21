@@ -29,7 +29,7 @@ public sealed class AndroidPrintService : IPrintService
                     return false;
                 }
 
-                var job = string.IsNullOrWhiteSpace(title) ? "GSM" : title;
+                var job = string.IsNullOrWhiteSpace(title) ? "TrainingHub" : title;
                 manager.Print(job, webView.CreatePrintDocumentAdapter(job), null);
                 return true;
             });

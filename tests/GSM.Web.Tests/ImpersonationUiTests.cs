@@ -77,7 +77,7 @@ public class ImpersonationUiTests : TestContext
 
         var write = provider.FindAll("input[type=radio]")[1];
         write.Click();
-        Assert.Contains("GSM", provider.Markup);
+        Assert.Contains("TrainingHub", provider.Markup);
 
         provider.FindAll("textarea").First().Change("Corregir un cobro");
         provider.FindAll("button").Single(b => b.TextContent.Trim() == "Entrar").Click();

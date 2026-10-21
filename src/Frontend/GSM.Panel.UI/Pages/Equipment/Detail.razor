@@ -4,13 +4,13 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>@(_item?.Name ?? "Equipo") — GSM</PageTitle>
+<PageTitle>@(_item?.Name ?? "Equipo") — TrainingHub OS</PageTitle>
 
 <MudLink Href="/equipment" Class="mb-3 d-inline-block">&larr; Equipos</MudLink>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_item is null)
 {

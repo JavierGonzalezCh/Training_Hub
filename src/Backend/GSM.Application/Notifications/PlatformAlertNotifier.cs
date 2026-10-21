@@ -59,7 +59,7 @@ public sealed class PlatformAlertNotifier(
             {
                 var (html, text) = Compose(message);
                 await emailSender.SendAsync(
-                    new EmailMessage(contact.Email, $"[GSM] {message.Title}", html, text), cancellationToken);
+                    new EmailMessage(contact.Email, $"[TrainingHub] {message.Title}", html, text), cancellationToken);
                 email = PlatformAlertChannelResult.Sent;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -157,13 +157,13 @@ public sealed class PlatformAlertNotifier(
             {paragraphs}
             {where}
             <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
-            <p style="font-size:12px;color:#666">Alerta automática de GSM para el SuperAdmin.</p>
+            <p style="font-size:12px;color:#666">Alerta automática de TrainingHub para el SuperAdmin.</p>
             """;
 
         var textWhere = message.Link is null ? string.Empty : "Revísalo en el panel: " + message.Link;
         var text = string.Join(
             "\n\n",
-            new[] { message.Title, message.Body, textWhere, "—\nAlerta automática de GSM para el SuperAdmin." }
+            new[] { message.Title, message.Body, textWhere, "—\nAlerta automática de TrainingHub para el SuperAdmin." }
                 .Where(part => part.Length > 0));
         return (html, text);
     }

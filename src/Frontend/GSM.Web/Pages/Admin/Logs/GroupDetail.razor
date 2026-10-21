@@ -4,13 +4,13 @@
 @inject IAdminLogsClient Logs
 @inject ISnackbar Snackbar
 
-<PageTitle>Detalle de falla — GSM</PageTitle>
+<PageTitle>Detalle de falla — TrainingHub OS</PageTitle>
 
 <MudButton Href="/admin/logs" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mb-4">Errores</MudButton>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <GsmLoader />
 }
 else if (_detail is null)
 {

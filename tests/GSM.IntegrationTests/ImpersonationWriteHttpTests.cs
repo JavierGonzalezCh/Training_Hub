@@ -22,7 +22,7 @@ using Xunit;
 namespace GSM.IntegrationTests;
 
 /// <summary>
-/// S6: impersonación con modo (lectura/escritura), en silencio, firmada como "GSM" y auditada por la
+/// S6: impersonación con modo (lectura/escritura), en silencio, firmada como "TrainingHub" y auditada por la
 /// plataforma. Petición HTTP real con la identidad real (JWT), igual que <see cref="SubscriptionGateHttpTests"/>.
 /// </summary>
 public sealed class ImpersonationWriteHttpTests(ApiFactory factory) : IClassFixture<ApiFactory>
@@ -131,7 +131,7 @@ public sealed class ImpersonationWriteHttpTests(ApiFactory factory) : IClassFixt
         var phoneChange = history.GetProperty("items").EnumerateArray()
             .Single(c => c.GetProperty("field").GetString() == "phone");
 
-        Assert.Equal("GSM", phoneChange.GetProperty("changedByName").GetString());
+        Assert.Equal("TrainingHub", phoneChange.GetProperty("changedByName").GetString());
         Assert.Equal("superadmin", phoneChange.GetProperty("changedByRole").GetString());
     }
 

@@ -121,7 +121,7 @@
         _busy = true;
         try
         {
-            if (await Device.AuthenticateAsync("Desbloquea GSM para continuar"))
+            if (await Device.AuthenticateAsync("Desbloquea TrainingHub para continuar"))
             {
                 Lock.Unlock();
             }

@@ -1,6 +1,6 @@
 # GSM — Contexto del proyecto
 
-GSM (Gym System Management) es el codename técnico interno de un sistema de gestión de gimnasios B2B SaaS. El nombre comercial final aún no está definido (candidato: LudOS) — **usa siempre `GSM`** en código, namespaces, proyectos y schemas de base de datos. El nombre comercial solo vive en datos de tenant y marketing, nunca en código.
+GSM (Gym System Management) es el codename técnico interno de un sistema de gestión de gimnasios B2B SaaS. El nombre comercial final aún no está definido (candidato: LudOS) — **usa siempre `GSM`** en código, namespaces, proyectos y schemas de base de datos. El nombre comercial solo vive en datos de tenant y marketing, nunca en código. **Actualización 2026-10-20:** el nombre comercial es **TrainingHub** (panel = OS, app del miembro = GO) y ya es la identidad visible: textos de UI, títulos, correos, manifiestos e íconos. El código, los namespaces, schemas y proyectos siguen siendo `GSM`. Las vistas de carga usan `GsmLoader` (la barra del logo), no MudProgress.
 
 **Especificación técnica completa:** `docs/GSM-especificacion-tecnica.md`. Léela antes de generar entidades, casos de uso o endpoints — este archivo es solo el resumen que debes tener presente siempre.
 

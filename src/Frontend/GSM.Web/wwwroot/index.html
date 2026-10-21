@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GSM</title>
+    <title>TrainingHub</title>
     <base href="/" />
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
@@ -32,11 +32,27 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
+    <div class="gsm-boot">
+        <span class="gsm-wordmark">TRAINING<span class="accent">HUB</span></span>
+        <div class="gsm-loader gsm-loader--boot" role="progressbar" aria-label="Cargando" aria-busy="true">
+            <svg viewBox="0 0 240 90" aria-hidden="true" focusable="false">
+                <g class="gsm-loader__plates">
+                    <rect x="6" y="20" width="17" height="50" rx="4" /><rect x="25" y="12" width="17" height="66" rx="4" />
+                    <rect x="198" y="12" width="17" height="66" rx="4" /><rect x="217" y="20" width="17" height="50" rx="4" />
+                </g>
+                <g class="gsm-loader__shine">
+                    <rect x="9" y="23" width="4" height="44" rx="2" /><rect x="28" y="15" width="4" height="60" rx="2" />
+                    <rect x="201" y="15" width="4" height="60" rx="2" /><rect x="220" y="23" width="4" height="44" rx="2" />
+                </g>
+                <g class="gsm-loader__sleeve"><rect x="42" y="34" width="10" height="22" rx="2" /><rect x="188" y="34" width="10" height="22" rx="2" /></g>
+                <path class="gsm-loader__bar" d="M52 40 Q120 28 188 40" />
+                <path class="gsm-loader__track" d="M52 40 Q120 28 188 40" />
+                <path class="gsm-loader__fill gsm-loader__fill--left" pathLength="1" d="M120 34 Q86 34 52 40" />
+                <path class="gsm-loader__fill gsm-loader__fill--right" pathLength="1" d="M120 34 Q154 34 188 40" />
+            </svg>
+        </div>
         <div class="loading-progress-text"></div>
+    </div>
     </div>
 
     <div id="blazor-error-ui">

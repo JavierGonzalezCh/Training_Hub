@@ -8,7 +8,7 @@
 <div class="mt-4 gsm-measurements">
     @if (_loading)
     {
-        <MudProgressCircular Indeterminate="true" />
+        <GsmLoader />
     }
     else if (_forbidden)
     {
@@ -145,7 +145,7 @@
         {
             "member" => "Miembro",
             "owner" => "Owner",
-            "superadmin" => "GSM",
+            "superadmin" => "TrainingHub",
             _ => "Staff",
         };
         return string.IsNullOrWhiteSpace(m.RecordedByName) ? role : $"{m.RecordedByName} ({role})";

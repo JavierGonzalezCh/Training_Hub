@@ -3,7 +3,7 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+    <GsmLoader Small="true" />
 }
 else if (_error is not null)
 {
@@ -35,7 +35,7 @@ else
                 <ChildContent>
                     @if (!_details.TryGetValue(current.ExerciseId, out var detail))
                     {
-                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        <GsmLoader Small="true" />
                     }
                     else
                     {
