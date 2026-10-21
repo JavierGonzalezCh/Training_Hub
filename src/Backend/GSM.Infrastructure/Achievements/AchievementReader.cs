@@ -63,7 +63,9 @@ public sealed class AchievementReader(
                 a.Id, a.Name, a.Description, a.IconUrl, a.ConditionType, a.ConditionValue,
                 unlocked.ContainsKey(a.Id),
                 unlocked.TryGetValue(a.Id, out var row) ? row.UnlockedAt : null,
+                // Un logro ganado se muestra cumplido: la métrica viva (p. ej. la racha de hoy) puede haber bajado después.
                 a.IsManual ? (unlocked.ContainsKey(a.Id) ? 1 : 0)
+                    : unlocked.ContainsKey(a.Id) ? a.ConditionValue
                     : a.ProgressOf(visits, streak, sessions, classAttendance, tenure, referrals, records, volume),
                 a.IsManual,
                 unlocked.TryGetValue(a.Id, out var reasonRow) ? reasonRow.GrantReason : null,

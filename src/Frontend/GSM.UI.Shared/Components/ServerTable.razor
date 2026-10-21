@@ -55,7 +55,26 @@
 
     private bool CardMode => CardTemplate is not null && Viewport?.IsNarrow == true;
 
-    private string? TableClass => CardMode ? $"{Class} gsm-table--cards".Trim() : Class;
+    // "gsm-table" va siempre: su regla apila los filtros de la barra en el celular; sin ella se desbordaban
+    // (Asistencia, Pagos, Clases). Una página que ya la pasa no la duplica.
+    private string? TableClass
+    {
+        get
+        {
+            var classes = (Class ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (!classes.Contains("gsm-table"))
+            {
+                classes.Add("gsm-table");
+            }
+
+            if (CardMode)
+            {
+                classes.Add("gsm-table--cards");
+            }
+
+            return string.Join(' ', classes);
+        }
+    }
 
     protected override void OnInitialized()
     {

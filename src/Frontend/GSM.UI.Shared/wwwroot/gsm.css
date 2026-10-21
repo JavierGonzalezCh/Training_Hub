@@ -3390,6 +3390,29 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     }
 }
 
+/* Barra inferior en celulares angostos: con cinco pestañas, "NOVEDADES" llegaba al borde de la pantalla. */
+@media (max-width: 400px) {
+    .gsm-tabbar-label {
+        letter-spacing: 0.02em;
+    }
+}
+
+/* Sub-pestañas de configuración: MudTabs con Color.Secondary las pinta de plata con texto blanco (ilegible).
+   Van sobre la superficie del tema, con el texto atenuado y el activo en claro. */
+.gsm-settings-subtabs .mud-tabs-toolbar,
+.gsm-settings-subtabs .mud-tabs-tabbar {
+    background: var(--gsm-surface-2);
+    color: var(--gsm-text-2);
+}
+
+.gsm-settings-subtabs .mud-tab {
+    color: var(--gsm-text-2);
+}
+
+.gsm-settings-subtabs .mud-tab.mud-tab-active {
+    color: var(--gsm-text);
+}
+
 /* AP7— pantallas no diarias en el celular (configuración, planes, ejercicios, equipos, rutinas).
    Solo por debajo de 960 px: la vista de escritorio no cambia. */
 @media (max-width: 959.95px) {
@@ -3418,6 +3441,25 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 
     .gsm-table--stack .mud-table-cell {
         word-break: break-word;
+    }
+
+    /* Celda de acciones (sin etiqueta): los botones pasan a la línea siguiente en vez de partir sus palabras
+       ("PERMIS / OS") por el word-break de la celda. */
+    .gsm-table--stack .mud-table-cell:not([data-label]) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .gsm-table--stack .mud-table-cell .mud-button-root {
+        white-space: nowrap;
+        word-break: normal;
+    }
+
+    /* La etiqueta de cada celda no cede ancho al contenido: con una descripción larga se partía en "Nombr / e". */
+    .gsm-table--stack .mud-table-cell::before {
+        flex-shrink: 0;
+        padding-right: 0.75rem;
     }
 
     .gsm-table--stack .mud-icon-button {

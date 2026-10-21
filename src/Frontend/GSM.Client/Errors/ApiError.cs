@@ -58,6 +58,10 @@ public sealed class ApiError
         403 => Detail ?? Title ?? "No tienes permiso para esta operación.",
         409 => Detail ?? Title ?? "La operación entra en conflicto con el estado actual.",
         422 => Detail ?? Title ?? "La operación no procede en este estado.",
+        // El title genérico de ASP.NET ("One or more validation errors occurred.") sale en inglés: se muestra el
+        // primer mensaje de campo (los valida FluentValidation, en español) o un aviso propio.
+        400 when IsValidation || Detail is null => FieldErrors.Values.SelectMany(m => m).FirstOrDefault(m => !string.IsNullOrWhiteSpace(m))
+            ?? "Revisa los datos e inténtalo de nuevo.",
         >= 500 => TraceCode is { } code
             ? $"Algo salió mal · código {code}"
             : "Ha ocurrido un error en el servidor. Inténtalo más tarde.",

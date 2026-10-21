@@ -29,6 +29,28 @@ public class ApiErrorTests
     }
 
     [Fact]
+    public void Shows_first_field_message_instead_of_the_english_title_on_400()
+    {
+        const string body = """
+        {
+          "title": "One or more validation errors occurred.",
+          "status": 400,
+          "errors": { "email": ["El email es obligatorio."] }
+        }
+        """;
+
+        Assert.Equal("El email es obligatorio.", ApiError.Parse(400, body).DisplayMessage);
+    }
+
+    [Fact]
+    public void Shows_a_spanish_fallback_on_400_without_field_messages()
+    {
+        const string body = """{ "title": "One or more validation errors occurred.", "status": 400 }""";
+
+        Assert.Equal("Revisa los datos e inténtalo de nuevo.", ApiError.Parse(400, body).DisplayMessage);
+    }
+
+    [Fact]
     public void Parses_422_detail_from_problem_details()
     {
         const string body = """

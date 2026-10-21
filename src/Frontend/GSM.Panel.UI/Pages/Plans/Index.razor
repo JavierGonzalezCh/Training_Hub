@@ -42,11 +42,15 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Nombre">
-                <MudText>@context.Name</MudText>
-                @if (!string.IsNullOrEmpty(context.Description))
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>
-                }
+                @* Un solo contenedor: en la tabla apilada la celda es una fila de etiqueta + contenido, y dos textos
+                   sueltos competían por el ancho y partían "Nombre" en dos líneas. *@
+                <div style="min-width:0">
+                    <MudText>@context.Name</MudText>
+                    @if (!string.IsNullOrEmpty(context.Description))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>
+                    }
+                </div>
             </MudTd>
             <MudTd DataLabel="Precio" Class="gsm-mono">@GsmFormat.Money((decimal)context.Price)</MudTd>
             <MudTd DataLabel="Duración">
