@@ -9,9 +9,6 @@ services:
     # host.docker.internal = el Postgres de tu PC (DB_CONNECTION con Host=host.docker.internal).
     extra_hosts:
       - "host.docker.internal:host-gateway"
-  migrate:
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
   web:
     ports:
       - "8081:8080"

@@ -160,8 +160,9 @@ el enlace que lleva abre `/app/checkin` en la app del miembro.
 
 ## Docker
 
-Servicios: `migrate` (aplica las migraciones y termina), `api` (puerto 8080), `web` (nginx, puerto 8080) y `cron` (la tarea periódica de
-Comunicaciones). La base de datos **no** está en el compose: se conecta por `DB_CONNECTION`.
+Servicios: `api` (puerto 8080), `web` (nginx, puerto 8080) y `cron` (la tarea periódica de Comunicaciones). La base de datos **no** está en el
+compose: se conecta por `DB_CONNECTION`. Las migraciones **tampoco** corren en el despliegue (la API no migra al arrancar): se aplican aparte,
+antes de desplegar una versión que traiga migraciones nuevas (ver «Migraciones en producción»).
 
 ```bash
 cp .env.example .env     # rellenar: cadena de conexión, URLs públicas y claves (openssl rand -base64 48)
@@ -182,3 +183,15 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build  
   `dokploy-network`, donde se resuelve el nombre interno del Postgres de Dokploy y desde donde Traefik enruta), y dominios `api.` y `app.` hacia
   el puerto 8080 de `api` y `web`.
 - `DB_CONNECTION` con la base de Dokploy: `Host=<nombre-del-servicio-postgres>;Port=5432;Database=<db>;Username=<usuario>;Password=<clave>`.
+
+### Migraciones en producción
+
+Se aplican a mano contra la base real, desde una máquina que la alcance (en Dokploy, exponiéndola con un túnel SSH o con el puerto restringido a tu IP):
+
+```bash
+cd src/Backend
+GSM_MIGRATIONS_CONNECTION="Host=...;Port=5432;Database=gsm_prod_db;Username=...;Password=..." dotnet ef database update --project GSM.Infrastructure
+```
+
+Orden de un despliegue con cambios de esquema: **copia de la base → migraciones → desplegar**. Después de la primera migración, crear el SuperAdmin con
+`docker compose run --rm api --seed-superadmin`.

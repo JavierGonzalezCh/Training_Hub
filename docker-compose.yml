@@ -1,10 +1,11 @@
-# TrainingHub (GSM): API + web + migraciones + tarea periódica. La base de datos NO va aquí: es un Postgres externo
+# TrainingHub (GSM): API + web + tarea periódica. La base de datos NO va aquí: es un Postgres externo
 # (DB_CONNECTION). Así redesplegar nunca toca los datos y se administra con DBeaver / pgAdmin por fuera.
 #
 #   cp .env.example .env        # y rellenar (las claves se generan con: openssl rand -base64 48)
 #   docker compose up -d --build
 #
-# Orden: migrate (aplica las migraciones y termina) -> api -> web. La primera vez, crear el SuperAdmin:
+# Las migraciones NO se aplican aquí: se ejecutan aparte contra la base (ver README, «Migraciones en producción»).
+# La API no migra al arrancar. La primera vez, crear el SuperAdmin (después de migrar):
 #   docker compose run --rm api --seed-superadmin
 #
 # En Dokploy (tipo "Docker Compose") los dominios se asignan en su panel: api -> puerto 8080, web -> puerto 8080.
@@ -12,31 +13,18 @@
 name: gsm
 
 services:
-  migrate:
-    build:
-      context: ./src/Backend
-      dockerfile: GSM.API/Dockerfile
-      target: migrate
-    image: gsm-migrate:${GSM_TAG:-latest}
-    environment:
-      GSM_MIGRATIONS_CONNECTION: ${DB_CONNECTION:?Falta DB_CONNECTION (cadena de conexión de Postgres)}
-    restart: "no"
-
   api:
     build:
       context: ./src/Backend
       dockerfile: GSM.API/Dockerfile
       target: api
     image: gsm-api:${GSM_TAG:-latest}
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
     restart: unless-stopped
     volumes:
       - dataprotection:/home/app/.aspnet/DataProtection-Keys
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Postgres: ${DB_CONNECTION}
+      ConnectionStrings__Postgres: ${DB_CONNECTION:?Falta DB_CONNECTION (cadena de conexión de Postgres)}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?Falta JWT_SIGNING_KEY (>= 32 caracteres)}
       Checkin__SigningKey: ${CHECKIN_SIGNING_KEY:?Falta CHECKIN_SIGNING_KEY (>= 32 caracteres, distinta de la de JWT)}
       Communications__UnsubscribeSigningKey: ${UNSUBSCRIBE_SIGNING_KEY:?Falta UNSUBSCRIBE_SIGNING_KEY}

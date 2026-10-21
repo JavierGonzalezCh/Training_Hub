@@ -1,9 +1,7 @@
 # API de TrainingHub (GSM). Contexto de construcción: src/Backend
 #   docker build -f GSM.API/Dockerfile -t gsm-api src/Backend      (desde la raíz del repositorio: -f src/Backend/GSM.API/Dockerfile)
 #
-# Targets:
-#   api (por defecto)  la API, lista para correr.
-#   migrate            el bundle de migraciones de EF Core: aplica las migraciones y termina.
+# La imagen es solo la API. Las migraciones no van en ella: se aplican aparte contra la base (ver README).
 
 # ---- Compilación ------------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -20,20 +18,6 @@ RUN dotnet restore GSM.API/GSM.API.csproj \
 
 COPY . .
 RUN dotnet publish GSM.API/GSM.API.csproj -c Release --no-restore -o /app/publish /p:UseAppHost=false
-
-# ---- Bundle de migraciones --------------------------------------------------------------------
-# La API no migra al arrancar (dos réplicas podrían migrar a la vez); las migraciones se aplican como paso previo
-# de cada despliegue con este ejecutable autocontenido. Conexión: GSM_MIGRATIONS_CONNECTION (o --connection).
-FROM build AS migrations-build
-RUN dotnet tool install --global dotnet-ef
-ENV PATH="$PATH:/root/.dotnet/tools"
-RUN dotnet ef migrations bundle --project GSM.Infrastructure --context GsmDbContext --self-contained -r linux-x64 --force -o /app/efbundle
-
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS migrate
-WORKDIR /app
-COPY --from=migrations-build /app/efbundle ./efbundle
-USER app
-ENTRYPOINT ["./efbundle"]
 
 # ---- Ejecución --------------------------------------------------------------------------------
 # Variante Debian (no "chiseled"): la app necesita tzdata (Clock:TimeZone = America/Bogota) e ICU (formato es-CO).

@@ -10,12 +10,6 @@
 name: gsm
 
 services:
-  migrate:
-    extends:
-      file: docker-compose.yml
-      service: migrate
-    networks: [dokploy-network]
-
   api:
     extends:
       file: docker-compose.yml
