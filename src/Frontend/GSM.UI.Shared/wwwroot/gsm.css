@@ -3068,6 +3068,12 @@ a.gsm-m-card:hover {
     border-top-color: var(--gsm-accent);
 }
 
+/* Con la hoja "Más" abierta solo "Más" queda marcada; la pestaña de la pantalla de fondo dejaba dos activas a la vez. */
+.gsm-tabbar--more-open a.active {
+    color: var(--gsm-text-2);
+    border-top-color: transparent;
+}
+
 /* Hoja "Más": sube desde la barra inferior. */
 .gsm-more-backdrop {
     position: fixed;
@@ -3177,6 +3183,12 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 .gsm-dialogs--fullscreen .mud-dialog:not(:has(.mud-message-box)) .mud-dialog-content {
     flex: 1 1 auto;
     overflow-y: auto;
+}
+
+/* Los botones de acción del diálogo a pantalla completa llegaban pegados al borde derecho; el contenido sí tiene margen. */
+.gsm-dialogs--fullscreen .mud-dialog:not(:has(.mud-message-box)) .mud-dialog-actions {
+    padding: 0.75rem 1.25rem;
+    gap: 0.5rem;
 }
 
 /* G3 — horario de atención */
@@ -3391,8 +3403,9 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 }
 
 /* Barra inferior en celulares angostos: con cinco pestañas, "NOVEDADES" llegaba al borde de la pantalla. */
-@media (max-width: 400px) {
+@media (max-width: 430px) {
     .gsm-tabbar-label {
+        font-size: 0.625rem;
         letter-spacing: 0.02em;
     }
 }
@@ -3665,6 +3678,22 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 }
 
 /* Selector de archivo de la foto de perfil: el botón nativo en gris del navegador desentona con el resto. */
+.gsm-profile__photo {
+    position: relative;
+}
+
+.gsm-profile__photo-button {
+    display: inline-flex;
+    margin-top: 0.35rem;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+}
+
+.gsm-profile__photo input[type="file"]:focus-visible + .gsm-profile__photo-button,
+.gsm-profile__photo-button:focus-within {
+    outline: 2px solid var(--gsm-accent);
+}
+
 .gsm-profile__photo input[type="file"] {
     max-width: 100%;
     margin-top: 0.35rem;

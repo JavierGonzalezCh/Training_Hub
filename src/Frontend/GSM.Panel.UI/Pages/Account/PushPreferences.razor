@@ -86,7 +86,7 @@
 
     private static string Describe(string type) => type switch
     {
-        "CheckinRejected" => "Cuando un miembro intenta entrar sin membresía vigente. Puede haber muchos al día, por eso empieza apagado.",
+        "CheckinRejected" => "Cuando un miembro intenta entrar sin membresía vigente. Puede haber muchos al día, por eso empieza encendido para el Owner y apagado para el resto del equipo.",
         "InstructorClassReminder" => "Diez minutos antes de una clase que das tú. Siempre te llega a la campana; aquí eliges si además suena en el teléfono.",
         _ => string.Empty,
     };

@@ -30,7 +30,7 @@
         </div>
     }
 
-    <nav class="gsm-tabbar gsm-tabbar--panel" aria-label="Navegación del celular" data-testid="bottom-nav">
+    <nav class="gsm-tabbar gsm-tabbar--panel@(_moreOpen ? " gsm-tabbar--more-open" : null)" aria-label="Navegación del celular" data-testid="bottom-nav">
         @foreach (var entry in _bottom)
         {
             <NavLink href="@entry.Href" Match="@(entry.MatchAll ? NavLinkMatch.All : NavLinkMatch.Prefix)" @onclick="CloseMore">

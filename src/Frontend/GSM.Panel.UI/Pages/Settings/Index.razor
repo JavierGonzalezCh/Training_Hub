@@ -13,7 +13,8 @@
    anida; con una sola, muestra su contenido directo. *@
 @if (_groups is not null)
 {
-    <MudTabs Rounded="true" Color="Color.Primary" Class="gsm-settings-tabs" data-testid="settings-groups">
+    <MudTabs Rounded="true" Color="Color.Primary" Class="gsm-settings-tabs" data-testid="settings-groups"
+             @bind-ActivePanelIndex="_groupIndex">
         @foreach (var group in _groups)
         {
             <MudTabPanel Text="@group.Name">
@@ -28,7 +29,8 @@
                 }
                 else
                 {
-                    <MudTabs Rounded="false" Color="Color.Secondary" Class="gsm-settings-subtabs" data-testid="@($"settings-subtabs-{group.Name}")">
+                    <MudTabs Rounded="false" Color="Color.Secondary" Class="gsm-settings-subtabs" data-testid="@($"settings-subtabs-{group.Name}")"
+                             ActivePanelIndex="@SectionIndexFor(group)">
                         @foreach (var section in group.Sections)
                         {
                             <MudTabPanel Text="@section.Title">
@@ -44,10 +46,49 @@
 
 @code {
     private IReadOnlyList<PanelSettingsGroup>? _groups;
+    private int _groupIndex;
+
+    /// <summary>Grupo a abrir (p. ej. "Entrada al gym"), para que un botón de otra pantalla caiga en la pestaña exacta.</summary>
+    [SupplyParameterFromQuery(Name = "group")]
+    public string? GroupName { get; set; }
+
+    /// <summary>Sección dentro del grupo (p. ej. "Kioscos"); solo aplica si el grupo tiene varias pestañas.</summary>
+    [SupplyParameterFromQuery(Name = "section")]
+    public string? SectionName { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
         _groups = Registry.GetSettingsGroups(state.User);
+        SelectGroup();
+    }
+
+    // Un enlace a /settings?group=… desde la propia pantalla no vuelve a inicializarla: solo cambian los parámetros.
+    protected override void OnParametersSet()
+    {
+        if (_groups is not null)
+        {
+            SelectGroup();
+        }
+    }
+
+    private void SelectGroup()
+    {
+        if (GroupName is not null && _groups is not null)
+        {
+            var index = _groups.ToList().FindIndex(g => string.Equals(g.Name, GroupName, StringComparison.OrdinalIgnoreCase));
+            _groupIndex = Math.Max(index, 0);
+        }
+    }
+
+    private int SectionIndexFor(PanelSettingsGroup group)
+    {
+        if (SectionName is null || !string.Equals(group.Name, GroupName, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        var index = group.Sections.ToList().FindIndex(s => string.Equals(s.Title, SectionName, StringComparison.OrdinalIgnoreCase));
+        return Math.Max(index, 0);
     }
 }

@@ -38,6 +38,7 @@
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudDatePicker Label="Fecha de nacimiento" Required="@(MemberId is null)"
+                                       RequiredError="La fecha de nacimiento es obligatoria."
                                        Date="_model.BirthDate" DateChanged="OnBirthDateChanged"
                                        MaxDate="@DateTime.Today.AddDays(-1)"
                                        Error="@_birthDateHasError" ErrorText="@_birthDateError" />

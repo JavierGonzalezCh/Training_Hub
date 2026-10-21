@@ -52,10 +52,14 @@ else
         </div>
 
         <div class="mt-3 gsm-profile__photo">
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block">
-                @(_uploading ? "Subiendo foto..." : "Cambiar foto")
-            </MudText>
-            <InputFile id="profile-photo" OnChange="UploadPhotoAsync" accept="image/*" disabled="@_uploading" />
+            @* El selector nativo de <input type=file> pone "Choose File / No file chosen" en el idioma del sistema
+               (inglés en muchos teléfonos). El input queda oculto y la etiqueta es el botón, en español. *@
+            <label for="profile-photo" class="mud-button-root mud-button mud-button-outlined mud-button-outlined-default mud-button-outlined-size-small gsm-profile__photo-button"
+                   aria-disabled="@(_uploading ? "true" : null)">
+                <span class="mud-button-label">@(_uploading ? "Subiendo foto..." : "Cambiar foto")</span>
+            </label>
+            <InputFile id="profile-photo" OnChange="UploadPhotoAsync" accept="image/*" disabled="@_uploading"
+                       style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden" />
         </div>
         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2" Style="display:block">
             Tu nombre, documento y fecha de nacimiento los cambia el staff del gimnasio.

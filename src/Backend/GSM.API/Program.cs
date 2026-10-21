@@ -9,6 +9,23 @@ using GSM.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
 
+// Los mensajes por defecto de FluentValidation salen en el idioma del servidor y con el nombre de la propiedad de C#
+// ("'Password' no debería estar vacío"); el cliente los muestra tal cual, así que se fijan en español y con nombres legibles.
+FluentValidation.ValidatorOptions.Global.LanguageManager.Culture = new System.Globalization.CultureInfo("es");
+FluentValidation.ValidatorOptions.Global.DisplayNameResolver = (_, member, _) => member?.Name switch
+{
+    "Email" => "Email",
+    "Password" => "Contraseña",
+    "NewPassword" => "Contraseña nueva",
+    "CurrentPassword" => "Contraseña actual",
+    "FullName" => "Nombre completo",
+    "FirstName" => "Nombres",
+    "LastName" => "Apellidos",
+    "Phone" => "Teléfono",
+    "Name" => "Nombre",
+    _ => member?.Name,
+};
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) => configuration
