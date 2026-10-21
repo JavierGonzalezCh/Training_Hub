@@ -170,18 +170,15 @@ docker compose up -d --build
 docker compose run --rm api --seed-superadmin    # solo la primera vez (SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD del .env)
 ```
 
-Probarlo en el PC, con el Postgres local (`Host=host.docker.internal` en `DB_CONNECTION`):
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build   # API en :8080, web en :8081
-```
+Probarlo en el PC: crear antes la red una vez (`docker network create dokploy-network`) y poner en `DB_CONNECTION` el Postgres de tu máquina
+(`Host=host.docker.internal`). El compose no publica puertos; para abrirlos en local, añade `ports` a `api` y `web` en un archivo aparte.
 
 - La URL de la API de la web se escribe al arrancar desde `PUBLIC_API_URL`: la misma imagen sirve para cualquier entorno.
 - Detrás de un proxy (Traefik/Dokploy) la API usa `X-Forwarded-For/Proto`; el compose no publica puertos.
 - Las llaves de Data Protection van en el volumen `dataprotection`, para que los enlaces de restablecimiento sobrevivan a los redespliegues.
-- En Dokploy: aplicación tipo «Docker Compose», rama `main`, «Compose Path» = `./docker-compose.dokploy.yml` (el mismo stack, conectado a
-  `dokploy-network`, donde se resuelve el nombre interno del Postgres de Dokploy y desde donde Traefik enruta), y dominios `api.` y `app.` hacia
-  el puerto 8080 de `api` y `web`.
+- En Dokploy: aplicación tipo «Docker Compose», rama `main`, «Compose Path» = `./docker-compose.yml`, y dominios hacia el puerto 8080 de `api`
+  y de `web`. El compose conecta `api` y `web` a `dokploy-network`, donde se resuelve el nombre interno del Postgres de Dokploy y desde donde
+  Traefik enruta.
 - `DB_CONNECTION` con la base de Dokploy: `Host=<nombre-del-servicio-postgres>;Port=5432;Database=<db>;Username=<usuario>;Password=<clave>`.
 
 ### Migraciones en producción
