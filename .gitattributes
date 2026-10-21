@@ -1,0 +1,5 @@
+# Los scripts y archivos de contenedor deben llegar con LF aunque se clonen en Windows (CRLF rompe el shebang).
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.template text eol=lf
+docker-compose*.yml text eol=lf
