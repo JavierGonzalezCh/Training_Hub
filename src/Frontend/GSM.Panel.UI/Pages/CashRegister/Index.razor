@@ -1,4 +1,4 @@
-@page "/cash-register"
+﻿@page "/cash-register"
 @using GSM.Panel.UI.Pages.Payments
 @* El cierre diario es financiero (Payments v2 §7, §8): Owner o ViewFinances. *@
 @attribute [Authorize(Policy = "Permission:view_finances")]
@@ -11,7 +11,7 @@
 <MudTabs Elevation="0" Rounded="false" PanelClass="pt-4" data-testid="cash-register-tabs">
     <MudTabPanel Text="Cierre del día">
         <div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
-            <MudText Typo="Typo.h4">Cierre diario</MudText>
+            <MudText Typo="Typo.h4" HtmlTag="h1">Cierre diario</MudText>
             <MudSpacer />
             <MudDatePicker Label="Fecha" Date="_date" DateChanged="OnDateChangedAsync" Style="max-width:200px" />
         </div>
@@ -34,13 +34,13 @@
                 <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
                         <MudText Typo="Typo.overline" Color="Color.Secondary">Total del día</MudText>
-                        <MudText Typo="Typo.h5" Class="gsm-mono" Color="Color.Secondary">@GsmFormat.Money((decimal)daily.Total)</MudText>
+                        <MudText HtmlTag="p" Typo="Typo.h5" Class="gsm-mono" Color="Color.Secondary">@GsmFormat.Money((decimal)daily.Total)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
                         <MudText Typo="Typo.overline" Color="Color.Secondary">Transacciones</MudText>
-                        <MudText Typo="Typo.h5" Class="gsm-mono">@daily.TransactionCount</MudText>
+                        <MudText HtmlTag="p" Typo="Typo.h5" Class="gsm-mono">@daily.TransactionCount</MudText>
                     </MudPaper>
                 </MudItem>
                 @* Por método, con la cantidad de pagos: el Owner los compara contra sus extractos (§5). *@
@@ -49,13 +49,13 @@
                     <MudItem xs="12" sm="6" md="3">
                         <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)" data-testid="method-total">
                             <MudText Typo="Typo.overline" Color="Color.Secondary">@PaymentMethodLabels.Label(method.Method) (@method.Count)</MudText>
-                            <MudText Typo="Typo.h5" Class="gsm-mono">@GsmFormat.Money((decimal)method.Total)</MudText>
+                            <MudText HtmlTag="p" Typo="Typo.h5" Class="gsm-mono">@GsmFormat.Money((decimal)method.Total)</MudText>
                         </MudPaper>
                     </MudItem>
                 }
             </MudGrid>
 
-            <MudText Typo="Typo.h6" Class="mb-2">Turnos del día</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Turnos del día</MudText>
             <MudTable Items="Shifts(daily)" Hover="true" Dense="true" Elevation="0" Class="mb-6">
                 <HeaderContent>
                     <MudTh>Quién</MudTh>
@@ -82,13 +82,13 @@
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Color="Color.Secondary">Sin turnos de caja ese día.</MudText>
+                    <EmptyState Icon="@Icons.Material.Outlined.PointOfSale" Compact="true">Sin turnos de caja ese día.</EmptyState>
                 </NoRecordsContent>
             </MudTable>
 
             @if (Movements(daily).Any())
             {
-                <MudText Typo="Typo.h6" Class="mb-2">Movimientos de caja</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Movimientos de caja</MudText>
                 <MudTable Items="Movements(daily)" Dense="true" Elevation="0" Class="mb-6">
                     <HeaderContent>
                         <MudTh>Hora</MudTh>
@@ -109,7 +109,7 @@
 
             @if (Reversals(daily).Any())
             {
-                <MudText Typo="Typo.h6" Class="mb-2">Anulaciones</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Anulaciones</MudText>
                 <MudTable Items="Reversals(daily)" Dense="true" Elevation="0" Class="mb-6" data-testid="daily-reversals">
                     <HeaderContent>
                         <MudTh>Hora</MudTh>
@@ -134,7 +134,7 @@
                 </MudTable>
             }
 
-            <MudText Typo="Typo.h6" Class="mb-2">Pagos del día</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Pagos del día</MudText>
             <MudTable Items="daily.Payments" Hover="true" Dense="true" Elevation="0">
                 <HeaderContent>
                     <MudTh>Hora</MudTh>
@@ -153,13 +153,13 @@
                     <MudTd><PaymentVoidAction Payment="context" OnVoided="LoadAsync" /></MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <MudText Color="Color.Secondary">Sin pagos ese día.</MudText>
+                    <EmptyState Icon="@Icons.Material.Outlined.Payments" Compact="true">Sin pagos ese día.</EmptyState>
                 </NoRecordsContent>
             </MudTable>
         }
     </MudTabPanel>
     <MudTabPanel Text="Turnos">
-        <MudText Typo="Typo.h4" Class="mb-4">Turnos de caja</MudText>
+        <MudText HtmlTag="h2" Typo="Typo.h4" Class="mb-4">Turnos de caja</MudText>
         <CashShiftsList />
     </MudTabPanel>
 </MudTabs>

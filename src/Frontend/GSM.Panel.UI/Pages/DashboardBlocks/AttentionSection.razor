@@ -1,7 +1,6 @@
-@* "Requiere atención" del panel del gym (D1): máquinas fuera de servicio y reportes abiertos, intentos de entrada
+﻿@* "Requiere atención" del panel del gym (D1): máquinas fuera de servicio y reportes abiertos, intentos de entrada
    rechazados hoy, solicitudes de anulación pendientes y la caja abierta. Cada parte llega (o no) según los permisos de
    quien mira y la decide el servidor: aquí solo se dibuja lo que viene. *@
-@inject NavigationManager Navigation
 
 <section class="gsm-panel" aria-labelledby="attention-title" data-testid="dash-attention">
     <header class="gsm-panel__header">
@@ -11,10 +10,7 @@
 
     @if (!AnyContent())
     {
-        <div class="gsm-empty" data-testid="attention-empty">
-            <MudIcon Icon="@Icons.Material.Outlined.GppGood" Class="gsm-empty-icon" />
-            <span>Nada pide atención ahora.</span>
-        </div>
+        <EmptyState Icon="@Icons.Material.Outlined.GppGood" TestId="attention-empty">Nada pide atención ahora.</EmptyState>
     }
     else
     {
@@ -69,7 +65,7 @@
                 {
                     <li class="gsm-identity">
                         <MudIcon Icon="@Icons.Material.Outlined.BuildCircle" Size="Size.Small" />
-                        <MudLink OnClick="@(() => Navigation.NavigateTo($"/equipment/{machine.Id}"))" Underline="Underline.None">
+                        <MudLink Href="@($"/equipment/{machine.Id}")" Underline="Underline.None">
                             @machine.Name
                         </MudLink>
                         @if (machine.HasUnsafeIssue)

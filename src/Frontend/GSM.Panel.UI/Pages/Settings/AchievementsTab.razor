@@ -1,4 +1,4 @@
-@* Pestaña "Logros del gym" de la configuración (la registra AchievementsPanelModule). *@
+﻿@* Pestaña "Logros del gym" de la configuración (la registra AchievementsPanelModule). *@
 @inject ISnackbar Snackbar
 
 <div class="d-flex justify-end mb-3">
@@ -12,7 +12,12 @@
 }
 else if (_achievements.Count == 0)
 {
-    <MudText Color="Color.Secondary">No hay logros todavía.</MudText>
+    <EmptyState Icon="@Icons.Material.Outlined.EmojiEvents" Title="No hay logros todavía">
+        <ChildContent>Los logros premian la constancia: por visitas, rachas o los que otorga el staff.</ChildContent>
+        <Action>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAchievementAsync">Nuevo logro</MudButton>
+        </Action>
+    </EmptyState>
 }
 else
 {

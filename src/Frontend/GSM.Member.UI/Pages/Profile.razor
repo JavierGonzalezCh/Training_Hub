@@ -36,7 +36,7 @@ else
                 }
             </MudAvatar>
             <div>
-                <MudText Typo="Typo.h6" Class="gsm-profile__name">@_profile.FirstName @_profile.LastName</MudText>
+                <MudText HtmlTag="h2" Typo="Typo.h6" Class="gsm-profile__name">@_profile.FirstName @_profile.LastName</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
                     @MemberLabels.DocumentShort(_profile.DocumentType) @_profile.DocumentNumber
                     @if (_profile.BirthDate is { } birth)

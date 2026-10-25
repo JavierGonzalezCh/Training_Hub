@@ -34106,6 +34106,12 @@
               "null",
               "string"
             ]
+          },
+          "memberName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

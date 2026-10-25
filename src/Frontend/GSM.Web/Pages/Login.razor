@@ -9,7 +9,7 @@
 @* La marca la pone AuthLayout. Aquí solo el título de la tarjeta. *@
 @if (_selection is not null)
 {
-    <MudText Typo="Typo.h6" Class="mb-2">¿A qué gimnasio quieres entrar?</MudText>
+    <MudText HtmlTag="h2" Typo="Typo.h6" Class="mb-2">¿A qué gimnasio quieres entrar?</MudText>
     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Tu cuenta tiene acceso a varios.</MudText>
 
     @if (_error is not null)
@@ -22,7 +22,7 @@
 }
 else
 {
-<MudText Typo="Typo.h6" Class="mb-6">Iniciar sesión</MudText>
+<MudText HtmlTag="h2" Typo="Typo.h6" Class="mb-6">Iniciar sesión</MudText>
 
 @if (_error is not null)
 {
@@ -37,8 +37,8 @@ else
     <MudTextField T="string" @bind-Value="_model.Email" Label="Email" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Email" Required="true"
                   RequiredError="El email es obligatorio." InputType="InputType.Email" Class="mb-3"
                   Immediate="true" autocomplete="username" OnKeyDown="HandleKeyDownAsync" />
-    <MudTextField T="string" @bind-Value="_model.Password" Label="Contraseña" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Lock" Required="true"
-                  RequiredError="La contraseña es obligatoria." InputType="InputType.Password" Class="mb-2"
+    <PasswordField @bind-Value="_model.Password" Label="Contraseña" Variant="Variant.Outlined" Required="true"
+                  RequiredError="La contraseña es obligatoria."  Class="mb-2"
                   Immediate="true" autocomplete="current-password" OnKeyDown="HandleKeyDownAsync" />
 
     <div class="d-flex justify-end mb-4">

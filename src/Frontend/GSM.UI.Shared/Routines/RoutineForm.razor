@@ -1,4 +1,4 @@
-@using GSM.UI.Shared.Formatting
+﻿@using GSM.UI.Shared.Formatting
 @* Formulario de rutina (días y ejercicios). Lo usan el editor del staff y el autoservicio del miembro. *@
 @inject IExercisesClient ExercisesApi
 
@@ -58,7 +58,7 @@
                 </label>
             }
             @* Sin nombre, las zonas que trabaja el día sirven de nombre sugerido ("Tren superior · Core"). *@
-            <MudTextField T="string" @bind-Value="day.Name" Placeholder="@(day.SuggestedName ?? "Nombre del día (p. ej. Pierna)")"
+            <MudTextField T="string" @bind-Value="day.Name" Label="@($"Nombre del día {index + 1}")" Placeholder="@(day.SuggestedName ?? "p. ej. Pierna")"
                           Style="max-width:260px" data-testid="@($"day-name-{index}")" />
             @if (day.SuggestedName is { } groups)
             {
@@ -69,9 +69,12 @@
                 <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Descanso" Color="Color.Primary" />
             }
             <MudSpacer />
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => MoveDay(index, -1))" />
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == Draft.Days.Count - 1" OnClick="@(() => MoveDay(index, 1))" />
-            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Draft.Days.RemoveAt(index))" />
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => MoveDay(index, -1))"
+                           aria-label="@($"Subir el día {index + 1}")" title="Subir" />
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == Draft.Days.Count - 1" OnClick="@(() => MoveDay(index, 1))"
+                           aria-label="@($"Bajar el día {index + 1}")" title="Bajar" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Draft.Days.RemoveAt(index))"
+                           aria-label="@($"Quitar el día {index + 1}")" title="Quitar día" />
         </div>
 
         @if (Draft.IsWeekly || !day.IsRest)
@@ -85,9 +88,9 @@
                      style="@(exercise.Group is not null ? "border-left:3px solid var(--mud-palette-primary)" : "border-left:3px solid transparent")">
                     <MudGrid Class="mb-1">
                         <MudItem xs="12" sm="5">
-                            <MudAutocomplete T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Select(e))"
+                            <MudAutocomplete OpenOnFocus="false" T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Select(e))"
                                               SearchFunc="SearchExercisesAsync" ToStringFunc="@(e => e?.Name ?? string.Empty)"
-                                              Placeholder="Ejercicio" Dense="true" />
+                                              Label="Ejercicio" Placeholder="Busca por nombre" Dense="true" />
                         </MudItem>
                         <MudItem xs="6" sm="2">
                             <MudNumericField T="int?" @bind-Value="exercise.RestSeconds" Label="@(exercise.Group is not null ? "Descanso por vuelta (s)" : "Descanso (s)")" />
@@ -116,7 +119,8 @@
                             </MudItem>
                         }
                         <MudItem xs="6" sm="1" Class="d-flex justify-end">
-                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))"
+                                           aria-label="@($"Quitar {exercise.Exercise?.Name ?? "el ejercicio"} del día {index + 1}")" title="Quitar ejercicio" />
                         </MudItem>
                     </MudGrid>
 

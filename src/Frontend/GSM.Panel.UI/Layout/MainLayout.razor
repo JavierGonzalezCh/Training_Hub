@@ -16,6 +16,8 @@
 <MudSnackbarProvider />
 
 <MudLayout Class="gsm-shell">
+    @* Primer elemento con foco: con teclado, salta el menú (catorce enlaces) y va directo al contenido. *@
+    <a href="#" class="gsm-skip-link" @onclick="SkipToContentAsync" @onclick:preventDefault>Saltar al contenido</a>
     <ImpersonationBar />
     <MudAppBar Elevation="0" Class="gsm-topbar">
         @* En el celular manda la barra inferior (BottomNav); el menú lateral es solo de escritorio. *@
@@ -81,6 +83,7 @@
     <MudMainContent Class="gsm-main">
         <SubscriptionBanner />
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="gsm-page">
+            <div @ref="_contentStart" tabindex="-1" class="gsm-visually-hidden" data-testid="content-start">Contenido principal</div>
             @* Invitación a activar los avisos: solo con el panel instalado como app, que es cuando el push llega con él cerrado. *@
             <AuthorizeView Roles="owner,staff">
                 <PushPermissionPrompt Platform="@GSM.UI.Shared.Push.PushPlatforms.WebPanel" RequireInstalled="true"
@@ -108,7 +111,11 @@
 </MudLayout>
 
 @code {
+    private ElementReference _contentStart;
     private bool _drawerOpen = true;
+
+    // El siguiente Tab después de saltar cae en el primer control de la página.
+    private async Task SkipToContentAsync() => await _contentStart.FocusAsync();
     private IReadOnlyList<GymAccessOption> _accesses = [];
     private bool _staffWaiting;
     private bool _redirectingToOnboarding;
@@ -193,7 +200,17 @@
         }
     }
 
-    private void OnViewportChanged() => InvokeAsync(StateHasChanged);
+    private void OnViewportChanged()
+    {
+        // Al volver a escritorio el menú lateral se abre: en el celular se cerró al navegar, y en escritorio el botón
+        // para abrirlo está oculto (d-md-none), así que quedaba cerrado y sin forma de recuperarlo.
+        if (!Viewport.IsNarrow)
+        {
+            _drawerOpen = true;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
 
     private async Task SwitchGymAsync()
         => await Dialogs.ShowAsync<GymSwitchDialog>(

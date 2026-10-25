@@ -283,7 +283,7 @@
         }
 
         if (publish && !await AnnouncementActions.ConfirmPublishAsync(
-                Dialogs, Announcements, _sendEmail, _category, _audienceFilter))
+                Dialogs, Announcements, _sendEmail, _canMarkImportant && _important, _category, _audienceFilter))
         {
             return;
         }

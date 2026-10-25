@@ -49,10 +49,10 @@ else
     }
 
     <MudTextField T="string" Value="@Email" Label="Email" ReadOnly="true" Class="mb-3" autocomplete="username" />
-    <MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password"
+    <PasswordField @bind-Value="_password" Label="Contraseña" 
                   Immediate="true" Class="mb-3" autocomplete="new-password"
                   HelperText="Mínimo 10 caracteres, con mayúscula, minúscula y número." />
-    <MudTextField T="string" @bind-Value="_confirm" Label="Repite la contraseña" InputType="InputType.Password"
+    <PasswordField @bind-Value="_confirm" Label="Repite la contraseña" 
                   Immediate="true" Class="mb-4" autocomplete="new-password" />
 
     <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">

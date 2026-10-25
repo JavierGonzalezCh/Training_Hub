@@ -1,4 +1,4 @@
-@page "/classes/schedule"
+﻿@page "/classes/schedule"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IClassesClient Classes
 @inject IDialogService Dialogs
@@ -6,13 +6,13 @@
 
 <PageTitle>Horario semanal — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
-    <MudText Typo="Typo.h4">Horario semanal</MudText>
-    <MudSpacer />
-    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" />
-    <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" />
-</div>
+<PageHeader Title="Horario semanal">
+    <Actions>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" aria-label="Semana anterior" />
+        <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" aria-label="Semana siguiente" />
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {

@@ -2,14 +2,13 @@
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembersClient Members
 @inject IWhatsAppClient WhatsApp
-@inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthState
 
 <PageTitle>Miembros — TrainingHub OS</PageTitle>
 
-<PageHeader Eyebrow="Negocio" Title="Miembros">
+<PageHeader Title="Miembros">
     <Subtitle>@(_total is { } total ? $"{total} {(total == 1 ? "miembro" : "miembros")} con este filtro." : "Busca por nombre o documento.")</Subtitle>
     <Actions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
@@ -21,39 +20,47 @@
 
 <ServerTable @ref="_table" TItem="MemberListItem" Load="LoadAsync" Class="gsm-table">
     <ToolBarContent>
-        <MudTextField T="string" Placeholder="Buscar por nombre o documento" Adornment="Adornment.Start"
+        <MudTextField T="string" Label="Buscar" Placeholder="Nombre o documento" Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" DebounceInterval="400"
                       ValueChanged="OnSearchChangedAsync" Class="mr-4" Style="max-width:320px" />
-        <MudTextField T="string" Placeholder="Etiqueta" Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Sell" Immediate="true" DebounceInterval="400"
-                      ValueChanged="OnTagChangedAsync" Class="mr-4" Style="max-width:180px" aria-label="Filtrar por etiqueta" />
-        <MudSelect T="string" Value="_commercial" ValueChanged="OnCommercialChangedAsync" Label="Estado comercial"
+        @* A la vista, lo que se usa a diario: buscar, la situación y activos/inactivos. Etiqueta, entrenador y salud van
+           en "Más filtros" (eran seis controles de una vez). Siguen en el DOM: se ocultan, no se quitan. *@
+        <MudSelect T="string" Value="_commercial" ValueChanged="OnCommercialChangedAsync" Label="Situación"
                    Dense="true" Class="mr-4" Style="max-width:200px" Margin="Margin.Dense">
-            <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
+            <MudSelectItem Value="@FilterValues.All">Todas</MudSelectItem>
             @foreach (var (value, label) in CommercialStatusLabels.Filters)
             {
                 <MudSelectItem Value="value">@label</MudSelectItem>
             }
         </MudSelect>
-        <MudSelect T="string" Value="_trainerFilter" ValueChanged="OnTrainerFilterChangedAsync" Label="Entrenador"
-                   Dense="true" Class="mr-4" Style="max-width:200px" Margin="Margin.Dense" id="trainer-filter">
-            <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
-            @if (_isTrainer)
-            {
-                <MudSelectItem Value="@TrainerFilterMine">Mis miembros</MudSelectItem>
-            }
-            <MudSelectItem Value="@TrainerFilterNone">Sin entrenador</MudSelectItem>
-        </MudSelect>
-        <MudCheckBox T="bool" Value="_withHealthAlerts" ValueChanged="OnHealthAlertsChangedAsync"
-                     Label="Con alertas de salud" Class="mr-4 gsm-health-filter" />
         @* Tres opciones caben a la vista: un desplegable las escondía detrás de un clic. *@
-        <div class="gsm-segmented" role="group" aria-label="Filtrar por estado">
+        <div class="gsm-segmented mr-4" role="group" aria-label="Filtrar por estado">
             @foreach (var (value, label) in StatusFilters)
             {
                 <button type="button" class="gsm-segmented__option @(_status == value ? "is-active" : null)"
                         aria-pressed="@(_status == value ? "true" : "false")"
                         @onclick="() => OnStatusChangedAsync(value)">@label</button>
             }
+        </div>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.FilterList" OnClick="@(() => _moreFiltersOpen = !_moreFiltersOpen)"
+                   aria-expanded="@(_moreFiltersOpen ? "true" : "false")" aria-controls="member-more-filters" data-testid="more-filters">
+            @(MoreFiltersActive > 0 ? $"Más filtros ({MoreFiltersActive})" : "Más filtros")
+        </MudButton>
+        <div id="member-more-filters" class="@($"gsm-more-filters {(_moreFiltersOpen ? "is-open" : null)}")">
+            <MudTextField T="string" Placeholder="Etiqueta" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Sell" Immediate="true" DebounceInterval="400"
+                          ValueChanged="OnTagChangedAsync" Style="max-width:180px" aria-label="Filtrar por etiqueta" />
+            <MudSelect T="string" Value="_trainerFilter" ValueChanged="OnTrainerFilterChangedAsync" Label="Entrenador"
+                       Dense="true" Style="max-width:200px" Margin="Margin.Dense" id="trainer-filter">
+                <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
+                @if (_isTrainer)
+                {
+                    <MudSelectItem Value="@TrainerFilterMine">Mis miembros</MudSelectItem>
+                }
+                <MudSelectItem Value="@TrainerFilterNone">Sin entrenador</MudSelectItem>
+            </MudSelect>
+            <MudCheckBox T="bool" Value="_withHealthAlerts" ValueChanged="OnHealthAlertsChangedAsync"
+                         Label="Con alertas de salud" Class="gsm-health-filter" />
         </div>
     </ToolBarContent>
     <HeaderContent>
@@ -67,7 +74,7 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Miembro">
-            <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.Id}"))" Underline="Underline.None">
+            <MudLink Href="@($"/members/{context.Id}")" Underline="Underline.None">
                 <span class="gsm-identity">
                     <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials($"{context.FirstName} {context.LastName}")</span>
                     <span>@context.FirstName @context.LastName</span>
@@ -133,6 +140,11 @@
     }
 
     private bool _withHealthAlerts;
+    private bool _moreFiltersOpen;
+
+    /// <summary>Filtros activos dentro de "Más filtros", para que se note que hay algo filtrando aunque esté plegado.</summary>
+    private int MoreFiltersActive =>
+        (string.IsNullOrWhiteSpace(_tag) ? 0 : 1) + (FilterValues.IsAll(_trainerFilter) ? 0 : 1) + (_withHealthAlerts ? 1 : 0);
 
     private async Task OnHealthAlertsChangedAsync(bool value)
     {

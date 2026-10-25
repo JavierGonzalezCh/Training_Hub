@@ -1,4 +1,4 @@
-using GSM.Client;
+﻿using GSM.Client;
 using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
@@ -18,5 +18,6 @@ public sealed class RoutinesPanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Rutinas", 46, typeof(Pages.Settings.RoutineSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Routines)];
+        [new("Rutinas", 46, typeof(Pages.Settings.RoutineSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Training,
+            Description: "Rutinas en la app del miembro y cada cuánto se revisan.", TracksUnsavedChanges: true)];
 }

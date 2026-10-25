@@ -53,7 +53,7 @@ else if (_response?.Routine is null)
 }
 else
 {
-    <MudText Typo="Typo.h6" Class="mb-1">@_response.Routine.Name</MudText>
+    <MudText HtmlTag="h2" Typo="Typo.h6" Class="mb-1">@_response.Routine.Name</MudText>
     @if (_response.Routine is { SelfAssigned: false, ReviewOn: { } reviewOn })
     {
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2" data-testid="routine-review-on">

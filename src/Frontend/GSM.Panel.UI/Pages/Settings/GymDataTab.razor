@@ -1,4 +1,4 @@
-@* Pestaña "Datos del gym" de la configuración (la registra GymsPanelModule). *@
+﻿@* Pestaña "Datos del gym" de la configuración (la registra GymsPanelModule). *@
 @inject IGymClient Gym
 @inject SessionService Session
 @inject GymContext GymCtx
@@ -21,10 +21,18 @@ else
             <MudTextField T="string" @bind-Value="_gymModel.Email" Label="Email" InputType="InputType.Email" Class="mb-3" />
 
             <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2 mt-2">Ubicación</MudText>
+            @* Un dato que falta no es un error hasta que se intenta guardar: antes la pantalla abría en rojo, y es lo
+               primero que ve un dueño nuevo (también en el onboarding, que reutiliza esta pestaña). *@
+            @if (!_triedSave && (string.IsNullOrWhiteSpace(_gymModel.Address) || string.IsNullOrWhiteSpace(_gymModel.City)))
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" data-testid="gym-location-missing">
+                    Completa la dirección y la ciudad: así tus miembros encuentran el gym y funciona el registro por ubicación.
+                </MudAlert>
+            }
             <MudTextField T="string" @bind-Value="_gymModel.Address" Label="Dirección" Required="true" Class="mb-3"
-                          Error="@(string.IsNullOrWhiteSpace(_gymModel.Address))" ErrorText="La dirección es obligatoria." id="gym-address" />
+                          Error="@(_triedSave && string.IsNullOrWhiteSpace(_gymModel.Address))" ErrorText="La dirección es obligatoria." id="gym-address" />
             <MudTextField T="string" @bind-Value="_gymModel.City" Label="Ciudad" Required="true" Class="mb-3"
-                          Error="@(string.IsNullOrWhiteSpace(_gymModel.City))" ErrorText="La ciudad es obligatoria." id="gym-city" />
+                          Error="@(_triedSave && string.IsNullOrWhiteSpace(_gymModel.City))" ErrorText="La ciudad es obligatoria." id="gym-city" />
             <div class="d-flex" style="gap:0.75rem">
                 <MudNumericField T="double?" @bind-Value="_gymModel.Latitude" Label="Latitud" Min="-90" Max="90"
                                  Format="0.######" Immediate="true" Class="mb-3" id="gym-lat" />
@@ -101,10 +109,15 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private readonly GymModel _gymModel = new();
 
     private bool _loadingGym = true;
     private bool _savingGym;
+    private bool _triedSave;
     private bool _uploadingLogo;
 
     protected override Task OnInitializedAsync() => LoadGymAsync();
@@ -146,6 +159,12 @@ else
 
     private async Task SaveGymAsync()
     {
+        _triedSave = true;
+        if (string.IsNullOrWhiteSpace(_gymModel.Address) || string.IsNullOrWhiteSpace(_gymModel.City))
+        {
+            return;
+        }
+
         _savingGym = true;
         try
         {
@@ -172,6 +191,7 @@ else
             });
             await Session.BootstrapAsync(); // refresca branding/tema en el shell
             Snackbar.Add("Datos del gym actualizados.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

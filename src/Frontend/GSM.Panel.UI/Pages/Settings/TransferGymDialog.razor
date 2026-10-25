@@ -1,5 +1,7 @@
 @* Traspasar el gym (Gyms §6): agregar al nuevo dueño y quitarse uno mismo. Primero se agrega al nuevo
-   (así el gym nunca se queda sin Owner) y después se quita al actual. Tu sesión se cierra al terminar. *@
+   (así el gym nunca se queda sin Owner) y después se quita al actual. Tu sesión se cierra al terminar.
+   Es la decisión más grave del panel y no se deshace desde aquí: va en dos pasos (datos y revisión) y la
+   revisión pide escribir el nombre del gym, para que un email mal digitado no entregue el gym a un desconocido. *@
 @inject IOwnersClient OwnersApi
 @inject SessionService Session
 @inject NavigationManager Navigation
@@ -8,19 +10,46 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Class="mb-3">
-            El nuevo dueño recibe un enlace para activar su cuenta (o entra con su contraseña de siempre si ya
-            tiene cuenta). Después de traspasar dejas de ser Owner y tu sesión se cierra.
-        </MudText>
-        <MudTextField T="string" @bind-Value="_fullName" Label="Nombre completo" Dense="true" data-testid="transfer-name" />
-        <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Dense="true" data-testid="transfer-email" />
-        <MudCheckBox T="bool" @bind-Value="_keepAsStaff" Label="Quedarme como staff (perfil Recepción)" Color="Color.Primary"
-                     Class="mt-2" data-testid="transfer-keep" />
+        @if (!_reviewing)
+        {
+            <MudText Class="mb-3">
+                El nuevo dueño recibe un enlace para activar su cuenta (o entra con su contraseña de siempre si ya
+                tiene cuenta). Después de traspasar dejas de ser Owner y tu sesión se cierra.
+            </MudText>
+            <MudTextField T="string" @bind-Value="_fullName" Label="Nombre completo" Dense="true" data-testid="transfer-name" />
+            <MudTextField T="string" @bind-Value="_email" Label="Email" InputType="InputType.Email" Dense="true" data-testid="transfer-email" />
+            <MudCheckBox T="bool" @bind-Value="_keepAsStaff" Label="Quedarme como staff (perfil Recepción)" Color="Color.Primary"
+                         Class="mt-2" data-testid="transfer-keep" />
+        }
+        else
+        {
+            <div class="gsm-payment-summary mb-4" data-testid="transfer-summary">
+                <div class="gsm-payment-summary__who">@GymName pasa a manos de @_fullName.Trim()</div>
+                <div class="gsm-payment-summary__meta gsm-mono">@_email.Trim()</div>
+            </div>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                Revisa el email: el enlace para entrar como dueño llega ahí. Dejas de ser Owner
+                @(_keepAsStaff ? "y quedas como staff con perfil Recepción" : "y pierdes el acceso a este gimnasio"),
+                y tu sesión se cierra. Para volver a ser dueño, el nuevo dueño tendría que agregarte.
+            </MudText>
+            <MudTextField T="string" @bind-Value="_confirmation" Immediate="true" AutoFocus="true" Dense="true"
+                          Label="@($"Escribe «{ConfirmationWord}» para confirmar")" data-testid="transfer-confirm-word" />
+        }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="TransferAsync" Disabled="_saving"
-                   data-testid="confirm-transfer">Traspasar</MudButton>
+        @if (!_reviewing)
+        {
+            <MudButton OnClick="@(() => MudDialog.Cancel())">Volver</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Review" data-testid="transfer-review">Revisar</MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="@(() => _reviewing = false)" Disabled="_saving">Corregir datos</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="TransferAsync" Disabled="@(_saving || !Confirmed)"
+                       data-testid="confirm-transfer">
+                @(_saving ? "Traspasando..." : "Traspasar el gimnasio")
+            </MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -32,13 +61,33 @@
     private string _email = string.Empty;
     private bool _keepAsStaff;
     private bool _saving;
+    private bool _reviewing;
+    private string _confirmation = string.Empty;
+
+    private string GymName => Context.Gym?.Name is { Length: > 0 } name ? $"«{name}»" : "El gimnasio";
+
+    /// <summary>El nombre del gym; si todavía no cargó, una palabra fija para no dejar el traspaso sin freno.</summary>
+    private string ConfirmationWord => Context.Gym?.Name is { Length: > 0 } name ? name : "TRASPASAR";
+
+    private bool Confirmed => string.Equals(_confirmation.Trim(), ConfirmationWord, StringComparison.CurrentCultureIgnoreCase);
+
+    private void Review()
+    {
+        if (string.IsNullOrWhiteSpace(_fullName) || string.IsNullOrWhiteSpace(_email))
+        {
+            Snackbar.Add("Nombre y email del nuevo dueño son obligatorios.", Severity.Warning);
+            return;
+        }
+
+        _confirmation = string.Empty;
+        _reviewing = true;
+    }
 
     private async Task TransferAsync()
     {
         var me = Context.Me?.UserId;
-        if (me is null || string.IsNullOrWhiteSpace(_fullName) || string.IsNullOrWhiteSpace(_email))
+        if (me is null || !Confirmed)
         {
-            Snackbar.Add("Nombre y email del nuevo dueño son obligatorios.", Severity.Warning);
             return;
         }
 
@@ -46,12 +95,12 @@
         try
         {
             // 1) Agregar al nuevo dueño. Si falla (ya es Owner, email inválido...), nada cambió.
-            await OwnersApi.OwnersPOST2Async(new InviteOwnerRequest { FullName = _fullName, Email = _email });
+            await OwnersApi.OwnersPOST2Async(new InviteOwnerRequest { FullName = _fullName.Trim(), Email = _email.Trim() });
 
             // 2) Quitarse uno mismo. Ya hay otro Owner, así que la regla del último no estorba.
             await OwnersApi.OwnersDELETE2Async(me.Value, _keepAsStaff, _keepAsStaff ? "reception" : null);
 
-            Snackbar.Add($"{_fullName} es ahora el dueño del gimnasio.", Severity.Success);
+            Snackbar.Add($"{_fullName.Trim()} es ahora el dueño del gimnasio.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
 
             await Session.LogoutAsync();

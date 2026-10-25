@@ -1,4 +1,4 @@
-@* Pestaña "Horario" de la configuración (la registra GymsPanelModule): semana, festivos y excepciones. *@
+﻿@* Pestaña "Horario" de la configuración (la registra GymsPanelModule): semana, festivos y excepciones. *@
 @inject IGymClient Gym
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -115,7 +115,7 @@ else
                    OnClick="AddSpecialAsync" id="special-add">Agregar excepción</MudButton>
         @if (_specials.Count == 0)
         {
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">No hay excepciones próximas.</MudText>
+            <EmptyState Icon="@Icons.Material.Outlined.EventAvailable" Compact="true" Class="mt-2">No hay excepciones próximas.</EmptyState>
         }
         else
         {
@@ -145,6 +145,10 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private OpeningHoursDraft _draft = new();
     private IReadOnlyDictionary<string, string> _errors = new Dictionary<string, string>();
     private IReadOnlyList<HolidayResponse> _holidays = [];
@@ -235,6 +239,7 @@ else
             _draft = OpeningHoursDraft.From(saved.Days);
             await LoadHolidaysAsync();
             Snackbar.Add("Horario guardado.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

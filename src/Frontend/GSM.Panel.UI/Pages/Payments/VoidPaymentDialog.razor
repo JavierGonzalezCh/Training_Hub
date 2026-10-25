@@ -3,10 +3,17 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Class="mb-4">
-            Se registrará hoy un asiento de <span class="gsm-mono">@GsmFormat.Money(-(decimal)Payment.Amount)</span>
-            (@PaymentMethodLabels.Label(Payment.Method)) que cancela «@Payment.Concept». El pago original no se borra:
-            la anulación cuenta en la caja de hoy.
+        @* Antes de anular hay que poder reconocer el pago: de quién, cuándo y cuánto, no solo el concepto. *@
+        <div class="gsm-payment-summary mb-4" data-testid="void-payment-summary">
+            <div class="gsm-payment-summary__amount gsm-mono">@GsmFormat.Money((decimal)Payment.Amount)</div>
+            <div class="gsm-payment-summary__who">@(Payment.MemberName ?? (Payment.MemberId is null ? "Venta sin miembro" : "Pago de un miembro"))</div>
+            <div class="gsm-payment-summary__meta">
+                @Payment.Concept · @PaymentMethodLabels.Label(Payment.Method) · @GsmFormat.Instant(Payment.PaidAt)
+            </div>
+        </div>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Se registra hoy un asiento de <span class="gsm-mono">@GsmFormat.Money(-(decimal)Payment.Amount)</span> que lo cancela.
+            El pago original no se borra y la anulación cuenta en la caja de hoy.
         </MudText>
         @if (_error is not null)
         {

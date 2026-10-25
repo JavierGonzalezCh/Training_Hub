@@ -145,25 +145,24 @@ avance se guarda paso por paso.
 - **Los avisos para "el Owner"** (máquina insegura, anonimizaciones próximas…) van a **todos** los
   Owners.
 - Todo cambio de Owners queda registrado: quién, a quién y cuándo.
-- Se gestiona en Configuración → Equipo, en la misma pantalla que el staff.
+- Se gestiona en Configuración → Personal y permisos, en la misma pantalla que el staff.
 
 ## 7. Configuración ordenada
 
 Con el replanteamiento, cada módulo tiene sus ajustes. **Cada ajuste sigue viviendo en su módulo**,
-pero el Owner los ve juntos en `/settings`, ordenados por tema:
+pero el Owner los ve juntos en `/settings`: un índice con pocos grupos por tarea (no uno por módulo), cada sección
+con una línea de qué contiene y su propia página en `/settings/{slug}` (por ejemplo `/settings/kioscos`). Los
+enlaces viejos `/settings?group=…&section=…` redirigen a la página de la sección, y `/subscription` a
+`/settings/suscripcion`. En las secciones con botón "Guardar", salir con cambios sin guardar pide confirmación.
 
-| Sección | Ajustes | Módulo dueño |
+| Grupo | Secciones | Módulo dueño |
 |---|---|---|
-| Gym | Datos, marca, ubicación, horario, festivos, redes | Gyms |
-| Equipo | Owners, staff y permisos (`ViewMemberHealth`, `Trainer`, `ManageAttendance`) | Identity |
-| Membresías | Gracia, días de aviso (7), matrícula | Memberships |
-| Entrada al gym | Modo del QR, kioscos, entrada con documento, permanencia asumida, aforo, radio de la geocerca | Attendance + Gyms |
-| Rutinas | Semanas de revisión, los miembros pueden crear rutinas | Routines |
-| Equipos | Los miembros pueden reportar fallas | Equipment |
-| Comunicaciones | Igual que hoy | Communications |
-| Logros | Igual que hoy | Achievements |
-| Miembros | Textos de las autorizaciones, plazo de anonimización (24 meses) | Members |
-| Módulos | Funciones encendidas o apagadas | Gyms |
+| Tu gimnasio | Datos del gym (marca, ubicación, redes), Horario (y festivos), Módulos, Suscripción | Gyms, SuperAdmin |
+| Personal | Personal y permisos: Owners, staff y permisos (`ViewMemberHealth`, `Trainer`, `ManageAttendance`) | Identity |
+| Entrada al gym | Check-in (modo del QR, entrada con documento, permanencia asumida), Kioscos | Attendance, Identity |
+| Membresías y miembros | Membresías (gracia, días de aviso, matrícula), Autorizaciones, Privacidad (anonimización, 24 meses) | Memberships, Members |
+| Entrenamiento | Reservas de clases, Rutinas, Máquinas (quién reporta fallas), Logros y premios | Classes, Routines, Equipment, Achievements |
+| Comunicaciones | Mensajes a los miembros, Horario sin avisos | Communications, Notifications |
 
 **Funciones (flags)** de `GymFeatureFlags`:
 

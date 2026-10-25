@@ -1,4 +1,4 @@
-@* Pestaña "Check-in" de la configuración: tipo de QR del gym, documento en el kiosco, permanencia asumida y cartel impreso.
+﻿@* Pestaña "Check-in" de la configuración: tipo de QR del gym, documento en el kiosco, permanencia asumida y cartel impreso.
    La gracia, "por vencer" y la matrícula están en la sección Membresías. Solo Owner. Ver docs/GSM-modulo-attendance.md. *@
 @inject IAttendanceClient Attendance
 @inject IDialogService Dialogs
@@ -46,7 +46,7 @@ else
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
                 @(_saving ? "Guardando..." : "Guardar cambios")
             </MudButton>
-            <MudButton Variant="Variant.Outlined" Href="/settings?group=Entrada%20al%20gym&amp;section=Kioscos" StartIcon="@Icons.Material.Outlined.QrCode2">Configurar kiosco</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="/settings/kioscos" StartIcon="@Icons.Material.Outlined.QrCode2">Configurar kiosco</MudButton>
             @if (_savedMode == Static)
             {
                 <MudButton Variant="Variant.Outlined" OnClick="ShowPosterAsync" Disabled="_loadingPoster"
@@ -63,6 +63,10 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private const string Rotating = "Rotating";
     private const string Static = "Static";
 
@@ -104,6 +108,7 @@ else
             _byDocument = saved.ByDocument;
             _stayMinutes = saved.AssumedStayMinutes;
             Snackbar.Add("Ajustes de check-in guardados.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

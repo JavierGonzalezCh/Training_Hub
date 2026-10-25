@@ -1,4 +1,4 @@
-@* Logros del miembro en su ficha (Achievements L4): los ganados y "Otorgar logro" (tipo manual, con motivo). *@
+﻿@* Logros del miembro en su ficha (Achievements L4): los ganados y "Otorgar logro" (tipo manual, con motivo). *@
 @inject IAchievementsClient Achievements
 @inject ISnackbar Snackbar
 
@@ -13,9 +13,9 @@
             <MudText Typo="Typo.overline" Color="Color.Secondary">Otorgar logro</MudText>
             @if (Grantable.Count == 0)
             {
-                <MudText Color="Color.Secondary" data-testid="no-manual-achievements">
+                <EmptyState Icon="@Icons.Material.Outlined.EmojiEvents" Compact="true" TestId="no-manual-achievements">
                     No hay logros manuales disponibles. El Owner puede crearlos en Configuración, con la condición "Otorgado por el staff".
-                </MudText>
+                </EmptyState>
             }
             else
             {
@@ -43,7 +43,7 @@
 
         @if (Earned.Count == 0)
         {
-            <MudText Color="Color.Secondary">Todavía no ha ganado logros.</MudText>
+            <EmptyState Icon="@Icons.Material.Outlined.EmojiEvents" Compact="true">Todavía no ha ganado logros.</EmptyState>
         }
         else
         {

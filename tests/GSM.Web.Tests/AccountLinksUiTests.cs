@@ -96,7 +96,7 @@ public class AccountLinksUiTests : TestContext
         Type(cut, 0, "OldPass_12345");
         Type(cut, 1, "NewPass_67890");
         Type(cut, 2, "NewPass_67890");
-        cut.Find("button").Click();
+        cut.Find("button:not(.mud-input-adornment-icon-button)").Click();
 
         Assert.Equal("OldPass_12345", auth.Changed!.CurrentPassword);
         Assert.Equal("NewPass_67890", auth.Changed.NewPassword);
@@ -116,12 +116,12 @@ public class AccountLinksUiTests : TestContext
         Type(cut, 0, "OldPass_12345");
         Type(cut, 1, "NewPass_67890");
         Type(cut, 2, "Different_12345");
-        cut.Find("button").Click();
+        cut.Find("button:not(.mud-input-adornment-icon-button)").Click();
         Assert.Contains("no coinciden", cut.Find("[data-testid='change-password-error']").TextContent);
 
         Type(cut, 1, "corta");
         Type(cut, 2, "corta");
-        cut.Find("button").Click();
+        cut.Find("button:not(.mud-input-adornment-icon-button)").Click();
         Assert.Contains("al menos 10", cut.Find("[data-testid='change-password-error']").TextContent);
 
         Assert.Null(auth.Changed);
@@ -137,10 +137,28 @@ public class AccountLinksUiTests : TestContext
         Type(cut, 0, "Wrong_Pass_999");
         Type(cut, 1, "NewPass_67890");
         Type(cut, 2, "NewPass_67890");
-        cut.Find("button").Click();
+        cut.Find("button:not(.mud-input-adornment-icon-button)").Click();
 
         Assert.Contains("actual no es correcta", cut.Find("[data-testid='change-password-error']").TextContent);
         Assert.Empty(cut.FindAll("[data-testid='change-password-done']"));
+    }
+
+    [Fact]
+    public void The_eye_button_shows_and_hides_the_password_and_says_what_it_does()
+    {
+        Setup();
+        var cut = RenderComponent<ChangePasswordForm>();
+
+        Assert.Equal("password", cut.FindAll("input")[0].GetAttribute("type"));
+        var eye = cut.FindAll("button.mud-input-adornment-icon-button")[0];
+        Assert.Equal("Mostrar contraseña", eye.GetAttribute("aria-label"));
+
+        eye.Click();
+
+        Assert.Equal("text", cut.FindAll("input")[0].GetAttribute("type"));
+        Assert.Equal("Ocultar contraseña", cut.FindAll("button.mud-input-adornment-icon-button")[0].GetAttribute("aria-label"));
+        // Solo cambia el campo pulsado.
+        Assert.Equal("password", cut.FindAll("input")[1].GetAttribute("type"));
     }
 
     // ---- Activar por enlace ----
@@ -166,7 +184,7 @@ public class AccountLinksUiTests : TestContext
 
         inputs[1].Input("StaffPass_12345");
         inputs[2].Input("StaffPass_12345");
-        cut.Find("button").Click();
+        cut.Find("button:not(.mud-input-adornment-icon-button)").Click();
 
         Assert.Equal("ana@test.local", auth.Activated!.Email);
         Assert.Equal("CODE/with+chars==", auth.Activated.Code);
@@ -193,7 +211,7 @@ public class AccountLinksUiTests : TestContext
         var inputs = cut.FindAll("input");
         inputs[1].Input("StaffPass_12345");
         inputs[2].Input("Another_12345");
-        cut.Find("button").Click();
+        cut.Find("button:not(.mud-input-adornment-icon-button)").Click();
 
         Assert.Contains("no coinciden", cut.Find("[data-testid='activate-error']").TextContent);
         Assert.Null(auth.Activated);

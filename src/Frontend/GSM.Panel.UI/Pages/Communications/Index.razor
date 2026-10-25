@@ -1,4 +1,4 @@
-@page "/communications"
+﻿@page "/communications"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IAnnouncementsClient Announcements
 @inject IDialogService Dialogs
@@ -6,7 +6,7 @@
 
 <PageTitle>Comunicaciones — TrainingHub OS</PageTitle>
 
-<PageHeader Eyebrow="Negocio" Title="Comunicaciones">
+<PageHeader Title="Comunicaciones">
     <Subtitle>Anuncios para tus miembros: los ven en la app y, si quieres, también por email.</Subtitle>
     <Actions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Campaign"
@@ -32,11 +32,7 @@
 else if (_items.Count == 0)
 {
     <section class="gsm-panel">
-        <div class="gsm-empty">
-            <MudIcon Icon="@Icons.Material.Outlined.Campaign" Size="Size.Large" Class="gsm-empty-icon" />
-            <span class="gsm-empty-title">@(_status is null ? "Aún no hay anuncios" : "Nada en este estado")</span>
-            <span>Cuéntales a tus miembros un horario de festivo, una máquina nueva o un evento.</span>
-        </div>
+        <EmptyState Icon="@Icons.Material.Outlined.Campaign" Title="@(_status is null ? "Aún no hay anuncios" : "Nada en este estado")">Cuéntales a tus miembros un horario de festivo, una máquina nueva o un evento.</EmptyState>
     </section>
 }
 else
@@ -72,7 +68,7 @@ else
                         }
                     </div>
                     <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
-                             aria-label="@($"Acciones de «{a.Title}»")">
+                             AriaLabel="@($"Acciones de «{a.Title}»")">
                         @if (a.Status != "Archived")
                         {
                             <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="() => OpenEditorAsync(a)">Editar</MudMenuItem>
@@ -201,7 +197,7 @@ else
     private async Task PublishAsync(AnnouncementResponse a)
     {
         if (!await AnnouncementActions.ConfirmPublishAsync(
-                Dialogs, Announcements, a.SendEmail, a.Category == "Promotions" ? 1 : 0, a.Audience))
+                Dialogs, Announcements, a.SendEmail, a.Important, a.Category == "Promotions" ? 1 : 0, a.Audience))
         {
             return;
         }

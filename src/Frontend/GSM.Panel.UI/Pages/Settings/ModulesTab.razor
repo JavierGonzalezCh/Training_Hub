@@ -1,4 +1,4 @@
-@* Pestaña "Módulos" de la configuración (la registra GymsPanelModule). *@
+﻿@* Pestaña "Módulos" de la configuración (la registra GymsPanelModule). *@
 @inject IGymClient Gym
 @inject SessionService Session
 @inject ISnackbar Snackbar
@@ -53,6 +53,10 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private readonly FlagsModel _flagsModel = new();
     private GymFeatureFlagsResponse? _loaded;
 
@@ -104,6 +108,7 @@ else
             });
             await Session.BootstrapAsync();
             Snackbar.Add("Módulos actualizados.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

@@ -9,7 +9,7 @@
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
         }
         <MudForm @ref="_form" Model="_model">
-            <MudAutocomplete T="MemberListItem" Label="Miembro (opcional)" Value="_member" ValueChanged="OnMemberChangedAsync"
+            <MudAutocomplete OpenOnFocus="false" T="MemberListItem" Label="Miembro (opcional)" Value="_member" ValueChanged="OnMemberChangedAsync"
                               SearchFunc="SearchMembersAsync" ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
                               Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" />
             @if (_memberships.Count > 0)

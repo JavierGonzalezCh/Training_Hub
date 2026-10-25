@@ -1,4 +1,4 @@
-@page "/routine-templates/new"
+﻿@page "/routine-templates/new"
 @page "/routine-templates/{TemplateId:guid}"
 @using GSM.UI.Shared.Routines
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
@@ -8,7 +8,9 @@
 
 <PageTitle>Plantilla de rutina — TrainingHub OS</PageTitle>
 
-<MudLink OnClick="@(() => Navigation.NavigateTo("/routine-templates"))" Class="mb-4 d-inline-block">← Volver a las plantillas</MudLink>
+<MudLink Href="/routine-templates" Class="mb-4 d-inline-block">← Volver a las plantillas</MudLink>
+
+<PageHeader Title="@(TemplateId is null ? "Nueva plantilla" : "Editar plantilla")" />
 
 @if (_loading)
 {
@@ -16,6 +18,8 @@
 }
 else
 {
+    @* Una plantilla larga se arma a clics (días, ejercicios, series): salir sin guardar la perdía sin aviso. *@
+    <UnsavedChangesGuard IsDirty="IsDirty" What="la plantilla" />
     @if (_error is not null)
     {
         <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="template-error">@_error</MudAlert>
@@ -57,8 +61,21 @@ else
     private bool _loading = true;
     private bool _saving;
     private string? _error;
+    private string? _snapshot;
+    private bool _leavingAfterSave;
+
+    /// <summary>Lo que se guardaría, para comparar con lo cargado.</summary>
+    private string Fingerprint() => $"{_templateName}\u001f{_description}\u001f{_draft.Fingerprint()}";
+
+    private bool IsDirty() => !_leavingAfterSave && _snapshot is not null && Fingerprint() != _snapshot;
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        _snapshot = Fingerprint();
+    }
+
+    private async Task LoadAsync()
     {
         if (TemplateId is not { } id)
         {
@@ -118,6 +135,7 @@ else
             }
 
             Snackbar.Add("Plantilla guardada.", Severity.Success);
+            _leavingAfterSave = true;
             Navigation.NavigateTo("/routine-templates");
         }
         catch (GsmApiException ex)

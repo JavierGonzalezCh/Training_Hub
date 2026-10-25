@@ -30,7 +30,7 @@
                 </div>
             }
 
-            <MudAutocomplete T="ExerciseResponse" Label="Agregar alternativa" SearchFunc="SearchAsync" ToStringFunc="@(e => e?.Name)"
+            <MudAutocomplete OpenOnFocus="false" T="ExerciseResponse" Label="Agregar alternativa" SearchFunc="SearchAsync" ToStringFunc="@(e => e?.Name)"
                              Value="_picked" ValueChanged="AddAsync" CoerceText="false" ResetValueOnEmptyText="true"
                              data-testid="alternative-picker" />
         }

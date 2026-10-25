@@ -217,11 +217,19 @@ public class GymOwnersUiTests : TestContext
         var cut = RenderComponent<OwnersSection>();
 
         await cut.InvokeAsync(() => cut.Find("[data-testid='transfer-gym']").Click());
-        provider.WaitForAssertion(() => provider.Find("[data-testid='confirm-transfer']"));
+        provider.WaitForAssertion(() => provider.Find("[data-testid='transfer-review']"));
 
         provider.Find("input[data-testid='transfer-name']").Change("Nuevo Dueño");
         provider.Find("input[data-testid='transfer-email']").Change("nuevo@t.l");
         provider.Find("input[data-testid='transfer-keep']").Change(true);
+        provider.Find("[data-testid='transfer-review']").Click();
+
+        // Paso 2: la revisión muestra a quién se entrega y no deja traspasar sin escribir la palabra de confirmación.
+        provider.WaitForAssertion(() => Assert.Contains("nuevo@t.l", provider.Find("[data-testid='transfer-summary']").TextContent));
+        Assert.True(provider.Find("[data-testid='confirm-transfer']").HasAttribute("disabled"));
+        Assert.Empty(owners.Invited);
+
+        provider.Find("input[data-testid='transfer-confirm-word']").Input("traspasar");
         provider.Find("[data-testid='confirm-transfer']").Click();
 
         provider.WaitForAssertion(() => Assert.Single(owners.Removed));

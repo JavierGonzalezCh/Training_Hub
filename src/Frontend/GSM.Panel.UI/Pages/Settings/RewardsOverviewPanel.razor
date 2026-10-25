@@ -1,4 +1,4 @@
-@* Premios del gym (Achievements L5): el Owner ve cuántos hay pendientes, entregados y vencidos. Se carga al pedirlo. *@
+﻿@* Premios del gym (Achievements L5): el Owner ve cuántos hay pendientes, entregados y vencidos. Se carga al pedirlo. *@
 @inject IAchievementsClient Achievements
 @inject ISnackbar Snackbar
 
@@ -35,7 +35,7 @@
         </div>
         @if (overview.Items.Count == 0)
         {
-            <MudText Color="Color.Secondary" Class="mt-2" data-testid="rewards-empty">No hay premios en este estado.</MudText>
+            <EmptyState Icon="@Icons.Material.Outlined.Redeem" Compact="true" Class="mt-2" TestId="rewards-empty">No hay premios en este estado.</EmptyState>
         }
         else
         {

@@ -1,4 +1,4 @@
-@page "/equipment/{Id:guid}"
+﻿@page "/equipment/{Id:guid}"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IEquipmentClient Equipment
 @inject IDialogService Dialogs
@@ -33,7 +33,7 @@ else
             }
         </MudAvatar>
         <div>
-            <MudText Typo="Typo.h4">@_item.Name</MudText>
+            <MudText Typo="Typo.h4" HtmlTag="h1">@_item.Name</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 @EquipmentDisplay.TypeLabel(_item.Type) · @(_item.Zone ?? "sin zona")
                 @if (_item.Quantity > 1)
@@ -71,7 +71,7 @@ else
 
     @if (_openIssues.Count > 0)
     {
-        <MudText Typo="Typo.h6" Class="mb-2">Reportes abiertos</MudText>
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Reportes abiertos</MudText>
         <MudAlert Severity="@(_item.Status == "Available" ? Severity.Info : Severity.Normal)" Dense="true" Class="mb-2" data-testid="open-issues-hint">
             @(_item.Status == "Available"
                 ? "Esta máquina está disponible pero tiene reportes sin cerrar: revísalos."
@@ -92,10 +92,10 @@ else
         </ul>
     }
 
-    <MudText Typo="Typo.h6" Class="mb-2">Historial de estado</MudText>
+    <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Historial de estado</MudText>
     @if (_history.Count == 0)
     {
-        <MudText Color="Color.Secondary" data-testid="history-empty">Todavía no hay cambios de estado.</MudText>
+        <EmptyState Icon="@Icons.Material.Outlined.History" Compact="true" TestId="history-empty">Todavía no hay cambios de estado.</EmptyState>
     }
     else
     {

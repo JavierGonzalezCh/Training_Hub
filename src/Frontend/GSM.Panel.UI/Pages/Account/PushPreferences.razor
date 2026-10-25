@@ -1,4 +1,4 @@
-@page "/cuenta/avisos"
+﻿@page "/cuenta/avisos"
 @attribute [Authorize(Roles = "owner,staff")]
 @inject IStaffNotificationsClient StaffNotifications
 @inject ISnackbar Snackbar
@@ -7,11 +7,12 @@
 
 <PageTitle>Avisos en el teléfono — TrainingHub OS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-2">Avisos en el teléfono</MudText>
-<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6" Style="max-width:560px">
+<PageHeader Title="Avisos en el teléfono">
+    <Subtitle>
     Elige qué avisos del gimnasio quieres recibir como notificación en este teléfono. Siempre te llegan a la
     campana del panel; esto solo decide cuáles suenan además.
-</MudText>
+    </Subtitle>
+</PageHeader>
 
 <div style="max-width:560px">
     <PushPermissionPrompt Platform="@GSM.UI.Shared.Push.PushPlatforms.WebPanel"

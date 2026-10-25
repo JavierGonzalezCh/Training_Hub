@@ -99,7 +99,7 @@ public class CashDrawerUiTests : TestContext
     // ---- cerrar ----
 
     [Fact]
-    public async Task Close_dialog_shows_expected_and_a_balanced_close_goes_through_without_a_note()
+    public async Task Close_dialog_is_a_blind_count_and_a_balanced_close_goes_through_without_a_note()
     {
         var shift = OpenShift(125_000);
         _cashFake.Handlers["CloseAsync"] = _ => new CashShiftReportResponse { Shift = shift };
@@ -109,8 +109,14 @@ public class CashDrawerUiTests : TestContext
         await provider.InvokeAsync(() => dialogs.ShowAsync<CloseCashDialog>(
             "Cerrar", new DialogParameters<CloseCashDialog> { { x => x.Shift, shift } }));
 
+        // A ciegas: sin conteo no se ve lo esperado ni se puede cerrar.
+        Assert.Empty(provider.FindAll("[data-testid='expected-cash']"));
+        Assert.NotNull(provider.Find("[data-testid='expected-hidden']"));
+        Assert.True(provider.Find("[data-testid='confirm-close-cash']").HasAttribute("disabled"));
+
+        provider.Find("input").Input("125000");
         Assert.Contains("125", provider.Find("[data-testid='expected-cash']").TextContent);
-        Assert.Contains("la caja cuadra", provider.Find("[data-testid='cash-difference']").TextContent);
+        Assert.Contains("La caja cuadra", provider.Find("[data-testid='cash-difference']").TextContent);
 
         provider.Find("[data-testid='confirm-close-cash']").Click();
 
@@ -132,7 +138,9 @@ public class CashDrawerUiTests : TestContext
             "Cerrar", new DialogParameters<CloseCashDialog> { { x => x.Shift, shift } }));
 
         provider.Find("input").Input("120000");
-        Assert.Contains("faltante", provider.Find("[data-testid='cash-difference']").TextContent);
+        Assert.Contains("Faltante", provider.Find("[data-testid='cash-difference']").TextContent);
+        // El botón nombra la consecuencia en vez de un "Cerrar caja" neutro.
+        Assert.Contains("Cerrar con faltante de", provider.Find("[data-testid='confirm-close-cash']").TextContent);
 
         provider.Find("[data-testid='confirm-close-cash']").Click();
         Assert.Contains("explique la diferencia", provider.Find("[data-testid='close-cash-error']").TextContent);
@@ -180,6 +188,8 @@ public class CashDrawerUiTests : TestContext
         var shift = OpenShift();
         _cashFake.Handlers["CurrentAsync"] = _ => new CashDrawerStatusResponse { Shift = shift };
         var payment = CashPayment(shift.Id);
+        payment.MemberId = Guid.NewGuid();
+        payment.MemberName = "Ana Prueba";
 
         var provider = RenderComponent<MudDialogProvider>();
         var dialogs = Services.GetRequiredService<IDialogService>();
@@ -187,6 +197,10 @@ public class CashDrawerUiTests : TestContext
             "Anular", new DialogParameters<VoidPaymentDialog> { { x => x.Payment, payment } }));
 
         Assert.Empty(provider.FindAll("[data-testid='refund-question']"));
+        // Antes de anular se reconoce el pago: de quién y por cuánto.
+        var summary = provider.Find("[data-testid='void-payment-summary']").TextContent;
+        Assert.Contains("Ana Prueba", summary);
+        Assert.Contains("30.000", summary);
 
         provider.Find("textarea").Change("Error de cobro");
         provider.Find("button.mud-button-filled-error").Click();

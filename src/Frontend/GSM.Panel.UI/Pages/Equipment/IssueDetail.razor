@@ -1,4 +1,4 @@
-@page "/equipment/issues/{Id:guid}"
+﻿@page "/equipment/issues/{Id:guid}"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IEquipmentClient Equipment
 @inject IDialogService Dialogs
@@ -28,7 +28,7 @@ else
 
     <div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
         <div>
-            <MudText Typo="Typo.h4">
+            <MudText Typo="Typo.h4" HtmlTag="h1">
                 <MudLink Href="@($"/equipment/{_issue.ItemId}")" Color="Color.Inherit" data-testid="issue-item">@_issue.ItemName</MudLink>
             </MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">

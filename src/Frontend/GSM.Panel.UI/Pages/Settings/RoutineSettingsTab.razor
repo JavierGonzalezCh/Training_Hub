@@ -1,4 +1,4 @@
-@* Sección "Rutinas" de la configuración (Gyms §7, Routines R8): qué ven los miembros de rutinas y cada cuántas semanas se revisa una. Solo Owner. *@
+﻿@* Sección "Rutinas" de la configuración (Gyms §7, Routines R8): qué ven los miembros de rutinas y cada cuántas semanas se revisa una. Solo Owner. *@
 @inject IRoutineSettingsClient RoutineSettings
 @inject IGymClient Gym
 @inject SessionService Session
@@ -29,6 +29,10 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private bool _loading = true;
     private bool _saving;
     private int _reviewWeeks = 6;
@@ -75,6 +79,7 @@ else
             }
 
             Snackbar.Add("Ajustes de rutinas guardados.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

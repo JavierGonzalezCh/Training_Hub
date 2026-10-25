@@ -1,4 +1,4 @@
-using GSM.Client;
+﻿using GSM.Client;
 using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
@@ -14,5 +14,6 @@ public sealed class EquipmentPanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Equipos", 47, typeof(Pages.Settings.EquipmentSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Equipment)];
+        [new("Máquinas", 47, typeof(Pages.Settings.EquipmentSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Training,
+            Description: "Quién puede reportar fallas de las máquinas.", TracksUnsavedChanges: true)];
 }

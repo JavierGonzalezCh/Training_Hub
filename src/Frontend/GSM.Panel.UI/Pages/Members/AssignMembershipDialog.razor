@@ -1,4 +1,4 @@
-@inject IMemberMembershipsClient MemberMemberships
+﻿@inject IMemberMembershipsClient MemberMemberships
 @inject IMembershipPlansClient Plans
 @inject IPaymentsClient Payments
 
@@ -16,7 +16,7 @@
             }
             @if (_plans.Count == 0)
             {
-                <MudText Color="Color.Secondary">No hay planes activos. Crea uno primero en Planes.</MudText>
+                <EmptyState Icon="@Icons.Material.Outlined.CardMembership" Compact="true">No hay planes activos. Crea uno primero en Planes.</EmptyState>
             }
             else
             {
@@ -108,14 +108,20 @@
     <DialogActions>
         @if (_pendingCharge is null)
         {
-            <MudButton OnClick="Cancel">Cancelar</MudButton>
+            @* "Volver" y no "Cancelar": en este diálogo "cancelar" es también deshacer una membresía. *@
+            <MudButton OnClick="Cancel">Volver</MudButton>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _submitting || _plans.Count == 0">
                 @(_submitting ? "Guardando..." : Total > 0 ? "Asignar y cobrar" : "Asignar")
             </MudButton>
         }
         else
         {
-            <MudButton Color="Color.Error" OnClick="CancelMembershipAsync" Disabled="_submitting">Cancelar la membresía</MudButton>
+            @* La salida destructiva va sola a la izquierda, lejos del reintento, y dice qué deshace. *@
+            <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Undo"
+                       OnClick="CancelMembershipAsync" Disabled="_submitting">
+                Cancelar la membresía asignada
+            </MudButton>
+            <MudSpacer />
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RetryChargeAsync" Disabled="_submitting">
                 @(_submitting ? "Cobrando..." : "Reintentar el cobro")
             </MudButton>

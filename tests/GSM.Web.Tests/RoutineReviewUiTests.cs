@@ -177,6 +177,9 @@ public class RoutineReviewUiTests : TestContext
             Assert.Contains("5 d de atraso", page.Markup);
         });
 
+        // El nombre es un enlace de verdad a la ficha (se abre en otra pestaña y el lector lo anuncia como enlace).
+        Assert.Equal($"/members/{late.MemberId}", page.FindAll("a").First(a => a.TextContent.Contains("Ana Pérez")).GetAttribute("href"));
+
         // La primera carga no impone filtro: lo decide el servidor.
         Assert.Null(Assert.Single(fake.Calls, c => c.Method == "GetRoutinesDueForReviewAsync").Args[0]);
 

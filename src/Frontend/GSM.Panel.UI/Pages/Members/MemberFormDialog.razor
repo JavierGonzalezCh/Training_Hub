@@ -140,7 +140,7 @@
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudAutocomplete T="MemberListItem" Label="Referido por" Clearable="true"
+                        <MudAutocomplete OpenOnFocus="false" T="MemberListItem" Label="Referido por" Clearable="true"
                                          Value="_referrer" ValueChanged="OnReferrerChanged"
                                          SearchFunc="SearchReferrersAsync"
                                          ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"

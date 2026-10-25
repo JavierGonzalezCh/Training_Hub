@@ -1,4 +1,4 @@
-@* Pestaña "Avisos" de la configuración: horario sin avisos del gym (N4/CO1 §G). Solo Owner. *@
+﻿@* Pestaña "Avisos" de la configuración: horario sin avisos del gym (N4/CO1 §G). Solo Owner. *@
 @inject INotificationSettingsClient Settings
 @inject ISnackbar Snackbar
 
@@ -29,6 +29,10 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private bool _loading = true;
     private bool _saving;
     private bool _enabled = true;
@@ -76,6 +80,7 @@ else
                 QuietEnd = TimeOnly.FromTimeSpan(_end.Value),
             }));
             Snackbar.Add("Horario sin avisos guardado.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

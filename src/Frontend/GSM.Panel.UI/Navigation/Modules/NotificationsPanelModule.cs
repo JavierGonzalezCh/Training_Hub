@@ -1,4 +1,4 @@
-using GSM.Client;
+﻿using GSM.Client;
 
 namespace GSM.Panel.UI.Navigation.Modules;
 
@@ -8,5 +8,6 @@ public sealed class NotificationsPanelModule : IPanelModule
     public string Module => "Notifications";
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Avisos", 45, typeof(Pages.Settings.NotificationsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Communications)];
+        [new("Horario sin avisos", 45, typeof(Pages.Settings.NotificationsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Communications,
+            Description: "Las horas en que no se envían notificaciones a los miembros.", TracksUnsavedChanges: true)];
 }

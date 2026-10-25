@@ -1,4 +1,4 @@
-@* Pestaña "Kioscos" de la configuración (Identity §8): el Owner agrega el equipo de la entrada, recibe un código
+﻿@* Pestaña "Kioscos" de la configuración (Identity §8): el Owner agrega el equipo de la entrada, recibe un código
    de 8 caracteres (vence en 10 minutos) para digitarlo en /kiosk, y puede revocar cada kiosco. Solo Owner. *@
 @inject IKiosksClient KiosksApi
 @inject IDialogService Dialogs
@@ -37,7 +37,9 @@
 }
 else if (_kiosks.Count == 0)
 {
-    <MudText Color="Color.Secondary">Todavía no hay kioscos.</MudText>
+    <EmptyState Icon="@Icons.Material.Outlined.TabletAndroid" Title="Todavía no hay kioscos" Compact="true">
+        Genera un código de emparejamiento y úsalo en la tablet de la entrada.
+    </EmptyState>
 }
 else
 {

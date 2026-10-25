@@ -46,7 +46,16 @@ public sealed class ListPaymentsHandler(
         var ids = items.Select(p => p.Id).ToList();
         var pending = await voidRequests.GetPendingPaymentIdsAsync(ids, cancellationToken);
 
+        var memberIds = items.Where(p => p.MemberId is not null).Select(p => p.MemberId!.Value).Distinct().ToList();
+        var names = memberIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await members.GetFullNamesAsync(memberIds, cancellationToken);
+
         return new PagedResult<PaymentResponse>(
-            items.Select(p => PaymentMapper.ToResponse(p, reversed, pending)).ToList(), page, pageSize, total);
+            items.Select(p => PaymentMapper.ToResponse(p, reversed, pending) with
+            {
+                MemberName = p.MemberId is { } memberId ? names.GetValueOrDefault(memberId) : null,
+            }).ToList(),
+            page, pageSize, total);
     }
 }

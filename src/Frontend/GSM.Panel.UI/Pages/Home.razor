@@ -14,21 +14,18 @@
 @inject AuthenticationStateProvider AuthState
 @inject IJSRuntime JS
 @inject ViewportState Viewport
-@inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
 <PageTitle>Dashboard — TrainingHub OS</PageTitle>
 
 <PageHeader Eyebrow="@GsmFormat.DayLong(_today)" Title="Resumen de hoy">
-    <Subtitle>@(_dashboard is not null ? Headline(_dashboard.Expiring) : (GymContext.Gym?.Name ?? ""))</Subtitle>
+    <Subtitle>@(_dashboard is not null ? Headline(_dashboard) : (GymContext.Gym?.Name ?? ""))</Subtitle>
     <Actions>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Refresh" OnClick="ReloadAsync"
                    Disabled="_loading" data-testid="dashboard-refresh">
             Actualizar
         </MudButton>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Schedule" Href="/memberships/expiring">
-            Por vencer
-        </MudButton>
+        @* "Por vencer" ya tiene su sección con "Ver todas": un botón más aquí era la cuarta entrada al mismo sitio. *@
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.PointOfSale" Href="/cash-register">
             Cierre de caja
         </MudButton>
@@ -38,6 +35,23 @@
 @if (_loading && _dashboard is null)
 {
     <GsmLoader Class="mb-6" />
+}
+else if (_dashboard is null && _loadError is { } error)
+{
+    @* Si la carga falla, la página no queda vacía bajo el título: dice qué pasó y deja reintentar. *@
+    <EmptyState Icon="@Icons.Material.Outlined.CloudOff" Title="No pudimos cargar el resumen" TestId="dashboard-error">
+        <ChildContent>
+            @error.DisplayMessage
+            @if (error.TraceCode is { Length: > 0 } traceCode && !error.DisplayMessage.Contains(traceCode, StringComparison.Ordinal))
+            {
+                <span class="d-block mt-1 gsm-mono">Código: @traceCode</span>
+            }
+        </ChildContent>
+        <Action>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Refresh"
+                       OnClick="ReloadAsync" data-testid="dashboard-retry">Reintentar</MudButton>
+        </Action>
+    </EmptyState>
 }
 else if (_dashboard is { } dashboard)
 {
@@ -108,6 +122,7 @@ else if (_dashboard is { } dashboard)
     private int _peakMax;
     private int? _peakHour;
     private bool _loading = true;
+    private ApiError? _loadError;
     private System.Threading.Timer? _timer;
     private Guid? _myUserId;
     private bool _canViewFinances;
@@ -138,6 +153,7 @@ else if (_dashboard is { } dashboard)
     private async Task LoadAsync()
     {
         _loading = true;
+        _loadError = null;
         try
         {
             _dashboard = await Dashboard.GetGymDashboardAsync();
@@ -148,7 +164,12 @@ else if (_dashboard is { } dashboard)
         }
         catch (GsmApiException ex)
         {
-            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            _loadError = ApiError.FromException(ex);
+            // Con datos ya en pantalla (un "Actualizar" que falló) basta el aviso; sin datos, lo dice la página.
+            if (_dashboard is not null)
+            {
+                Snackbar.Add(_loadError.DisplayMessage, Severity.Error);
+            }
         }
         finally
         {
@@ -258,7 +279,46 @@ else if (_dashboard is { } dashboard)
             : "Check-ins por hora.";
 
     // Voz del producto: una frase con el dato que pide acción, sin relleno motivacional.
-    private static string Headline(ExpiringBlock? expiring)
+    /// <summary>
+    /// La frase del encabezado, en miembros y con las mismas cifras que las tarjetas de estado: "por renovar" es
+    /// en gracia + vencidos, y se dice cuántos de ellos aún entran. Antes mezclaba membresías (16 vencidas) con las
+    /// tarjetas en miembros (2 en gracia, 14 vencidos) y las cifras no cuadraban.
+    /// </summary>
+    public static string Headline(DashboardResponse dashboard)
+    {
+        if (dashboard.Indicators?.CommercialStatus is not { } status)
+        {
+            return LegacyHeadline(dashboard.Expiring);
+        }
+
+        var renew = status.Grace + status.Expired;
+        if (status.Expiring == 0 && renew == 0)
+        {
+            return "Ninguna membresía vence esta semana y nadie está por renovar.";
+        }
+
+        var expiring = status.Expiring switch
+        {
+            0 => "Esta semana no vence ninguna membresía",
+            1 => "Esta semana vence 1 membresía",
+            var n => $"Esta semana vencen {n} membresías",
+        };
+        if (renew == 0)
+        {
+            return $"{expiring}.";
+        }
+
+        var grace = status.Grace switch
+        {
+            0 => string.Empty,
+            1 => " (1 aún entra en gracia)",
+            var n => $" ({n} aún entran en gracia)",
+        };
+        return $"{expiring} y {(renew == 1 ? "1 miembro está" : $"{renew} miembros están")} por renovar{grace}.";
+    }
+
+    /// <summary>Sin indicadores (un rol que no los ve) queda la frase con los conteos del bloque de vencimientos.</summary>
+    private static string LegacyHeadline(ExpiringBlock? expiring)
     {
         if (expiring is null)
         {
@@ -317,7 +377,9 @@ else if (_dashboard is { } dashboard)
                 {
                     <RoutinesDueCard />
                 }
-                @if (d.Expiring is { } expiring)
+                @* La tarjeta "Por vencer" vive en la fila de estado comercial, en miembros: aquí repetía la cifra en
+                   membresías con otro total de vencidas. Sin indicadores de estado, se queda la de vencimientos. *@
+                @if (d.Expiring is { } expiring && indicators.CommercialStatus is null)
                 {
                     <StatCard Label="@($"Por vencer · {expiring.ExpiringDays} días")" Value="@expiring.ExpiringCount.ToString()"
                               Accent="@(expiring.ExpiringCount > 0 ? Color.Error : Color.Default)"
@@ -334,10 +396,10 @@ else if (_dashboard is { } dashboard)
                           Hint="@($"{indicators.ExpiringDays} días o menos")" />
                 <StatCard Label="En gracia" Value="@indicators.CommercialStatus.Grace.ToString()"
                           Accent="@(indicators.CommercialStatus.Grace > 0 ? Color.Warning : Color.Default)"
-                          Hint="Vencidos que aún entran" />
+                          Hint="Por renovar, aún entran" />
                 <StatCard Label="Vencidos" Value="@indicators.CommercialStatus.Expired.ToString()"
                           Accent="@(indicators.CommercialStatus.Expired > 0 ? Color.Error : Color.Default)"
-                          Hint="Pasada la gracia" />
+                          Hint="Por renovar, ya no entran" />
             </section>
         }
     </div>;
@@ -353,10 +415,7 @@ else if (_dashboard is { } dashboard)
                     </header>
                     @if (classes.Count == 0)
                     {
-                        <div class="gsm-empty">
-                            <MudIcon Icon="@Icons.Material.Outlined.EventBusy" Class="gsm-empty-icon" />
-                            <span>Hoy no hay clases.</span>
-                        </div>
+                        <EmptyState Icon="@Icons.Material.Outlined.EventBusy">Hoy no hay clases.</EmptyState>
                     }
                     else
                     {
@@ -390,10 +449,7 @@ else if (_dashboard is { } dashboard)
                     </header>
                     @if (feed.Count == 0)
                     {
-                        <div class="gsm-empty">
-                            <MudIcon Icon="@Icons.Material.Outlined.DoorFront" Class="gsm-empty-icon" />
-                            <span>Nadie ha entrado todavía hoy.</span>
-                        </div>
+                        <EmptyState Icon="@Icons.Material.Outlined.DoorFront">Nadie ha entrado todavía hoy.</EmptyState>
                     }
                     else
                     {
@@ -421,10 +477,7 @@ else if (_dashboard is { } dashboard)
                 </header>
                 @if (birthdays.Count == 0)
                 {
-                    <div class="gsm-empty">
-                        <MudIcon Icon="@Icons.Material.Outlined.Cake" Class="gsm-empty-icon" />
-                        <span>Hoy nadie cumple años.</span>
-                    </div>
+                    <EmptyState Icon="@Icons.Material.Outlined.Cake">Hoy nadie cumple años.</EmptyState>
                 }
                 else
                 {
@@ -433,7 +486,7 @@ else if (_dashboard is { } dashboard)
                         {
                             <li class="gsm-identity">
                                 <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(birthday.MemberName)</span>
-                                <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{birthday.MemberId}"))" Underline="Underline.None">
+                                <MudLink Href="@($"/members/{birthday.MemberId}")" Underline="Underline.None">
                                     @birthday.MemberName
                                 </MudLink>
                             </li>
@@ -483,7 +536,7 @@ else if (_dashboard is { } dashboard)
                 {
                     <li class="gsm-identity">
                         <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(member.MemberName)</span>
-                        <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{member.MemberId}"))" Underline="Underline.None">
+                        <MudLink Href="@($"/members/{member.MemberId}")" Underline="Underline.None">
                             @member.MemberName
                         </MudLink>
                     </li>
@@ -499,10 +552,7 @@ else if (_dashboard is { } dashboard)
         </header>
         @if (_peak.Count == 0)
         {
-            <div class="gsm-empty">
-                <MudIcon Icon="@Icons.Material.Outlined.QueryStats" Class="gsm-empty-icon" />
-                <span>Sin check-ins en los últimos 30 días.</span>
-            </div>
+            <EmptyState Icon="@Icons.Material.Outlined.QueryStats">Sin check-ins en los últimos 30 días.</EmptyState>
         }
         else
         {
@@ -533,10 +583,7 @@ else if (_dashboard is { } dashboard)
         </header>
         @if (expiring.Items.Count == 0)
         {
-            <div class="gsm-empty">
-                <MudIcon Icon="@Icons.Material.Outlined.EventAvailable" Class="gsm-empty-icon" />
-                <span>Nada vence en los próximos @expiring.ExpiringDays días.</span>
-            </div>
+            <EmptyState Icon="@Icons.Material.Outlined.EventAvailable">Nada vence en los próximos @expiring.ExpiringDays días.</EmptyState>
         }
         else
         {
@@ -552,7 +599,7 @@ else if (_dashboard is { } dashboard)
                     <MudTd DataLabel="Miembro">
                         <div class="gsm-identity">
                             <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials(context.MemberName)</span>
-                            <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
+                            <MudLink Href="@($"/members/{context.MemberId}")" Underline="Underline.None">
                                 @context.MemberName
                             </MudLink>
                         </div>
@@ -561,7 +608,7 @@ else if (_dashboard is { } dashboard)
                     <MudTd DataLabel="Vence">@GsmFormat.Day(context.EndDate)</MudTd>
                     <MudTd DataLabel="Días" Style="text-align:right">
                         <span class="gsm-days @(context.DaysLeft <= 3 ? "is-urgent" : null)">
-                            @(context.DaysLeft < 0 ? "En gracia" : context.DaysLeft == 0 ? "Hoy" : context.DaysLeft.ToString())
+                            @(context.DaysLeft switch { < 0 => "En gracia", 0 => "Hoy", 1 => "Mañana", var n => $"En {n} días" })
                         </span>
                     </MudTd>
                     <MudTd DataLabel="WhatsApp">

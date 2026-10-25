@@ -1,4 +1,4 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @inject GymContext GymCtx
 @inject GSM.UI.Shared.Components.ViewportState Viewport
 @inject MemberContext MemberCtx
@@ -12,10 +12,12 @@
 
 <GsmThemeProvider Gym="@GymCtx.Gym" />
 <MudPopoverProvider />
-<MudDialogProvider />
+<MudDialogProvider CloseOnEscapeKey="true" />
 <MudSnackbarProvider />
 
-<MudLayout Class="@(Viewport.IsNarrow ? null : "gsm-m-desktop")">
+<MudLayout Class="@(Viewport.IsNarrow ? "gsm-m-shell" : "gsm-m-shell gsm-m-desktop")">
+    @* Primer elemento con foco: con teclado, salta la barra y el menú y va directo al contenido. *@
+    <a href="#" class="gsm-skip-link" @onclick="SkipToContentAsync" @onclick:preventDefault>Saltar al contenido</a>
     <MudAppBar Elevation="0" Class="gsm-m-bar">
         @if (GymCtx.Gym is { } gym)
         {
@@ -41,11 +43,16 @@
         {
             <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Color="Color.Inherit" OnClick="SwitchGymAsync" aria-label="Cambiar de gimnasio" />
         }
-        <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" Href="/app/perfil" aria-label="Mi perfil" />
-        <MudIconButton Icon="@Icons.Material.Filled.Storefront"Color="Color.Inherit" Href="/app/gimnasio" aria-label="Mi gimnasio" />
-        <MudIconButton Icon="@Icons.Material.Filled.NotificationsActive" Color="Color.Inherit" Href="/app/avisos" aria-label="Preferencias de avisos" />
-        <MudIconButton Icon="@Icons.Material.Filled.Lock" Color="Color.Inherit" Href="/app/cuenta/contrasena" aria-label="Cambiar contraseña" />
-        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" aria-label="Cerrar sesión" />
+        @* Un solo menú de cuenta: cinco iconos sueltos dejaban el nombre del gym en "GIMNAS…" en el celular. *@
+        <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AriaLabel="Mi cuenta"
+                 AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" data-testid="member-account-menu">
+            <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/app/perfil">Mi perfil</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.Storefront" Href="/app/gimnasio">Mi gimnasio</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.NotificationsActive" Href="/app/avisos">Preferencias de avisos</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.Lock" Href="/app/cuenta/contrasena">Cambiar contraseña</MudMenuItem>
+            <MudDivider />
+            <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">Cerrar sesión</MudMenuItem>
+        </MudMenu>
     </MudAppBar>
 
     @* Escritorio (>= 960 px): menú lateral en lugar de la barra inferior y contenido más ancho. *@
@@ -72,6 +79,7 @@
     <MudMainContent>
         <SubscriptionBanner />
         <MudContainer MaxWidth="@(Viewport.IsNarrow ? MaxWidth.Small : MaxWidth.ExtraLarge)" Class="mt-4 pb-16">
+            <div @ref="_contentStart" tabindex="-1" class="gsm-visually-hidden" data-testid="content-start">Contenido principal</div>
             @if (_loading)
             {
                 <div class="d-flex justify-center mt-8">
@@ -118,7 +126,11 @@
 </MudLayout>
 
 @code {
+    private ElementReference _contentStart;
     private bool _loading = true;
+
+    // El siguiente Tab después de saltar cae en el primer control de la vista.
+    private async Task SkipToContentAsync() => await _contentStart.FocusAsync();
 
     private sealed record Destination(string Href, string Title, string Icon, bool MatchAll = false);
 

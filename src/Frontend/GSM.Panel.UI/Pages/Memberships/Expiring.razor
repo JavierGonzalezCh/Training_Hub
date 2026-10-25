@@ -1,21 +1,20 @@
-@page "/memberships/expiring"
+﻿@page "/memberships/expiring"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IMembershipsClient Memberships
 @inject IWhatsAppClient WhatsApp
-@inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
 <PageTitle>Membresías por vencer — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Membresías por vencer</MudText>
-    <MudSpacer />
-    <MudSelect T="int" Value="_days" ValueChanged="OnDaysChangedAsync" Label="En los próximos" Style="max-width:200px">
-        <MudSelectItem Value="7">7 días</MudSelectItem>
-        <MudSelectItem Value="15">15 días</MudSelectItem>
-        <MudSelectItem Value="30">30 días</MudSelectItem>
-    </MudSelect>
-</div>
+<PageHeader Title="Membresías por vencer">
+    <Actions>
+        <MudSelect T="int" Value="_days" ValueChanged="OnDaysChangedAsync" Label="En los próximos" Style="max-width:200px">
+            <MudSelectItem Value="7">7 días</MudSelectItem>
+            <MudSelectItem Value="15">15 días</MudSelectItem>
+            <MudSelectItem Value="30">30 días</MudSelectItem>
+        </MudSelect>
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {
@@ -37,7 +36,7 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Miembro">
-                <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
+                <MudLink Href="@($"/members/{context.MemberId}")" Underline="Underline.None">
                     @context.MemberName
                 </MudLink>
             </MudTd>

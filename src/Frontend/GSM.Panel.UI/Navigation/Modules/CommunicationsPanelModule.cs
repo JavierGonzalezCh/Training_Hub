@@ -1,4 +1,4 @@
-using MudBlazor;
+﻿using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
 
@@ -13,5 +13,7 @@ public sealed class CommunicationsPanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Comunicaciones", 40, typeof(Pages.Settings.CommunicationsTab), Group: PanelSettingsGroups.Communications)];
+        [new("Mensajes a los miembros", 40, typeof(Pages.Settings.CommunicationsTab), Group: PanelSettingsGroups.Communications,
+            Description: "Aviso de vencimiento, felicitación de cumpleaños y plantillas de WhatsApp.",
+            TracksUnsavedChanges: true)];
 }

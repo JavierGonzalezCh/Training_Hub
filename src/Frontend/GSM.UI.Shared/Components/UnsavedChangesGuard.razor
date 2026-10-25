@@ -1,0 +1,34 @@
+@using Microsoft.AspNetCore.Components.Routing
+@inject IDialogService Dialogs
+
+@* Aviso de cambios sin guardar para un editor de página completa: al salir por un enlace, el menú o "atrás",
+   pregunta antes si IsDirty() dice que hay algo pendiente; al cerrar o recargar la pestaña, el navegador pide su
+   propia confirmación. El editor decide qué es "sucio" (comparar una huella, un formulario tocado...) y lo
+   desactiva justo antes de navegar tras guardar. *@
+<NavigationLock OnBeforeInternalNavigation="ConfirmLeaveAsync" ConfirmExternalNavigation="@IsDirty()" />
+
+@code {
+    [Parameter, EditorRequired]
+    public Func<bool> IsDirty { get; set; } = () => false;
+
+    /// <summary>Qué se pierde, para el mensaje: «la plantilla», «la rutina», «Datos del gym».</summary>
+    [Parameter]
+    public string What { get; set; } = "este formulario";
+
+    private async Task ConfirmLeaveAsync(LocationChangingContext context)
+    {
+        if (!IsDirty())
+        {
+            return;
+        }
+
+        var leave = await Dialogs.ShowMessageBox(
+            "Cambios sin guardar",
+            $"Si sales ahora, se pierden los cambios de {What}.",
+            yesText: "Salir sin guardar", cancelText: "Seguir editando");
+        if (leave != true)
+        {
+            context.PreventNavigation();
+        }
+    }
+}

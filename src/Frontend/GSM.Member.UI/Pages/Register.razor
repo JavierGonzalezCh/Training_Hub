@@ -23,7 +23,7 @@
 <MudTextField T="string" @bind-Value="_code" Label="Código de invitación" Class="mb-3 gsm-mono" />
 <MudTextField T="string" @bind-Value="_documentNumber" Label="Documento" Class="mb-3" />
 <MudTextField T="string" @bind-Value="_email" Label="Email (solo si tu ficha no lo tiene)" InputType="InputType.Email" Class="mb-3" />
-<MudTextField T="string" @bind-Value="_password" Label="Contraseña" InputType="InputType.Password" Class="mb-4" />
+<PasswordField @bind-Value="_password" Label="Contraseña" Class="mb-4" />
 
 <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
     @(_submitting ? "Creando..." : "Crear cuenta")

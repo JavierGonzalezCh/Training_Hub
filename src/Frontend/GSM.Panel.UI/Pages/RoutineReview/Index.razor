@@ -1,17 +1,16 @@
-@page "/routines/review"
+﻿@page "/routines/review"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IRoutinesClient Routines
-@inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
 <PageTitle>Rutinas por revisar — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Rutinas por revisar</MudText>
-    <MudSpacer />
-    <MudSwitch T="bool" Value="_mine" ValueChanged="OnMineChangedAsync" Color="Color.Primary"
-               Label="Solo mis miembros" data-testid="review-mine" />
-</div>
+<PageHeader Title="Rutinas por revisar">
+    <Actions>
+        <MudSwitch T="bool" Value="_mine" ValueChanged="OnMineChangedAsync" Color="Color.Primary"
+                   Label="Solo mis miembros" data-testid="review-mine" />
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {
@@ -19,9 +18,9 @@
 }
 else if (_items.Count == 0)
 {
-    <MudText Color="Color.Secondary" data-testid="review-empty">
+    <EmptyState Icon="@Icons.Material.Outlined.TaskAlt" Title="Todo al día" TestId="review-empty">
         @(_mine ? "Ninguna rutina de tus miembros está por revisar." : "Ninguna rutina está por revisar.")
-    </MudText>
+    </EmptyState>
 }
 else
 {
@@ -38,7 +37,7 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Miembro">
-                <MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{context.MemberId}"))" Underline="Underline.None">
+                <MudLink Href="@($"/members/{context.MemberId}")" Underline="Underline.None">
                     @context.MemberName
                 </MudLink>
             </MudTd>

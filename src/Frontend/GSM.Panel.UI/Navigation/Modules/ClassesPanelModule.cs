@@ -1,4 +1,4 @@
-using MudBlazor;
+﻿using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
 
@@ -17,5 +17,7 @@ public sealed class ClassesPanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Reservas de clases", 45, typeof(Pages.Settings.ClassRulesTab), Group: PanelSettingsGroups.Classes)];
+        [new("Reservas de clases", 45, typeof(Pages.Settings.ClassRulesTab), Group: PanelSettingsGroups.Training,
+            Description: "Con cuánto se reserva y se cancela, cupos en espera y qué pasa si no llegan.",
+            TracksUnsavedChanges: true)];
 }

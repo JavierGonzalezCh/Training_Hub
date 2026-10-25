@@ -1,94 +1,124 @@
-@page "/settings"
+﻿@page "/settings"
 @attribute [Authorize(Roles = GsmRoles.Owner)]
 @using GSM.Panel.UI.Navigation
 @inject PanelRegistry Registry
 @inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
 
 <PageTitle>Configuración — TrainingHub OS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-6">Configuración</MudText>
+<PageHeader Title="Configuración">
+    <Subtitle>Elige qué quieres ajustar. Cada sección se guarda por separado.</Subtitle>
+</PageHeader>
 
-@* Las pestañas no se escriben aquí: cada módulo declara las suyas (IPanelModule.SettingsSections) y la
-   sección de Gyms §7 donde van; este contenedor solo las muestra. Una sección con varias pestañas las
-   anida; con una sola, muestra su contenido directo. *@
+@* Índice por tareas del dueño, no por módulo: unos pocos grupos con su lista de secciones, cada una con una
+   línea que dice qué hay dentro. Es la misma lista en el celular y en el escritorio, y cada sección abre su
+   propia página (/settings/{slug}). Las secciones no se escriben aquí: las declara cada módulo. *@
 @if (_groups is not null)
 {
-    <MudTabs Rounded="true" Color="Color.Primary" Class="gsm-settings-tabs" data-testid="settings-groups"
-             @bind-ActivePanelIndex="_groupIndex">
-        @foreach (var group in _groups)
+    <MudTextField T="string" @bind-Value="_filter" Immediate="true" Placeholder="Buscar un ajuste" Clearable="true"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="gsm-settings-search mb-6"
+                  aria-label="Buscar un ajuste" data-testid="settings-search" />
+
+    @if (Visible.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Outlined.SearchOff" Title="Ningún ajuste coincide" TestId="settings-search-empty">
+            Prueba con otra palabra, por ejemplo «horario», «matrícula» o «kiosco».
+        </EmptyState>
+    }
+
+    <div class="gsm-settings-index" data-testid="settings-groups">
+        @foreach (var group in Visible)
         {
-            <MudTabPanel Text="@group.Name">
-                @if (group.Sections.Count == 1)
-                {
-                    var only = group.Sections[0];
-                    @if (only.Title != group.Name)
+            <section class="gsm-settings-group" aria-labelledby="@GroupId(group)">
+                <h2 class="gsm-settings-group__title" id="@GroupId(group)">@group.Name</h2>
+                <ul class="gsm-settings-list">
+                    @foreach (var section in group.Sections)
                     {
-                        <MudText Typo="Typo.h6" Class="mb-3">@only.Title</MudText>
+                        <li>
+                            <a class="gsm-settings-link" href="@($"/settings/{section.Slug}")" data-testid="@($"settings-link-{section.Slug}")">
+                                <span class="gsm-settings-link__text">
+                                    <span class="gsm-settings-link__title">@section.Title</span>
+                                    @if (!string.IsNullOrEmpty(section.Description))
+                                    {
+                                        <span class="gsm-settings-link__desc">@section.Description</span>
+                                    }
+                                </span>
+                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-settings-link__chevron" aria-hidden="true" />
+                            </a>
+                        </li>
                     }
-                    <DynamicComponent Type="@only.Component" />
-                }
-                else
-                {
-                    <MudTabs Rounded="false" Color="Color.Secondary" Class="gsm-settings-subtabs" data-testid="@($"settings-subtabs-{group.Name}")"
-                             ActivePanelIndex="@SectionIndexFor(group)">
-                        @foreach (var section in group.Sections)
-                        {
-                            <MudTabPanel Text="@section.Title">
-                                <DynamicComponent Type="@section.Component" />
-                            </MudTabPanel>
-                        }
-                    </MudTabs>
-                }
-            </MudTabPanel>
+                </ul>
+            </section>
         }
-    </MudTabs>
+    </div>
 }
 
 @code {
     private IReadOnlyList<PanelSettingsGroup>? _groups;
-    private int _groupIndex;
+    private string? _filter;
 
-    /// <summary>Grupo a abrir (p. ej. "Entrada al gym"), para que un botón de otra pantalla caiga en la pestaña exacta.</summary>
+    /// <summary>Enlaces viejos (<c>/settings?group=…&amp;section=…</c>): se redirigen a la página de la sección.</summary>
     [SupplyParameterFromQuery(Name = "group")]
     public string? GroupName { get; set; }
 
-    /// <summary>Sección dentro del grupo (p. ej. "Kioscos"); solo aplica si el grupo tiene varias pestañas.</summary>
     [SupplyParameterFromQuery(Name = "section")]
     public string? SectionName { get; set; }
+
+    private IReadOnlyList<PanelSettingsGroup> Visible
+    {
+        get
+        {
+            if (_groups is null)
+            {
+                return [];
+            }
+
+            if (string.IsNullOrWhiteSpace(_filter))
+            {
+                return _groups;
+            }
+
+            var term = PanelSettingsSection.Slugify(_filter);
+            return _groups
+                .Select(g => new PanelSettingsGroup(g.Name, g.Sections
+                    .Where(s => PanelSettingsSection.Slugify($"{g.Name} {s.Title} {s.Description}").Contains(term, StringComparison.Ordinal))
+                    .ToList()))
+                .Where(g => g.Sections.Count > 0)
+                .ToList();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
         _groups = Registry.GetSettingsGroups(state.User);
-        SelectGroup();
+        RedirectLegacyLink();
     }
 
-    // Un enlace a /settings?group=… desde la propia pantalla no vuelve a inicializarla: solo cambian los parámetros.
     protected override void OnParametersSet()
     {
         if (_groups is not null)
         {
-            SelectGroup();
+            RedirectLegacyLink();
         }
     }
 
-    private void SelectGroup()
+    private void RedirectLegacyLink()
     {
-        if (GroupName is not null && _groups is not null)
+        if (SectionName is null && GroupName is null)
         {
-            var index = _groups.ToList().FindIndex(g => string.Equals(g.Name, GroupName, StringComparison.OrdinalIgnoreCase));
-            _groupIndex = Math.Max(index, 0);
+            return;
+        }
+
+        var sections = _groups!.SelectMany(g => g.Sections).ToList();
+        var target = sections.FirstOrDefault(s => string.Equals(s.Title, SectionName, StringComparison.OrdinalIgnoreCase))
+                     ?? _groups!.FirstOrDefault(g => string.Equals(g.Name, GroupName, StringComparison.OrdinalIgnoreCase))?.Sections.FirstOrDefault();
+        if (target is not null)
+        {
+            Navigation.NavigateTo($"/settings/{target.Slug}", replace: true);
         }
     }
 
-    private int SectionIndexFor(PanelSettingsGroup group)
-    {
-        if (SectionName is null || !string.Equals(group.Name, GroupName, StringComparison.OrdinalIgnoreCase))
-        {
-            return 0;
-        }
-
-        var index = group.Sections.ToList().FindIndex(s => string.Equals(s.Title, SectionName, StringComparison.OrdinalIgnoreCase));
-        return Math.Max(index, 0);
-    }
+    private static string GroupId(PanelSettingsGroup group) => $"settings-group-{PanelSettingsSection.Slugify(group.Name)}";
 }

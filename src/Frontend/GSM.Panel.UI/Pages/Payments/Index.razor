@@ -1,25 +1,26 @@
-@page "/payments"
+﻿@page "/payments"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IPaymentsClient Payments
+@inject IMembersClient Members
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 <PageTitle>Pagos — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Pagos</MudText>
-    <MudSpacer />
-    <AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.ViewFinances)">
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PointOfSale"
-                   OnClick="@(() => Navigation.NavigateTo("/cash-register"))">
-            Cierre de caja
+<PageHeader Title="Pagos">
+    <Actions>
+        <AuthorizeView Policy="@GsmPolicies.ForPermission(GsmPermissions.ViewFinances)">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PointOfSale"
+                       OnClick="@(() => Navigation.NavigateTo("/cash-register"))">
+                Cierre de caja
+            </MudButton>
+        </AuthorizeView>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenRecordAsync">
+            Registrar pago
         </MudButton>
-    </AuthorizeView>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenRecordAsync">
-        Registrar pago
-    </MudButton>
-</div>
+    </Actions>
+</PageHeader>
 
 @* Caja del turno (Payments v2 §4.4): la ve todo el staff, porque cobrar en efectivo exige caja abierta. *@
 <CashDrawerBar @ref="_drawer" OnChanged="RefreshTableAsync" />
@@ -34,6 +35,11 @@
 <Authorized Context="finance">
 <ServerTable @ref="_table" TItem="PaymentResponse" Load="LoadAsync">
     <ToolBarContent>
+        @* Recepción busca un pago por quién lo hizo, no por concepto: el filtro por miembro va primero. *@
+        <MudAutocomplete OpenOnFocus="false" T="MemberListItem" Value="_member" ValueChanged="OnMemberChangedAsync" SearchFunc="SearchMembersAsync"
+                         ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName}")"
+                         Label="Miembro" Placeholder="Nombre o documento" Clearable="true" ResetValueOnEmptyText="true"
+                         Class="mr-4" Style="max-width:240px" data-testid="filter-member" />
         <MudDatePicker Label="Desde" Date="_from" DateChanged="OnFromChangedAsync" Class="mr-4" Style="max-width:180px" />
         <MudDatePicker Label="Hasta" Date="_to" DateChanged="OnToChangedAsync" Class="mr-4" Style="max-width:180px" />
         <MudSelect T="string" Value="_method" ValueChanged="OnMethodChangedAsync" Label="Método" Style="max-width:180px">
@@ -46,6 +52,7 @@
     </ToolBarContent>
     <HeaderContent>
         <MudTh>Fecha</MudTh>
+        <MudTh>Miembro</MudTh>
         <MudTh>Concepto</MudTh>
         <MudTh>Método</MudTh>
         <MudTh>Monto</MudTh>
@@ -53,6 +60,16 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Fecha">@GsmFormat.Instant(context.PaidAt)</MudTd>
+        <MudTd DataLabel="Miembro" data-testid="payment-member">
+            @if (context.MemberId is { } memberId)
+            {
+                <MudLink Href="@($"/members/{memberId}")" Underline="Underline.None">@(context.MemberName ?? "Miembro")</MudLink>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Venta sin miembro</MudText>
+            }
+        </MudTd>
         <MudTd DataLabel="Concepto">@context.Concept</MudTd>
         <MudTd DataLabel="Método">@PaymentMethodLabels.Label(context.Method)</MudTd>
         <MudTd DataLabel="Monto" Class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</MudTd>
@@ -60,10 +77,10 @@
     </RowTemplate>
     <CardTemplate>
         <div class="gsm-card__row">
-            <span class="gsm-card__title">@context.Concept</span>
+            <span class="gsm-card__title">@(context.MemberName ?? (context.MemberId is null ? "Venta sin miembro" : "Miembro"))</span>
             <span class="gsm-mono">@GsmFormat.Money((decimal)context.Amount)</span>
         </div>
-        <div class="gsm-card__meta">@GsmFormat.Instant(context.PaidAt) · @PaymentMethodLabels.Label(context.Method)</div>
+        <div class="gsm-card__meta">@context.Concept · @GsmFormat.Instant(context.PaidAt) · @PaymentMethodLabels.Label(context.Method)</div>
         <div class="gsm-card__actions"><PaymentVoidAction Payment="context" OnVoided="@(() => _table.RefreshAsync())" /></div>
     </CardTemplate>
 </ServerTable>
@@ -78,6 +95,7 @@
 
 @code {
     private ServerTable<PaymentResponse> _table = null!;
+    private MemberListItem? _member;
     private DateTime? _from;
     private DateTime? _to;
     private string _method = FilterValues.All;
@@ -98,7 +116,7 @@
                 _from is { } f ? DateOnly.FromDateTime(f) : null,
                 _to is { } t ? DateOnly.FromDateTime(t) : null,
                 FilterValues.IsAll(_method) ? null : int.Parse(_method),
-                null, page, pageSize, cancellationToken);
+                _member?.Id, page, pageSize, cancellationToken);
             return new ServerTablePage<PaymentResponse>(result.Items.ToList(), result.Total);
         }
         catch (GsmApiException ex)
@@ -106,6 +124,23 @@
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
             return new ServerTablePage<PaymentResponse>([], 0);
         }
+    }
+
+    private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return [];
+        }
+
+        var result = await Members.MembersGETAsync(search, null, null, null, 1, 10, null, null, null, cancellationToken);
+        return result.Items;
+    }
+
+    private async Task OnMemberChangedAsync(MemberListItem? value)
+    {
+        _member = value;
+        await _table.RefreshAsync();
     }
 
     private async Task OnFromChangedAsync(DateTime? value)

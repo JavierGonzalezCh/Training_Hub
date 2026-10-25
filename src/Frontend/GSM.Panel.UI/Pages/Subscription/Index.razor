@@ -1,9 +1,10 @@
-@page "/subscription"
+﻿@page "/subscription"
 @attribute [Authorize(Roles = GsmRoles.Owner)]
+@inject NavigationManager Navigation
 
-<PageTitle>Suscripción — TrainingHub OS</PageTitle>
+@* La suscripción vive en un solo lugar: Configuración › Suscripción. Esta ruta se queda porque los avisos de
+   suscripción ya enviados (SubscriptionNoticeHandlers.SubscriptionLink) apuntan aquí; solo redirige. *@
 
-<MudText Typo="Typo.h4" Class="mb-6">Suscripción</MudText>
-
-@* Los avisos de suscripción llevan aquí; el mismo contenido vive como pestaña en /settings. *@
-<GSM.Panel.UI.Pages.Settings.SubscriptionTab />
+@code {
+    protected override void OnInitialized() => Navigation.NavigateTo("/settings/suscripcion", replace: true);
+}

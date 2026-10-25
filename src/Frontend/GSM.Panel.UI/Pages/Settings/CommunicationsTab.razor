@@ -1,4 +1,4 @@
-@* Pestaña "Comunicaciones" de la configuración: antelación del recordatorio de vencimiento, felicitación de
+﻿@* Pestaña "Comunicaciones" de la configuración: antelación del recordatorio de vencimiento, felicitación de
    cumpleaños y plantillas de WhatsApp. Solo Owner. *@
 @inject IAnnouncementsClient Announcements
 @inject ISnackbar Snackbar
@@ -17,7 +17,7 @@ else
     </MudButton>
 
     <section class="mt-8" aria-labelledby="birthday-title" id="birthday-settings">
-        <h3 id="birthday-title" class="mud-typography mud-typography-h6">Cumpleaños</h3>
+        <h2 id="birthday-title" class="mud-typography mud-typography-h6">Cumpleaños</h2>
         <MudSwitch T="bool" @bind-Value="_birthdayEnabled" Color="Color.Primary" data-testid="birthday-enabled"
                    Label="Felicitar a los miembros activos el día de su cumpleaños" />
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
@@ -38,6 +38,10 @@ else
 <WhatsAppTemplatesEditor />
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private bool _loading = true;
     private bool _saving;
     private bool _savingBirthday;
@@ -81,6 +85,7 @@ else
             _days = (await Announcements.ReminderSettingsPUTAsync(new UpdateCommunicationsSettingsRequest { ReminderDaysBefore = _days }))
                 .ReminderDaysBefore;
             Snackbar.Add("Ajustes de comunicaciones guardados.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {
@@ -103,6 +108,7 @@ else
             ApplyBirthday(await Announcements.BirthdaySettingsPUTAsync(
                 new UpdateBirthdaySettingsRequest { Enabled = _birthdayEnabled, Message = message }));
             Snackbar.Add("Felicitación de cumpleaños guardada.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

@@ -92,7 +92,14 @@ public class ExerciseCatalogUiTests : TestContext
         Assert.True(muscle.HasAttribute("disabled"));          // sin zona no hay segundo paso
         Assert.Single(muscle.QuerySelectorAll("option"));      // solo "Todos"
 
+        // En el celular los filtros se pliegan tras "Filtros"; abrirlos no los quita del DOM.
+        Assert.Equal("Filtros", cut.Find("[data-testid='filters-toggle']").TextContent.Trim());
+        Assert.DoesNotContain("is-open", cut.Find("#exercise-filters").ClassName);
+        cut.Find("[data-testid='filters-toggle']").Click();
+        Assert.Contains("is-open", cut.Find("#exercise-filters").ClassName);
+
         cut.Find("select[data-testid='filter-group']").Change("1"); // tren inferior
+        Assert.Equal("Filtros (1)", cut.Find("[data-testid='filters-toggle']").TextContent.Trim());
 
         var options = cut.Find("select[data-testid='filter-muscle']").QuerySelectorAll("option").Select(o => o.TextContent).ToList();
         Assert.False(cut.Find("select[data-testid='filter-muscle']").HasAttribute("disabled"));

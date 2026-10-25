@@ -110,7 +110,9 @@ public class GymProfileUiTests : TestContext
 
         var cut = RenderComponent<GymDataTab>();
 
-        cut.WaitForAssertion(() => Assert.Contains("La dirección es obligatoria.", cut.Markup));
+        // Sin dirección no se guarda, pero la pantalla no abre en rojo: lo explica con una nota neutra.
+        cut.WaitForAssertion(() => Assert.NotNull(cut.Find("[data-testid='gym-location-missing']")));
+        Assert.DoesNotContain("La dirección es obligatoria.", cut.Markup);
         Assert.True(cut.Find("#gym-save").HasAttribute("disabled"));
     }
 

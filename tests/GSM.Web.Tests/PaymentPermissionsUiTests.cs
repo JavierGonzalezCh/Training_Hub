@@ -54,6 +54,8 @@ public class PaymentPermissionsUiTests : TestContext
         Services.AddSingleton(_payments);
         // P3: la página de pagos muestra la barra de la caja (sin respuesta del fake: "caja cerrada").
         Services.AddSingleton(DispatchProxy.Create<ICashShiftsClient, FakeClient>());
+        // El filtro por miembro de la lista busca con el cliente de miembros.
+        Services.AddSingleton(DispatchProxy.Create<IMembersClient, FakeClient>());
         _auth = this.AddTestAuthorization();
         _auth.SetAuthorized("luis");
         _auth.SetRoles("staff");
@@ -236,9 +238,13 @@ public class PaymentPermissionsUiTests : TestContext
     public void Payments_page_with_ViewFinances_lists_payments_and_links_the_daily_close()
     {
         Grant("view_finances");
+        var memberId = Guid.NewGuid();
+        var ofMember = Payment();
+        ofMember.MemberId = memberId;
+        ofMember.MemberName = "Ana Prueba";
         _fake.Handlers["PaymentsGET3Async"] = _ => new PagedResultOfPaymentResponse
         {
-            Items = [Payment()], Page = 1, PageSize = 20, Total = 1,
+            Items = [ofMember, Payment()], Page = 1, PageSize = 20, Total = 2,
         };
 
         RenderComponent<MudPopoverProvider>();
@@ -248,5 +254,11 @@ public class PaymentPermissionsUiTests : TestContext
         Assert.Contains(_fake.Calls, c => c.Method == "PaymentsGET3Async");
         Assert.Contains("Cierre de caja", cut.Markup);
         Assert.Contains("Mensualidad", cut.Markup);
+
+        // Cada pago dice de quién es: el miembro enlaza a su ficha y una venta suelta lo dice.
+        var members = cut.FindAll("[data-testid='payment-member']");
+        Assert.Equal($"/members/{memberId}", members[0].QuerySelector("a")!.GetAttribute("href"));
+        Assert.Contains("Ana Prueba", members[0].TextContent);
+        Assert.Contains("Venta sin miembro", members[1].TextContent);
     }
 }

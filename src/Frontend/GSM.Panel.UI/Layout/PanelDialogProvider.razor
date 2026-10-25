@@ -6,7 +6,7 @@
 @inject ViewportState Viewport
 
 <div class="@(Viewport.IsNarrow ? "gsm-dialogs--fullscreen" : null)" data-testid="dialogs-host">
-    <MudDialogProvider CloseButton="@Viewport.IsNarrow" />
+    <MudDialogProvider CloseOnEscapeKey="true" CloseButton="@Viewport.IsNarrow" />
 </div>
 
 @code {

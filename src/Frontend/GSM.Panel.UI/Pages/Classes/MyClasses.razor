@@ -1,4 +1,4 @@
-@page "/classes/mine"
+﻿@page "/classes/mine"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IClassesClient Classes
 @inject IDialogService Dialogs
@@ -6,16 +6,16 @@
 
 <PageTitle>Mis clases — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-6" style="gap:1rem">
-    <MudText Typo="Typo.h4">Mis clases</MudText>
-    <MudSpacer />
-    @* La navegación de semana va en un grupo: en el celular baja entera a su línea en vez de repartir las flechas. *@
-    <div class="d-flex align-center" style="gap:.5rem">
-        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" aria-label="Semana anterior" />
-        <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
-        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" aria-label="Semana siguiente" />
-    </div>
-</div>
+<PageHeader Title="Mis clases">
+    <Actions>
+        @* La navegación de semana va en un grupo: en el celular baja entera a su línea en vez de repartir las flechas. *@
+        <div class="d-flex align-center" style="gap:.5rem">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" aria-label="Semana anterior" />
+            <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" aria-label="Semana siguiente" />
+        </div>
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {

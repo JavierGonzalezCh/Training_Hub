@@ -230,7 +230,8 @@ public class PassUiTests : TestContext
         page.WaitForAssertion(() =>
         {
             Assert.Equal("Quedan 2 de 12 entradas", page.Find("#pass-balance-result").TextContent.Trim());
-            Assert.Contains("Te quedan 2 entradas de 12", page.Find("#access-notice").TextContent);
+            // Redactado para recepción, no el "Te quedan…" del kiosco.
+            Assert.Contains("Le quedan 2 entradas de 12", page.Find("#access-notice").TextContent);
         });
     }
 

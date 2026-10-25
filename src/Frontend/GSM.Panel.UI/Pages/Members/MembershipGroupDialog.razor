@@ -52,7 +52,7 @@
 
             @if (HolderIsActive && _group.SeatsFree > 0)
             {
-                <MudAutocomplete T="MemberListItem" Label="Agregar a una persona" Value="_picked" ValueChanged="OnPickedAsync"
+                <MudAutocomplete OpenOnFocus="false" T="MemberListItem" Label="Agregar a una persona" Value="_picked" ValueChanged="OnPickedAsync"
                                  SearchFunc="SearchMembersAsync"
                                  ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
                                  Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" id="group-add-search"

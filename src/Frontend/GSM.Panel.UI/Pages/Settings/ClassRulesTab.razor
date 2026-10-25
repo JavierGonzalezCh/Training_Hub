@@ -1,4 +1,4 @@
-@* Pestaña "Reservas de clases" de la configuración (Classes v2, C3): plazo de cancelación, penalización por
+﻿@* Pestaña "Reservas de clases" de la configuración (Classes v2, C3): plazo de cancelación, penalización por
    inasistencia, ventana de reserva y máximo de reservas activas. Solo Owner. *@
 @inject IClassSettingsClient ClassSettings
 @inject ISnackbar Snackbar
@@ -41,6 +41,10 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private bool _loading = true;
     private bool _saving;
     private int _cancelDeadlineHours = 2;
@@ -96,6 +100,7 @@ else
             });
             Apply(saved);
             Snackbar.Add("Reglas de reserva guardadas.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

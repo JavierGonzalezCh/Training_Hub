@@ -36,6 +36,12 @@ public sealed record PaymentResponse(
 
     /// <summary>Nombre de quien cobró. Solo lo llenan las pantallas que lo muestran (cierre diario, reporte de turno).</summary>
     public string? RegisteredByName { get; init; }
+
+    /// <summary>
+    /// Nombre del miembro que pagó. Solo lo llena la lista de pagos del gym: sin él, cinco "Plan Mensual" iguales
+    /// no se distinguen y se puede anular el equivocado. Nulo en ventas sin miembro o si el miembro no se encontró.
+    /// </summary>
+    public string? MemberName { get; init; }
 }
 
 /// <summary>

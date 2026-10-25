@@ -1,4 +1,4 @@
-@* Miembros con la penalización de reservas vigente (Classes v2, C3). El staff puede levantarla con motivo. *@
+﻿@* Miembros con la penalización de reservas vigente (Classes v2, C3). El staff puede levantarla con motivo. *@
 @inject IClassBookingBlocksClient Blocks
 @inject ISnackbar Snackbar
 
@@ -10,7 +10,7 @@
         }
         else if (_items.Count == 0)
         {
-            <MudText Color="Color.Secondary" Class="gsm-blocks-empty">Nadie tiene reservas bloqueadas por inasistencias.</MudText>
+            <EmptyState Icon="@Icons.Material.Outlined.EventAvailable" Compact="true" Class="gsm-blocks-empty">Nadie tiene reservas bloqueadas por inasistencias.</EmptyState>
         }
         else
         {

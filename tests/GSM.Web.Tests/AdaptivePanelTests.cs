@@ -22,6 +22,25 @@ public class AdaptivePanelTests : TestContext
         protected override void BuildRenderTree(RenderTreeBuilder builder) => builder.AddMarkupContent(0, "<p id=\"test-tab\">contenido de prueba</p>");
     }
 
+    /// <summary>Una sección con un campo y un "Guardar" que avisa a la página, como las pestañas reales.</summary>
+    private sealed class EditableTab : ComponentBase
+    {
+        [CascadingParameter]
+        public SettingsSectionState? SectionState { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "input");
+            builder.AddAttribute(1, "id", "editable-field");
+            builder.CloseElement();
+            builder.OpenElement(2, "button");
+            builder.AddAttribute(3, "id", "editable-save");
+            builder.AddAttribute(4, "onclick", EventCallback.Factory.Create(this, () => SectionState?.MarkSaved()));
+            builder.AddContent(5, "Guardar");
+            builder.CloseElement();
+        }
+    }
+
     private sealed class ExtraModule : IPanelModule
     {
         public string Module => "Extra";
@@ -30,7 +49,10 @@ public class AdaptivePanelTests : TestContext
             [new("Máquinas", Icons.Material.Outlined.FitnessCenter, "/equipment", PanelSections.Operation, 50)];
 
         public IEnumerable<PanelSettingsSection> SettingsSections =>
-            [new("Máquinas y fallas", 70, typeof(TestTab))];
+        [
+            new("Máquinas y fallas", 70, typeof(TestTab), Description: "Prueba de un módulo extra."),
+            new("Ajuste editable", 71, typeof(EditableTab), TracksUnsavedChanges: true),
+        ];
     }
 
     private void Setup(string role = "owner", bool narrow = false, bool withExtraModule = false)
@@ -101,11 +123,17 @@ public class AdaptivePanelTests : TestContext
 
         var titles = registry.GetSettingsSections(user).Select(s => s.Title).ToArray();
 
-        Assert.Equal(["Datos del gym", "Módulos", "Horario", "Suscripción", "Membresías", "Check-in", "Autorizaciones", "Privacidad", "Comunicaciones", "Reservas de clases", "Avisos", "Rutinas", "Equipos", "Staff", "Kioscos", "Logros del gym", "Máquinas y fallas"], titles);
+        Assert.Equal(
+            [
+                "Datos del gym", "Horario", "Módulos", "Suscripción", "Membresías", "Check-in", "Autorizaciones", "Privacidad",
+                "Mensajes a los miembros", "Reservas de clases", "Horario sin avisos", "Rutinas", "Máquinas", "Personal y permisos",
+                "Kioscos", "Logros y premios", "Máquinas y fallas", "Ajuste editable",
+            ],
+            titles);
     }
 
     [Fact]
-    public void Settings_are_grouped_by_section_in_the_order_of_Gyms_section_7()
+    public void Settings_are_grouped_by_the_owners_tasks_not_one_group_per_module()
     {
         Setup(withExtraModule: true);
         var registry = Services.GetRequiredService<PanelRegistry>();
@@ -114,18 +142,26 @@ public class AdaptivePanelTests : TestContext
         var groups = registry.GetSettingsGroups(user);
 
         Assert.Equal(
-            ["Gym", "Equipo", "Membresías", "Entrada al gym", "Rutinas", "Equipos", "Clases", "Comunicaciones", "Logros", "Miembros", "Módulos", "Otros"],
+            ["Tu gimnasio", "Personal", "Entrada al gym", "Membresías y miembros", "Entrenamiento", "Comunicaciones", "Otros"],
             groups.Select(g => g.Name).ToArray());
-        Assert.Equal(["Datos del gym", "Horario", "Suscripción"], groups.Single(g => g.Name == "Gym").Sections.Select(s => s.Title).ToArray());
-        Assert.Equal(["Check-in", "Kioscos"], groups.Single(g => g.Name == "Entrada al gym").Sections.Select(s => s.Title).ToArray());
-        Assert.Equal(["Comunicaciones", "Avisos"], groups.Single(g => g.Name == "Comunicaciones").Sections.Select(s => s.Title).ToArray());
-        // Una pestaña sin grupo cae en "Otros", al final.
-        Assert.Equal(["Máquinas y fallas"], groups.Last().Sections.Select(s => s.Title).ToArray());
+        Assert.Equal(["Datos del gym", "Horario", "Módulos", "Suscripción"], Titles(groups, "Tu gimnasio"));
+        Assert.Equal(["Personal y permisos"], Titles(groups, "Personal"));
+        Assert.Equal(["Check-in", "Kioscos"], Titles(groups, "Entrada al gym"));
+        Assert.Equal(["Membresías", "Autorizaciones", "Privacidad"], Titles(groups, "Membresías y miembros"));
+        Assert.Equal(["Reservas de clases", "Rutinas", "Máquinas", "Logros y premios"], Titles(groups, "Entrenamiento"));
+        Assert.Equal(["Mensajes a los miembros", "Horario sin avisos"], Titles(groups, "Comunicaciones"));
+        // Una sección sin grupo cae en "Otros", al final.
+        Assert.Equal(["Máquinas y fallas", "Ajuste editable"], groups.Last().Sections.Select(s => s.Title).ToArray());
+        // Las secciones reales dicen qué hay dentro.
+        Assert.All(groups.Where(g => g.Name != "Otros").SelectMany(g => g.Sections), s => Assert.False(string.IsNullOrWhiteSpace(s.Description)));
     }
 
-    [Fact]
-    public void Settings_index_shows_one_tab_per_section()
+    private static string[] Titles(IReadOnlyList<PanelSettingsGroup> groups, string name)
+        => groups.Single(g => g.Name == name).Sections.Select(s => s.Title).ToArray();
+
+    private void SetupSettingsPages()
     {
+        // Solo las secciones de prueba: las reales piden la API.
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
         Services.AddSingleton(new PanelRegistry([new ExtraModule()]));
@@ -133,29 +169,90 @@ public class AdaptivePanelTests : TestContext
         auth.SetAuthorized("ana");
         auth.SetRoles("owner");
         RenderComponent<MudPopoverProvider>();
-
-        var cut = RenderComponent<GSM.Panel.UI.Pages.Settings.Index>();
-
-        var tabs = cut.Find("[data-testid='settings-groups']").TextContent;
-        Assert.Contains("Otros", tabs);
-        Assert.Contains("contenido de prueba", cut.Markup);
     }
 
     [Fact]
-    public void Settings_index_renders_the_tabs_the_modules_declare()
+    public void Settings_index_lists_each_section_as_a_link_to_its_own_page()
     {
-        // Solo la pestaña de prueba hace falta para comprobar el armado; las reales piden la API.
-        JSInterop.Mode = JSRuntimeMode.Loose;
-        Services.AddMudServices();
-        Services.AddSingleton(new PanelRegistry([new ExtraModule()]));
-        var auth = this.AddTestAuthorization();
-        auth.SetAuthorized("ana");
-        auth.SetRoles("owner");
-        RenderComponent<MudPopoverProvider>();
+        SetupSettingsPages();
 
         var cut = RenderComponent<GSM.Panel.UI.Pages.Settings.Index>();
 
-        Assert.Contains("Máquinas y fallas", cut.Markup);
+        Assert.Contains("Otros", cut.Find("[data-testid='settings-groups']").TextContent);
+        var link = cut.Find("[data-testid='settings-link-maquinas-y-fallas']");
+        Assert.Equal("/settings/maquinas-y-fallas", link.GetAttribute("href"));
+        Assert.Contains("Prueba de un módulo extra.", link.TextContent);
+        // El índice no monta las secciones: cada una abre su página.
+        Assert.DoesNotContain("contenido de prueba", cut.Markup);
+    }
+
+    [Fact]
+    public void Settings_index_filters_sections_by_name_or_description_ignoring_accents()
+    {
+        SetupSettingsPages();
+        var cut = RenderComponent<GSM.Panel.UI.Pages.Settings.Index>();
+
+        cut.Find("[data-testid='settings-search'] input, input[data-testid='settings-search']").Input("maquinas");
+        Assert.Single(cut.FindAll("a.gsm-settings-link"));
+
+        cut.Find("[data-testid='settings-search'] input, input[data-testid='settings-search']").Input("zzz");
+        Assert.NotNull(cut.Find("[data-testid='settings-search-empty']"));
+    }
+
+    [Fact]
+    public void An_old_settings_link_with_group_and_section_redirects_to_the_section_page()
+    {
+        SetupSettingsPages();
+        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        nav.NavigateTo("/settings?group=Otros&section=Ajuste%20editable");
+
+        RenderComponent<GSM.Panel.UI.Pages.Settings.Index>();
+
+        Assert.EndsWith("/settings/ajuste-editable", nav.Uri);
+    }
+
+    [Fact]
+    public void A_section_page_shows_its_component_and_an_unknown_slug_says_so()
+    {
+        SetupSettingsPages();
+
+        var page = RenderComponent<GSM.Panel.UI.Pages.Settings.Section>(p => p.Add(x => x.Slug, "maquinas-y-fallas"));
+        Assert.Contains("contenido de prueba", page.Markup);
+        Assert.Contains("Máquinas y fallas", page.Find("h1").TextContent);
+
+        var missing = RenderComponent<GSM.Panel.UI.Pages.Settings.Section>(p => p.Add(x => x.Slug, "no-existe"));
+        Assert.NotNull(missing.Find("[data-testid='settings-section-missing']"));
+    }
+
+    [Fact]
+    public void Editing_a_section_shows_unsaved_changes_and_saving_clears_it()
+    {
+        SetupSettingsPages();
+        var page = RenderComponent<GSM.Panel.UI.Pages.Settings.Section>(p => p.Add(x => x.Slug, "ajuste-editable"));
+        Assert.Empty(page.FindAll("[data-testid='settings-unsaved']"));
+
+        page.Find("#editable-field").Input("nuevo valor");
+        page.WaitForAssertion(() => Assert.NotNull(page.Find("[data-testid='settings-unsaved']")));
+
+        page.Find("#editable-save").Click();
+        page.WaitForAssertion(() => Assert.Empty(page.FindAll("[data-testid='settings-unsaved']")));
+    }
+
+    [Fact]
+    public void Leaving_a_section_with_unsaved_changes_asks_first_and_can_stay()
+    {
+        SetupSettingsPages();
+        var provider = RenderComponent<MudDialogProvider>();
+        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        nav.NavigateTo("/settings/ajuste-editable");
+        var page = RenderComponent<GSM.Panel.UI.Pages.Settings.Section>(p => p.Add(x => x.Slug, "ajuste-editable"));
+
+        page.Find("#editable-field").Input("nuevo valor");
+        page.InvokeAsync(() => nav.NavigateTo("/members"));
+
+        provider.WaitForAssertion(() => Assert.Contains("Cambios sin guardar", provider.Markup));
+        provider.FindAll("button").First(b => b.TextContent.Contains("Seguir editando")).Click();
+        page.WaitForAssertion(() => Assert.EndsWith("/settings/ajuste-editable", nav.Uri));
     }
 
     [Fact]

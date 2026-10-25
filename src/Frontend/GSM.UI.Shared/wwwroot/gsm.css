@@ -44,6 +44,15 @@
     --gsm-display-tracking: 0.01em;
     --gsm-font-number: 'Anton', 'Barlow', sans-serif;
     --gsm-number-weight: 400;
+
+    /* Escala tipográfica por rol (no por valor). Los títulos de página y las cifras grandes
+       siguen con sus clamp() en Anton; todo lo demás sale de aquí. 12px es el piso. */
+    --gsm-fs-micro: 0.75rem;   /* rótulos en mono, metadatos, cabeceras de tabla */
+    --gsm-fs-label: 0.8125rem; /* botones y controles en mayúsculas */
+    --gsm-fs-small: 0.875rem;  /* texto secundario */
+    --gsm-fs-body: 1rem;       /* texto corriente */
+    --gsm-fs-lead: 1.125rem;   /* títulos de tarjeta y de sección */
+    --gsm-fs-title: 1.5rem;
 }
 
 /* Alias de los nombres v4.0: hay estilos en línea y componentes que todavía los usan. */
@@ -90,9 +99,14 @@ body,
     }
 }
 
-:focus-visible {
-    outline: 2px solid var(--gsm-ring);
-    outline-offset: 2px;
+/* Anillo de foco de teclado. MudBlazor apaga el outline con reglas más específicas que un :focus-visible suelto
+   (button:focus { outline: none }, .mud-button-root { outline: 0 }), así que botones, enlaces y menús quedaban sin
+   foco visible (WCAG 2.4.7). El !important es a propósito: el anillo tiene que ganarle a cualquier reset del
+   framework. Los campos de texto se excluyen: ya marcan el foco con su propia línea inferior. También lo que solo
+   recibe foco por código (tabindex="-1"): el h1 al que Blazor lleva el foco al navegar no es un control. */
+:focus-visible:not(input):not(textarea):not(select):not([tabindex="-1"]) {
+    outline: 2px solid var(--gsm-ring) !important;
+    outline-offset: 2px !important;
 }
 
 /* ---------- Marca ----------------------------------------------------------------------- */
@@ -145,7 +159,7 @@ body,
 .gsm-num {
     font-family: var(--gsm-font-mono);
     font-variant-numeric: tabular-nums;
-    font-size: 0.875rem;
+    font-size: var(--gsm-fs-small);
 }
 
 .gsm-kicker,
@@ -153,7 +167,7 @@ body,
     font-family: var(--gsm-font-mono);
     text-transform: uppercase;
     letter-spacing: 0.16em;
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     color: var(--gsm-text-2);
     display: flex;
     align-items: center;
@@ -173,7 +187,7 @@ body,
 @media (max-width: 420px) {
     .gsm-kicker,
     .gsm-eyebrow {
-        font-size: 0.6875rem;
+        font-size: var(--gsm-fs-micro);
         letter-spacing: 0.1em;
     }
 }
@@ -197,7 +211,7 @@ body,
     align-items: center;
     min-height: 44px;
     text-decoration: none;
-    font-size: 1.5rem;
+    font-size: var(--gsm-fs-title);
 }
 
 .gsm-topbar__gym {
@@ -205,7 +219,7 @@ body,
     padding-left: 1rem;
     border-left: 1px solid var(--gsm-border);
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--gsm-text-2);
@@ -247,7 +261,7 @@ body,
 .gsm-avatar--sm {
     width: 28px;
     height: 28px;
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
 }
 
 .gsm-user-card {
@@ -262,7 +276,7 @@ body,
 
 .gsm-user-card__meta {
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     color: var(--gsm-text-2);
 }
 
@@ -340,7 +354,7 @@ body,
 .gsm-nav__label {
     padding: 0 0.75rem 0.4rem;
     font-family: var(--gsm-font-display);
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     font-weight: var(--gsm-display-weight);
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -358,7 +372,7 @@ body,
     color: var(--gsm-text-2);
     text-decoration: none;
     font-weight: 500;
-    font-size: 0.9375rem;
+    font-size: var(--gsm-fs-body);
     transition: background-color 160ms ease, color 160ms ease;
 }
 
@@ -372,8 +386,31 @@ body,
     background: var(--gsm-accent-soft);
 }
 
+/* El gimnasio conectado queda fijo al pie del menú: si la lista es más alta que la pantalla, los enlaces se
+   desplazan por detrás y el gym sigue a la vista. El pie tiene fondo propio y cubre todo el ancho del menú:
+   tapa los enlaces que pasan por debajo y también recibe sus clics (una sombra solo los taparía a la vista).
+   El degradado de arriba suaviza el corte de la lista. */
+.gsm-nav__foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin: auto -0.75rem -1rem;
+    padding: 0.75rem 0.75rem 1rem;
+    background: var(--gsm-bg);
+}
+
+.gsm-nav__foot::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 1.25rem;
+    background: linear-gradient(to bottom, transparent, var(--gsm-bg));
+    pointer-events: none;
+}
+
 .gsm-nav__gym {
-    margin-top: auto;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -404,7 +441,7 @@ body,
 
 .gsm-nav__gym-name {
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: var(--gsm-fs-small);
     color: var(--gsm-text);
     white-space: nowrap;
     overflow: hidden;
@@ -413,7 +450,7 @@ body,
 
 .gsm-nav__gym-meta {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     color: var(--gsm-text-2);
 }
 
@@ -476,7 +513,7 @@ body,
 .gsm-page-subtitle {
     margin: 0;
     max-width: 60ch;
-    font-size: 1rem;
+    font-size: var(--gsm-fs-body);
     line-height: 1.5;
     color: var(--gsm-text-2);
 }
@@ -533,7 +570,7 @@ body,
 
 .gsm-kpi__label {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--gsm-text-2);
@@ -577,7 +614,7 @@ body,
 }
 
 .gsm-kpi__hint {
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -636,7 +673,7 @@ body,
 
 .gsm-panel__title {
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--gsm-fs-body);
     font-weight: 600;
     color: var(--gsm-text);
 }
@@ -644,7 +681,7 @@ body,
 .gsm-panel__meta,
 .gsm-panel__link {
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.04em;
     color: var(--gsm-text-2);
 }
@@ -721,7 +758,7 @@ body,
 .gsm-bar__label {
     text-align: center;
     font-family: var(--gsm-font-mono);
-    font-size: 0.625rem;
+    font-size: var(--gsm-fs-micro);
     color: var(--gsm-text-2);
 }
 
@@ -736,7 +773,7 @@ body,
     display: flex;
     gap: 1.25rem;
     margin-top: 1rem;
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     color: var(--gsm-text-2);
 }
 
@@ -782,7 +819,7 @@ body,
 
 .gsm-feed__time {
     font-family: var(--gsm-font-mono);
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     font-variant-numeric: tabular-nums;
     color: var(--gsm-text-2);
 }
@@ -808,7 +845,7 @@ body,
     border: 1px solid var(--gsm-border-strong);
     border-radius: var(--gsm-radius-pill);
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.06em;
     color: var(--gsm-text-2);
     white-space: nowrap;
@@ -833,8 +870,14 @@ body,
 
 /* ---------- Controles ------------------------------------------------------------------- */
 
+/* Nunca más ancho que su contenedor: con muchas opciones (Comunicaciones tiene cinco) se
+   desplaza por dentro en el celular en vez de empujar la página hacia el lado. */
 .gsm-segmented {
     display: inline-flex;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
     gap: 2px;
     padding: 3px;
     background: var(--gsm-bg);
@@ -842,7 +885,13 @@ body,
     border-radius: var(--gsm-radius-pill);
 }
 
+.gsm-segmented::-webkit-scrollbar {
+    display: none;
+}
+
 .gsm-segmented__option {
+    flex-shrink: 0;
+    white-space: nowrap;
     min-height: 34px;
     padding: 0 0.9rem;
     border: 0;
@@ -882,7 +931,7 @@ body,
 .gsm-main .mud-table-head .mud-table-cell,
 .gsm-table .mud-table-head .mud-table-cell {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     font-weight: 500;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -919,6 +968,16 @@ body,
 .mud-link.mud-primary-text:focus-visible {
     color: var(--gsm-accent-text) !important;
     text-decoration: underline;
+}
+
+/* El rojo de marca (#B50016) sirve de relleno y de borde, no de color de texto: sobre el fondo oscuro da 2,56:1
+   ("Unir con el anterior", la pestaña activa "Cierre del día"). Texto e iconos en Primary usan el rojo para texto
+   (--gsm-accent-text, que respeta el color del gym); el relleno de los botones Filled no cambia. */
+.mud-primary-text:not(.mud-link),
+.mud-tab.mud-tab-active,
+.mud-button-text.mud-button-text-primary,
+.mud-button-outlined.mud-button-outlined-primary {
+    color: var(--gsm-accent-text) !important;
 }
 
 /* ---------- Acceso (login y recuperación) ---------------------------------------------- */
@@ -981,7 +1040,7 @@ body,
     background: var(--gsm-accent-soft);
     color: var(--gsm-accent-text);
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.14em;
     text-transform: uppercase;
 }
@@ -1120,7 +1179,7 @@ body,
     background: var(--gsm-accent);
     color: var(--gsm-on-accent);
     font-family: var(--gsm-font-mono);
-    font-size: 0.8rem;
+    font-size: var(--gsm-fs-label);
 }
 
 /* El appbar y el drawer bajan para dejarle sitio a la barra fija de impersonación. */
@@ -1172,7 +1231,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 
 .gsm-tabbar-label {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
@@ -1218,7 +1277,308 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 
 .gsm-empty-title {
     color: var(--gsm-text);
-    font-size: 1.0625rem;
+    font-size: var(--gsm-fs-lead);
+}
+
+.gsm-empty__text {
+    max-width: 48ch;
+    line-height: 1.5;
+}
+
+.gsm-empty__action {
+    margin-top: 0.25rem;
+}
+
+/* ---------- Recepción: tarjeta del miembro y veredicto ----------------------------------
+   El tono sale de un solo sitio (--gsm-reception-tone) para que borde, rótulo e icono digan
+   lo mismo. Verde y rojo de estado, no el acento de marca: el acento ya es rojo. */
+
+.gsm-reception {
+    --gsm-reception-tone: var(--gsm-border-strong);
+    border: 1px solid var(--gsm-reception-tone);
+}
+
+.gsm-reception--ok {
+    --gsm-reception-tone: var(--gsm-ok);
+}
+
+.gsm-reception--danger {
+    --gsm-reception-tone: var(--gsm-danger);
+}
+
+.gsm-reception--neutral {
+    --gsm-reception-tone: var(--gsm-text-2);
+}
+
+.gsm-verdict {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: -0.5rem -0.5rem 1.25rem;
+    padding: 0.6rem 0.75rem;
+    background: color-mix(in srgb, var(--gsm-reception-tone) 14%, transparent);
+    color: var(--gsm-reception-tone);
+    font-family: var(--gsm-font-display);
+    font-size: var(--gsm-fs-title);
+    letter-spacing: var(--gsm-display-tracking);
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.gsm-verdict .mud-icon-root {
+    flex-shrink: 0;
+}
+
+/* ---------- Configuración: índice por grupos y página de sección ---------------------------
+   Una lista por grupo (no tarjetas): título, una línea de qué hay dentro y el chevron. En
+   escritorio los grupos van en columnas; en el celular, uno debajo del otro, filas de 56px+. */
+
+.gsm-settings-search {
+    max-width: 420px;
+}
+
+.gsm-settings-index {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+    gap: 2rem 1.5rem;
+    align-items: start;
+}
+
+.gsm-settings-group__title {
+    margin: 0 0 0.5rem;
+    font-family: var(--gsm-font-mono);
+    font-size: var(--gsm-fs-micro);
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
+
+.gsm-settings-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--gsm-border);
+    background: var(--gsm-surface);
+}
+
+.gsm-settings-list li + li {
+    border-top: 1px solid var(--gsm-border);
+}
+
+.gsm-settings-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 56px;
+    padding: 0.75rem 1rem;
+    color: var(--gsm-text);
+    text-decoration: none;
+    transition: background-color 160ms ease;
+}
+
+.gsm-settings-link:hover {
+    background: var(--gsm-surface-2);
+}
+
+.gsm-settings-link__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.gsm-settings-link__title {
+    font-size: var(--gsm-fs-body);
+    font-weight: 600;
+}
+
+.gsm-settings-link__desc {
+    font-size: var(--gsm-fs-small);
+    line-height: 1.4;
+    color: var(--gsm-text-2);
+}
+
+.gsm-settings-link__chevron {
+    flex-shrink: 0;
+    color: var(--gsm-text-3);
+}
+
+/* Aviso de cambios sin guardar: fijo arriba del contenido mientras haya algo pendiente. */
+.gsm-unsaved {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    background: color-mix(in srgb, var(--gsm-warn) 16%, var(--gsm-bg));
+    color: var(--gsm-warn);
+    font-size: var(--gsm-fs-small);
+    font-weight: 600;
+}
+
+/* Filtros plegables: en escritorio siempre a la vista y sin botón; en pantallas angostas el botón "Filtros (n)"
+   los abre, para que la lista quede arriba. Los filtros siguen en el DOM (se ocultan, no se quitan). */
+.gsm-filters-toggle.mud-button-root {
+    display: none;
+}
+
+@media (max-width: 959.95px) {
+    .gsm-filters-toggle.mud-button-root {
+        display: inline-flex;
+        min-height: 44px;
+    }
+
+    .gsm-filters:not(.is-open) {
+        display: none !important;
+    }
+}
+
+/* Objetivos táctiles en el celular: 44px de alto como mínimo. En escritorio, con ratón, los controles siguen densos;
+   bajo el corte del panel (960px) botones, filtros segmentados, acciones de las tarjetas y enlaces de sección
+   medían entre 24 y 35px. Los botones de texto ganan alto, no ancho: el rótulo no cambia de tamaño. Vale para el
+   panel (.gsm-page), la app del miembro (.gsm-m-shell) y el acceso (.gsm-auth-card). Las flechas dentro de los
+   campos (autocompletado, numéricos) quedan fuera: son parte del campo, que ya mide 44px o más. */
+@media (max-width: 959.95px) {
+    :is(.gsm-page, .gsm-m-shell .mud-main-content, .gsm-auth-card) .mud-button-root:not(.mud-icon-button),
+    :is(.gsm-page, .gsm-m-shell .mud-main-content) .gsm-segmented__option {
+        min-height: 44px;
+    }
+
+    .gsm-card__actions .mud-icon-button,
+    :is(.gsm-page, .gsm-m-shell .mud-main-content) .mud-icon-button:not(.mud-input-adornment-icon-button) {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .gsm-panel__link,
+    .gsm-card__title a,
+    .gsm-card__title.mud-link,
+    .gsm-page .mud-table-cell .mud-link,
+    .gsm-page > .mud-link,
+    .gsm-m-shell .mud-main-content .mud-link:not(p .mud-link),
+    .gsm-auth-card .mud-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+}
+
+/* "Saltar al contenido": invisible hasta que recibe el foco con el teclado; entonces aparece arriba a la izquierda,
+   por encima de la barra superior. */
+.gsm-skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 2000;
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+    background: var(--gsm-surface-2);
+    color: var(--gsm-text);
+    border: 1px solid var(--gsm-border-strong);
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(-200%);
+}
+
+.gsm-skip-link:focus,
+.gsm-skip-link:focus-visible {
+    transform: none;
+}
+
+/* Recepción: lo secundario de la tarjeta, plegado bajo una línea que resume qué hay. */
+.gsm-reception__extras {
+    margin-top: 1.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--gsm-border);
+}
+
+.gsm-reception__extras > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: var(--gsm-fs-small);
+    font-weight: 600;
+    color: var(--gsm-text-2);
+}
+
+.gsm-reception__extras > summary:hover {
+    color: var(--gsm-text);
+}
+
+/* "Más filtros" de un listado: una fila aparte bajo la barra, plegada hasta que se pide. */
+.gsm-more-filters {
+    display: none;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding-top: 0.75rem;
+}
+
+.gsm-more-filters.is-open {
+    display: flex;
+}
+
+/* Acciones destructivas dentro de un menú: el texto también va en rojo, no solo el icono. */
+.gsm-danger-text {
+    color: var(--gsm-danger);
+}
+
+/* Ficha de un pago antes de una acción irreversible (anular): monto, de quién y cuándo. */
+.gsm-payment-summary {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--gsm-border-strong);
+    background: var(--gsm-surface-2);
+}
+
+.gsm-payment-summary__amount {
+    font-size: var(--gsm-fs-title);
+    color: var(--gsm-text);
+}
+
+.gsm-payment-summary__who {
+    font-size: var(--gsm-fs-lead);
+    font-weight: 600;
+    color: var(--gsm-text);
+}
+
+.gsm-payment-summary__meta {
+    font-size: var(--gsm-fs-small);
+    color: var(--gsm-text-2);
+}
+
+/* Resultado del arqueo: la diferencia se lee de un vistazo, en grande, y no solo por el color. */
+.gsm-cash-diff {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    font-family: var(--gsm-font-display);
+    font-size: var(--gsm-fs-title);
+    text-transform: uppercase;
+    line-height: 1.1;
+}
+
+.gsm-cash-diff--ok {
+    color: var(--gsm-ok);
+    background: color-mix(in srgb, var(--gsm-ok) 12%, transparent);
+}
+
+.gsm-cash-diff--off {
+    color: var(--gsm-danger);
+    background: color-mix(in srgb, var(--gsm-danger) 12%, transparent);
+}
+
+/* Dentro de una tarjeta o un diálogo: misma forma, menos aire. */
+.gsm-empty--compact {
+    gap: 0.5rem;
+    padding: 1.25rem 1rem;
 }
 
 /* ============================================================================================
@@ -1261,7 +1621,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 
 :root[data-gsm-theme="forja"] .gsm-panel__title {
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     font-weight: 500;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -1270,7 +1630,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 :root[data-gsm-theme="forja"] .mud-button-root {
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
 }
 
 :root[data-gsm-theme="forja"] .gsm-page-title {
@@ -1303,7 +1663,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 
 .gsm-choice-group__legend {
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--gsm-text-2);
@@ -1348,7 +1708,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 }
 
 .gsm-choice__hint {
-    font-size: 0.875rem;
+    font-size: var(--gsm-fs-small);
     color: var(--gsm-text-2);
 }
 
@@ -1383,7 +1743,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
     background: var(--gsm-danger);
     color: #fff;
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     line-height: 18px;
     text-align: center;
 }
@@ -1397,7 +1757,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 .gsm-bell-panel__title {
     padding: 0.5rem 1rem;
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--gsm-text-2);
@@ -1431,7 +1791,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 }
 
 .gsm-bell-item__meta {
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -1445,7 +1805,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 }
 
 .gsm-bell-item__resolved {
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -1460,7 +1820,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
     background: transparent;
     color: var(--gsm-text);
     font: inherit;
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     cursor: pointer;
 }
 
@@ -1784,7 +2144,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 .gsm-module-section__title {
     margin: 0 0 0.75rem;
     font-family: var(--gsm-font-display);
-    font-size: 0.9375rem;
+    font-size: var(--gsm-fs-body);
     font-weight: var(--gsm-display-weight);
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -1840,7 +2200,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 
 .gsm-module-card__desc {
     margin: 0.15rem 0 0;
-    font-size: 0.875rem;
+    font-size: var(--gsm-fs-small);
     line-height: 1.4;
     color: var(--gsm-text-2);
 }
@@ -1865,7 +2225,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 }
 
 .gsm-routine-head__meta {
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -1896,7 +2256,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 }
 
 .gsm-progress-head__meta {
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -1917,7 +2277,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 
 .gsm-progress-records__date {
     margin-left: auto;
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -1952,14 +2312,14 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 
 .gsm-routine-day__title {
     margin: 0 0 0.5rem;
-    font-size: 0.9375rem;
+    font-size: var(--gsm-fs-body);
     font-weight: 600;
 }
 
 .gsm-routine-day__num {
     margin-right: 0.35rem;
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     font-weight: 400;
     color: var(--gsm-accent-text);
 }
@@ -1991,7 +2351,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 
 .gsm-routine-ex__target {
     font-family: var(--gsm-font-mono);
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -2141,6 +2501,7 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 }
 
 .gsm-m-plan__notice {
+    min-height: 44px;
     padding: 0.5rem 0.65rem;
     border-radius: var(--gsm-radius);
     background: rgba(255, 255, 255, 0.14);
@@ -2174,6 +2535,9 @@ body:has(.gsm-impersonation-bar) .mud-main-content {
 }
 
 .gsm-m-progress__more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     font-size: 0.8125rem;
     color: var(--gsm-accent-text);
 }
@@ -2221,7 +2585,7 @@ a.gsm-m-card:hover {
 
 .gsm-m-card__kicker {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--gsm-accent-text);
@@ -2262,7 +2626,7 @@ a.gsm-m-card:hover {
 
 .gsm-m-stat__label {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--gsm-text-2);
@@ -2418,7 +2782,7 @@ a.gsm-m-card:hover {
 
 .gsm-m-set--head {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--gsm-text-2);
@@ -2454,7 +2818,7 @@ a.gsm-m-card:hover {
 
 .gsm-m-setrow__status {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--gsm-text-2);
@@ -2535,7 +2899,7 @@ a.gsm-m-card:hover {
 
 .gsm-cal-day__dow {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.08em;
 }
 
@@ -2722,13 +3086,13 @@ a.gsm-m-card:hover {
 
 .gsm-announcement__date {
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     color: var(--gsm-text-2);
 }
 
 .gsm-announcement__title {
     margin: 0.75rem 0 0.4rem;
-    font-size: 1.125rem;
+    font-size: var(--gsm-fs-lead);
     font-weight: 600;
     color: var(--gsm-text);
 }
@@ -2772,7 +3136,7 @@ a.gsm-m-card:hover {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -2782,7 +3146,7 @@ a.gsm-m-card:hover {
     overflow-y: auto;
     margin: 0.25rem 0 0;
     padding-left: 1.25rem;
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -2806,7 +3170,7 @@ a.gsm-m-card:hover {
 
 .gsm-editor__hint {
     margin: 0.25rem 0 0;
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -2863,13 +3227,13 @@ a.gsm-m-card:hover {
     align-items: center;
     gap: 0.5rem;
     font-family: var(--gsm-font-mono);
-    font-size: 0.75rem;
+    font-size: var(--gsm-fs-micro);
     color: var(--gsm-text-2);
 }
 
 .gsm-feed-card__title {
     margin: 0.5rem 0 0.35rem;
-    font-size: 1.0625rem;
+    font-size: var(--gsm-fs-lead);
     font-weight: 600;
     color: var(--gsm-text);
 }
@@ -2967,13 +3331,13 @@ a.gsm-m-card:hover {
 }
 
 .gsm-notice__text {
-    font-size: 0.875rem;
+    font-size: var(--gsm-fs-small);
     color: var(--gsm-text-2);
 }
 
 .gsm-notice__time {
     font-family: var(--gsm-font-mono);
-    font-size: 0.6875rem;
+    font-size: var(--gsm-fs-micro);
     color: var(--gsm-text-2);
 }
 
@@ -3008,7 +3372,7 @@ a.gsm-m-card:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 1rem;
-  font-size: 0.875rem;
+  font-size: var(--gsm-fs-small);
   color: var(--mud-palette-text-secondary);
 }
 
@@ -3016,12 +3380,12 @@ a.gsm-m-card:hover {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: 0.75rem;
+  font-size: var(--gsm-fs-micro);
   color: var(--mud-palette-text-secondary);
 }
 .gsm-native-field select {
   font: inherit;
-  font-size: 0.9375rem;
+  font-size: var(--gsm-fs-body);
   padding: 0.5rem 0.625rem;
   color: var(--mud-palette-text-primary);
   background: var(--mud-palette-surface);
@@ -3148,7 +3512,7 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 }
 
 .gsm-card__meta {
-    font-size: 0.8125rem;
+    font-size: var(--gsm-fs-label);
     color: var(--gsm-text-2);
 }
 
@@ -3297,7 +3661,7 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 .gsm-push-prompt__status {
     margin: 0.25rem 0 0;
     color: var(--gsm-text-2);
-    font-size: 0.9rem;
+    font-size: var(--gsm-fs-small);
 }
 
 .gsm-push-prompt__actions {
@@ -3319,7 +3683,7 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     background: var(--gsm-accent);
     color: #fff;
     font-family: var(--gsm-font-mono);
-    font-size: 0.7rem;
+    font-size: var(--gsm-fs-micro);
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
@@ -3363,7 +3727,7 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     justify-content: center;
     min-width: 1.25rem;
     font-family: var(--gsm-font-mono);
-    font-size: 0.8rem;
+    font-size: var(--gsm-fs-label);
 }
 
 /* ---------- App del miembro en escritorio (>= 960 px, AP6) ---------- */
@@ -3405,7 +3769,7 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 /* Barra inferior en celulares angostos: con cinco pestañas, "NOVEDADES" llegaba al borde de la pantalla. */
 @media (max-width: 430px) {
     .gsm-tabbar-label {
-        font-size: 0.625rem;
+        font-size: var(--gsm-fs-micro);
         letter-spacing: 0.02em;
     }
 }
@@ -3545,10 +3909,11 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     margin-bottom: 0.75rem;
 }
 
+/* Letras del día y días sin datos en texto secundario: el atenuado (#5A5753) quedaba en 2,68:1 sobre el fondo. */
 .gsm-streak-cal__dow {
     text-align: center;
     font-size: 0.75rem;
-    color: var(--gsm-muted);
+    color: var(--gsm-text-2);
 }
 
 .gsm-streak-cal__day {
@@ -3567,12 +3932,13 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 }
 
 /* Cada estado lleva color y también un patrón de borde, para no depender solo del color. */
-.gsm-streak-cal__day--trained { background: var(--gsm-ok); border-color: var(--gsm-ok); color: var(--gsm-on-accent); }
+/* Texto oscuro sobre los rellenos claros (verde, rosa): en blanco no llegaba a 4,5:1. */
+.gsm-streak-cal__day--trained { background: var(--gsm-ok); border-color: var(--gsm-ok); color: var(--gsm-bg); }
 .gsm-streak-cal__day--rest { background: var(--gsm-accent-soft); border-style: dotted; }
-.gsm-streak-cal__day--frozen { background: var(--gsm-cyan); border-color: var(--gsm-cyan); color: var(--gsm-on-accent); border-style: double; border-width: 3px; }
+.gsm-streak-cal__day--frozen { background: var(--gsm-cyan); border-color: var(--gsm-cyan); color: var(--gsm-bg); border-style: double; border-width: 3px; }
 .gsm-streak-cal__day--missed { border-color: var(--gsm-danger); border-style: dashed; color: var(--gsm-danger); }
 .gsm-streak-cal__day--pending { border-color: var(--gsm-warn); }
-.gsm-streak-cal__day--none { color: var(--gsm-muted); }
+.gsm-streak-cal__day--none { color: var(--gsm-text-2); }
 
 .gsm-streak-legend {
     display: flex;

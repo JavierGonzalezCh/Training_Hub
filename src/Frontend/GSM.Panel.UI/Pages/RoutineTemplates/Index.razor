@@ -1,4 +1,4 @@
-@page "/routine-templates"
+﻿@page "/routine-templates"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IRoutineTemplatesClient Templates
 @inject NavigationManager Navigation
@@ -7,18 +7,17 @@
 
 <PageTitle>Plantillas de rutina — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Plantillas de rutina</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-               OnClick="@(() => Navigation.NavigateTo("/routine-templates/new"))" data-testid="template-new">
-        Nueva plantilla
-    </MudButton>
-</div>
-
-<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-    Rutinas listas para reutilizar. Al asignar una a un miembro se copia: editar o borrar la plantilla después no cambia las rutinas ya asignadas.
-</MudText>
+<PageHeader Title="Plantillas de rutina">
+    <Subtitle>
+        Rutinas listas para reutilizar. Al asignar una a un miembro se copia: editar o borrar la plantilla después no cambia las rutinas ya asignadas.
+    </Subtitle>
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => Navigation.NavigateTo("/routine-templates/new"))" data-testid="template-new">
+            Nueva plantilla
+        </MudButton>
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {
@@ -26,9 +25,12 @@
 }
 else if (_items.Count == 0)
 {
-    <MudText Color="Color.Secondary" data-testid="templates-empty">
-        Todavía no hay plantillas. Crea una, o guarda como plantilla una rutina ya armada desde su editor.
-    </MudText>
+    <EmptyState Icon="@Icons.Material.Outlined.ContentCopy" Title="Todavía no hay plantillas" TestId="templates-empty">
+        <ChildContent>Crea una, o guarda como plantilla una rutina ya armada desde su editor.</ChildContent>
+        <Action>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/routine-templates/new">Nueva plantilla</MudButton>
+        </Action>
+    </EmptyState>
 }
 else
 {
@@ -42,7 +44,7 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Nombre">
-                <MudLink OnClick="@(() => Edit(context))" Underline="Underline.None">@context.Name</MudLink>
+                <MudLink Href="@($"/routine-templates/{context.Id}")" Underline="Underline.None">@context.Name</MudLink>
                 @if (!string.IsNullOrWhiteSpace(context.Description))
                 {
                     <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>

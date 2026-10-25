@@ -1,4 +1,4 @@
-@page "/app/rutina/nueva"
+﻿@page "/app/rutina/nueva"
 @layout MemberLayout
 @using GSM.UI.Shared.Routines
 @attribute [Authorize(Roles = GsmRoles.Member)]
@@ -9,7 +9,7 @@
 
 <PageTitle>Crear mi rutina — TrainingHub GO</PageTitle>
 
-<MudLink OnClick="@(() => Navigation.NavigateTo("/app/rutina"))" Class="mb-4 d-inline-block">← Volver</MudLink>
+<MudLink Href="/app/rutina" Class="mb-4 d-inline-block">← Volver</MudLink>
 
 @if (GymCtx.FeatureFlags?.MembersCanCreateRoutines != true)
 {
@@ -17,7 +17,8 @@
 }
 else
 {
-    <MudText Typo="Typo.h5" Class="mb-4">Crear mi rutina</MudText>
+    <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Crear mi rutina</MudText>
+    <UnsavedChangesGuard IsDirty="IsDirty" What="tu rutina" />
 
     @if (_error is not null)
     {
@@ -37,6 +38,12 @@ else
     private readonly RoutineDraft _draft = RoutineDraft.Empty();
     private bool _saving;
     private string? _error;
+    private string? _snapshot;
+    private bool _leavingAfterSave;
+
+    private bool IsDirty() => !_leavingAfterSave && _snapshot is not null && _draft.Fingerprint() != _snapshot;
+
+    protected override void OnInitialized() => _snapshot = _draft.Fingerprint();
 
     private async Task SaveAsync()
     {
@@ -51,6 +58,7 @@ else
         {
             await Me.RoutinesPOSTAsync(_draft.ToRequest());
             Snackbar.Add("Rutina creada.", Severity.Success);
+            _leavingAfterSave = true;
             Navigation.NavigateTo("/app/rutina");
         }
         catch (GsmApiException ex)

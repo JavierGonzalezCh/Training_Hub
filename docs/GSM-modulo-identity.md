@@ -180,7 +180,7 @@ Diseñada en `GSM-modulo-attendance.md` §6. En Identity:
   digita en `/kiosk` y recibe una sesión con rol `kiosk` para ese gym.
 - El token del kiosco solo sirve para los endpoints del kiosco (mostrar el QR y registrar entradas por
   documento).
-- El Owner ve y revoca sus kioscos en Configuración → Entrada al gym.
+- El Owner ve y revoca sus kioscos en Configuración → Entrada al gym → Kioscos (`/settings/kioscos`).
 
 ## 9. Perfil propio
 

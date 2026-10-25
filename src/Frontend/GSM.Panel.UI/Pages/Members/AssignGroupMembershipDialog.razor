@@ -1,4 +1,4 @@
-@inject IMemberMembershipsClient MemberMemberships
+﻿@inject IMemberMembershipsClient MemberMemberships
 @inject IMembershipPlansClient Plans
 @inject IMembershipGroupsClient Groups
 @inject IMembersClient Members
@@ -19,9 +19,9 @@
             }
             @if (_plans.Count == 0)
             {
-                <MudText Color="Color.Secondary" id="no-group-plans">
-                    No hay planes de grupo activos. Crea uno en Planes con más de un cupo.
-                </MudText>
+                <div id="no-group-plans">
+                    <EmptyState Icon="@Icons.Material.Outlined.Groups" Compact="true">No hay planes de grupo activos. Crea uno en Planes con más de un cupo.</EmptyState>
+                </div>
             }
             else
             {
@@ -46,7 +46,7 @@
                     }
                     @if (_beneficiaries.Count < MaxBeneficiaries)
                     {
-                        <MudAutocomplete T="MemberListItem" Label="Agregar beneficiario" Value="_picked" ValueChanged="OnBeneficiaryPicked"
+                        <MudAutocomplete OpenOnFocus="false" T="MemberListItem" Label="Agregar beneficiario" Value="_picked" ValueChanged="OnBeneficiaryPicked"
                                          SearchFunc="SearchMembersAsync"
                                          ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
                                          Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" id="group-beneficiary-search"

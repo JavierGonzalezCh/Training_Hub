@@ -1,4 +1,4 @@
-@* Sección "Equipos" de la configuración (Gyms §7): quién puede reportar fallas de máquinas. Solo Owner. *@
+﻿@* Sección "Equipos" de la configuración (Gyms §7): quién puede reportar fallas de máquinas. Solo Owner. *@
 @inject IGymClient Gym
 @inject SessionService Session
 @inject ISnackbar Snackbar
@@ -23,6 +23,10 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private GymFeatureFlagsResponse? _flags;
     private bool _loading = true;
     private bool _saving;
@@ -61,6 +65,7 @@ else
             _flags.MembersCanReportEquipment = _membersCanReport;
             await Session.BootstrapAsync();
             Snackbar.Add("Ajustes de equipos guardados.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

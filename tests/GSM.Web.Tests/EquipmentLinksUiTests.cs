@@ -258,6 +258,36 @@ public class EquipmentLinksUiTests : TestContext
     }
 
     [Fact]
+    public void Routine_form_icon_buttons_have_names_and_its_fields_have_visible_labels()
+    {
+        var draft = RoutineDraft.Empty();
+        draft.Name = "Rutina";
+        draft.AddDay();
+        draft.Days[0].Exercises.Add(new DraftExercise
+        {
+            Exercise = new ExerciseResponse { Id = ExerciseId, Name = "Prensa de piernas" },
+            Equipment = new ExerciseEquipmentInfo { IsAvailable = true, Machines = [] },
+        });
+
+        RenderComponent<MudPopoverProvider>();
+        var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, draft));
+
+        // Ningún botón de icono sin nombre: el lector de pantalla decía solo "botón". (La flecha del autocompletado
+        // es de MudBlazor y no recibe foco: tabindex="-1".)
+        Assert.All(cut.FindAll("button.mud-icon-button:not([tabindex='-1'])"), b =>
+            Assert.False(string.IsNullOrWhiteSpace(b.GetAttribute("aria-label")), b.OuterHtml));
+        var names = cut.FindAll("button.mud-icon-button").Select(b => b.GetAttribute("aria-label")).ToList();
+        Assert.Contains("Subir el día 2", names);
+        Assert.Contains("Quitar el día 1", names);
+        Assert.Contains("Quitar Prensa de piernas del día 1", names);
+
+        // Nombre del día y ejercicio con etiqueta visible, no solo el texto de ejemplo.
+        var labels = cut.FindAll("label.mud-input-label").Select(l => l.TextContent.Trim()).ToList();
+        Assert.Contains("Nombre del día 1", labels);
+        Assert.Contains("Ejercicio", labels);
+    }
+
+    [Fact]
     public void Picking_an_exercise_that_cannot_be_done_today_carries_the_warning_into_the_line()
     {
         var line = new DraftExercise();

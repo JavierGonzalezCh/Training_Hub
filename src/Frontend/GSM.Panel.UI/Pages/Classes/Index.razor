@@ -1,4 +1,4 @@
-@page "/classes"
+﻿@page "/classes"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IClassesClient Classes
 @inject NavigationManager Navigation
@@ -7,20 +7,20 @@
 
 <PageTitle>Clases — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Clases</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CalendarViewWeek"
-               OnClick="@(() => Navigation.NavigateTo("/classes/schedule"))">
-        Horario semanal
-    </MudButton>
-    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.EventBusy" OnClick="OpenBlocksAsync" id="open-blocks">
-        Penalizados
-    </MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
-        Nueva clase
-    </MudButton>
-</div>
+<PageHeader Title="Clases">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CalendarViewWeek"
+                   OnClick="@(() => Navigation.NavigateTo("/classes/schedule"))">
+            Horario semanal
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.EventBusy" OnClick="OpenBlocksAsync" id="open-blocks">
+            Penalizados
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+            Nueva clase
+        </MudButton>
+    </Actions>
+</PageHeader>
 
 @if (_outsideHours.Count > 0)
 {
@@ -49,11 +49,19 @@
 }
 else if (_classes.Count == 0)
 {
-    <MudText Color="Color.Secondary">No hay clases todavía.</MudText>
+    <EmptyState Icon="@Icons.Material.Outlined.EventNote" Title="No hay clases todavía">
+        <ChildContent>Crea la primera para que los miembros puedan reservar desde la app.</ChildContent>
+        <Action>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">Nueva clase</MudButton>
+        </Action>
+    </EmptyState>
 }
 else
 {
-    <MudTable Items="_classes" Hover="true" Dense="true" Elevation="0">
+    @* En el celular cada clase se apila en una tarjeta con sus rótulos (el mismo patrón que Equipos): siete
+       columnas no caben y el Owner gestiona desde el teléfono. *@
+    <MudTable Items="_classes" Hover="true" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm" Class="gsm-table--stack"
+              data-testid="classes-table">
         <HeaderContent>
             <MudTh>Nombre</MudTh>
             <MudTh>Instructor</MudTh>
@@ -89,10 +97,12 @@ else
                 </MudChip>
             </MudTd>
             <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))"
+                               aria-label="@($"Editar {context.Name}")" title="Editar" />
                 @if (context.IsActive)
                 {
-                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeactivateAsync(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeactivateAsync(context))"
+                                   aria-label="@($"Desactivar {context.Name}")" title="Desactivar" />
                 }
             </MudTd>
         </RowTemplate>

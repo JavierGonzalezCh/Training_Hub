@@ -1,4 +1,4 @@
-@using GSM.Panel.UI.Pages.Equipment
+﻿@using GSM.Panel.UI.Pages.Equipment
 @using GSM.UI.Shared.Routines
 @inject IExercisesClient Exercises
 @inject IEquipmentClient Equipment
@@ -36,9 +36,9 @@
             <MudText Typo="Typo.subtitle2">Tus máquinas</MudText>
             @if (_inventory.Count == 0)
             {
-                <MudText Color="Color.Secondary" Class="mb-3" data-testid="no-inventory">
+                <EmptyState Icon="@Icons.Material.Outlined.FitnessCenter" Compact="true" Class="mb-3" TestId="no-inventory">
                     Aún no hay máquinas en el inventario. Agrégalas en Equipos para poder ligarlas.
-                </MudText>
+                </EmptyState>
             }
             else
             {

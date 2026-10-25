@@ -1,4 +1,4 @@
-@page "/cash-shifts/{ShiftId:guid}"
+﻿@page "/cash-shifts/{ShiftId:guid}"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject ICashShiftsClient CashShifts
 @inject IJSRuntime JS
@@ -16,13 +16,13 @@
     }
 </style>
 
-<div class="d-flex align-center flex-wrap mb-4 gsm-no-print" style="gap:1rem">
-    <MudText Typo="Typo.h4">Reporte de turno</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Outlined" OnClick="@(() => Navigation.NavigateTo("/payments"))">Volver</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print"
-               data-testid="print-report" OnClick="PrintAsync">Imprimir</MudButton>
-</div>
+<PageHeader Title="Reporte de turno" Class="gsm-no-print">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" OnClick="@(() => Navigation.NavigateTo("/payments"))">Volver</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print"
+                   data-testid="print-report" OnClick="PrintAsync">Imprimir</MudButton>
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {
@@ -32,7 +32,7 @@ else if (_report is { } report)
 {
     var shift = report.Shift;
     <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)" data-testid="shift-report">
-        <MudText Typo="Typo.h6">
+        <MudText HtmlTag="h2" Typo="Typo.h6">
             Turno de @(shift.OpenedByName ?? "alguien del equipo")
             @if (shift.IsOpen)
             {

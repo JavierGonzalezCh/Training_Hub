@@ -51060,6 +51060,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("registeredByName")]
         public string? RegisteredByName { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("memberName")]
+        public string? MemberName { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

@@ -1,4 +1,4 @@
-@page "/exercises"
+﻿@page "/exercises"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IExercisesClient Exercises
 @inject IDialogService Dialogs
@@ -6,18 +6,28 @@
 
 <PageTitle>Ejercicios — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Catálogo de ejercicios</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
-        Nuevo ejercicio
+<PageHeader Title="Catálogo de ejercicios">
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+            Nuevo ejercicio
+        </MudButton>
+    </Actions>
+</PageHeader>
+
+@* En el celular, el buscador y un botón "Filtros"; los siete filtros se abren a pedido. Antes ocupaban la
+   pantalla entera y el primer ejercicio aparecía al fondo. En escritorio se ven siempre. *@
+<div class="d-flex flex-wrap align-end mb-4" style="gap:1rem">
+    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Label="Buscar ejercicio" Placeholder="Nombre"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                  DebounceInterval="400" Style="max-width:260px" aria-label="Buscar ejercicio" />
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterList" Class="gsm-filters-toggle"
+               OnClick="@(() => _filtersOpen = !_filtersOpen)" aria-expanded="@(_filtersOpen ? "true" : "false")"
+               aria-controls="exercise-filters" data-testid="filters-toggle">
+        @(ActiveFilters > 0 ? $"Filtros ({ActiveFilters})" : "Filtros")
     </MudButton>
 </div>
 
-<div class="d-flex flex-wrap align-end mb-4" style="gap:1rem">
-    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Placeholder="Buscar"
-                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                  DebounceInterval="400" Style="max-width:260px" />
+<div id="exercise-filters" class="@($"gsm-filters d-flex flex-wrap align-end mb-4 {(_filtersOpen ? "is-open" : null)}")" style="gap:1rem">
     @* Filtro en dos pasos: primero la zona del cuerpo, después solo los músculos de esa zona. *@
     <label class="gsm-native-field">
         <span>Zona</span>
@@ -91,7 +101,9 @@
 }
 else if (_exercises.Count == 0)
 {
-    <MudText Color="Color.Secondary">Sin resultados.</MudText>
+    <EmptyState Icon="@Icons.Material.Outlined.SearchOff" Title="Sin resultados">
+        Ningún ejercicio coincide con la búsqueda o los filtros. Prueba con otro nombre o quita un filtro.
+    </EmptyState>
 }
 else
 {
@@ -178,6 +190,12 @@ else
     private string _equipment = FilterValues.All;
     private bool _showHidden;
     private bool _onlyHere = true;
+    private bool _filtersOpen;
+
+    /// <summary>Filtros distintos de los de entrada, para el rótulo "Filtros (n)" del celular.</summary>
+    private int ActiveFilters =>
+        new[] { _group, _muscle, _type, _difficulty, _equipment }.Count(f => !FilterValues.IsAll(f))
+        + (_showHidden ? 1 : 0) + (_onlyHere ? 0 : 1);
 
     protected override Task OnInitializedAsync() => LoadAsync();
 

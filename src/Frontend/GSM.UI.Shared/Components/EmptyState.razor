@@ -1,0 +1,45 @@
+@* Estado vacío único del panel: icono, título opcional, explicación y la acción que lo resuelve.
+   Sustituye la línea gris suelta ("No hay planes todavía.") para que un listado vacío nunca
+   parezca un error de carga. Compact es para secciones dentro de una tarjeta o un diálogo. *@
+<div class="gsm-empty @(Compact ? "gsm-empty--compact" : null) @Class" data-testid="@TestId" role="status">
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <MudIcon Icon="@Icon" Size="@(Compact ? Size.Medium : Size.Large)" Class="gsm-empty-icon" aria-hidden="true" />
+    }
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <span class="gsm-empty-title">@Title</span>
+    }
+    @if (ChildContent is not null)
+    {
+        <span class="gsm-empty__text">@ChildContent</span>
+    }
+    @if (Action is not null)
+    {
+        <div class="gsm-empty__action">@Action</div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>La explicación: qué significa el vacío y, si aplica, cómo llenarlo.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Action { get; set; }
+
+    [Parameter]
+    public bool Compact { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public string? TestId { get; set; }
+}

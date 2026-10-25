@@ -1,4 +1,4 @@
-@page "/attendance/checkin"
+﻿@page "/attendance/checkin"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Members
 @using GSM.Panel.UI.Pages.Payments
@@ -9,34 +9,35 @@
 
 <PageTitle>Recepción — TrainingHub OS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-1">Recepción</MudText>
-<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
-    Busca al miembro por nombre o documento, revisa su tarjeta y registra la entrada. Los miembros entran solos escaneando el QR del kiosco.
-</MudText>
+<PageHeader Title="Recepción">
+    <Subtitle>Busca al miembro, revisa su tarjeta y registra la entrada.</Subtitle>
+</PageHeader>
 
-@* P3-4: la misma barra de la caja que en Pagos, para cobrar sin salir de recepción. *@
-<CashDrawerBar />
-
-<RequireRole Roles="@GsmRoles.Owner">
-    <MudButton Variant="Variant.Outlined" Href="/settings?group=Entrada%20al%20gym&amp;section=Kioscos" StartIcon="@Icons.Material.Outlined.QrCode2" Class="mb-6">Configurar kiosco</MudButton>
-</RequireRole>
-
+@* El buscador va primero: es la acción que recepción repite todo el día. La caja y el kiosco van debajo; antes
+   iban arriba y en el celular empujaban el buscador al borde de la pantalla. *@
 <MudGrid>
     <MudItem xs="12" md="7">
         <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
-            <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">Buscar a mano</MudText>
-            <MudAutocomplete T="MemberListItem" Value="null" ValueChanged="OnMemberPickedAsync"
+            <MudAutocomplete OpenOnFocus="false" @ref="_search" T="MemberListItem" Value="null" ValueChanged="OnMemberPickedAsync"
                               SearchFunc="SearchMembersAsync" Disabled="_submitting" AutoFocus="true"
                               ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
-                              Placeholder="Nombre o documento" ResetValueOnEmptyText="true" />
+                              Label="Buscar miembro" Placeholder="Nombre o documento" ResetValueOnEmptyText="true" />
         </MudPaper>
     </MudItem>
 
     <MudItem xs="12" md="5">
+        @* Lo que recepción tiene que anunciar en voz alta va también para el lector de pantalla, corto. *@
+        <div class="gsm-visually-hidden" role="status" aria-live="polite" aria-atomic="true" id="reception-announcer">@_announcement</div>
+
         @if (_card is { } card)
         {
-            <MudPaper Class="pa-6" Elevation="0" id="reception-card"
-                      Style="@($"border:1px solid {(card.CanRegister ? "var(--gsm-cyan)" : "var(--gsm-red-hot)")}")">
+            var verdict = Verdict(card);
+            <MudPaper Class="@($"pa-6 gsm-reception gsm-reception--{verdict.Tone}")" Elevation="0" id="reception-card">
+                @* El veredicto va primero y no depende solo del color: rótulo, icono y tono dicen lo mismo. *@
+                <div class="gsm-verdict" id="reception-verdict">
+                    <MudIcon Icon="@verdict.Icon" aria-hidden="true" />
+                    <span>@verdict.Label</span>
+                </div>
                 <div class="d-flex align-center" style="gap:1rem">
                     <MudAvatar Size="Size.Large">
                         @if (!string.IsNullOrEmpty(card.PhotoUrl))
@@ -49,7 +50,7 @@
                         }
                     </MudAvatar>
                     <div>
-                        <MudText Typo="Typo.h5">@card.MemberName</MudText>
+                        <MudText Typo="Typo.h4" HtmlTag="h2">@card.MemberName</MudText>
                         <CommercialStatusChip Status="@card.Commercial" />
                     </div>
                 </div>
@@ -64,19 +65,11 @@
                 {
                     <MudText Typo="Typo.body2" Class="mt-1" id="pass-balance">@PlanDurationLabels.Balance(card.EntriesLeft ?? 0, passTotal)</MudText>
                 }
-                @if (card.BirthdayToday)
+                @* Lo que decide la entrada va arriba (motivo y botones); lo demás, plegado en "Además", con un resumen que
+                   dice qué hay dentro. Antes la tarjeta apilaba hasta nueve avisos del mismo peso y el veredicto se perdía. *@
+                @if (ReceptionNotice.For(card.Kind, card.EndsOn, card.DaysLeft, card.GraceDaysLeft, card.EntriesLeft, card.EntriesTotal, card.Notice) is { } notice)
                 {
-                    <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Outlined.Cake" Dense="true" Class="mt-3" role="status"
-                              id="birthday-today">
-                        Hoy cumple años. ¡Salúdalo!
-                        <div class="mt-2">
-                            <WhatsAppButton MemberId="card.MemberId" Kind="Birthday" />
-                        </div>
-                    </MudAlert>
-                }
-                @if (!string.IsNullOrEmpty(card.Notice))
-                {
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" role="status" id="access-notice">@card.Notice</MudAlert>
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" id="access-notice">@notice</MudAlert>
                 }
                 @if (card.GymClosed)
                 {
@@ -108,28 +101,6 @@
                         @(card.BlockMessage ?? "No puede entrar.")
                     </MudAlert>
                 }
-                @if (card.MultipleEntries == true)
-                {
-                    <MudText Typo="Typo.body2" Class="mt-3" id="multiple-entries">
-                        Entradas múltiples: @card.MaxDailyEntries por día · lleva @card.EntriesToday hoy
-                    </MudText>
-                }
-                @if (card.PendingRewards is { Count: > 0 } pendingRewards)
-                {
-                    <ReceptionRewards MemberId="card.MemberId" Rewards="pendingRewards" OnDelivered="@(() => LoadCardAsync(card.MemberId))" />
-                }
-                @if (card.MissingWaiver)
-                {
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" role="status" id="missing-waiver">
-                        Falta la exoneración de responsabilidad: pídele que la firme y regístrala en su ficha, pestaña Autorizaciones.
-                    </MudAlert>
-                }
-                @if (card.CanLetThrough)
-                {
-                    <div class="mt-3">
-                        <WhatsAppButton MemberId="card.MemberId" Kind="@WhatsAppLabels.KindForStatus(card.Commercial)" />
-                    </div>
-                }
 
                 @if (_askReason)
                 {
@@ -157,15 +128,57 @@
                         <MudButton Variant="Variant.Outlined" OnClick="@(() => _askReason = true)">Dejar pasar</MudButton>
                     </div>
                 }
+
+                @if (Extras(card) is { Count: > 0 } extras)
+                {
+                    <details class="gsm-reception__extras" data-testid="reception-extras">
+                        <summary>Además: @string.Join(" · ", extras)</summary>
+                        @if (card.BirthdayToday)
+                        {
+                            <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Outlined.Cake" Dense="true" Class="mt-3" role="status"
+                                      id="birthday-today">
+                                Hoy cumple años. ¡Salúdalo!
+                                <div class="mt-2">
+                                    <WhatsAppButton MemberId="card.MemberId" Kind="Birthday" />
+                                </div>
+                            </MudAlert>
+                        }
+                        @if (card.PendingRewards is { Count: > 0 } pendingRewards)
+                        {
+                            <ReceptionRewards MemberId="card.MemberId" Rewards="pendingRewards" OnDelivered="@(() => LoadCardAsync(card.MemberId))" />
+                        }
+                        @if (card.MissingWaiver)
+                        {
+                            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" role="status" id="missing-waiver">
+                                Falta la exoneración de responsabilidad: pídele que la firme y regístrala en su ficha, pestaña Autorizaciones.
+                            </MudAlert>
+                        }
+                        @if (card.MultipleEntries == true)
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-3" id="multiple-entries">
+                                Entradas múltiples: @card.MaxDailyEntries por día · lleva @card.EntriesToday hoy
+                            </MudText>
+                        }
+                        @if (card.CanLetThrough)
+                        {
+                            <div class="mt-3">
+                                <WhatsAppButton MemberId="card.MemberId" Kind="@WhatsAppLabels.KindForStatus(card.Commercial)" />
+                            </div>
+                        }
+                    </details>
+                }
             </MudPaper>
         }
         else if (_result is not null)
         {
-            <MudPaper Class="pa-6 text-center" Elevation="0"
-                      Style="@ResultStyle()">
-                <MudIcon Icon="@(_result.MembershipExpired ? Icons.Material.Filled.WarningAmber : Icons.Material.Filled.CheckCircle)"
-                         Size="Size.Large" Color="@(_result.MembershipExpired ? Color.Error : Color.Info)" Class="mb-2" />
-                <MudText Typo="Typo.h4">@_result.MemberName</MudText>
+            @* La entrada quedó registrada: siempre es un resultado de éxito. Lo pendiente (gracia, exoneración)
+               va como nota dentro, no tiñe la tarjeta de error. *@
+            <MudPaper Class="pa-6 gsm-reception gsm-reception--ok" Elevation="0" id="checkin-result-card">
+                <div class="gsm-verdict">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" aria-hidden="true" />
+                    <span>Entrada registrada</span>
+                </div>
+                <MudText Typo="Typo.h4" HtmlTag="h2">@_result.MemberName</MudText>
                 <MudText Typo="Typo.body1" Class="gsm-mono mt-1" id="checkin-result">Entrada registrada · @GsmFormat.Time(_result.CheckedInAt)</MudText>
 
                 @if (_result.Authorized == true)
@@ -176,9 +189,9 @@
                 {
                     <MudText Typo="Typo.body2" Class="mt-2" id="pass-balance-result">@PlanDurationLabels.Balance(_result.EntriesLeft ?? 0, resultTotal)</MudText>
                 }
-                @if (!string.IsNullOrEmpty(_result.Notice))
+                @if (ResultNotice(_result) is { } resultNotice)
                 {
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4" role="status" id="access-notice">@_result.Notice</MudAlert>
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4" id="access-notice">@resultNotice</MudAlert>
                 }
                 @if (_result.MembershipExpired)
                 {
@@ -212,12 +225,118 @@
     </MudItem>
 </MudGrid>
 
+@* P3-4: la misma barra de la caja que en Pagos, para cobrar sin salir de recepción. *@
+<div class="mt-6">
+    <CashDrawerBar />
+</div>
+
+<RequireRole Roles="@GsmRoles.Owner">
+    <div class="d-flex align-center flex-wrap mt-2" style="gap:0.75rem">
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Los miembros también entran solos escaneando el QR del kiosco.</MudText>
+        <MudButton Variant="Variant.Outlined" Href="/settings/kioscos" StartIcon="@Icons.Material.Outlined.QrCode2">Configurar kiosco</MudButton>
+    </div>
+</RequireRole>
+
 @code {
     private CheckInResponse? _result;
     private ReceptionCardResponse? _card;
     private bool _askReason;
     private string? _reason;
     private bool _submitting;
+    private MudAutocomplete<MemberListItem>? _search;
+    private string? _announcement;
+    private bool _focusSearch;
+
+    private sealed record ReceptionVerdict(string Label, string Tone, string Icon);
+
+    /// <summary>
+    /// El veredicto de la tarjeta, en el orden en que el servidor decide. <c>ok</c> = puede entrar,
+    /// <c>danger</c> = no puede, <c>neutral</c> = ya entró y no le toca otra entrada todavía.
+    /// </summary>
+    private static ReceptionVerdict Verdict(ReceptionCardResponse card)
+    {
+        if (card.CanRegister)
+        {
+            return new(card.Kind == "grace" ? "Puede entrar · en gracia" : "Puede entrar", "ok", Icons.Material.Filled.CheckCircle);
+        }
+
+        if (card.GymClosed)
+        {
+            return new("No puede entrar · gimnasio cerrado", "danger", Icons.Material.Filled.Block);
+        }
+
+        if (!card.MemberActive)
+        {
+            return new("No puede entrar · dado de baja", "danger", Icons.Material.Filled.Block);
+        }
+
+        if (card.AlreadyCheckedInToday)
+        {
+            return new("Ya entró hoy", "neutral", Icons.Material.Filled.History);
+        }
+
+        return new("No puede entrar", "danger", Icons.Material.Filled.Block);
+    }
+
+    /// <summary>
+    /// Lo que va plegado en "Además", nombrado en corto para el resumen: así se ve de un vistazo que hay un cumpleaños
+    /// o un premio por entregar sin que cada cosa ocupe un aviso entero.
+    /// </summary>
+    private static IReadOnlyList<string> Extras(ReceptionCardResponse card)
+    {
+        var extras = new List<string>();
+        if (card.BirthdayToday)
+        {
+            extras.Add("cumpleaños");
+        }
+
+        if (card.PendingRewards is { Count: > 0 } rewards)
+        {
+            extras.Add(rewards.Count == 1 ? "1 premio por entregar" : $"{rewards.Count} premios por entregar");
+        }
+
+        if (card.MissingWaiver)
+        {
+            extras.Add("falta la exoneración");
+        }
+
+        if (card.MultipleEntries == true)
+        {
+            extras.Add("entradas múltiples");
+        }
+
+        if (card.CanLetThrough)
+        {
+            extras.Add("avisar por WhatsApp");
+        }
+
+        return extras;
+    }
+
+    /// <summary>El aviso del resultado, para recepción. Una entrada autorizada a mano ya lleva su propia nota.</summary>
+    private static string? ResultNotice(CheckInResponse result)
+    {
+        if (result.Authorized == true)
+        {
+            return null;
+        }
+
+        var kind = result.MembershipExpired ? "grace" : result.Notice is null ? null : "expiring";
+        return ReceptionNotice.For(
+            kind, result.MembershipEndsOn, result.DaysLeft, result.GraceDaysLeft, result.EntriesLeft, result.EntriesTotal,
+            result.Notice);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Tras registrar, el foco vuelve al buscador para atender al siguiente de la fila sin tocar el ratón.
+        // Se hace después del render porque mientras se enviaba el buscador estaba deshabilitado.
+        if (_focusSearch && _search is not null)
+        {
+            _focusSearch = false;
+            await _search.FocusAsync();
+        }
+    }
 
     private async Task<IEnumerable<MemberListItem>> SearchMembersAsync(string search, CancellationToken cancellationToken)
     {
@@ -251,6 +370,7 @@
         try
         {
             _card = await Attendance.ReceptionCardAsync(memberId);
+            _announcement = $"{_card.MemberName}: {Verdict(_card).Label}.";
         }
         catch (GsmApiException ex)
         {
@@ -320,6 +440,8 @@
         try
         {
             _result = await Attendance.CheckinAsync(request);
+            _announcement = $"Entrada registrada: {_result.MemberName}, {GsmFormat.Time(_result.CheckedInAt)}.";
+            _focusSearch = true;
             return true;
         }
         catch (GsmApiException ex)
@@ -332,10 +454,4 @@
             _submitting = false;
         }
     }
-
-    private string ResultStyle() => _result switch
-    {
-        { MembershipExpired: true } => "border:1px solid var(--gsm-red-hot)",
-        _ => "border:1px solid var(--gsm-cyan)",
-    };
 }

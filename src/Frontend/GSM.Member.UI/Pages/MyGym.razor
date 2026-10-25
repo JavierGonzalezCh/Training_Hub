@@ -31,7 +31,7 @@ else
         {
             <span class="gsm-m-brand__mark" aria-hidden="true">@GymBrand.Initial(_gym.Name)</span>
         }
-        <MudText Typo="Typo.h6" id="gym-name">@_gym.Name</MudText>
+        <MudText HtmlTag="h2" Typo="Typo.h6" id="gym-name">@_gym.Name</MudText>
     </MudPaper>
 
     @if (!string.IsNullOrWhiteSpace(_gym.Address) || !string.IsNullOrWhiteSpace(_gym.City))

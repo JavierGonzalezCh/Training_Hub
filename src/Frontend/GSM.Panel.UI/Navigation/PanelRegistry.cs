@@ -31,7 +31,11 @@ public sealed class PanelRegistry
     public IReadOnlyList<PanelSettingsSection> GetSettingsSections(ClaimsPrincipal user)
         => _settings.Where(s => s.IsVisibleTo(user)).ToList();
 
-    /// <summary>Las secciones de configuración visibles para el usuario, en el orden de Gyms §7; las vacías no salen.</summary>
+    /// <summary>La sección de <c>/settings/{slug}</c>, si existe y el usuario puede verla.</summary>
+    public PanelSettingsSection? FindSettingsSection(ClaimsPrincipal user, string? slug)
+        => GetSettingsSections(user).FirstOrDefault(s => string.Equals(s.Slug, slug, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Las secciones de configuración visibles para el usuario, por grupo y en orden; los grupos vacíos no salen.</summary>
     public IReadOnlyList<PanelSettingsGroup> GetSettingsGroups(ClaimsPrincipal user)
         => GetSettingsSections(user)
             .GroupBy(s => s.GroupName)

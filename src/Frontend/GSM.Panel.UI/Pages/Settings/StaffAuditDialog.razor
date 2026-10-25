@@ -1,4 +1,4 @@
-@* Historial de cambios de perfil y permisos de staff. Solo Owner. *@
+﻿@* Historial de cambios de perfil y permisos de staff. Solo Owner. *@
 @inject IStaffClient StaffApi
 
 <MudDialog>
@@ -9,7 +9,7 @@
         }
         else if (_rows.Count == 0)
         {
-            <MudText Color="Color.Secondary">Todavía no hay cambios registrados.</MudText>
+            <EmptyState Icon="@Icons.Material.Outlined.History" Compact="true">Todavía no hay cambios registrados.</EmptyState>
         }
         else
         {

@@ -41,28 +41,21 @@ public sealed record PanelMenuEntry(
 }
 
 /// <summary>
-/// Secciones de <c>/settings</c> (Gyms §7), en el orden en que se muestran. Cada módulo ubica sus pestañas en una
-/// de ellas con <see cref="PanelSettingsSection.Group"/>; lo que no declara grupo cae en <see cref="Other"/>, al final.
+/// Grupos del índice de <c>/settings</c>, en el orden en que se muestran. Son pocos y por tarea del dueño (no uno
+/// por módulo): con once pestañas no se adivinaba dónde vivía cada ajuste. Cada módulo ubica sus secciones con
+/// <see cref="PanelSettingsSection.Group"/>; lo que no declara grupo cae en <see cref="Other"/>, al final.
 /// </summary>
 public static class PanelSettingsGroups
 {
-    public const string Gym = "Gym";
-    public const string Team = "Equipo";
-    public const string Memberships = "Membresías";
+    public const string Gym = "Tu gimnasio";
+    public const string Team = "Personal";
     public const string Entry = "Entrada al gym";
-    public const string Routines = "Rutinas";
-    public const string Equipment = "Equipos";
-    public const string Classes = "Clases";
+    public const string Memberships = "Membresías y miembros";
+    public const string Training = "Entrenamiento";
     public const string Communications = "Comunicaciones";
-    public const string Achievements = "Logros";
-    public const string Members = "Miembros";
-    public const string Modules = "Módulos";
     public const string Other = "Otros";
 
-    internal static readonly string[] Ordered =
-    [
-        Gym, Team, Memberships, Entry, Routines, Equipment, Classes, Communications, Achievements, Members, Modules, Other,
-    ];
+    internal static readonly string[] Ordered = [Gym, Team, Entry, Memberships, Training, Communications, Other];
 
     internal static int Rank(string? group)
     {
@@ -71,12 +64,73 @@ public static class PanelSettingsGroups
     }
 }
 
-/// <summary>Una pestaña de <c>/settings</c>, dentro de la sección <see cref="Group"/>: el componente se muestra dentro de ella.</summary>
-public sealed record PanelSettingsSection(string Title, int Order, Type Component, string? Roles = null, string? Group = null)
+/// <summary>
+/// Una sección de <c>/settings</c>: sale en el índice dentro de <see cref="Group"/>, con su <see cref="Description"/>,
+/// y abre su propia página en <c>/settings/{Slug}</c>. <see cref="TracksUnsavedChanges"/> marca las que tienen un
+/// botón "Guardar": en esas, salir con cambios sin guardar pide confirmación (el componente avisa al guardar con
+/// <see cref="SettingsSectionState.MarkSaved"/>). Las que guardan al momento no lo necesitan.
+/// </summary>
+public sealed record PanelSettingsSection(
+    string Title,
+    int Order,
+    Type Component,
+    string? Roles = null,
+    string? Group = null,
+    string? Description = null,
+    bool TracksUnsavedChanges = false)
 {
     public string GroupName => string.IsNullOrWhiteSpace(Group) ? PanelSettingsGroups.Other : Group;
 
+    /// <summary>"Reservas de clases" → <c>reservas-de-clases</c>: sin tildes ni espacios, para la URL.</summary>
+    public string Slug => Slugify(Title);
+
     public bool IsVisibleTo(ClaimsPrincipal user) => PanelRoles.Allows(Roles, user);
+
+    internal static string Slugify(string text)
+    {
+        var plain = new System.Text.StringBuilder();
+        foreach (var c in text.Normalize(System.Text.NormalizationForm.FormD))
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            plain.Append(char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-');
+        }
+
+        return System.Text.RegularExpressions.Regex.Replace(plain.ToString(), "-{2,}", "-").Trim('-');
+    }
+}
+
+/// <summary>
+/// Estado de la sección de configuración abierta: si hay cambios sin guardar. La página de la sección lo marca
+/// sucio con cualquier edición dentro y el componente lo limpia al guardar (llega como <c>CascadingParameter</c>;
+/// fuera de <c>/settings</c>, por ejemplo en el onboarding, es nulo y no hace nada).
+/// </summary>
+public sealed class SettingsSectionState
+{
+    public bool IsDirty { get; private set; }
+
+    public event Action? Changed;
+
+    public void MarkDirty()
+    {
+        if (!IsDirty)
+        {
+            IsDirty = true;
+            Changed?.Invoke();
+        }
+    }
+
+    public void MarkSaved()
+    {
+        if (IsDirty)
+        {
+            IsDirty = false;
+            Changed?.Invoke();
+        }
+    }
 }
 
 /// <summary>Una sección de <c>/settings</c> con las pestañas que le aportaron los módulos.</summary>

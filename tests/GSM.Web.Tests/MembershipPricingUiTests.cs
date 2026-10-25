@@ -293,8 +293,8 @@ public class MembershipPricingUiTests : TestContext
             new GSM.Panel.UI.Navigation.Modules.EquipmentPanelModule(),
         }.SelectMany(m => m.SettingsSections).ToList();
 
-        Assert.Contains(sections, s => s.Component == typeof(MembershipSettingsTab) && s.Roles == "owner" && s.Group == "Membresías");
+        Assert.Contains(sections, s => s.Component == typeof(MembershipSettingsTab) && s.Roles == "owner" && s.Group == "Membresías y miembros");
         Assert.Contains(sections, s => s.Component == typeof(RoutineSettingsTab) && s.Roles == "owner");
-        Assert.Contains(sections, s => s.Component == typeof(EquipmentSettingsTab) && s.Roles == "owner" && s.Group == "Equipos");
+        Assert.Contains(sections, s => s.Component == typeof(EquipmentSettingsTab) && s.Roles == "owner" && s.Group == "Entrenamiento");
     }
 }

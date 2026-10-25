@@ -7,20 +7,20 @@
 
 <PageTitle>Planes — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Planes</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Schedule"
-               OnClick="@(() => Navigation.NavigateTo("/memberships/expiring"))">
-        Por vencer
-    </MudButton>
-    <MudCheckBox T="bool" Value="_includeInactive" ValueChanged="OnIncludeInactiveChangedAsync" Label="Ver inactivos" />
-    <RequireRole Roles="@GsmRoles.Owner">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
-            Nuevo plan
+<PageHeader Title="Planes">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Schedule"
+                   OnClick="@(() => Navigation.NavigateTo("/memberships/expiring"))">
+            Por vencer
         </MudButton>
-    </RequireRole>
-</div>
+        <MudCheckBox T="bool" Value="_includeInactive" ValueChanged="OnIncludeInactiveChangedAsync" Label="Ver inactivos" />
+        <RequireRole Roles="@GsmRoles.Owner">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+                Nuevo plan
+            </MudButton>
+        </RequireRole>
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {
@@ -28,7 +28,14 @@
 }
 else if (_plans.Count == 0)
 {
-    <MudText Color="Color.Secondary">No hay planes todavía.</MudText>
+    <EmptyState Icon="@Icons.Material.Outlined.CardMembership" Title="No hay planes todavía">
+        <ChildContent>Sin un plan no se pueden vender membresías. Crea el primero con su precio y duración.</ChildContent>
+        <Action>
+            <RequireRole Roles="@GsmRoles.Owner">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">Nuevo plan</MudButton>
+            </RequireRole>
+        </Action>
+    </EmptyState>
 }
 else
 {

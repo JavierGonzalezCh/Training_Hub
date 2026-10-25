@@ -37,7 +37,7 @@ else
 
     @if (!_useCode)
     {
-        <MudTextField T="string" @bind-Value="_password" Label="Contraseña" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Lock" InputType="InputType.Password" Class="mb-2"
+        <PasswordField @bind-Value="_password" Label="Contraseña" Variant="Variant.Outlined" Class="mb-2"
                       Immediate="true" autocomplete="current-password" OnKeyDown="PasswordKeyDownAsync"
                       data-testid="login-password" />
 

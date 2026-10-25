@@ -1,4 +1,4 @@
-@* Pestaña "Suscripción" de la configuración (la registra SubscriptionPanelModule) y contenido de /subscription.
+﻿@* Pestaña "Suscripción" de la configuración (la registra SubscriptionPanelModule) y contenido de /subscription.
    Solo lectura, solo Owner (S3-3): el gym no paga desde el sistema. *@
 @inject IGymClient Gym
 
@@ -13,7 +13,7 @@ else if (_error is not null)
 else if (_data is { } s)
 {
     <div class="d-flex align-center flex-wrap gap-3 mt-2 mb-3">
-        <MudText Typo="Typo.h6" data-testid="subscription-plan">@s.Plan</MudText>
+        <MudText HtmlTag="h2" Typo="Typo.h6" data-testid="subscription-plan">@s.Plan</MudText>
         <MudChip T="string" Size="Size.Small" Color="@SuperAdminLabels.StatusColor(s.EffectiveStatus)"
                  data-testid="subscription-status">@SuperAdminLabels.OwnerStatusLabel(s.EffectiveStatus)</MudChip>
     </div>
@@ -67,9 +67,7 @@ else if (_data is { } s)
     <MudText Typo="Typo.subtitle1" Class="mb-2">Últimos pagos</MudText>
     @if (s.RecentPayments.Count == 0)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" data-testid="subscription-no-payments">
-            Aún no hay pagos registrados.
-        </MudText>
+        <EmptyState Icon="@Icons.Material.Outlined.ReceiptLong" Compact="true" Class="mb-4" TestId="subscription-no-payments">Aún no hay pagos registrados.</EmptyState>
     }
     else
     {

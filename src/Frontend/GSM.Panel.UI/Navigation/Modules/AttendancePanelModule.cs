@@ -1,4 +1,4 @@
-using MudBlazor;
+﻿using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
 
@@ -15,5 +15,7 @@ public sealed class AttendancePanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Check-in", 30, typeof(Pages.Settings.CheckinTab), Group: PanelSettingsGroups.Entry)];
+        [new("Check-in", 30, typeof(Pages.Settings.CheckinTab), Group: PanelSettingsGroups.Entry,
+            Description: "El QR de la entrada, la entrada con documento en el kiosco y cuánto se asume que dura una visita.",
+            TracksUnsavedChanges: true)];
 }

@@ -19,7 +19,7 @@ else
     @foreach (var draft in _drafts)
     {
         <MudPaper Class="pa-4 mb-4 gsm-consent-doc" Elevation="0" Style="border:1px solid var(--gsm-border)" data-consent="@draft.Type">
-            <MudText Typo="Typo.h6">@ConsentLabels.Type(draft.Type)</MudText>
+            <MudText HtmlTag="h2" Typo="Typo.h6">@ConsentLabels.Type(draft.Type)</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
                 @if (draft.IsDefault)
                 {

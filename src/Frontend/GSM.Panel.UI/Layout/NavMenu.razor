@@ -23,12 +23,15 @@
 
     @if (GymContext.Gym is { } gym)
     {
-        <div class="gsm-nav__gym">
-            <span class="gsm-nav__gym-mark" aria-hidden="true">@GymInitial(gym.Name)</span>
-            <span class="gsm-nav__gym-text">
-                <span class="gsm-nav__gym-name">@gym.Name</span>
-                <span class="gsm-nav__gym-meta">Sesión · @RoleLabel(GymContext.Role)</span>
-            </span>
+        @* Fijo al pie del menú: los enlaces se desplazan por detrás y el gym conectado queda siempre a la vista. *@
+        <div class="gsm-nav__foot">
+            <div class="gsm-nav__gym">
+                <span class="gsm-nav__gym-mark" aria-hidden="true">@GymInitial(gym.Name)</span>
+                <span class="gsm-nav__gym-text">
+                    <span class="gsm-nav__gym-name">@gym.Name</span>
+                    <span class="gsm-nav__gym-meta">Sesión · @RoleLabel(GymContext.Role)</span>
+                </span>
+            </div>
         </div>
     }
 </nav>

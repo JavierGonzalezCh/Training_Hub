@@ -128,6 +128,13 @@ public sealed class RoutineDraft
     };
 
     /// <summary>Mensaje de error si el borrador no se puede enviar; <c>null</c> si está listo.</summary>
+    /// <summary>
+    /// Huella de lo que se guardaría: dos borradores con la misma huella guardan lo mismo. Los editores la toman al
+    /// cargar y la comparan al salir para avisar de cambios sin guardar; cubre lo que se edita con clics (agregar,
+    /// mover o quitar días, elegir ejercicios), que no pasa por un campo de texto.
+    /// </summary>
+    public string Fingerprint() => System.Text.Json.JsonSerializer.Serialize(ToRequest());
+
     public string? Validate()
     {
         if (string.IsNullOrWhiteSpace(Name))

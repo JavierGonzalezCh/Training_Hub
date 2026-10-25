@@ -161,6 +161,38 @@ public sealed class PaymentMethodsTests(ApiFactory factory) : IClassFixture<ApiF
         await cmd.ExecuteNonQueryAsync();
     }
 
+    [Fact]
+    public async Task The_gym_payment_list_names_the_member_who_paid_and_leaves_sales_without_a_member_unnamed()
+    {
+        var (gymId, staffId) = await SeedAsync();
+        Guid memberId;
+        using (var scope = factory.CreateScopeWithMigration())
+        {
+            scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+            var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+            var member = Member.Create(gymId, "Ana", "Pagadora", $"doc-{Guid.NewGuid():N}"[..12], new DateOnly(1995, 3, 1));
+            db.Add(member);
+            await db.SaveChangesAsync();
+            memberId = member.Id;
+        }
+
+        using (var scope = Staff(gymId, staffId))
+        {
+            var record = scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>();
+            await record.HandleAsync(new RecordPaymentRequest(80_000m, PaymentMethod.Card, "Plan Mensual", null, memberId, null), default);
+            await record.HandleAsync(new RecordPaymentRequest(5_000m, PaymentMethod.Card, "Botella de agua", null, null, null), default);
+        }
+
+        using (var scope = Staff(gymId, staffId))
+        {
+            var list = await scope.ServiceProvider.GetRequiredService<ListPaymentsHandler>()
+                .HandleAsync(new ListPaymentsQuery(), default);
+
+            Assert.Equal("Ana Pagadora", Assert.Single(list.Items, p => p.MemberId == memberId).MemberName);
+            Assert.Null(Assert.Single(list.Items, p => p.MemberId is null).MemberName);
+        }
+    }
+
     private IServiceScope Staff(Guid gymId, Guid staffId)
     {
         var scope = factory.CreateScopeWithMigration();

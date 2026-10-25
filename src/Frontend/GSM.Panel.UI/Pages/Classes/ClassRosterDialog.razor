@@ -36,7 +36,7 @@
             }
             else
             {
-                <MudTable Items="roster.Entries" Hover="true" Dense="true" Elevation="0">
+                <MudTable Items="roster.Entries" Hover="true" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm" Class="gsm-table--stack">
                     <HeaderContent>
                         <MudTh>Miembro</MudTh>
                         <MudTh>Asistencia</MudTh>
@@ -58,7 +58,7 @@
             @if (roster.Waitlist is { Count: > 0 } waitlist)
             {
                 <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2" id="roster-waitlist-title">Lista de espera (@waitlist.Count)</MudText>
-                <MudTable Items="waitlist.OrderBy(w => w.Position)" Hover="true" Dense="true" Elevation="0" id="roster-waitlist">
+                <MudTable Items="waitlist.OrderBy(w => w.Position)" Hover="true" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm" Class="gsm-table--stack" id="roster-waitlist">
                     <HeaderContent>
                         <MudTh>#</MudTh>
                         <MudTh>Miembro</MudTh>

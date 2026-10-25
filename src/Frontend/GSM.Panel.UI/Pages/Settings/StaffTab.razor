@@ -1,4 +1,4 @@
-@* Pestaña "Staff" de la configuración: alta, desactivación y reactivación de recepcionistas. Solo Owner. *@
+﻿@* Pestaña "Staff" de la configuración: alta, desactivación y reactivación de recepcionistas. Solo Owner. *@
 @inject IStaffClient StaffApi
 @inject IOwnersClient OwnersApi
 @inject IDialogService Dialogs
@@ -7,7 +7,7 @@
 
 <OwnersSection />
 
-<MudText Typo="Typo.h6" Class="mb-1">Staff</MudText>
+<MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">Staff</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" Style="max-width:640px">
     Al dar de alta a alguien, le llega un email con un enlace (vence en 72 horas) que abre el formulario para
     elegir su contraseña. Si no le llega, usa "Copiar enlace" y mándaselo por WhatsApp. Desactivar no borra la
@@ -42,7 +42,9 @@
 }
 else if (_staff.Count == 0)
 {
-    <MudText Color="Color.Secondary">Todavía no hay staff dado de alta.</MudText>
+    <EmptyState Icon="@Icons.Material.Outlined.Badge" Title="Todavía no hay staff dado de alta" Compact="true">
+        Da de alta a recepción y entrenadores con su correo: reciben un código para crear su contraseña.
+    </EmptyState>
 }
 else
 {

@@ -1,0 +1,88 @@
+@page "/settings/{Slug}"
+@attribute [Authorize(Roles = GsmRoles.Owner)]
+@using GSM.Panel.UI.Navigation
+@inject PanelRegistry Registry
+@inject AuthenticationStateProvider AuthState
+@implements IDisposable
+
+<PageTitle>@(_section?.Title ?? "Configuración") — TrainingHub OS</PageTitle>
+
+<MudLink Href="/settings" Class="mb-3 d-inline-block" data-testid="settings-back">&larr; Configuración</MudLink>
+
+@if (_loaded && _section is null)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.SearchOff" Title="Esa sección no existe" TestId="settings-section-missing">
+        <ChildContent>Puede que el enlace sea viejo o que tu rol no la vea.</ChildContent>
+        <Action>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/settings">Ver todas las secciones</MudButton>
+        </Action>
+    </EmptyState>
+}
+else if (_section is { } section)
+{
+    @if (string.IsNullOrEmpty(section.Description))
+    {
+        <PageHeader Title="@section.Title" />
+    }
+    else
+    {
+        <PageHeader Title="@section.Title">
+            <Subtitle>@section.Description</Subtitle>
+        </PageHeader>
+    }
+
+    @* Salir con cambios sin guardar pregunta antes (al cambiar de sección, al usar el menú o al cerrar la pestaña).
+       Cualquier edición dentro marca la sección como sucia y el componente la limpia al guardar. Solo en las
+       secciones con botón "Guardar": las que guardan al momento no tienen nada pendiente. *@
+    @if (section.TracksUnsavedChanges)
+    {
+        <UnsavedChangesGuard IsDirty="@(() => _state.IsDirty)" What="@($"«{section.Title}»")" />
+        @if (_state.IsDirty)
+        {
+            <div class="gsm-unsaved" role="status" data-testid="settings-unsaved">Tienes cambios sin guardar</div>
+        }
+    }
+
+    <CascadingValue Value="_state" IsFixed="true">
+        <div @oninput="OnEdited" @onchange="OnEdited" data-testid="settings-section-body">
+            <DynamicComponent Type="@section.Component" />
+        </div>
+    </CascadingValue>
+}
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    private readonly SettingsSectionState _state = new();
+    private PanelSettingsSection? _section;
+    private bool _loaded;
+
+    protected override void OnInitialized() => _state.Changed += OnStateChanged;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        var next = Registry.FindSettingsSection(user, Slug);
+        if (!ReferenceEquals(next, _section))
+        {
+            // Otra sección: lo pendiente era de la anterior, y la navegación ya se confirmó.
+            _state.MarkSaved();
+        }
+
+        _section = next;
+        _loaded = true;
+    }
+
+    private void OnEdited()
+    {
+        if (_section?.TracksUnsavedChanges == true)
+        {
+            _state.MarkDirty();
+        }
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => _state.Changed -= OnStateChanged;
+}

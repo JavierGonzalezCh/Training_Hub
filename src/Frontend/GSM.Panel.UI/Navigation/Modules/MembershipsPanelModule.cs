@@ -1,4 +1,4 @@
-using GSM.Client;
+﻿using GSM.Client;
 using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
@@ -14,5 +14,6 @@ public sealed class MembershipsPanelModule : IPanelModule
     ];
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
-        [new("Membresías", 28, typeof(Pages.Settings.MembershipSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Memberships)];
+        [new("Membresías", 28, typeof(Pages.Settings.MembershipSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Memberships,
+            Description: "Matrícula, días de gracia y desde cuándo una membresía está por vencer.", TracksUnsavedChanges: true)];
 }

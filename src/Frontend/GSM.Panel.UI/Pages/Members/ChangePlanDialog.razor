@@ -1,4 +1,4 @@
-@inject IMemberMembershipsClient MemberMemberships
+﻿@inject IMemberMembershipsClient MemberMemberships
 @inject IMembershipPlansClient Plans
 @inject IPaymentsClient Payments
 
@@ -20,7 +20,7 @@
             }
             @if (_plans.Count == 0)
             {
-                <MudText Color="Color.Secondary">No hay planes activos para cambiar.</MudText>
+                <EmptyState Icon="@Icons.Material.Outlined.CardMembership" Compact="true">No hay planes activos para cambiar.</EmptyState>
             }
             else
             {

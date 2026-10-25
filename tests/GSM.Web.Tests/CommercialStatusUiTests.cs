@@ -104,9 +104,17 @@ public class CommercialStatusUiTests : TestContext
         page.WaitForAssertion(() =>
         {
             Assert.Contains("Membresía vencida el 7 oct, fuera de la gracia.", page.Markup);
+            Assert.Equal("No puede entrar", page.Find("#reception-verdict").TextContent.Trim());
+            Assert.Contains("gsm-reception--danger", page.Find("#reception-card").ClassName);
             Assert.Contains("Renovar y cobrar", page.Markup);
             Assert.Contains("Dejar pasar", page.Markup);
         });
+
+        // Lo que decide va arriba: el motivo y los botones antes de lo secundario, que queda plegado con su resumen.
+        var markup = page.Find("#reception-card").InnerHtml;
+        Assert.True(markup.IndexOf("block-message", StringComparison.Ordinal) < markup.IndexOf("reception-extras", StringComparison.Ordinal));
+        Assert.True(markup.IndexOf("Renovar y cobrar", StringComparison.Ordinal) < markup.IndexOf("reception-extras", StringComparison.Ordinal));
+        Assert.Contains("Además: avisar por WhatsApp", page.Find("[data-testid='reception-extras'] summary").TextContent);
         // No se registró nada todavía: recepción decide.
         Assert.DoesNotContain(attendanceFake.Calls, c => c.Method == "CheckinAsync");
 
@@ -145,14 +153,51 @@ public class CommercialStatusUiTests : TestContext
 
         await Pick(page, member);
 
-        // Paso 1: la tarjeta con el letrero; todavía no se registró nada.
-        page.WaitForAssertion(() => Assert.Contains("Tu plan vence en 3 días", page.Find("#access-notice").TextContent));
+        // Paso 1: la tarjeta con el letrero, redactado para recepción (no el "Tu plan…" del kiosco).
+        page.WaitForAssertion(() => Assert.Equal(
+            "Su plan vence en 3 días. Ofrécele renovar.", page.Find("#access-notice").TextContent.Trim()));
+        Assert.Equal("Puede entrar", page.Find("#reception-verdict").TextContent.Trim());
+        Assert.Contains("Ana Prueba: Puede entrar.", page.Find("#reception-announcer").TextContent);
         Assert.DoesNotContain("Dejar pasar", page.Markup);
         Assert.DoesNotContain(attendanceFake.Calls, c => c.Method == "CheckinAsync");
 
-        // Paso 2: el botón registra.
+        // Paso 2: el botón registra; el resultado es de éxito y se anuncia.
         page.Find("#register-button").Click();
         page.WaitForAssertion(() => Assert.Contains("Entrada registrada", page.Find("#checkin-result").TextContent));
+        Assert.Contains("gsm-reception--ok", page.Find("#checkin-result-card").ClassName);
+        Assert.StartsWith("Entrada registrada: Ana Prueba", page.Find("#reception-announcer").TextContent.Trim());
+    }
+
+    [Fact]
+    public async Task A_check_in_in_grace_is_a_success_with_a_note_for_reception()
+    {
+        var member = new MemberListItem { Id = Guid.NewGuid(), FirstName = "Ana", LastName = "Prueba", DocumentNumber = "1", DocumentType = "cc", Status = "Active" };
+        var page = Render(out var attendanceFake, out _);
+        attendanceFake.Handlers["ReceptionCardAsync"] = _ => new ReceptionCardResponse
+        {
+            MemberId = member.Id, MemberName = "Ana Prueba", MemberActive = true, Commercial = "grace", Kind = "grace",
+            EndsOn = new DateOnly(2026, 10, 21), GraceDaysLeft = 2, CanRegister = true,
+            Notice = "Tu plan venció el 21 oct. Tienes hasta el 24 oct para renovar sin perder tu fecha; después no podrás entrar.",
+        };
+        attendanceFake.Handlers["CheckinAsync"] = _ => new CheckInResponse
+        {
+            AttendanceId = Guid.NewGuid(), MemberId = member.Id, MemberName = "Ana Prueba", Method = "Manual",
+            CheckedInAt = DateTimeOffset.UtcNow, MembershipExpired = true, MembershipEndsOn = new DateOnly(2026, 10, 21), GraceDaysLeft = 2,
+        };
+
+        await Pick(page, member);
+
+        page.WaitForAssertion(() => Assert.Equal("Puede entrar · en gracia", page.Find("#reception-verdict").TextContent.Trim()));
+        Assert.Equal(
+            "Venció el 21 oct. Está en gracia: puede entrar 2 días más sin renovar. Ofrécele renovar.",
+            page.Find("#access-notice").TextContent.Trim());
+
+        page.Find("#register-button").Click();
+
+        // Antes salía con borde rojo y triángulo de alerta aunque la entrada se había registrado.
+        page.WaitForAssertion(() => Assert.Contains("gsm-reception--ok", page.Find("#checkin-result-card").ClassName));
+        Assert.Contains("Está en gracia", page.Find("#access-notice").TextContent);
+        Assert.DoesNotContain("Tu plan", page.Markup);
     }
 
     private IRenderedComponent<CheckIn> Render(out FakeClient attendanceFake, out FakeClient membershipsFake)

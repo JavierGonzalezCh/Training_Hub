@@ -26,6 +26,38 @@ public class DashboardPanelUiTests : TestContext
     private FakeClient _cashShifts = default!;
     private FakeClient _whatsApp = default!;
 
+    private FakeClient _dash = null!;
+    private Exception? _failNextLoad;
+
+    [Fact]
+    public void If_the_dashboard_fails_to_load_the_page_says_so_and_retry_loads_it()
+    {
+        _failNextLoad = new GsmApiException("Server error", 500, "{\"traceId\":\"00-abc\"}", new Dictionary<string, IEnumerable<string>>(), null);
+
+        var cut = RenderHome(Full());
+
+        // Antes: solo un snackbar y la página vacía bajo el título.
+        cut.WaitForAssertion(() => Assert.NotNull(cut.Find("[data-testid='dashboard-error']")));
+
+        _failNextLoad = null;
+        cut.Find("[data-testid='dashboard-retry']").Click();
+
+        cut.WaitForAssertion(() => Assert.NotNull(cut.Find("[data-testid='dash-indicators']")));
+        Assert.Empty(cut.FindAll("[data-testid='dashboard-error']"));
+    }
+
+    [Fact]
+    public void The_headline_counts_members_to_renew_like_the_status_cards_do()
+    {
+        // Full(): 4 por vencer, 2 en gracia y 6 vencidos (miembros). "Por renovar" = 2 + 6, como las tarjetas.
+        Assert.Equal("Esta semana vencen 4 membresías y 8 miembros están por renovar (2 aún entran en gracia).", Home.Headline(Full()));
+
+        var cut = RenderHome(Full());
+        cut.WaitForAssertion(() => Assert.Contains("8 miembros están por renovar", cut.Markup));
+        // La cifra en membresías (ExpiredCount = 6) ya no aparece como "ya vencidas" junto a las de miembros.
+        Assert.DoesNotContain("ya vencidas", cut.Markup);
+    }
+
     private static T Proxy<T>(out FakeClient fake) where T : class
     {
         var proxy = DispatchProxy.Create<T, FakeClient>();
@@ -50,7 +82,8 @@ public class DashboardPanelUiTests : TestContext
 
 
         var dash = Proxy<IDashboardClient>(out var dashFake);
-        dashFake.Handlers["GetGymDashboardAsync"] = _ => dashboard;
+        _dash = dashFake;
+        dashFake.Handlers["GetGymDashboardAsync"] = _ => _failNextLoad is { } fail ? throw fail : dashboard;
         Services.AddSingleton(dash);
         Services.AddSingleton(Proxy<IAttendanceClient>(out _attendance));
         Services.AddSingleton(Proxy<ICashShiftsClient>(out _cashShifts));

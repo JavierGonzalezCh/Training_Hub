@@ -1,4 +1,4 @@
-using GSM.Client;
+﻿using GSM.Client;
 
 namespace GSM.Panel.UI.Navigation.Modules;
 
@@ -9,6 +9,7 @@ public sealed class SubscriptionPanelModule : IPanelModule
 
     public IEnumerable<PanelSettingsSection> SettingsSections =>
     [
-        new("Suscripción", 27, typeof(Pages.Settings.SubscriptionTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Gym),
+        new("Suscripción", 27, typeof(Pages.Settings.SubscriptionTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Gym,
+            Description: "Tu plan de TrainingHub, hasta cuándo está pagado y los últimos pagos."),
     ];
 }

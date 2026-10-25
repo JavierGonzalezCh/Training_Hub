@@ -58,6 +58,12 @@ public class ClassInstructorUiTests : TestContext
         var page = RenderComponent<ClassesIndex>();
 
         page.WaitForAssertion(() => Assert.Single(page.FindAll(".no-active-instructor-chip")));
+
+        // Los botones de icono dicen qué hacen y sobre qué clase; la tabla se apila en el celular.
+        var labels = page.FindAll("[data-testid='classes-table'] button[aria-label]").Select(b => b.GetAttribute("aria-label")).ToList();
+        Assert.Contains("Editar Spinning", labels);
+        Assert.Contains("Desactivar Yoga", labels);
+        Assert.Contains("gsm-table--stack", page.Find("[data-testid='classes-table']").ClassName);
     }
 
     [Fact]

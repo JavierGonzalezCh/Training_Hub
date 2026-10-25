@@ -1,4 +1,4 @@
-@page "/equipment/issues"
+﻿@page "/equipment/issues"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IEquipmentClient Equipment
 @inject ISnackbar Snackbar
@@ -7,12 +7,12 @@
 
 <MudLink Href="/equipment" Class="mb-3 d-inline-block">&larr; Equipos</MudLink>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Reportes de fallas</MudText>
-    <MudSpacer />
-    <MudCheckBox T="bool" Value="_openOnly" ValueChanged="OnOpenOnlyChangedAsync" Label="Solo sin cerrar"
-                 data-testid="filter-open-only" />
-</div>
+<PageHeader Title="Reportes de fallas">
+    <Actions>
+        <MudCheckBox T="bool" Value="_openOnly" ValueChanged="OnOpenOnlyChangedAsync" Label="Solo sin cerrar"
+                     data-testid="filter-open-only" />
+    </Actions>
+</PageHeader>
 
 @if (_loading)
 {
@@ -20,9 +20,9 @@
 }
 else if (_items.Count == 0)
 {
-    <MudText Color="Color.Secondary" data-testid="issues-empty">
-        @(_openOnly ? "No hay reportes abiertos." : "Todavía no hay reportes.")
-    </MudText>
+    <EmptyState Icon="@Icons.Material.Outlined.TaskAlt" Title="@(_openOnly ? "No hay reportes abiertos." : "Todavía no hay reportes.")" TestId="issues-empty">
+        Cuando un miembro o alguien del equipo reporte una falla, aparece aquí.
+    </EmptyState>
 }
 else
 {

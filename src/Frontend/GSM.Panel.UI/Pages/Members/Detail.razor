@@ -1,4 +1,4 @@
-@page "/members/{Id:guid}"
+﻿@page "/members/{Id:guid}"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Payments
 @using GSM.UI.Shared.Routines
@@ -15,7 +15,7 @@
 
 <PageTitle>@(_member?.FirstName is null ? "Miembro" : $"{_member.FirstName} {_member.LastName}") — TrainingHub OS</PageTitle>
 
-<MudLink OnClick="@(() => Navigation.NavigateTo("/members"))" Class="mb-4 d-inline-block">← Miembros</MudLink>
+<MudLink Href="@("/members")" Class="mb-4 d-inline-block">← Miembros</MudLink>
 
 @if (_loading)
 {
@@ -49,7 +49,7 @@ else if (_member is not null)
         </div>
         <div style="flex:1; min-width:220px">
             <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
-                <MudText Typo="Typo.h4">@_member.FirstName @_member.LastName</MudText>
+                <MudText Typo="Typo.h4" HtmlTag="h1">@_member.FirstName @_member.LastName</MudText>
                 @if (_member.IsAnonymized == true)
                 {
                     <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small" Class="gsm-mono" data-testid="anonymized-chip">ANONIMIZADO</MudChip>
@@ -75,23 +75,13 @@ else if (_member is not null)
         </div>
         @if (_member.IsAnonymized != true)
         {
-        <div class="d-flex flex-wrap" style="gap:0.5rem">
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" OnClick="InviteAsync">Invitar</MudButton>
-            <WhatsAppButton MemberId="Id" />
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CardMembership" OnClick="AssignMembershipAsync">
-                Asignar membresía
-            </MudButton>
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Groups" OnClick="AssignGroupMembershipAsync" data-testid="assign-group">
-                Plan de grupo
-            </MudButton>
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
-                Registrar pago
-            </MudButton>
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync">Editar</MudButton>
+        @* Una acción principal (cobrar, o reactivar si está de baja), las frecuentes a la vista y lo raro o
+           destructivo en "Más acciones": "Anonimizar ahora" es irreversible y no puede quedar al lado de cobrar. *@
+        <div class="d-flex flex-wrap align-center" style="gap:0.5rem" data-testid="member-actions">
             @if (_member.Status == "Active")
             {
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.PersonOff" OnClick="DeactivateAsync">
-                    Dar de baja
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
+                    Registrar pago
                 </MudButton>
             }
             else
@@ -99,14 +89,38 @@ else if (_member is not null)
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="ReactivateAsync">
                     Reactivar
                 </MudButton>
-            }
-            @if (_isOwner)
-            {
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteSweep"
-                           OnClick="AnonymizeAsync" data-testid="anonymize-now">
-                    Anonimizar ahora
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
+                    Registrar pago
                 </MudButton>
             }
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CardMembership" OnClick="AssignMembershipAsync">
+                Asignar membresía
+            </MudButton>
+            <WhatsAppButton MemberId="Id" />
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync">Editar</MudButton>
+            <MudMenu Icon="@Icons.Material.Filled.MoreHoriz" AriaLabel="Más acciones" Variant="Variant.Outlined"
+                     AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" data-testid="member-more-actions">
+                <MudMenuItem Icon="@Icons.Material.Filled.Groups" OnClick="AssignGroupMembershipAsync" data-testid="assign-group">
+                    Plan de grupo
+                </MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Link" OnClick="InviteAsync">Invitar a la app</MudMenuItem>
+                @if (_member.Status == "Active" || _isOwner)
+                {
+                    <MudDivider />
+                }
+                @if (_member.Status == "Active")
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.PersonOff" IconColor="Color.Error" OnClick="DeactivateAsync">
+                        <span class="gsm-danger-text">Dar de baja</span>
+                    </MudMenuItem>
+                }
+                @if (_isOwner)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.DeleteSweep" IconColor="Color.Error" OnClick="AnonymizeAsync" data-testid="anonymize-now">
+                        <span class="gsm-danger-text">Anonimizar ahora</span>
+                    </MudMenuItem>
+                }
+            </MudMenu>
         </div>
         }
     </div>
@@ -143,7 +157,7 @@ else if (_member is not null)
                 <MudText Typo="Typo.overline" Color="Color.Secondary">Membresía vigente</MudText>
                 @if (_member.CurrentMembership is { } membership)
                 {
-                    <MudText Typo="Typo.h6">@membership.PlanName</MudText>
+                    <MudText HtmlTag="h2" Typo="Typo.h6">@membership.PlanName</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">Vence @GsmFormat.Day(membership.EndDate)</MudText>
                     @if (membership.EntriesTotal is { } passTotal)
                     {
@@ -165,7 +179,7 @@ else if (_member is not null)
                 <MudText Typo="Typo.overline" Color="Color.Secondary">Racha</MudText>
                 @if (_streak is { } streak)
                 {
-                    <MudText Typo="Typo.h6" Class="gsm-mono">@streak.CurrentStreak @(streak.CurrentStreak == 1 ? "día" : "días")</MudText>
+                    <MudText HtmlTag="p" Typo="Typo.h6" Class="gsm-mono">@streak.CurrentStreak @(streak.CurrentStreak == 1 ? "día" : "días")</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
                         @(streak.LastVisit is { } last ? $"Última visita {GsmFormat.Day(last)}" : "Sin visitas todavía")
                     </MudText>
@@ -191,7 +205,7 @@ else if (_member is not null)
                 }
                 else
                 {
-                    <MudText Color="Color.Secondary">Sin pagos todavía.</MudText>
+                    <EmptyState Icon="@Icons.Material.Outlined.Payments" Compact="true">Sin pagos todavía.</EmptyState>
                 }
             </MudPaper>
         </MudItem>
@@ -399,12 +413,12 @@ else if (_member is not null)
                 </MudExpansionPanels>
             }
 
-            <MudText Typo="Typo.h6" Class="mt-6 mb-2">Progreso y récords</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-6 mb-2">Progreso y récords</MudText>
             <ProgressPanel LoadSummaries="@(() => MemberRoutinesClient.GetMemberProgressAsync(Id))"
                            LoadDetail="@(exerciseId => MemberRoutinesClient.GetMemberExerciseProgressAsync(Id, exerciseId))"
                            EmptyText="Este miembro todavía no ha anotado ejercicios en su rutina." />
 
-            <MudText Typo="Typo.h6" Class="mt-6 mb-2">Sustituciones recientes</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-6 mb-2">Sustituciones recientes</MudText>
             <SubstitutionsList Load="@(() => MemberRoutinesClient.GetMemberSubstitutionsAsync(Id))" />
         </MudTabPanel>
         <MudTabPanel Text="Pagos">
@@ -854,7 +868,7 @@ else if (_member is not null)
         var confirmed = await Dialogs.ShowMessageBox(
             "Anonimizar ahora",
             "Se borrarán los datos personales y de salud de esta ficha, y la cuenta de la app. Los pagos, asistencias y membresías se conservan. No se puede deshacer. Úsalo cuando el miembro pida la supresión de sus datos. ¿Continuar?",
-            yesText: "Anonimizar", cancelText: "Cancelar");
+            yesText: "Anonimizar", cancelText: "Volver");
         if (confirmed != true)
         {
             return;
@@ -874,7 +888,7 @@ else if (_member is not null)
     private async Task DeactivateAsync()
     {
         var confirmed = await Dialogs.ShowMessageBox(
-            "Dar de baja", $"¿Dar de baja a {_member!.FirstName} {_member.LastName}?", yesText: "Dar de baja", cancelText: "Cancelar");
+            "Dar de baja", $"¿Dar de baja a {_member!.FirstName} {_member.LastName}?", yesText: "Dar de baja", cancelText: "Volver");
         if (confirmed != true)
         {
             return;

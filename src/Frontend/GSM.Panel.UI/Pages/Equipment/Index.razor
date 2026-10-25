@@ -1,4 +1,4 @@
-@page "/equipment"
+﻿@page "/equipment"
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @inject IEquipmentClient Equipment
 @inject IDialogService Dialogs
@@ -6,24 +6,24 @@
 
 <PageTitle>Equipos — TrainingHub OS</PageTitle>
 
-<div class="d-flex align-center flex-wrap mb-4" style="gap:1rem">
-    <MudText Typo="Typo.h4">Equipos</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.ReportProblem" Href="/equipment/issues"
-               data-testid="open-issues-page">
-        Reportes de fallas
-    </MudButton>
-    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenOwnAsync" data-testid="add-own">
-        Máquina propia
-    </MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LibraryAdd"
-               OnClick="OpenCatalogAsync" data-testid="add-from-catalog">
-        Agregar del catálogo
-    </MudButton>
-</div>
+<PageHeader Title="Equipos">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.ReportProblem" Href="/equipment/issues"
+                   data-testid="open-issues-page">
+            Reportes de fallas
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenOwnAsync" data-testid="add-own">
+            Máquina propia
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LibraryAdd"
+                   OnClick="OpenCatalogAsync" data-testid="add-from-catalog">
+            Agregar del catálogo
+        </MudButton>
+    </Actions>
+</PageHeader>
 
 <div class="d-flex flex-wrap align-end mb-4" style="gap:1rem">
-    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Placeholder="Buscar"
+    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Label="Buscar equipo" Placeholder="Nombre o zona"
                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
                   DebounceInterval="400" Style="max-width:260px" />
     <label class="gsm-native-field">
@@ -68,9 +68,21 @@
 }
 else if (_items.Count == 0)
 {
-    <MudText Color="Color.Secondary" data-testid="empty">
-        @(_hasFilters ? "Sin resultados." : "Todavía no hay equipos. Usa \"Agregar del catálogo\" para armar el inventario del gym.")
-    </MudText>
+    @if (_hasFilters)
+    {
+        <EmptyState Icon="@Icons.Material.Outlined.SearchOff" Title="Sin resultados" TestId="empty">
+            Ningún equipo coincide con los filtros.
+        </EmptyState>
+    }
+    else
+    {
+        <EmptyState Icon="@Icons.Material.Outlined.FitnessCenter" Title="Todavía no hay equipos" TestId="empty">
+            <ChildContent>Arma el inventario del gym desde el catálogo: así los miembros ven qué máquinas hay y pueden reportar fallas.</ChildContent>
+            <Action>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LibraryAdd" OnClick="OpenCatalogAsync">Agregar del catálogo</MudButton>
+            </Action>
+        </EmptyState>
+    }
 }
 else
 {

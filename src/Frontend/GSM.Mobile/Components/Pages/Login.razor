@@ -21,7 +21,7 @@
 else
 {
     <MudTextField T="string" @bind-Value="_email" Label="Email" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Email" InputType="InputType.Email" Class="mb-3" />
-    <MudTextField T="string" @bind-Value="_password" Label="Contraseña" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Lock" InputType="InputType.Password" Class="mb-4" />
+    <PasswordField @bind-Value="_password" Label="Contraseña" Variant="Variant.Outlined" Class="mb-4" />
 
     <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
         @(_submitting ? "Entrando..." : "Entrar")

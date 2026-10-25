@@ -1,4 +1,4 @@
-@* Pestaña "Privacidad" de la configuración: plazo de anonimización de los miembros dados de baja (Members §11).
+﻿@* Pestaña "Privacidad" de la configuración: plazo de anonimización de los miembros dados de baja (Members §11).
    Solo Owner. *@
 @inject IMemberSettingsClient MemberSettings
 @inject ISnackbar Snackbar
@@ -25,6 +25,10 @@ else
 }
 
 @code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
     private bool _loading = true;
     private bool _saving;
     private int _months = 24;
@@ -54,6 +58,7 @@ else
             var saved = await MemberSettings.UpdateMemberSettingsAsync(new UpdateMemberSettingsRequest { AnonymizationMonths = _months });
             _months = saved.AnonymizationMonths;
             Snackbar.Add("Plazo de anonimización guardado.", Severity.Success);
+            SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
         {

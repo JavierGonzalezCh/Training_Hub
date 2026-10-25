@@ -57,6 +57,13 @@ public static class GsmTheme
             Success = Green,
             Warning = "#E0A106",
             Error = RedHot,
+            // Texto sobre los colores de estado rellenos (chips, botones): oscuro, no el blanco por defecto. Sobre
+            // crema, verde, ámbar y el rojo claro el blanco quedaba entre 1,2 y 3,4:1 ("Vigente" 2,54, "Por vencer"
+            // 2,27); el negro de la base da de 6 a 17:1. Primary sigue en blanco: sobre #B50016 da 7:1.
+            InfoContrastText = Base,
+            SuccessContrastText = Base,
+            WarningContrastText = Base,
+            ErrorContrastText = Base,
             Dark = Base,
             Black = Base,
             Background = Base,
@@ -90,13 +97,18 @@ public static class GsmTheme
         Default = new DefaultTypography
         {
             FontFamily = sans,
-            FontSize = "0.9375rem",
+            // Los mismos pasos que --gsm-fs-* en gsm.css: 16 de cuerpo, 14 secundario, 12 de rótulo.
+            FontSize = "1rem",
             LineHeight = "1.6",
             FontWeight = "400",
         },
+        Body1 = new Body1Typography { FontFamily = sans, FontSize = "1rem", LineHeight = "1.6", LetterSpacing = "0" },
+        Body2 = new Body2Typography { FontFamily = sans, FontSize = "0.875rem", LineHeight = "1.5", LetterSpacing = "0" },
+        // h6 es el título de sección dentro de una página (bajo el h1 de PageHeader).
+        H6 = new H6Typography { FontFamily = sans, FontSize = "1.125rem", FontWeight = "600", LineHeight = "1.35", LetterSpacing = "0" },
         Button = new ButtonTypography { FontFamily = sans, FontWeight = "600", TextTransform = "none" },
         Caption = new CaptionTypography { FontFamily = mono, FontSize = "0.75rem", LetterSpacing = "0.04em" },
-        Overline = new OverlineTypography { FontFamily = mono, LetterSpacing = "0.12em", TextTransform = "uppercase" },
+        Overline = new OverlineTypography { FontFamily = mono, FontSize = "0.75rem", LineHeight = "1.5", LetterSpacing = "0.12em", TextTransform = "uppercase" },
     };
 
     private static LayoutProperties Layout(string radius) => new()

@@ -1,4 +1,4 @@
-@page "/members/{MemberId:guid}/routines/new"
+﻿@page "/members/{MemberId:guid}/routines/new"
 @page "/members/{MemberId:guid}/routines/{RoutineId:guid}"
 @using GSM.UI.Shared.Routines
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
@@ -10,7 +10,9 @@
 
 <PageTitle>Rutina — TrainingHub OS</PageTitle>
 
-<MudLink OnClick="@(() => Navigation.NavigateTo($"/members/{MemberId}"))" Class="mb-4 d-inline-block">← Volver a la ficha</MudLink>
+<MudLink Href="@($"/members/{MemberId}")" Class="mb-4 d-inline-block">← Volver a la ficha</MudLink>
+
+<PageHeader Title="@(RoutineId is null ? "Nueva rutina" : "Editar rutina")" />
 
 @if (_loading)
 {
@@ -18,6 +20,7 @@
 }
 else
 {
+    <UnsavedChangesGuard IsDirty="IsDirty" What="la rutina" />
     @if (_error is not null)
     {
         <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
@@ -52,8 +55,18 @@ else
     private bool _loading = true;
     private bool _saving;
     private string? _error;
+    private string? _snapshot;
+    private bool _leavingAfterSave;
+
+    private bool IsDirty() => !_leavingAfterSave && _snapshot is not null && _draft.Fingerprint() != _snapshot;
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        _snapshot = _draft.Fingerprint();
+    }
+
+    private async Task LoadAsync()
     {
         if (RoutineId is not { } id)
         {
@@ -112,6 +125,7 @@ else
             }
 
             Snackbar.Add("Rutina guardada.", Severity.Success);
+            _leavingAfterSave = true;
             Navigation.NavigateTo($"/members/{MemberId}");
         }
         catch (GsmApiException ex)
