@@ -1,0 +1,176 @@
+@inject IGymClient Gym
+@inject IAttendanceClient Attendance
+@inject IMembershipSettingsClient MembershipSettings
+@inject IRoutineSettingsClient RoutineSettings
+@inject SessionService Session
+@inject ISnackbar Snackbar
+
+@* Configuración recomendada para el tipo de negocio (docs/GSM-tipos-de-negocio.md §9): lo que hoy difiere de la plantilla,
+   opción por opción. Nada se aplica solo; cada opción marcada se guarda por el endpoint de su módulo. *@
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <GsmLoader Small="true" />
+        }
+        else if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" data-testid="recommended-error">@_error</MudAlert>
+        }
+        else if (_choices.Count == 0)
+        {
+            <MudText data-testid="recommended-aligned">
+                Tu configuración ya coincide con la recomendada para @GymTypeLabels.Label(_type).ToLowerInvariant().
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                Esto es lo que difiere entre tu configuración y la recomendada para <strong>@GymTypeLabels.Label(_type)</strong>.
+                Marca lo que quieras cambiar; lo demás se queda como está.
+            </MudText>
+            <div class="mb-2">
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SelectAll" data-testid="recommended-select-all">Marcar todo</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SelectNone">Desmarcar todo</MudButton>
+            </div>
+            <MudSimpleTable Dense="true" Elevation="0" data-testid="recommended-table">
+                <thead>
+                    <tr><th></th><th>Opción</th><th>Hoy</th><th>Recomendado</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var choice in _choices)
+                    {
+                        <tr>
+                            <td>
+                                <MudCheckBox T="bool" Value="_selected.Contains(choice.Key)"
+                                             ValueChanged="@(v => Toggle(choice.Key, v))"
+                                             data-testid="@($"recommended-{choice.Key}")" aria-label="@($"Cambiar {choice.Label}")" />
+                            </td>
+                            <td>@choice.Label</td>
+                            <td>@choice.Current</td>
+                            <td><strong>@choice.Recommended</strong></td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                Los logros ya sembrados no se tocan: los administras en Logros.
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@(_choices.Count == 0 ? "Cerrar" : "Cancelar")</MudButton>
+        @if (_choices.Count > 0)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ApplyAsync"
+                       Disabled="@(_busy || _selected.Count == 0)" data-testid="recommended-apply">
+                @(_busy ? "Aplicando..." : $"Aplicar lo marcado ({_selected.Count})")
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private RecommendedConfigDiff? _diff;
+    private IReadOnlyList<ConfigChoice> _choices = [];
+    private readonly HashSet<string> _selected = [];
+    private string? _type;
+    private string? _error;
+    private bool _loading = true;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var recommended = await Gym.GetRecommendedConfigurationAsync();
+            _type = recommended.Type;
+            _diff = new RecommendedConfigDiff(
+                await Gym.FeatureFlagsGETAsync(),
+                await Attendance.SettingsGETAsync(),
+                await MembershipSettings.MembershipSettingsGETAsync(),
+                await RoutineSettings.GetRoutineSettingsAsync(),
+                recommended);
+            _choices = _diff.Differences();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Toggle(string key, bool on)
+    {
+        if (on)
+        {
+            _selected.Add(key);
+        }
+        else
+        {
+            _selected.Remove(key);
+        }
+    }
+
+    private void SelectAll()
+    {
+        foreach (var choice in _choices)
+        {
+            _selected.Add(choice.Key);
+        }
+    }
+
+    private void SelectNone() => _selected.Clear();
+
+    private async Task ApplyAsync()
+    {
+        if (_diff is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            // Cada módulo guarda lo suyo por su endpoint normal; no hay un «aplicar plantilla» que escriba en varios.
+            if (_diff.FlagsRequest(_selected) is { } flags)
+            {
+                await Gym.FeatureFlagsPUTAsync(flags);
+            }
+
+            if (_diff.CheckinRequest(_selected) is { } checkin)
+            {
+                await Attendance.SettingsPUTAsync(checkin);
+            }
+
+            if (_diff.MembershipsRequest(_selected) is { } memberships)
+            {
+                await MembershipSettings.MembershipSettingsPUTAsync(memberships);
+            }
+
+            if (_diff.RoutinesRequest(_selected) is { } routines)
+            {
+                await RoutineSettings.UpdateRoutineSettingsAsync(routines);
+            }
+
+            await Session.BootstrapAsync(); // los módulos cambian el menú y la app
+            Snackbar.Add("Configuración actualizada.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(_selected.Count));
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

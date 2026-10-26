@@ -187,3 +187,7 @@ aparecen en la rutina** y la rutina no aparece en "Mi progreso" (decidido 2026-1
 | **L5** | Premios: texto del premio, pendiente/entregado, vencimiento, vista en recepción. |
 | **L6** | Ranking voluntario. |
 | **L7** | "Mi progreso" en la app: calendario de racha, mejor racha, congeladores, logros con premios y ranking. |
+
+## Catálogo sembrado por tipo (T2)
+
+`SeedDefaultAchievementsHandler` siembra `AchievementTemplates.For(tipo)` al crear el gym y es idempotente (solo agrega los nombres que faltan, consultando por gym). El entrenador personal no recibe logros de visitas sino de sesiones de rutina; box, estudio y academia reciben logros de clases; box y entrenador personal, el de volumen. Ver `GSM-tipos-de-negocio.md` §4.5.

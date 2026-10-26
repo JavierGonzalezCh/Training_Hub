@@ -5,6 +5,7 @@
 @implements IDisposable
 @inject ViewportState Viewport
 @inject PanelRegistry Registry
+@inject GymContext GymContext
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Navigation
 
@@ -56,8 +57,8 @@
         Viewport.Changed += OnViewportChanged;
         Navigation.LocationChanged += OnLocationChanged;
         var state = await AuthState.GetAuthenticationStateAsync();
-        _bottom = Registry.GetBottomBar(state.User);
-        _more = Registry.GetMore(state.User);
+        _bottom = Registry.GetBottomBar(state.User, GymContext);
+        _more = Registry.GetMore(state.User, GymContext);
     }
 
     private void ToggleMore() => _moreOpen = !_moreOpen;

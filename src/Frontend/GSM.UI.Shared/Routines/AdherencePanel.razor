@@ -1,0 +1,100 @@
+@* Cumplimiento de la rutina (T6): las últimas semanas como barras de días hechos sobre días planeados y el detalle de la
+   semana en curso, día por día. La usa la ficha del miembro en el panel (pestaña Rutina). *@
+
+@if (_loading)
+{
+    <GsmLoader Small="true" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true">@_error</MudAlert>
+}
+else if (_data is null || !_data.HasRoutine || _weeks.All(w => w.PlannedDays == 0))
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="adherence-empty">@EmptyText</MudText>
+}
+else
+{
+    <div class="gsm-adh" data-testid="adherence-panel">
+        <ol class="gsm-adh-bars" aria-label="Cumplimiento de las últimas semanas">
+            @foreach (var week in _weeks)
+            {
+                var height = week.PlannedDays == 0 ? 0 : Math.Max(6, week.DoneDays * 100 / week.PlannedDays);
+                <li class="gsm-adh-bar" data-testid="adherence-week">
+                    <span class="gsm-adh-bar__fill @(AdherenceLabels.IsBehind(week.CompliancePercent) ? "is-behind" : "")" style="height:@(height)%"
+                          title="@AdherenceLabels.DaysOf(week.DoneDays, week.PlannedDays)"></span>
+                    <span class="gsm-adh-bar__label">@GsmFormat.DayShort(week.WeekStart)</span>
+                    <span class="gsm-adh-bar__value gsm-mono">@(week.PlannedDays == 0 ? "—" : $"{week.DoneDays}/{week.PlannedDays}")</span>
+                </li>
+            }
+        </ol>
+
+        @if (_current is { } current)
+        {
+            <MudText Typo="Typo.subtitle2" HtmlTag="h3" Class="mt-3 mb-1" data-testid="adherence-current">
+                Esta semana: @AdherenceLabels.DaysOf(current.DoneDays, current.PlannedDays)
+                @if (current.CompliancePercent is { } percent)
+                {
+                    <span class="gsm-mono"> · @percent %</span>
+                }
+                @if (current.OffPlanDays > 0)
+                {
+                    <span> · @current.OffPlanDays @(current.OffPlanDays == 1 ? "día fuera de plan" : "días fuera de plan")</span>
+                }
+            </MudText>
+            @if (current.SelfAssigned)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="adherence-self">
+                    Incluye una rutina que armó el propio miembro.
+                </MudText>
+            }
+            @if (current.Days is { Count: > 0 } days)
+            {
+                <ul class="gsm-adh-days">
+                    @foreach (var day in days)
+                    {
+                        <li class="@AdherenceLabels.StatusCssClass(day.Status)" data-testid="@($"adherence-day-{day.Status}")">
+                            <span class="gsm-adh-day__date">@GsmFormat.DayCompact(day.Date)</span>
+                            <span class="gsm-adh-day__status">@AdherenceLabels.StatusLabel(day.Status)</span>
+                            @if (day.PlannedExercises > 0)
+                            {
+                                <span class="gsm-adh-day__detail gsm-mono">@day.DoneExercises/@day.PlannedExercises ejercicios</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Carga el cumplimiento del miembro (<c>weeks</c> semanas, la última con el detalle por día).</summary>
+    [Parameter, EditorRequired] public Func<Task<MemberAdherence>> Load { get; set; } = default!;
+
+    [Parameter] public string EmptyText { get; set; } = "Todavía no hay semanas con días de entrenamiento planeados.";
+
+    private bool _loading = true;
+    private string? _error;
+    private MemberAdherence? _data;
+    private List<AdherenceWeekItem> _weeks = [];
+    private AdherenceWeekItem? _current;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _data = await Load();
+            _weeks = _data?.Weeks.ToList() ?? [];
+            _current = _weeks.LastOrDefault();
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

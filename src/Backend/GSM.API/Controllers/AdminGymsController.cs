@@ -14,14 +14,15 @@ namespace GSM.API.Controllers;
 [Authorize(Policy = AuthPolicies.RequireSuperAdmin)]
 public sealed class AdminGymsController : ControllerBase
 {
-    /// <summary>Cartera de clientes con su estado efectivo. Filtro opcional <c>?status=overdue</c>.</summary>
+    /// <summary>Cartera de clientes con su estado efectivo. Filtros opcionales <c>?status=overdue</c> y <c>?type=studio</c>.</summary>
     [HttpGet]
     [ProducesResponseType<PortfolioResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PortfolioResponse>> Portfolio(
         [FromQuery] string? status,
+        [FromQuery] string? type,
         [FromServices] ListGymPortfolioHandler handler,
         CancellationToken cancellationToken)
-        => Ok(await handler.HandleAsync(new PortfolioQuery { Status = status }, cancellationToken));
+        => Ok(await handler.HandleAsync(new PortfolioQuery { Status = status, Type = type }, cancellationToken));
 
     /// <summary>Ficha del cliente: suscripción y estado efectivo.</summary>
     [HttpGet("{gymId:guid}")]
@@ -30,6 +31,19 @@ public sealed class AdminGymsController : ControllerBase
     public async Task<ActionResult<GymDetailResponse>> Detail(
         Guid gymId, [FromServices] GetGymDetailHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(gymId, cancellationToken));
+
+    /// <summary>Cambia el tipo de negocio del gym. Cambia la etiqueta y las sugerencias; no reaplica la plantilla.</summary>
+    [HttpPut("{gymId:guid}/type")]
+    [EndpointName("ChangeGymType")]
+    [ProducesResponseType<GSM.Application.Gyms.Contracts.GymResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<GSM.Application.Gyms.Contracts.GymResponse>> ChangeType(
+        Guid gymId,
+        GSM.Application.Gyms.Contracts.ChangeGymTypeRequest request,
+        [FromServices] GSM.Application.Gyms.ChangeGymTypeHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(gymId, request, cancellationToken));
 
     /// <summary>Dónde va el onboarding del gym: pasos, si se omitió y con qué motivo.</summary>
     [HttpGet("{gymId:guid}/onboarding")]

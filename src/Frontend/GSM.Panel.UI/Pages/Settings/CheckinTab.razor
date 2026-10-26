@@ -1,6 +1,7 @@
 ﻿@* Pestaña "Check-in" de la configuración: tipo de QR del gym, documento en el kiosco, permanencia asumida y cartel impreso.
    La gracia, "por vencer" y la matrícula están en la sección Membresías. Solo Owner. Ver docs/GSM-modulo-attendance.md. *@
 @inject IAttendanceClient Attendance
+@inject GymContext GymCtx
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
@@ -39,6 +40,36 @@ else
             y solo vale una entrada por día. Apagada por defecto.
         </p>
 
+        <MudSwitch T="bool" @bind-Value="_remote" Color="Color.Primary" data-testid="checkin-remote-training"
+                   Label="Mis miembros entrenan fuera de mi sede" Class="mb-1" />
+        <p class="gsm-choice__hint mb-4" data-testid="checkin-remote-hint">
+            Para entrenadores personales o entrenamiento en línea. Con esto encendido: el horario de apertura no frena el
+            conteo del día por entrenamiento, no se avisa del riesgo de marcar desde casa (es lo esperado) y el aforo y las
+            horas pico no cuentan esas entradas. La membresía se exige igual, y el QR, el documento y la recepción siguen
+            respetando el horario. Apagado por defecto.
+        </p>
+
+        <fieldset class="gsm-choice-group" data-testid="checkin-trigger">
+            <legend class="gsm-choice-group__legend">Cuándo cuenta el día sin registro en la puerta</legend>
+            <label class="gsm-choice @(_trigger == TriggerStart ? "is-selected" : null)">
+                <input type="radio" name="checkin-trigger" value="@TriggerStart" checked="@(_trigger == TriggerStart)"
+                       @onchange="@(() => _trigger = TriggerStart)" />
+                <span class="gsm-choice__body">
+                    <span class="gsm-choice__title">Al iniciar el entrenamiento</span>
+                    <span class="gsm-choice__hint">El miembro toca «Iniciar rutina» o «Registrar entrenamiento» en la app.</span>
+                </span>
+            </label>
+            <label class="gsm-choice @(_trigger == TriggerFirstLog ? "is-selected" : null)">
+                <input type="radio" name="checkin-trigger" value="@TriggerFirstLog" checked="@(_trigger == TriggerFirstLog)"
+                       @onchange="@(() => _trigger = TriggerFirstLog)" />
+                <span class="gsm-choice__body">
+                    <span class="gsm-choice__title">Al registrar el primer ejercicio</span>
+                    <span class="gsm-choice__hint">Tocar un botón ya no basta: el día cuenta cuando el miembro anota su primer ejercicio. Es más difícil de fingir. Un miembro sin rutina no puede contar su día así.</span>
+                </span>
+            </label>
+        </fieldset>
+        <p class="gsm-choice__hint mb-4">Solo aplica si el check-in con QR y la entrada con documento están apagados.</p>
+
         <MudNumericField T="int" @bind-Value="_stayMinutes" Label="Permanencia asumida (minutos)" Min="15" Max="480"
                          HelperText="Para saber cuánta gente hay en el gimnasio se asume que cada persona se queda este tiempo tras entrar, porque no se registra la salida. Es una estimación; se compara con el aforo del gimnasio."
                          Class="mb-4" Style="max-width:420px" data-testid="assumed-stay" />
@@ -46,7 +77,10 @@ else
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
                 @(_saving ? "Guardando..." : "Guardar cambios")
             </MudButton>
-            <MudButton Variant="Variant.Outlined" Href="/settings/kioscos" StartIcon="@Icons.Material.Outlined.QrCode2">Configurar kiosco</MudButton>
+            @if (GymCtx.FeatureFlags?.ShowFrontDesk != false)
+            {
+                <MudButton Variant="Variant.Outlined" Href="/settings/kioscos" StartIcon="@Icons.Material.Outlined.QrCode2">Configurar kiosco</MudButton>
+            }
             @if (_savedMode == Static)
             {
                 <MudButton Variant="Variant.Outlined" OnClick="ShowPosterAsync" Disabled="_loadingPoster"
@@ -76,6 +110,12 @@ else
     private string _mode = Rotating;
     private string _savedMode = Rotating;
     private bool _byDocument;
+    private bool _savedByDocument;
+    private bool _remote;
+    private bool _savedRemote;
+    private const string TriggerStart = "Start";
+    private const string TriggerFirstLog = "FirstLog";
+    private string _trigger = TriggerStart;
     private int _stayMinutes = 120;
     private bool _loadingPoster;
 
@@ -85,8 +125,10 @@ else
         {
             var settings = await Attendance.SettingsGETAsync();
             _mode = _savedMode = settings.Mode;
-            _byDocument = settings.ByDocument;
+            _byDocument = _savedByDocument = settings.ByDocument;
             _stayMinutes = settings.AssumedStayMinutes;
+            _remote = _savedRemote = settings.RemoteTraining == true;
+            _trigger = settings.TrainingEntryTrigger ?? TriggerStart;
         }
         catch (GsmApiException ex)
         {
@@ -100,13 +142,34 @@ else
 
     private async Task SaveAsync()
     {
+        // A8: apagar el documento con el QR apagado deja al gym sin registro en la puerta.
+        if (GymCtx.FeatureFlags is { } flags)
+        {
+            var before = new RoutineEntryRisk.State(
+                flags.CheckinQr, _savedByDocument, flags.ShowGamification, flags.ShowProgress, _savedRemote);
+            var after = before with { ByDocument = _byDocument, RemoteTraining = _remote };
+            if (RoutineEntryRisk.ShouldWarn(before, after) && !await RoutineEntryRisk.ConfirmAsync(Dialogs))
+            {
+                return;
+            }
+        }
+
         _saving = true;
         try
         {
-            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest { Mode = _mode, ByDocument = _byDocument, AssumedStayMinutes = _stayMinutes });
+            var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest
+            {
+                Mode = _mode,
+                ByDocument = _byDocument,
+                AssumedStayMinutes = _stayMinutes,
+                RemoteTraining = _remote,
+                TrainingEntryTrigger = _trigger,
+            });
             _mode = _savedMode = saved.Mode;
-            _byDocument = saved.ByDocument;
+            _byDocument = _savedByDocument = saved.ByDocument;
             _stayMinutes = saved.AssumedStayMinutes;
+            _remote = _savedRemote = saved.RemoteTraining == true;
+            _trigger = saved.TrainingEntryTrigger ?? TriggerStart;
             Snackbar.Add("Ajustes de check-in guardados.", Severity.Success);
             SectionState?.MarkSaved();
         }

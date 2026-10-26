@@ -279,3 +279,7 @@ Lo calcula Memberships para cada miembro, a una fecha:
 | **MS7** | Planes de grupo. |
 | **MS8** | App del miembro: historial, entradas y congelamientos. |
 | Después | Abonos, saldo pendiente y cartera (§6). |
+
+## Plantilla de ajustes por tipo (T2)
+
+Al crear el gym, `GymCreatedAppliesMembershipTemplateHandler` escribe la fila de `membership_settings` con `MembershipTemplates.For(tipo)`: estudio sin días de gracia (0) y entrenador personal con 5; el resto 3. Solo si no hay fila (idempotente). Ver `GSM-tipos-de-negocio.md` §4.3.

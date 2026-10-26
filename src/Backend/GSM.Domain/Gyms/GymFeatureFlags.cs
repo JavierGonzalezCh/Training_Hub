@@ -43,7 +43,41 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
     /// </summary>
     public bool ShowRanking { get; private set; } = true;
 
+    /// <summary>
+    /// Muestra Recepción, el kiosco y el aforo en el panel, y «¿Qué tan lleno está?» en la app del miembro. Es una opción de
+    /// interfaz, como <see cref="ShowCommunity"/>: apagada no bloquea nada en la API (docs/GSM-tipos-de-negocio.md §5.3).
+    /// Arranca en <c>true</c>.
+    /// </summary>
+    public bool ShowFrontDesk { get; private set; } = true;
+
     public static GymFeatureFlags Default(Guid gymId) => new() { GymId = gymId };
+
+    /// <summary>
+    /// Los interruptores iniciales de la plantilla del tipo de negocio (docs/GSM-tipos-de-negocio.md §4.1). Es solo el
+    /// valor de arranque: el dueño lo cambia después en Configuración y nada vuelve a consultar el tipo.
+    /// </summary>
+    public static GymFeatureFlags ForType(Guid gymId, GymType type)
+    {
+        var flags = Default(gymId);
+        switch (type)
+        {
+            case GymType.Studio:
+            case GymType.Academy:
+                flags.ShowRoutines = false;
+                flags.MembersCanReportEquipment = false;
+                break;
+            case GymType.PersonalTrainer:
+                flags.ShowClasses = false;
+                flags.ShowCommunity = false;
+                flags.CheckinQr = false;
+                flags.MembersCanReportEquipment = false;
+                flags.ShowRanking = false;
+                flags.ShowFrontDesk = false;
+                break;
+        }
+
+        return flags;
+    }
 
     public void Update(
         bool showRoutines,
@@ -54,7 +88,8 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         bool checkinQr,
         bool membersCanCreateRoutines,
         bool membersCanReportEquipment = true,
-        bool? showRanking = null)
+        bool? showRanking = null,
+        bool? showFrontDesk = null)
     {
         ShowRoutines = showRoutines;
         ShowClasses = showClasses;
@@ -65,5 +100,6 @@ public sealed class GymFeatureFlags : BaseEntity, ITenantEntity
         MembersCanCreateRoutines = membersCanCreateRoutines;
         MembersCanReportEquipment = membersCanReportEquipment;
         ShowRanking = showRanking ?? ShowRanking;
+        ShowFrontDesk = showFrontDesk ?? ShowFrontDesk;
     }
 }

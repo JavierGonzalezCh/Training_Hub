@@ -18,6 +18,12 @@ public interface IAchievementRepository
 
     void Add(Achievement achievement);
 
+    /// <summary>
+    /// Nombres de los logros de un gym concreto (incluidos los retirados). Filtra por <paramref name="gymId"/> y no por el
+    /// filtro global: la siembra corre al crear el gym, con la cuenta del SuperAdmin, que ve todos los gyms.
+    /// </summary>
+    Task<IReadOnlySet<string>> GetNamesForGymAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     /// <summary>Logros activos que el miembro **todavía no** ha desbloqueado.</summary>
     Task<IReadOnlyList<Achievement>> ListPendingForMemberAsync(
         Guid memberId, CancellationToken cancellationToken = default);

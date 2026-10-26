@@ -195,3 +195,13 @@ horario con abierto/cerrado, ocupación, teléfono, WhatsApp y redes. En el inic
 | **G4** | Varios Owners, traspaso y contacto de facturación. |
 | **G5** | Onboarding: asistente, bloqueo del panel, lista "Para completar", omitir desde SuperAdmin. Depende de E1 (máquinas) y de las plantillas de planes (Memberships). |
 | **G6** | Configuración ordenada por secciones y cambios de flags. |
+
+## 12. Tipo de negocio y opciones nuevas (T1–T7)
+
+El gym tiene un tipo (`gyms.gyms.type`, enum `gyms.gym_type`, `gym` por defecto) que decide la plantilla de arranque y la etiqueta; **no** cambia comportamiento. Detalle completo en `GSM-tipos-de-negocio.md`.
+
+- `CreateGymRequest.Type` y `GymCreated.Type`; `CreateGymHandler` crea los flags con `GymFeatureFlags.ForType`. `PUT /api/gym` (`UpdateGymRequest.Type`, opcional) y `PUT /api/admin/gyms/{id}/type` (`ChangeGymTypeHandler`) cambian el tipo sin reaplicar la plantilla.
+- `show_front_desk` en `gym_feature_flags` (por defecto `true`): oculta Recepción, aforo y «¿Qué tan lleno está?»; no bloquea la API.
+- Onboarding: los pasos de ubicación, horario y equipos son obligatorios según las opciones (`RemoteTraining`, rutinas, reporte de fallas), no según el tipo (`GetOnboardingHandler.RequiredFor`). El paso de planes sugiere planes por tipo (cliente, `PlanTemplate.For`).
+- `GET /api/gym/recommended-configuration` (Owner): la plantilla del tipo, compuesta en el controller; no escribe.
+- `MeGym.Type` y `GymBranding.Type` llevan el tipo al panel; `GET /api/auth/me` lee el modo de entrada con una sola consulta (`GetRoutineEntryModeAsync`).

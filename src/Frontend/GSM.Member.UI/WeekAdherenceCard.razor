@@ -1,0 +1,42 @@
+@using GSM.UI.Shared.Routines
+@inject IMeClient Me
+
+@* T6: «Esta semana: 2 de 4 días». Sin porcentaje ni comparación con otros miembros. Si la lectura falla o no hay
+   días planeados no se muestra nada: no es motivo para romper Mi rutina. *@
+@if (_week is { PlannedDays: > 0 } week)
+{
+    <section class="gsm-m-card" aria-label="Tu semana" data-testid="week-adherence">
+        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.EventAvailable" /></span>
+        <div class="gsm-m-card__body">
+            <h2 class="gsm-m-card__title">Esta semana: @AdherenceLabels.DaysOf(week.DoneDays, week.PlannedDays)</h2>
+            @if (week.Days is { Count: > 0 } days)
+            {
+                <ul class="gsm-adh-days" aria-label="Detalle de la semana">
+                    @foreach (var day in days.Where(d => d.Status != "none"))
+                    {
+                        <li class="@AdherenceLabels.StatusCssClass(day.Status)">
+                            <span class="gsm-adh-day__date">@GsmFormat.DayCompact(day.Date)</span>
+                            <span class="gsm-adh-day__status">@AdherenceLabels.StatusLabel(day.Status)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private AdherenceWeekItem? _week;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _week = (await Me.GetMyAdherenceAsync())?.Weeks.LastOrDefault();
+        }
+        catch (GsmApiException)
+        {
+            _week = null;
+        }
+    }
+}

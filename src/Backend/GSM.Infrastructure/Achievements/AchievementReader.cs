@@ -20,6 +20,9 @@ public sealed class AchievementReader(
     IMemberReader members,
     IMembershipReader memberships) : IAchievementReader
 {
+    public Task<bool> HasAchievementsAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<Achievement>().IgnoreQueryFilters().AnyAsync(a => a.GymId == gymId, cancellationToken);
+
     public Task<string?> GetAchievementNameAsync(Guid achievementId, CancellationToken cancellationToken = default)
         => dbContext.Set<Achievement>().Where(a => a.Id == achievementId).Select(a => (string?)a.Name)
             .FirstOrDefaultAsync(cancellationToken);

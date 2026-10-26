@@ -25,6 +25,11 @@ public sealed class UpdateGymHandler(
             request.InstagramUrl, request.FacebookUrl, request.TikTokUrl, request.WebsiteUrl, request.WhatsAppPhone);
         gym.UpdateCapacity(request.Capacity);
         gym.UpdateBranding(request.LogoUrl, request.PrimaryColor, request.SecondaryColor);
+        if (request.Type is { } type)
+        {
+            // Cambiar el tipo cambia la etiqueta y las sugerencias; no toca ninguna configuración.
+            gym.ChangeType(type);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Gym {GymId} actualizado", gymId);

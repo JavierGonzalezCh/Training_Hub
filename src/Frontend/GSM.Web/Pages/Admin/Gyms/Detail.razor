@@ -26,6 +26,20 @@ else if (_gym is { } gym)
                 </MudChip>
             </div>
             <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">@gym.Slug</MudText>
+            <MudSelect T="int" Value="GymTypeLabels.ValueOf(gym.Type)" ValueChanged="ChangeTypeAsync" Label="Tipo de negocio"
+                       Dense="true" Style="max-width:280px" data-testid="gym-type-select"
+                       HelperText="Cambia la etiqueta y las sugerencias; no cambia la configuración del gym.">
+                @foreach (var (value, _, label, _) in GymTypeLabels.All)
+                {
+                    <MudSelectItem Value="value">@label</MudSelectItem>
+                }
+            </MudSelect>
+            @if (gym.Template is { } template)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="gym-template">
+                    @TemplateText(template)
+                </MudText>
+            }
         </div>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.VisibilityOff" OnClick="OpenImpersonateAsync">
             Entrar como
@@ -118,6 +132,23 @@ else if (_gym is { } gym)
 }
 
 @code {
+    private static bool TemplateComplete(GymTemplateStatus t) => t.Checkin && t.Memberships && t.Routines && t.Achievements;
+
+    private static string TemplateText(GymTemplateStatus t)
+    {
+        if (TemplateComplete(t))
+        {
+            return "Plantilla del tipo aplicada completa.";
+        }
+
+        var missing = new List<string>();
+        if (!t.Checkin) { missing.Add("entrada"); }
+        if (!t.Memberships) { missing.Add("membresías"); }
+        if (!t.Routines) { missing.Add("rutinas"); }
+        if (!t.Achievements) { missing.Add("logros"); }
+        return $"Sin plantilla en: {string.Join(", ", missing)}. Es normal en un gym anterior a las plantillas; en uno nuevo, revisa el reintento de eventos fallidos. Mientras, opera con los valores por defecto de esas partes.";
+    }
+
     [Parameter]
     public Guid GymId { get; set; }
 
@@ -147,6 +178,21 @@ else if (_gym is { } gym)
         {
             _loading = false;
         }
+    }
+
+    private async Task ChangeTypeAsync(int value)
+    {
+        try
+        {
+            await AdminGyms.ChangeGymTypeAsync(GymId, new ChangeGymTypeRequest { Type = value });
+            Snackbar.Add("Tipo de negocio actualizado.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+
+        await LoadAsync();
     }
 
     private async Task OpenSubscriptionAsync()

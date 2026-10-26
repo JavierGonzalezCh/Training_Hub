@@ -6,7 +6,7 @@
 
 Todas las sub-etapas de la v2 (olas 0 a 6) que se pueden escribir están **construidas, unidas y en verde**:
 
-- **Suite:** 1224 tests de integración + 696 bUnit, todos pasan contra `gsm_test` (≈ 8 min la de integración, en dos mitades). Los tests del teclado del kiosco pueden fallar de forma intermitente con la máquina cargada.
+- **Suite:** 1302 tests de integración + 774 bUnit, todos pasan contra `gsm_test` (≈ 8 min la de integración, en dos mitades). Los tests del teclado del kiosco pueden fallar de forma intermitente con la máquina cargada.
 - **Compila:** backend, `GSM.Frontend.slnx` y `GSM.Mobile` para Android (`dotnet build src/Frontend/GSM.Mobile -f net10.0-android -p:RuntimeIdentifier=android-arm64`).
 - **V1** (recorrido de punta a punta): la primera sesión en navegador (escritorio y 375 px) está hecha — `docs/V1-RECORRIDO.md`; sus defectos B5–B16 están en `docs/BUGS.md` y casi todos corregidos. Falta lo que necesita Android o cuentas externas y los flujos listados en "Pendiente de recorrer".
 - **DP** (despliegue con Dokploy): sin empezar (`docs/DEPLOY-DOKPLOY-PLAN.md`).
@@ -45,6 +45,9 @@ Claves de configuración que la API exige o usa en producción: `Checkin:Signing
 - **G6:** las secciones de Membresías, Rutinas y Equipos de `/settings` están a medio poblar (la gracia sigue en la pestaña Check-in).
 - **D3:** el conteo de "Límites" hace una consulta por gym (N+1).
 - **Patrón a revisar:** 5 handlers de ajustes perezosos (`CheckinSettings`, `CommunicationsSettings` ×2, `MembershipSettings`, `RoutineSettings`) añaden la entidad antes de validar. En producción no se nota (cada petición tiene su contexto); se corrigió solo en `MemberSettings`.
+
+- **Tipos de negocio (T1–T7):** construido (`GSM-tipos-de-negocio.md`). Queda pendiente: sugerencias de equipos en el onboarding, `BusinessNoun` en correos y avisos de suscripción, ocultar la sección «Kioscos» con `ShowFrontDesk` apagado, mostrar en «Para completar» los pasos que dejan de ser obligatorios, refrescar sola la tarjeta de Mi rutina tras el primer ejercicio y validar los valores de las plantillas con negocios reales (preguntas abiertas del doc).
+- **Tipos de negocio, sin navegador:** T1–T7 se probaron con integración y bUnit, no se recorrieron en navegador ni en Android; súmalo al recorrido de `V1-RECORRIDO.md`.
 
 ## 5. Para cerrar la v2
 

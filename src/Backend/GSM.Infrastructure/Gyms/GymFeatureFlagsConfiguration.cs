@@ -35,5 +35,8 @@ public sealed class GymFeatureFlagsConfiguration : IEntityTypeConfiguration<GymF
 
         // El ranking voluntario arranca encendido (Achievements L6); los gyms existentes lo heredan encendido.
         builder.Property(f => f.ShowRanking).HasDefaultValue(true);
+
+        // Recepción, kiosco y aforo se muestran por defecto (T5); los gyms existentes lo heredan encendido.
+        builder.Property(f => f.ShowFrontDesk).HasDefaultValue(true);
     }
 }

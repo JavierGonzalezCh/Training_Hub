@@ -1,6 +1,10 @@
 namespace GSM.Application.Attendance.Public;
 
 /// <summary>Lectura que el módulo Attendance expone a los demás módulos (Achievements, dashboard).</summary>
+/// <param name="RoutineEntry">Sin registro en la puerta: el miembro cuenta su día por entrenamiento (A8).</param>
+/// <param name="FirstLog">Además, el día cuenta al registrar el primer ejercicio y no al tocar un botón (T4).</param>
+public sealed record RoutineEntryMode(bool RoutineEntry, bool FirstLog);
+
 public interface IAttendanceReader
 {
     Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default);
@@ -55,6 +59,33 @@ public interface IAttendanceReader
     /// (D2). Nulo si todavía no ha entrado hoy.
     /// </summary>
     Task<DateTimeOffset?> GetFirstEntryTodayAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// A8: el gym no tiene ningún registro de entrada en la puerta (check-in con QR y entrada con documento
+    /// apagados). Entonces el miembro cuenta su día —racha, visitas y logros— al iniciar su entrenamiento.
+    /// </summary>
+    /// <summary>¿El gym tiene fila de ajustes de check-in? La deja la plantilla de su tipo al crearlo (marca de «plantilla aplicada»).</summary>
+    Task<bool> HasCheckinSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    Task<bool> IsRoutineEntryAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <see cref="IsRoutineEntryAsync"/> y <see cref="IsFirstLogEntryAsync"/> en una sola lectura de flags y ajustes
+    /// (los pide <c>GET /api/auth/me</c> en cada arranque).
+    /// </summary>
+    Task<RoutineEntryMode> GetRoutineEntryModeAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// ¿Los miembros del gym entrenan fuera de la sede? (<c>remote_training</c>, T4). Sin fila de ajustes, no. Lo lee el
+    /// onboarding para saber qué pasos son obligatorios (T5).
+    /// </summary>
+    Task<bool> IsRemoteTrainingAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// ¿El día cuenta al registrar el primer ejercicio y no al tocar un botón? Solo con <see cref="IsRoutineEntryAsync"/>
+    /// y el ajuste <c>first_log</c> (T4).
+    /// </summary>
+    Task<bool> IsFirstLogEntryAsync(Guid gymId, CancellationToken cancellationToken = default);
 
     // --- Lecturas del dashboard del panel (D1). Siempre sobre el gym en contexto. ---
 

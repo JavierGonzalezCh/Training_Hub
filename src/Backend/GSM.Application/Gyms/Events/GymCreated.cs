@@ -23,7 +23,8 @@ public sealed record GymCreated(
     int? TrialDays = null,
     GymFirstPayment? FirstPayment = null,
     decimal MonthlyPrice = 0m,
-    Guid? CreatedBy = null) : IDomainEvent;
+    Guid? CreatedBy = null,
+    GSM.Domain.Gyms.GymType Type = GSM.Domain.Gyms.GymType.Gym) : IDomainEvent;
 
 public sealed record GymFirstPayment(
     decimal Amount,

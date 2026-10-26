@@ -20,6 +20,13 @@
         <MudSelectItem Value="@("Disabled")">Deshabilitado</MudSelectItem>
         <MudSelectItem Value="@("Suspended")">Suspendido</MudSelectItem>
     </MudSelect>
+    <MudSelect T="string" Value="_type" ValueChanged="OnTypeChangedAsync" Label="Tipo" Style="max-width:240px" data-testid="type-filter">
+        <MudSelectItem Value="@FilterValues.All">Todos</MudSelectItem>
+        @foreach (var (_, name, label, _) in GymTypeLabels.All)
+        {
+            <MudSelectItem Value="@name">@label</MudSelectItem>
+        }
+    </MudSelect>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
         Nuevo gym
     </MudButton>
@@ -34,6 +41,7 @@ else if (_portfolio is { } portfolio)
     <MudTable Items="portfolio.Items" Hover="true" Dense="true" Elevation="0">
         <HeaderContent>
             <MudTh>Gym</MudTh>
+            <MudTh>Tipo</MudTh>
             <MudTh>Plan</MudTh>
             <MudTh>Miembros</MudTh>
             <MudTh>Estado</MudTh>
@@ -47,6 +55,7 @@ else if (_portfolio is { } portfolio)
                 </MudLink>
                 <MudText Typo="Typo.caption" Class="gsm-mono" Color="Color.Secondary">@context.Slug</MudText>
             </MudTd>
+            <MudTd DataLabel="Tipo" data-testid="gym-type">@GymTypeLabels.Label(context.Type)</MudTd>
             <MudTd DataLabel="Plan">@context.Plan</MudTd>
             <MudTd DataLabel="Miembros" Class="gsm-mono" data-testid="member-usage">
                 @SuperAdminLabels.MemberUsage(context.CountedMembers, context.MemberLimit)
@@ -65,6 +74,7 @@ else if (_portfolio is { } portfolio)
 @code {
     private PortfolioResponse? _portfolio;
     private string _status = FilterValues.All;
+    private string _type = FilterValues.All;
     private bool _loading = true;
 
     /// <summary>"Ver todos" del panel de plataforma llega con el estado ya puesto (<c>/admin/gyms?status=Overdue</c>).</summary>
@@ -86,7 +96,9 @@ else if (_portfolio is { } portfolio)
         _loading = true;
         try
         {
-            _portfolio = await AdminGyms.GymsGETAsync(FilterValues.IsAll(_status) ? null : _status);
+            _portfolio = await AdminGyms.GymsGETAsync(
+                FilterValues.IsAll(_status) ? null : _status,
+                FilterValues.IsAll(_type) ? null : _type);
         }
         catch (GsmApiException ex)
         {
@@ -101,6 +113,12 @@ else if (_portfolio is { } portfolio)
     private async Task OnStatusChangedAsync(string value)
     {
         _status = value;
+        await LoadAsync();
+    }
+
+    private async Task OnTypeChangedAsync(string value)
+    {
+        _type = value;
         await LoadAsync();
     }
 

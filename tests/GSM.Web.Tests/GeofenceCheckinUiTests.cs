@@ -76,6 +76,22 @@ public class GeofenceCheckinUiTests : TestContext
     }
 
     [Fact]
+    public void A_gym_with_qr_check_in_turned_off_sends_the_member_to_reception()
+    {
+        var (fake, _) = Setup(false, null, Response());
+        fake.Handlers["CheckinAsync"] = _ => throw new GsmApiException(
+            "Forbidden", 403, "{\"detail\":\"Tu gimnasio no tiene activado el check-in con QR.\"}",
+            new Dictionary<string, IEnumerable<string>>(), null);
+
+        var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        nav.NavigateTo(nav.GetUriWithQueryParameter("t", "s1.abc"));
+        var cut = RenderComponent<CheckIn>();
+
+        cut.WaitForAssertion(() => Assert.Contains("Check-in con QR desactivado", cut.Find("h1").TextContent));
+        Assert.Contains("recepción", cut.Find(".gsm-checkin-result__detail").TextContent);
+    }
+
+    [Fact]
     public void Without_a_geofence_the_page_never_asks_for_the_location()
     {
         var (fake, device) = Setup(false, new DeviceLocation(1, 1), Response());

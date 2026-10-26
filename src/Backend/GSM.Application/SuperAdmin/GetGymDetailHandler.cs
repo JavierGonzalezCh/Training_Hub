@@ -10,7 +10,11 @@ namespace GSM.Application.SuperAdmin;
 public sealed class GetGymDetailHandler(
     IGymReader gyms,
     IGymSubscriptionRepository subscriptions,
-    SubscriptionDetailBuilder detailBuilder)
+    SubscriptionDetailBuilder detailBuilder,
+    GSM.Application.Attendance.Public.IAttendanceReader attendance,
+    GSM.Application.Memberships.Public.IMembershipReader memberships,
+    GSM.Application.Routines.Public.IRoutineReader routines,
+    GSM.Application.Achievements.Public.IAchievementReader achievements)
 {
     public async Task<GymDetailResponse> HandleAsync(Guid gymId, CancellationToken cancellationToken)
     {
@@ -27,6 +31,12 @@ public sealed class GetGymDetailHandler(
             gym.Nit,
             gym.Phone,
             gym.Email,
-            await detailBuilder.BuildAsync(sub, gym.ManualStatus, cancellationToken));
+            await detailBuilder.BuildAsync(sub, gym.ManualStatus, cancellationToken),
+            gym.Type.ToString(),
+            new GymTemplateStatus(
+                await attendance.HasCheckinSettingsAsync(gymId, cancellationToken),
+                await memberships.HasSettingsAsync(gymId, cancellationToken),
+                await routines.HasSettingsAsync(gymId, cancellationToken),
+                await achievements.HasAchievementsAsync(gymId, cancellationToken)));
     }
 }

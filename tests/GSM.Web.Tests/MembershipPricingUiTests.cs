@@ -1,4 +1,4 @@
-using AngleSharp.Dom;
+﻿using AngleSharp.Dom;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Panel.UI.Pages.Members;
@@ -231,6 +231,7 @@ public class MembershipPricingUiTests : TestContext
         var attendance = System.Reflection.DispatchProxy.Create<IAttendanceClient, CommercialStatusUiTests.FakeClient>();
         ((CommercialStatusUiTests.FakeClient)(object)attendance).Handlers["SettingsGETAsync"] = _ => new CheckinSettingsResponse { Mode = "Rotating" };
         Services.AddSingleton(attendance);
+        Services.AddSingleton<GSM.UI.Shared.Auth.GymContext>();
 
         RenderComponent<MudPopoverProvider>();
         var tab = RenderComponent<CheckinTab>();
@@ -275,6 +276,7 @@ public class MembershipPricingUiTests : TestContext
         var attendance = System.Reflection.DispatchProxy.Create<IAttendanceClient, CommercialStatusUiTests.FakeClient>();
         ((CommercialStatusUiTests.FakeClient)(object)attendance).Handlers["SettingsGETAsync"] = _ => new CheckinSettingsResponse { Mode = "Rotating" };
         Services.AddSingleton(attendance);
+        Services.AddSingleton<GSM.UI.Shared.Auth.GymContext>();
 
         RenderComponent<MudPopoverProvider>();
         var tab = RenderComponent<CheckinTab>();

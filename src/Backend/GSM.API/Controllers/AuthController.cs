@@ -242,6 +242,7 @@ public sealed class AuthController : ControllerBase
         [FromServices] GetMeHandler handler,
         [FromServices] IGymReader gyms,
         [FromServices] ISubscriptionReader subscriptions,
+        [FromServices] GSM.Application.Attendance.Public.IAttendanceReader attendance,
         CancellationToken cancellationToken)
     {
         var me = await handler.HandleAsync(cancellationToken);
@@ -254,19 +255,25 @@ public sealed class AuthController : ControllerBase
         var branding = await gyms.GetBrandingAsync(gymId, cancellationToken);
         var flags = await gyms.GetFeatureFlagsAsync(gymId, cancellationToken);
         var subscription = (await subscriptions.GetStatusViewAsync(gymId, cancellationToken))?.ToInfo();
+        var entryMode = await attendance.GetRoutineEntryModeAsync(gymId, cancellationToken);
 
         return Ok(me with
         {
             Subscription = subscription,
             Gym = branding is null
                 ? null
-                : new MeGym(branding.Name, branding.LogoUrl, branding.PrimaryColor, branding.SecondaryColor),
+                : new MeGym(
+                    branding.Name, branding.LogoUrl, branding.PrimaryColor, branding.SecondaryColor,
+                    branding.Type.ToString()),
             FeatureFlags = flags is null
                 ? null
                 : new MeFeatureFlags(
                     flags.ShowRoutines, flags.ShowClasses, flags.ShowProgress, flags.ShowGamification,
                     flags.ShowCommunity, flags.CheckinQr,
-                    flags.MembersCanCreateRoutines, flags.MembersCanReportEquipment, flags.ShowRanking),
+                    flags.MembersCanCreateRoutines, flags.MembersCanReportEquipment, flags.ShowRanking,
+                    RoutineEntry: entryMode.RoutineEntry,
+                    RoutineEntryFirstLog: entryMode.FirstLog,
+                    ShowFrontDesk: flags.ShowFrontDesk),
         });
     }
 }

@@ -19,5 +19,6 @@ internal static class FeatureFlagsRequests
         MembersCanCreateRoutines = flags.MembersCanCreateRoutines,
         MembersCanReportEquipment = flags.MembersCanReportEquipment,
         ShowRanking = flags.ShowRanking,
+        ShowFrontDesk = flags.ShowFrontDesk,
     };
 }

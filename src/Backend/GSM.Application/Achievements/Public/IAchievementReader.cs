@@ -8,6 +8,9 @@ public interface IAchievementReader
     Task<IReadOnlyList<MemberAchievementView>> GetForMemberAsync(
         Guid memberId, Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>¿El gym tiene logros sembrados? Los siembra la plantilla de su tipo al crearlo (marca de «plantilla aplicada»).</summary>
+    Task<bool> HasAchievementsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     /// <summary>Nombre del logro (para los avisos de Comunicaciones). Nulo si no existe.</summary>
     Task<string?> GetAchievementNameAsync(Guid achievementId, CancellationToken cancellationToken = default);
 

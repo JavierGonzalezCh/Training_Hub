@@ -12,7 +12,7 @@
     }
 
     <MudGrid Spacing="2" Style="max-width:720px">
-        @foreach (var template in PlanTemplate.All)
+        @foreach (var template in _templates)
         {
             var row = _rows[template.Key];
             <MudItem xs="12" sm="6">
@@ -37,7 +37,7 @@
         @(_busy ? "Creando..." : "Crear planes seleccionados")
     </MudButton>
     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
-        Congelamientos, matrícula y tiqueteras se ajustan después desde Planes.
+        Estas son sugerencias para tu tipo de negocio; el precio lo pones tú. Congelamientos y matrícula se ajustan después desde Planes.
     </MudText>
 </div>
 
@@ -45,19 +45,27 @@
     [Parameter]
     public EventCallback OnCreated { get; set; }
 
+    /// <summary>Tipo de negocio del gym (<c>Gym</c>, <c>Box</c>, <c>Studio</c>…): decide qué planes se sugieren.</summary>
+    [Parameter]
+    public string? GymType { get; set; }
+
     private sealed class Row
     {
         public bool Selected { get; set; }
         public decimal Price { get; set; }
     }
 
-    private readonly Dictionary<string, Row> _rows = PlanTemplate.All.ToDictionary(t => t.Key, _ => new Row());
+    private IReadOnlyList<PlanTemplate> _templates = PlanTemplate.All;
+    private Dictionary<string, Row> _rows = PlanTemplate.All.ToDictionary(t => t.Key, _ => new Row());
     private List<PlanResponse> _existing = [];
     private bool _busy;
     private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
+        _templates = PlanTemplate.For(GymType);
+        _rows = _templates.ToDictionary(t => t.Key, _ => new Row());
+
         try
         {
             _existing = (await Plans.MembershipPlansAllAsync(false)).ToList();
@@ -70,7 +78,7 @@
 
     private async Task CreateAsync()
     {
-        var chosen = PlanTemplate.All.Where(t => _rows[t.Key].Selected).ToList();
+        var chosen = _templates.Where(t => _rows[t.Key].Selected).ToList();
         if (chosen.Any(t => _rows[t.Key].Price <= 0))
         {
             _error = "Escribe el precio de cada plan que elegiste.";

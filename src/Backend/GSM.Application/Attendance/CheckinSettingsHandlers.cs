@@ -16,8 +16,14 @@ public sealed class GetCheckinSettingsHandler(
     {
         var gymId = currentUser.RequireGymId();
         var current = await settings.GetAsync(gymId, cancellationToken) ?? CheckinSettings.Default(gymId);
-        return new CheckinSettingsResponse(current.Mode.ToString(), current.ByDocument, current.AssumedStayMinutes);
+        return CheckinSettingsMapper.ToResponse(current);
     }
+}
+
+internal static class CheckinSettingsMapper
+{
+    public static CheckinSettingsResponse ToResponse(CheckinSettings s)
+        => new(s.Mode.ToString(), s.ByDocument, s.AssumedStayMinutes, s.RemoteTraining, s.TrainingEntryTrigger.ToString());
 }
 
 public sealed class UpdateCheckinSettingsHandler(
@@ -43,13 +49,24 @@ public sealed class UpdateCheckinSettingsHandler(
             settings.Add(current);
         }
 
-        current.Update(ParseMode(request.Mode), request.ByDocument, request.AssumedStayMinutes);
+        current.Update(
+            ParseMode(request.Mode), request.ByDocument, request.AssumedStayMinutes,
+            request.RemoteTraining, ParseTrigger(request.TrainingEntryTrigger));
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Ajustes de check-in del gym {GymId}: modo {Mode}, documento {ByDocument}", gymId, current.Mode, current.ByDocument);
-        return new CheckinSettingsResponse(current.Mode.ToString(), current.ByDocument, current.AssumedStayMinutes);
+            "Ajustes de check-in del gym {GymId}: modo {Mode}, documento {ByDocument}, entrena fuera {Remote}, conteo {Trigger}",
+            gymId, current.Mode, current.ByDocument, current.RemoteTraining, current.TrainingEntryTrigger);
+        return CheckinSettingsMapper.ToResponse(current);
     }
+
+    private static TrainingEntryTrigger? ParseTrigger(string? text)
+        => string.IsNullOrWhiteSpace(text)
+            ? null
+            : Enum.TryParse<TrainingEntryTrigger>(text.Replace("_", string.Empty), ignoreCase: true, out var parsed)
+              && Enum.IsDefined(parsed)
+                ? parsed
+                : throw new ValidationDomainException("Momento de conteo del entrenamiento inválido.");
 }
 
 public sealed class GetKioskCodeHandler(

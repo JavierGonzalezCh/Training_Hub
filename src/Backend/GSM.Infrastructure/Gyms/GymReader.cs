@@ -20,7 +20,7 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
     public Task<GymBranding?> GetBrandingAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<Gym>().IgnoreQueryFilters()
             .Where(g => g.Id == gymId)
-            .Select(g => new GymBranding(g.Name, g.LogoUrl, g.PrimaryColor, g.SecondaryColor))
+            .Select(g => new GymBranding(g.Name, g.LogoUrl, g.PrimaryColor, g.SecondaryColor, g.Type))
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<GymBranding?> GetBrandingBySlugAsync(string slug, CancellationToken cancellationToken = default)
@@ -28,7 +28,7 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
         var normalized = slug.Trim().ToLowerInvariant();
         return dbContext.Set<Gym>().IgnoreQueryFilters()
             .Where(g => g.Slug == normalized)
-            .Select(g => new GymBranding(g.Name, g.LogoUrl, g.PrimaryColor, g.SecondaryColor))
+            .Select(g => new GymBranding(g.Name, g.LogoUrl, g.PrimaryColor, g.SecondaryColor, g.Type))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -50,13 +50,13 @@ public sealed class GymReader(GsmDbContext dbContext, IClock clock) : IGymReader
             .Select(f => new GymFeatureFlagsView(
                 f.ShowRoutines, f.ShowClasses, f.ShowProgress, f.ShowGamification,
                 f.ShowCommunity, f.CheckinQr, f.MembersCanCreateRoutines,
-                f.MembersCanReportEquipment, f.ShowRanking))
+                f.MembersCanReportEquipment, f.ShowRanking, f.ShowFrontDesk))
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<GymAdminView?> GetAdminViewAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<Gym>().IgnoreQueryFilters()
             .Where(g => g.Id == gymId)
-            .Select(g => new GymAdminView(g.Id, g.Name, g.Slug, g.Nit, g.Phone, g.Email, g.Status))
+            .Select(g => new GymAdminView(g.Id, g.Name, g.Slug, g.Nit, g.Phone, g.Email, g.Status, g.Type))
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<GymOpenStatus> GetOpenStatusAsync(

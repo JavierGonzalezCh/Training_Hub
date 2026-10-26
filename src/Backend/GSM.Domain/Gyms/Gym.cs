@@ -74,6 +74,9 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
 
     public GymStatus Status { get; private set; } = GymStatus.Trial;
 
+    /// <summary>Tipo de negocio: etiqueta y plantilla de arranque. Los gyms anteriores son <see cref="GymType.Gym"/>.</summary>
+    public GymType Type { get; private set; } = GymType.Gym;
+
     /// <summary>
     /// El Owner fundador (histórico). Los Owners de hoy son los accesos <c>owner</c> de Identity (Gyms §6); este
     /// campo ya no manda sobre nada.
@@ -104,9 +107,17 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
         string? phone = null,
         string? email = null,
         string? primaryColor = null,
-        string? secondaryColor = null)
-        => new()
+        string? secondaryColor = null,
+        GymType type = GymType.Gym)
+    {
+        if (!Enum.IsDefined(type))
         {
+            throw new ValidationDomainException("El tipo de negocio no es válido.");
+        }
+
+        return new()
+        {
+            Type = type,
             Name = NormalizeName(name),
             Slug = NormalizeSlug(slug),
             Nit = Trim(nit),
@@ -117,6 +128,18 @@ public sealed partial class Gym : BaseEntity, ITenantEntity
             Status = GymStatus.Trial,
             IsActive = true,
         };
+    }
+
+    /// <summary>Cambia el tipo de negocio. No reaplica ninguna plantilla (docs/GSM-tipos-de-negocio.md §9).</summary>
+    public void ChangeType(GymType type)
+    {
+        if (!Enum.IsDefined(type))
+        {
+            throw new ValidationDomainException("El tipo de negocio no es válido.");
+        }
+
+        Type = type;
+    }
 
     /// <summary>Fija el owner fundador. Solo una vez, durante el alta del gym.</summary>
     public void AssignOwner(Guid ownerId)

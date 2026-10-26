@@ -20,7 +20,7 @@ public sealed record OnboardingResponse(
 
 /// <param name="Key"><c>gym</c>, <c>location</c>, <c>hours</c>, <c>equipment</c>, <c>plans</c>, <c>entry</c> o <c>team</c>.</param>
 /// <param name="Order">1 a 7.</param>
-/// <param name="Required">Pasos 1 a 5.</param>
+/// <param name="Required">Datos y planes siempre; ubicación, horario y equipos según las opciones del gym (entrenamiento fuera de la sede, rutinas, reporte de fallas). Un paso no obligatorio sigue apareciendo como opcional.</param>
 /// <param name="Done">Su dato existe de verdad (no basta con haber pulsado "Siguiente").</param>
 public sealed record OnboardingStepResponse(string Key, int Order, bool Required, bool Done);
 

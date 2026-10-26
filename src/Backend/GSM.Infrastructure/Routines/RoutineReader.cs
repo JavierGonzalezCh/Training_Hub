@@ -1,5 +1,6 @@
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Routines;
+using GSM.Application.Routines.Abstractions;
 using GSM.Application.Routines.Public;
 using GSM.Domain.Routines;
 using GSM.Infrastructure.Persistence;
@@ -14,6 +15,9 @@ namespace GSM.Infrastructure.Routines;
 public sealed class RoutineReader(GsmDbContext dbContext, IClock clock) : IRoutineReader
 {
     private IQueryable<Routine> Routines => dbContext.Set<Routine>();
+
+    public Task<bool> HasSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<RoutineSettings>().IgnoreQueryFilters().AnyAsync(s => s.GymId == gymId, cancellationToken);
 
     public Task<int> GetActiveRoutineCountAsync(Guid memberId, CancellationToken cancellationToken = default)
         => Routines.CountAsync(r => r.MemberId == memberId && r.IsActive, cancellationToken);
@@ -76,44 +80,24 @@ public sealed class RoutineReader(GsmDbContext dbContext, IClock clock) : IRouti
             .ToListAsync(cancellationToken);
         var daysByRoutine = allDays.ToLookup(d => d.RoutineId);
 
+        var ordered = RoutineCalendar.Order(routines.Select(r => new AdherenceRoutine(
+            r.MemberId, r.Id, r.Name, r.SelfAssigned, r.ScheduleMode, r.StartsOn, r.DeactivatedOn, r.IsActive,
+            daysByRoutine[r.Id]
+                .Select(d => new AdherenceDay(d.Id, d.Position, d.IsRest, d.DayOfWeek, d.AddedOn, d.RetiredOn, d.Name, []))
+                .ToList())));
+
+        // R2b: cada fecha se juzga con lo que estaba vigente ese día (regla única en RoutineCalendar).
         for (var date = from; date <= to; date = date.AddDays(1))
         {
-            var routine = routines.FirstOrDefault(r =>
-                r.StartsOn <= date && (r.DeactivatedOn == null || date <= r.DeactivatedOn));
-
-            if (routine is null)
+            var resolution = RoutineCalendar.Resolve(ordered, date);
+            if (resolution.IsTraining)
             {
-                continue;
+                training.Add(date);
             }
-
-            var inForce = daysByRoutine[routine.Id]
-                .Where(d => d.AddedOn <= date && (d.RetiredOn == null || date < d.RetiredOn))
-                .ToList();
-            if (inForce.Count == 0)
+            else if (resolution.IsPlannedRest)
             {
-                continue;
+                rest.Add(date);
             }
-
-            RoutineDay? day;
-            if (routine.ScheduleMode == ScheduleMode.Weekly)
-            {
-                // Semanal: el día de la semana; sin fila vigente, descanso planificado.
-                var weekday = IsoWeekDay.Of(date);
-                day = inForce.FirstOrDefault(d => d.DayOfWeek == weekday);
-                if (day is null)
-                {
-                    rest.Add(date);
-                    continue;
-                }
-            }
-            else
-            {
-                // Rotativo: el ciclo de ese día tiene los días vigentes ese día, ordenados por posición.
-                var ordered = inForce.OrderBy(d => d.Position).ThenBy(d => d.AddedOn).ToList();
-                day = ordered[RoutineCycle.PositionOn(routine.StartsOn, ordered.Count, date) - 1];
-            }
-
-            (day.IsRest ? rest : training).Add(date);
         }
 
         return new RoutineTrainingCalendar(training, rest);

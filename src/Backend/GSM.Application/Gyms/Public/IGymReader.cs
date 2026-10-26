@@ -68,13 +68,15 @@ public sealed record GymAdminView(
     string? Nit,
     string? Phone,
     string? Email,
-    GSM.Domain.Gyms.GymStatus ManualStatus);
+    GSM.Domain.Gyms.GymStatus ManualStatus,
+    GSM.Domain.Gyms.GymType Type = GSM.Domain.Gyms.GymType.Gym);
 
 public sealed record GymBranding(
     string Name,
     string? LogoUrl,
     string PrimaryColor,
-    string SecondaryColor);
+    string SecondaryColor,
+    GSM.Domain.Gyms.GymType Type = GSM.Domain.Gyms.GymType.Gym);
 
 public sealed record GymFeatureFlagsView(
     bool ShowRoutines,
@@ -85,4 +87,5 @@ public sealed record GymFeatureFlagsView(
     bool CheckinQr,
     bool MembersCanCreateRoutines,
     bool MembersCanReportEquipment,
-    bool ShowRanking = true);
+    bool ShowRanking = true,
+    bool ShowFrontDesk = true);

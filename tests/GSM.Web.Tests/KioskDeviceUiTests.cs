@@ -99,6 +99,7 @@ public class KioskDeviceUiTests : TestContext
         }
 
         public Task<CheckInResponse> CheckinAsync(CheckInRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CheckInResponse> StartTrainingCheckinAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<ReceptionCardResponse> ReceptionCardAsync(Guid memberId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<EntryRuleResponse> GetEntryRuleAsync(Guid memberId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<EntryRuleResponse> SetEntryRuleAsync(Guid memberId, SetEntryRuleRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();

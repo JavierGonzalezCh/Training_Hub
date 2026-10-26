@@ -612,3 +612,13 @@ Un rol `member` solo alcanza sus propios datos; se reutiliza el patrón `MemberS
 - **Plantillas de rutina** reutilizables. Es lo primero que pedirá un gym con muchos miembros; se añade encima de este modelo copiando días y líneas.
 - **Vídeos e imágenes del catálogo**: los campos existen, pero dependen de Cloudflare R2, que sigue **sin configurar** (etapa 8, punto pendiente).
 - **Horario semanal fijo** como alternativa al ciclo rotativo.
+
+## Cumplimiento de la rutina (T6)
+
+Cuánto sigue el miembro su rutina, por semana de negocio (lunes a domingo), calculado al leer y sin tabla. Detalle y decisiones en `GSM-tipos-de-negocio.md` §6.
+
+- **Regla única de calendario:** `RoutineCalendar` resuelve qué toca cada fecha con la rutina y los días vigentes ese día; la usan la racha (`RoutineReader`) y el cumplimiento (`AdherenceCalculator`).
+- **Medición:** cumplimiento = días hechos / días planeados que ya pasaron o ya se hicieron (los futuros no cuentan en contra). Un día es «hecho» solo con registros de sus propias líneas; entrenar un día que no tocaba es «fuera de plan» y no sube el porcentaje.
+- **Endpoints:** `GET /api/routines/adherence` (listado paginado, permiso `trainer`, filtro `onlyBehind` < 50 %), `GET /api/members/{id}/adherence?weeks=` y `GET /api/me/adherence`. UI: Rutinas → «Cumplimiento», ficha del miembro y Mi rutina.
+- **Eventos:** `RoutineExerciseLogged` (cada ejercicio nuevo) además de `RoutineSessionLogged` (primero del día).
+- Las semanas de revisión (`RoutineSettings`) arrancan según el tipo (entrenador personal: 4).

@@ -140,6 +140,11 @@ public partial class RoutinesClient
     partial void Initialize() => ReadResponseAsString = true;
 }
 
+public partial class MemberAdherenceClient
+{
+    partial void Initialize() => ReadResponseAsString = true;
+}
+
 public partial class MemberRoutinesClient
 {
     partial void Initialize() => ReadResponseAsString = true;

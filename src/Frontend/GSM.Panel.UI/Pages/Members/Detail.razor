@@ -8,6 +8,7 @@
 @inject IMemberMembershipsClient MemberMemberships
 @inject IMemberRoutinesClient MemberRoutinesClient
 @inject IRoutinesClient RoutinesClient
+@inject IMemberAdherenceClient MemberAdherenceClient
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -413,6 +414,9 @@ else if (_member is not null)
                 </MudExpansionPanels>
             }
 
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-6 mb-2">Cumplimiento</MudText>
+            <AdherencePanel Load="@(() => MemberAdherenceClient.GetMemberAdherenceAsync(Id, 8))" />
+
             <MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-6 mb-2">Progreso y récords</MudText>
             <ProgressPanel LoadSummaries="@(() => MemberRoutinesClient.GetMemberProgressAsync(Id))"
                            LoadDetail="@(exerciseId => MemberRoutinesClient.GetMemberExerciseProgressAsync(Id, exerciseId))"
@@ -449,7 +453,7 @@ else if (_member is not null)
                 <RowTemplate>
                     <MudTd DataLabel="Fecha">@GsmFormat.Day(context.AttendanceDate)</MudTd>
                     <MudTd DataLabel="Hora">@GsmFormat.Instant(context.CheckedInAt)</MudTd>
-                    <MudTd DataLabel="Método">@(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")</MudTd>
+                    <MudTd DataLabel="Método">@(GSM.Panel.UI.Pages.Attendance.AttendanceMethodLabels.Of(context.Method))</MudTd>
                 </RowTemplate>
             </ServerTable>
         </MudTabPanel>

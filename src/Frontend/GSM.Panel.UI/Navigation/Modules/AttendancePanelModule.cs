@@ -10,7 +10,7 @@ public sealed class AttendancePanelModule : IPanelModule
     public IEnumerable<PanelMenuEntry> MenuEntries =>
     [
         new("Recepción", Icons.Material.Outlined.QrCodeScanner, "/attendance/checkin", PanelSections.Operation, 20,
-            BottomBar: true, BottomOrder: 20),
+            BottomBar: true, BottomOrder: 20, Feature: PanelFeatures.FrontDesk),
         new("Asistencia", Icons.Material.Outlined.FactCheck, "/attendance", PanelSections.Operation, 40, MatchAll: true),
     ];
 

@@ -30,14 +30,34 @@ public sealed record PanelMenuEntry(
     int BottomOrder = 0,
     string? BottomTitle = null,
     string? Roles = null,
-    string? Permission = null)
+    string? Permission = null,
+    string? Feature = null)
 {
     public string ShortTitle => BottomTitle ?? Title;
 
-    /// <summary><see cref="Permission"/> (un <c>GsmPermissions</c>) limita la entrada a quien lo tiene; el Owner los tiene todos.</summary>
-    public bool IsVisibleTo(ClaimsPrincipal user)
+    /// <summary>
+    /// <see cref="Permission"/> (un <c>GsmPermissions</c>) limita la entrada a quien lo tiene; el Owner los tiene todos.
+    /// <see cref="Feature"/> (un <see cref="PanelFeatures"/>) la oculta cuando el gym apagó esa opción de interfaz; sin
+    /// <paramref name="gym"/> (o sin flags cargados) se muestra.
+    /// </summary>
+    public bool IsVisibleTo(ClaimsPrincipal user, GSM.UI.Shared.Auth.GymContext? gym = null)
         => PanelRoles.Allows(Roles, user)
-           && (Permission is null || GSM.UI.Shared.Auth.GsmClaimsPrincipalExtensions.HasPermission(user, Permission));
+           && (Permission is null || GSM.UI.Shared.Auth.GsmClaimsPrincipalExtensions.HasPermission(user, Permission))
+           && (Feature is null || PanelFeatures.IsOn(Feature, gym));
+}
+
+/// <summary>Opciones de interfaz del gym que pueden ocultar una entrada del menú.</summary>
+public static class PanelFeatures
+{
+    /// <summary>Recepción, kiosco y aforo (<c>show_front_desk</c>, T5).</summary>
+    public const string FrontDesk = "FrontDesk";
+
+    public static bool IsOn(string feature, GSM.UI.Shared.Auth.GymContext? gym)
+        => feature switch
+        {
+            FrontDesk => gym?.FeatureFlags?.ShowFrontDesk != false,
+            _ => true,
+        };
 }
 
 /// <summary>

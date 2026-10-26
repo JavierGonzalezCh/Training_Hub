@@ -1,0 +1,109 @@
+@inject IAttendanceClient Attendance
+@inject ISnackbar Snackbar
+
+@* A8: en un gym sin registro de entrada en la puerta (QR y documento apagados), el miembro cuenta su día al empezar a
+   entrenar. La usan el inicio ("Registrar entrenamiento") y la rutina de hoy ("Iniciar rutina"). El servidor es
+   idempotente por día: tocar dos veces no suma dos visitas. *@
+@if (_counted || CountedAt is not null)
+{
+    <section class="gsm-m-card gsm-m-checkin-done" role="status" data-testid="training-entry-done">
+        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /></span>
+        <div class="gsm-m-card__body">
+            <h2 class="gsm-m-card__title">Tu entrenamiento de hoy ya cuenta</h2>
+            <p class="gsm-m-card__text">
+                @(CountedAt is { } at ? $"Desde las {GsmFormat.Time(at)}. " : "")Suma a tu racha y a tus logros.
+            </p>
+        </div>
+    </section>
+}
+else if (FirstLog)
+{
+    @* T4: el día cuenta al registrar el primer ejercicio; aquí no hay botón que fingir. *@
+    @if (ShowFirstLogHint)
+    {
+        <section class="gsm-m-card gsm-m-training-entry" data-testid="training-entry-first-log">
+            <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.PlayCircle" /></span>
+            <div class="gsm-m-card__body">
+                <h2 class="gsm-m-card__title">Tu día cuenta en cuanto registres tu primer ejercicio</h2>
+                <p class="gsm-m-card__text">Anota un ejercicio de tu rutina de hoy y tu visita suma a la racha y a tus logros.</p>
+            </div>
+        </section>
+    }
+}
+else
+{
+    <section class="gsm-m-card gsm-m-checkin gsm-m-training-entry" data-testid="training-entry">
+        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.PlayCircle" /></span>
+        <div class="gsm-m-card__body">
+            <h2 class="gsm-m-card__title">@Title</h2>
+            <p class="gsm-m-card__text">Márcalo al empezar a entrenar: así tu día suma a la racha y a tus logros.</p>
+            @if (_error is not null)
+            {
+                <p class="gsm-m-card__text gsm-m-card__text--warn" role="alert" data-testid="training-entry-error">@_error</p>
+            }
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="StartAsync"
+                   Class="gsm-m-training-entry__action"
+                   data-testid="training-entry-start">@ButtonText</MudButton>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string ButtonText { get; set; } = "";
+
+    /// <summary>La hora en que el día ya quedó contado (por cualquier vía); nulo si todavía no.</summary>
+    [Parameter]
+    public DateTimeOffset? CountedAt { get; set; }
+
+    /// <summary>El día cuenta con el primer ejercicio registrado (T4): en lugar del botón no hay nada que tocar.</summary>
+    [Parameter]
+    public bool FirstLog { get; set; }
+
+    /// <summary>Con <see cref="FirstLog"/>, muestra la explicación (Mi rutina); el inicio no ofrece nada.</summary>
+    [Parameter]
+    public bool ShowFirstLogHint { get; set; }
+
+    [Parameter]
+    public EventCallback<CheckInResponse> OnCounted { get; set; }
+
+    private bool _busy;
+    private bool _counted;
+    private string? _error;
+
+    private async Task StartAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            var result = await Attendance.StartTrainingCheckinAsync();
+            _counted = true;
+
+            // El letrero de la gracia ("Te quedan 2 días") y los logros nuevos, como tras el check-in con QR.
+            if (!string.IsNullOrEmpty(result.Notice))
+            {
+                Snackbar.Add(result.Notice, Severity.Warning);
+            }
+
+            foreach (var achievement in result.UnlockedAchievements ?? [])
+            {
+                Snackbar.Add($"Logro desbloqueado: {achievement.Name}", Severity.Success);
+            }
+
+            await OnCounted.InvokeAsync(result);
+        }
+        catch (GsmApiException ex)
+        {
+            // 409: membresía vencida o congelada ("Pasa por recepción"); 403: el gym volvió a encender el registro.
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

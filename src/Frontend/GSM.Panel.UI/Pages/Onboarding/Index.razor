@@ -5,15 +5,16 @@
 @using GSM.Panel.UI.Pages.Equipment
 @using GSM.Panel.UI.Pages.Settings
 @inject OnboardingGate Gate
+@inject IGymClient GymApi
 @inject IDialogService Dialogs
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Configura tu gimnasio — TrainingHub OS</PageTitle>
+<PageTitle>Configura @BusinessNoun.Your(_gymType) — TrainingHub OS</PageTitle>
 
 @* Asistente de onboarding (Gyms §5). Cada paso reutiliza la pantalla del módulo que guarda el dato; el avance lo
    dicta el servidor (GET /api/gym/onboarding): un paso está hecho cuando su dato existe, no por pulsar "Siguiente". *@
-<MudText Typo="Typo.h4" Class="mb-1">Configura tu gimnasio</MudText>
+<MudText Typo="Typo.h4" Class="mb-1">Configura @BusinessNoun.Your(_gymType)</MudText>
 <MudText Color="Color.Secondary" Class="mb-4">
     Completa los pasos obligatorios para habilitar el panel. Puedes salir y volver: lo que guardes se conserva.
 </MudText>
@@ -84,7 +85,15 @@ else
                 break;
 
             case OnboardingKeys.Plans:
-                <OnboardingPlansStep OnCreated="RefreshAsync" />
+                <OnboardingPlansStep OnCreated="RefreshAsync" GymType="@_gymType" />
+                break;
+
+            case OnboardingKeys.Entry when _gymType == GymTypeLabels.PersonalTrainer:
+                <MudText>
+                    Tus clientes entrenan donde estén: cuentan su día al registrar su entrenamiento en la app. Cómo se
+                    cuenta ese día se ajusta desde <strong>Configuración → Check-in</strong> cuando termines. Aparecerá en la
+                    lista «Para completar» del dashboard.
+                </MudText>
                 break;
 
             case OnboardingKeys.Entry:
@@ -129,6 +138,7 @@ else
     private int _current;
     private bool _busy;
     private string? _error;
+    private string? _gymType;
 
     private static readonly DialogOptions CatalogOptions = new() { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true };
 
@@ -136,6 +146,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            _gymType = (await GymApi.GymGETAsync())?.Type;
+        }
+        catch (GsmApiException)
+        {
+            // Sin el tipo, el paso de planes sugiere las plantillas de siempre.
+        }
+
         _state = await Gate.RefreshAsync();
         if (_state is null || _state.IsComplete)
         {
@@ -194,7 +213,7 @@ else
             await RefreshAsync();
             if (_state is { IsComplete: true })
             {
-                Snackbar.Add("¡Listo! Tu gimnasio está configurado.", Severity.Success);
+                Snackbar.Add($"¡Listo! {BusinessNoun.YourCapitalized(_gymType)} está configurado.", Severity.Success);
                 Navigation.NavigateTo("/", replace: true);
                 return;
             }
@@ -223,14 +242,14 @@ else
         }
     }
 
-    private static string Title(string key) => key switch
+    private string Title(string key) => key switch
     {
         OnboardingKeys.Gym => "Tu gym",
         OnboardingKeys.Location => "Ubicación",
         OnboardingKeys.Hours => "Horario",
         OnboardingKeys.Equipment => "Máquinas",
         OnboardingKeys.Plans => "Planes",
-        OnboardingKeys.Entry => "Entrada al gym",
+        OnboardingKeys.Entry => _gymType == GymTypeLabels.PersonalTrainer ? "Entrenamientos" : "Entrada al gym",
         OnboardingKeys.Team => "Tu equipo",
         _ => key,
     };
@@ -247,9 +266,9 @@ else
         _ => string.Empty,
     };
 
-    private static string Missing(string key) => key switch
+    private string Missing(string key) => key switch
     {
-        OnboardingKeys.Gym => "Falta el nombre del gimnasio.",
+        OnboardingKeys.Gym => $"Falta el nombre de {BusinessNoun.Your(_gymType)}.",
         OnboardingKeys.Location => "Guarda la dirección y la ciudad para continuar.",
         OnboardingKeys.Hours => "Guarda el horario de atención para continuar.",
         OnboardingKeys.Equipment => "Agrega al menos una máquina para continuar.",

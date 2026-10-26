@@ -1,6 +1,8 @@
 using GSM.API.Auth;
+using GSM.Application.Common;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
+using GSM.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,6 +33,23 @@ public sealed class RoutinesController : ControllerBase
         [FromServices] ListRoutinesDueForReviewHandler handler,
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(mine, cancellationToken));
+
+    /// <summary>
+    /// Cumplimiento de la rutina: los miembros con rutina activa, del más atrasado al que va mejor (últimas 2 semanas).
+    /// <c>onlyBehind</c> deja solo los que van por debajo del 50 %. Solo Owner y staff con permiso de entrenador.
+    /// </summary>
+    [HttpGet("adherence")]
+    [RequirePermission(StaffPermission.Trainer)]
+    [EndpointName("ListRoutineAdherence")]
+    [ProducesResponseType<PagedResult<MemberAdherenceRow>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<MemberAdherenceRow>>> Adherence(
+        [FromQuery] DateOnly? weekStart,
+        [FromQuery] bool onlyBehind,
+        [FromQuery] int page,
+        [FromQuery] int pageSize,
+        [FromServices] GSM.Application.Routines.Adherence.ListRoutineAdherenceHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(weekStart, onlyBehind, page, pageSize, cancellationToken));
 
     /// <summary>Marca la rutina como revisada y corre su fecha de revisión.</summary>
     [HttpPost("{id:guid}/review")]
@@ -116,4 +135,23 @@ public sealed class MemberRoutinesController : ControllerBase
         var routine = await handler.HandleAsync(memberId, request, cancellationToken);
         return CreatedAtAction(nameof(RoutinesController.Get), "Routines", new { id = routine.Id }, routine);
     }
+}
+
+/// <summary>Cumplimiento de la rutina de un miembro: ficha del miembro, pestaña Rutina.</summary>
+[ApiController]
+[Route("api/members/{memberId:guid}/adherence")]
+[Authorize(Policy = AuthPolicies.RequireStaff)]
+public sealed class MemberAdherenceController : ControllerBase
+{
+    /// <summary>Las últimas <c>weeks</c> semanas (1 a 26, por defecto 8), con el detalle día por día de la semana en curso.</summary>
+    [HttpGet]
+    [EndpointName("GetMemberAdherence")]
+    [ProducesResponseType<MemberAdherence>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MemberAdherence>> Get(
+        Guid memberId,
+        [FromServices] GSM.Application.Routines.Adherence.GetMemberAdherenceHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] int weeks = 8)
+        => Ok(await handler.HandleAsync(memberId, weeks, cancellationToken));
 }

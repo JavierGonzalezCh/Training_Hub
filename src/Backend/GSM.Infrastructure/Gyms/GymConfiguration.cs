@@ -38,6 +38,8 @@ public sealed class GymConfiguration : IEntityTypeConfiguration<Gym>
 
         builder.Property(g => g.Status).HasColumnName("status");
 
+        builder.Property(g => g.Type).HasColumnName("type").HasDefaultValue(GymType.Gym);
+
         builder.HasIndex(g => g.OwnerId);
     }
 }

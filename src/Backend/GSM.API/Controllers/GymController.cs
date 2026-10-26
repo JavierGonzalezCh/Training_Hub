@@ -30,6 +30,37 @@ public sealed class GymController : ControllerBase
         return Ok(gym with { Subscription = view?.ToInfo() });
     }
 
+    /// <summary>
+    /// La configuración que la plantilla recomienda para el tipo de negocio del gym (módulos, entrada, membresías y
+    /// rutinas), para comparar con la actual y aplicar lo que el Owner marque. Se compone aquí con las plantillas de cada
+    /// módulo; no escribe nada: cada cambio se guarda por el endpoint normal de su módulo.
+    /// </summary>
+    [HttpGet("recommended-configuration")]
+    [EndpointName("GetRecommendedConfiguration")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<RecommendedConfiguration>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RecommendedConfiguration>> GetRecommendedConfiguration(
+        [FromServices] GetGymHandler handler, CancellationToken cancellationToken)
+    {
+        var gym = await handler.HandleAsync(cancellationToken);
+        var type = Enum.TryParse<GSM.Domain.Gyms.GymType>(gym.Type, ignoreCase: true, out var parsed)
+            ? parsed
+            : GSM.Domain.Gyms.GymType.Gym;
+
+        var checkin = GSM.Application.Attendance.CheckinTemplates.For(type);
+        var memberships = GSM.Application.Memberships.MembershipTemplates.For(type);
+        var routines = GSM.Application.Routines.RoutineSettingsTemplates.For(type);
+
+        return Ok(new RecommendedConfiguration(
+            type.ToString(),
+            GymMapper.ToResponse(GSM.Domain.Gyms.GymFeatureFlags.ForType(gym.Id, type)),
+            new RecommendedCheckin(
+                checkin.Mode.ToString(), checkin.AssumedStayMinutes, checkin.RemoteTraining,
+                checkin.TrainingEntryTrigger.ToString()),
+            new RecommendedMemberships(memberships.GraceDays, memberships.ExpiringDays, memberships.EnrollmentFee),
+            new RecommendedRoutines(routines.ReviewWeeks)));
+    }
+
     /// <summary>Uso del límite de miembros del plan del SaaS ("142 / 150"). <c>limit</c> nulo = sin límite.</summary>
     [HttpGet("member-usage")]
     [ProducesResponseType<GSM.Application.SuperAdmin.Contracts.MemberUsageResponse>(StatusCodes.Status200OK)]

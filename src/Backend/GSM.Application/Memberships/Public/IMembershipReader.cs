@@ -6,6 +6,9 @@ public interface IMembershipReader
     /// <summary>Membresía que cubre hoy (Active y con el rango de fechas conteniendo la fecha actual). <c>null</c> si no hay.</summary>
     Task<ActiveMembershipView?> GetActiveAsync(Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>¿El gym tiene fila de ajustes de membresías? La deja la plantilla de su tipo al crearlo (marca de «plantilla aplicada»).</summary>
+    Task<bool> HasSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     Task<bool> IsActiveAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     /// <summary>Ultimo dia cubierto (<c>end_date</c> maximo) entre las membresias Active del miembro: una cancelada o congelada no da días de gracia. <c>null</c> si no hay.</summary>

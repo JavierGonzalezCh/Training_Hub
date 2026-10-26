@@ -59,7 +59,7 @@
         <MudTd DataLabel="Fecha">@GsmFormat.Day(context.AttendanceDate)</MudTd>
         <MudTd DataLabel="Hora">@GsmFormat.Instant(context.CheckedInAt)</MudTd>
         <MudTd DataLabel="Método">
-            @(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")
+            @(AttendanceMethodLabels.Of(context.Method))
             @* A6: con el QR fijo, fuera del radio o sin ubicación la entrada no suma a racha ni logros. *@
             @if (context.CountsForProgress == false)
             {
@@ -87,7 +87,7 @@
             <MudLink Href="@($"/members/{context.MemberId}")" Underline="Underline.None" Class="gsm-card__title">
                 @context.MemberName
             </MudLink>
-            <span class="gsm-mono">@(context.Method == "Qr" ? "QR" : context.Method == "Document" ? "Documento" : "Manual")</span>
+            <span class="gsm-mono">@(AttendanceMethodLabels.Of(context.Method))</span>
         </div>
         <div class="gsm-card__meta">@GsmFormat.Instant(context.CheckedInAt)</div>
         <div class="gsm-card__meta">

@@ -13,6 +13,9 @@ public sealed record RoutineTrainingCalendar(
 /// <summary>Lectura que el módulo Routines expone a los demás módulos (Attendance vía compositor, Achievements).</summary>
 public interface IRoutineReader
 {
+    /// <summary>¿El gym tiene fila de ajustes de rutinas? La deja la plantilla de su tipo al crearlo (marca de «plantilla aplicada»).</summary>
+    Task<bool> HasSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     Task<int> GetActiveRoutineCountAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     /// <summary>

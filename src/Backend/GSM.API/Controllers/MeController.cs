@@ -129,6 +129,16 @@ public sealed class MeController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(from, to, cancellationToken));
 
+    /// <summary>Cumplimiento de la semana en curso: días que tocaban, días hechos y el detalle día por día. 403 si <c>show_routines = false</c>.</summary>
+    [HttpGet("adherence")]
+    [EndpointName("GetMyAdherence")]
+    [ProducesResponseType<MemberAdherence>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<MemberAdherence>> Adherence(
+        [FromServices] GSM.Application.Routines.Adherence.GetMyAdherenceHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     /// <summary>
     /// Progreso (R7): los ejercicios que el miembro ya registró, con sus récords personales (mejor peso, mejor volumen…
     /// según lo que mide cada ejercicio). 403 si <c>show_routines = false</c>.

@@ -29,6 +29,16 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
     /// </summary>
     public int AssumedStayMinutes { get; private set; } = DefaultAssumedStayMinutes;
 
+    /// <summary>
+    /// Los miembros entrenan fuera de la sede (entrenador personal, online). Con ella: el horario de apertura no frena el
+    /// conteo del día por entrenamiento, no se avisa del riesgo de marcar desde casa y el aforo y las horas pico no
+    /// cuentan esas entradas (docs/GSM-tipos-de-negocio.md §5.1). Apagada por defecto.
+    /// </summary>
+    public bool RemoteTraining { get; private set; }
+
+    /// <summary>Cuándo cuenta el día sin registro en la puerta. Solo tiene efecto con QR y documento apagados.</summary>
+    public TrainingEntryTrigger TrainingEntryTrigger { get; private set; } = TrainingEntryTrigger.Start;
+
     public const int DefaultAssumedStayMinutes = 120;
 
     public const int MinAssumedStayMinutes = 15;
@@ -45,8 +55,18 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
         return new CheckinSettings { GymId = gymId, Mode = CheckinMode.Rotating, StaticCodeVersion = 1, AssumedStayMinutes = DefaultAssumedStayMinutes };
     }
 
-    public void Update(CheckinMode mode, bool? byDocument = null, int? assumedStayMinutes = null)
+    public void Update(
+        CheckinMode mode,
+        bool? byDocument = null,
+        int? assumedStayMinutes = null,
+        bool? remoteTraining = null,
+        TrainingEntryTrigger? trainingEntryTrigger = null)
     {
+        if (trainingEntryTrigger is { } trigger && !Enum.IsDefined(trigger))
+        {
+            throw new ValidationDomainException("Momento de conteo del entrenamiento inválido.");
+        }
+
         if (!Enum.IsDefined(mode))
         {
             throw new ValidationDomainException("Modo de check-in inválido.");
@@ -67,6 +87,16 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
         if (assumedStayMinutes is { } stay)
         {
             AssumedStayMinutes = stay;
+        }
+
+        if (remoteTraining is { } remote)
+        {
+            RemoteTraining = remote;
+        }
+
+        if (trainingEntryTrigger is { } newTrigger)
+        {
+            TrainingEntryTrigger = newTrigger;
         }
     }
 

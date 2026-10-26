@@ -1,5 +1,7 @@
 ﻿@* Pestaña "Módulos" de la configuración (la registra GymsPanelModule). *@
 @inject IGymClient Gym
+@inject IAttendanceClient Attendance
+@inject IDialogService Dialogs
 @inject SessionService Session
 @inject ISnackbar Snackbar
 
@@ -17,6 +19,9 @@ else
             @ModuleCard(Icons.Material.Outlined.QrCodeScanner, "Check-in con QR",
                 "Los miembros registran su entrada escaneando el QR del gimnasio con su teléfono.",
                 _flagsModel.CheckinQr, v => _flagsModel.CheckinQr = v)
+            @ModuleCard(Icons.Material.Outlined.DesktopWindows, "Recepción, kiosco y aforo",
+                "Muestra Recepción y el aforo en el panel y «¿Qué tan lleno está?» en la app. Apagado, no bloquea nada: registrar una entrada a mano sigue funcionando.",
+                _flagsModel.ShowFrontDesk, v => _flagsModel.ShowFrontDesk = v)
         </div>
     </section>
 
@@ -59,6 +64,8 @@ else
 
     private readonly FlagsModel _flagsModel = new();
     private GymFeatureFlagsResponse? _loaded;
+    private bool _byDocument;
+    private bool _remoteTraining;
 
     private bool _loadingFlags = true;
     private bool _savingFlags;
@@ -77,10 +84,25 @@ else
             _flagsModel.ShowCommunity = flags.ShowCommunity;
             _flagsModel.CheckinQr = flags.CheckinQr;
             _flagsModel.ShowRanking = flags.ShowRanking;
+            _flagsModel.ShowFrontDesk = flags.ShowFrontDesk != false;
         }
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+
+        // A8: la entrada con documento se configura en Check-in; aquí solo hace falta para el aviso. Sin ella se
+        // supone apagada (mejor avisar de más que callar).
+        try
+        {
+            var checkin = await Attendance.SettingsGETAsync();
+            _byDocument = checkin.ByDocument;
+            _remoteTraining = checkin.RemoteTraining == true;
+        }
+        catch (GsmApiException)
+        {
+            _byDocument = false;
+            _remoteTraining = false;
         }
         finally
         {
@@ -90,6 +112,16 @@ else
 
     private async Task SaveFlagsAsync()
     {
+        if (_loaded is not null)
+        {
+            var before = new RoutineEntryRisk.State(_loaded.CheckinQr, _byDocument, _loaded.ShowGamification, _loaded.ShowProgress, _remoteTraining);
+            var after = new RoutineEntryRisk.State(_flagsModel.CheckinQr, _byDocument, _flagsModel.ShowGamification, _flagsModel.ShowProgress, _remoteTraining);
+            if (RoutineEntryRisk.ShouldWarn(before, after) && !await RoutineEntryRisk.ConfirmAsync(Dialogs))
+            {
+                return;
+            }
+        }
+
         _savingFlags = true;
         try
         {
@@ -105,7 +137,10 @@ else
                 MembersCanCreateRoutines = _loaded?.MembersCanCreateRoutines ?? false,
                 MembersCanReportEquipment = _loaded?.MembersCanReportEquipment ?? false,
                 ShowRanking = _flagsModel.ShowRanking,
+                ShowFrontDesk = _flagsModel.ShowFrontDesk,
             });
+            // Lo guardado es el nuevo punto de partida (el aviso de A8 compara contra esto).
+            _loaded = await Gym.FeatureFlagsGETAsync();
             await Session.BootstrapAsync();
             Snackbar.Add("Módulos actualizados.", Severity.Success);
             SectionState?.MarkSaved();
@@ -142,5 +177,6 @@ else
         public bool ShowCommunity { get; set; }
         public bool CheckinQr { get; set; }
         public bool ShowRanking { get; set; } = true;
+        public bool ShowFrontDesk { get; set; } = true;
     }
 }

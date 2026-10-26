@@ -46,7 +46,8 @@ public interface IAttendanceRepository
     /// Una persona con dos entradas cuenta una vez.
     /// </summary>
     Task<int> CountDistinctMembersInWindowAsync(
-        Guid gymId, DateTimeOffset sinceUtc, DateTimeOffset untilUtc, CancellationToken cancellationToken = default);
+        Guid gymId, DateTimeOffset sinceUtc, DateTimeOffset untilUtc, CancellationToken cancellationToken = default,
+        bool excludeRoutineEntries = false);
 
     /// <summary>
     /// M6-2: reemplaza por <paramref name="replacement"/> el motivo de "Dejar pasar" de las entradas del miembro.

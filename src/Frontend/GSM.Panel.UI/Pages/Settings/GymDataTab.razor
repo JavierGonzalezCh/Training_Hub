@@ -3,6 +3,7 @@
 @inject SessionService Session
 @inject GymContext GymCtx
 @inject ISnackbar Snackbar
+@inject IDialogService Dialogs
 
 @if (_loadingGym)
 {
@@ -19,6 +20,17 @@ else
             <MudTextField T="string" @bind-Value="_gymModel.Phone" Label="Teléfono" Class="mb-3"
                           HelperText="Con indicativo, por ejemplo +573001234567. Si escribes 10 dígitos le ponemos +57." id="gym-phone" />
             <MudTextField T="string" @bind-Value="_gymModel.Email" Label="Email" InputType="InputType.Email" Class="mb-3" />
+            <MudSelect T="int" @bind-Value="_gymModel.Type" Label="Tipo de negocio" Class="mb-3" data-testid="gym-type-select"
+                       HelperText="Cambia la etiqueta y las sugerencias; no cambia tu configuración actual.">
+                @foreach (var (value, _, label, _) in GymTypeLabels.All)
+                {
+                    <MudSelectItem Value="value">@label</MudSelectItem>
+                }
+            </MudSelect>
+            <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Tune" Class="mb-3"
+                       OnClick="OpenRecommendedAsync" data-testid="gym-recommended-config">
+                Ver la configuración recomendada
+            </MudButton>
 
             <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2 mt-2">Ubicación</MudText>
             @* Un dato que falta no es un error hasta que se intenta guardar: antes la pantalla abría en rojo, y es lo
@@ -129,6 +141,7 @@ else
         {
             var gym = await Gym.GymGETAsync();
             _gymModel.Name = gym.Name;
+            _gymModel.Type = _savedType = GymTypeLabels.ValueOf(gym.Type);
             _gymModel.Nit = gym.Nit;
             _gymModel.Phone = gym.Phone;
             _gymModel.Email = gym.Email;
@@ -157,6 +170,13 @@ else
         }
     }
 
+    private int _savedType;
+
+    private async Task OpenRecommendedAsync()
+        => await Dialogs.ShowAsync<RecommendedConfigDialog>(
+            "Configuración recomendada",
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+
     private async Task SaveGymAsync()
     {
         _triedSave = true;
@@ -171,6 +191,7 @@ else
             await Gym.GymPUTAsync(new UpdateGymRequest
             {
                 Name = _gymModel.Name,
+                Type = _gymModel.Type,
                 Nit = _gymModel.Nit,
                 Phone = _gymModel.Phone,
                 Email = _gymModel.Email,
@@ -190,7 +211,21 @@ else
                 SecondaryColor = _gymModel.SecondaryColor,
             });
             await Session.BootstrapAsync(); // refresca branding/tema en el shell
-            Snackbar.Add("Datos del gym actualizados.", Severity.Success);
+            if (_gymModel.Type != _savedType)
+            {
+                // §9: el cambio de tipo no toca la configuración; se ofrece compararla con la recomendada.
+                _savedType = _gymModel.Type;
+                Snackbar.Add("Datos del gym actualizados. Cambiaste el tipo de negocio.", Severity.Info, config =>
+                {
+                    config.Action = "Ver la configuración recomendada";
+                    config.OnClick = _ => OpenRecommendedAsync();
+                });
+            }
+            else
+            {
+                Snackbar.Add("Datos del gym actualizados.", Severity.Success);
+            }
+
             SectionState?.MarkSaved();
         }
         catch (GsmApiException ex)
@@ -249,6 +284,7 @@ else
 
     private sealed class GymModel
     {
+        public int Type { get; set; }
         public int? Capacity { get; set; }
         public string? LegalName { get; set; }
         public string? Address { get; set; }

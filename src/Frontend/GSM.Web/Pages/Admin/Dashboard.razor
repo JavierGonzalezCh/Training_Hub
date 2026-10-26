@@ -47,7 +47,32 @@ else if (_dashboard is { } d)
         }
     </div>
 
-    <MudText Typo="Typo.h6" Class="mb-2">Uso por gym</MudText>
+    @if (d.ByType is { Count: > 0 } byType)
+    {
+        <MudText Typo="Typo.h6" Class="mb-2 mt-6">Cartera por tipo de negocio</MudText>
+        <MudTable Items="byType" Hover="true" Dense="true" Elevation="0" data-testid="metrics-by-type">
+            <HeaderContent>
+                <MudTh>Tipo</MudTh>
+                <MudTh>Gyms</MudTh>
+                <MudTh>Pagando</MudTh>
+                <MudTh>En prueba</MudTh>
+                <MudTh>Prueba → pago</MudTh>
+                <MudTh>MRR</MudTh>
+                <MudTh>Miembros activos</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Tipo">@GymTypeLabels.Label(context.Type)</MudTd>
+                <MudTd DataLabel="Gyms" Class="gsm-mono">@context.Gyms</MudTd>
+                <MudTd DataLabel="Pagando" Class="gsm-mono">@context.Paying</MudTd>
+                <MudTd DataLabel="En prueba" Class="gsm-mono">@context.Trial</MudTd>
+                <MudTd DataLabel="Prueba → pago" Class="gsm-mono">@(context.ConversionPercent is { } c ? $"{c} %" : "—")</MudTd>
+                <MudTd DataLabel="MRR" Class="gsm-mono">@GsmFormat.Money((decimal)context.Mrr)</MudTd>
+                <MudTd DataLabel="Miembros activos" Class="gsm-mono">@context.ActiveMembers</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-2 mt-6">Uso por gym</MudText>
     <MudTable Items="d.GymUsage" Hover="true" Dense="true" Elevation="0">
         <HeaderContent>
             <MudTh>Gym</MudTh>

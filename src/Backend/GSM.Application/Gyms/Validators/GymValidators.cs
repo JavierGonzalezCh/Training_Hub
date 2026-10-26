@@ -19,6 +19,8 @@ public sealed class CreateGymRequestValidator : AbstractValidator<CreateGymReque
         RuleFor(x => x.Phone).MaximumLength(20);
         RuleFor(x => x.Email).EmailAddress().MaximumLength(256).When(x => !string.IsNullOrWhiteSpace(x.Email));
 
+        RuleFor(x => x.Type).IsInEnum();
+
         RuleFor(x => x.Owner).NotNull();
         RuleFor(x => x.Owner.Email).NotEmpty().EmailAddress().MaximumLength(256)
             .When(x => x.Owner is not null);
@@ -78,9 +80,15 @@ public sealed class UpdateGymRequestValidator : AbstractValidator<UpdateGymReque
         RuleFor(x => x.WebsiteUrl).Must(IsUrl).When(x => !string.IsNullOrWhiteSpace(x.WebsiteUrl))
             .WithMessage("La URL del sitio web debe empezar por http:// o https://.");
         RuleFor(x => x.WhatsAppPhone).MaximumLength(30);
+        RuleFor(x => x.Type!.Value).IsInEnum().When(x => x.Type is not null).WithName("Type");
     }
 
     private static bool IsUrl(string? value) => GSM.Domain.Gyms.Gym.IsValidUrl(value);
+}
+
+public sealed class ChangeGymTypeRequestValidator : AbstractValidator<ChangeGymTypeRequest>
+{
+    public ChangeGymTypeRequestValidator() => RuleFor(x => x.Type).IsInEnum();
 }
 
 public sealed class UpdateFeatureFlagsRequestValidator : AbstractValidator<UpdateFeatureFlagsRequest>

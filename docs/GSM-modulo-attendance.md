@@ -233,7 +233,7 @@ Decidido: los rechazos se avisan **por push**.
 - `attendance.checkin_settings.grace_days` se mueve a Memberships (`GSM-modulo-memberships.md` §13).
 - `checkin_rejection_reason` suma cuatro valores.
 - `attendance` suma `VoidedAt`, `VoidedBy`, `VoidReason`, `AuthorizedBy`, `AuthorizationReason`,
-  `LocationCheck` y el método `document`. El índice único por miembro y día se reemplaza por una
+  `LocationCheck` y los métodos `document` y `routine` (A8, `V2_A8.sql`; `ADD VALUE` no se revierte). El índice único por miembro y día se reemplaza por una
   validación en el caso de uso, porque con entradas múltiples puede haber varias filas el mismo día.
 
 ## 12. Propuesta de sub-etapas
@@ -248,5 +248,36 @@ Decidido: los rechazos se avisan **por push**.
 | **A5** | Ocupación con permanencia de 2 horas (corrige B4). |
 | **A6** | Geolocalización con el QR fijo: coordenadas y radio del gym, `location_check`, exclusión de racha y logros (§9). |
 | **A7** | Avisos por push (depende del módulo Notifications). |
+| **A8** | Gym sin registro en la puerta: el miembro cuenta su día al iniciar el entrenamiento (§13). |
 | Después | Hardware: torniquetes, huella, tarjetas. QR en cada máquina (Equipment). |
 | Después | **Evitar que un miembro entre sin registrar su entrada** (sobre todo con tiquetera). Con software solo no se puede garantizar; solo un torniquete lo garantiza. Opciones evaluadas el 2026-10-07 y aplazadas: (1) la app exige registrar la entrada antes de usar la rutina, reservar o reportar máquinas, con interruptor por gym; (2) lista "Actividad sin entrada" en el panel; (3) verificación en sala: el staff registra la entrada desde su teléfono al encontrar a alguien sin registrar. Las clases ya registran la entrada solas. |
+
+## 13. Gym sin registro en la puerta: el entrenamiento cuenta el día (A8)
+
+Decidido 2026-10-25. Si el gym apaga **el check-in con QR y la entrada con documento**, nada registra la llegada en
+la puerta y la racha, las visitas y los logros se quedarían quietos. En ese caso el miembro cuenta su día al empezar a
+entrenar:
+
+- `IAttendanceReader.IsRoutineEntryAsync(gymId)` es la única regla: `CheckinQr` apagado y `CheckinSettings.ByDocument`
+  apagado (sin fila de ajustes, apagado). `/api/me` la expone como `FeatureFlags.RoutineEntry` (la compone el
+  controller, como el bloque `subscription`).
+- `POST /api/attendance/routine-start` (`CheckInHandler.HandleRoutineStartAsync`) crea una entrada con método
+  `routine`: es una asistencia normal, así que suma a visitas, racha, logros, aforo y tiquetera sin cambios en esos
+  módulos. Solo miembros; 403 si el gym tiene algún registro en la puerta.
+- Mismas reglas que el QR: gym abierto, miembro activo y veredicto de Memberships (vigente o en gracia). Fuera de la
+  gracia, 409 y queda el intento rechazado, como con el QR.
+- **Idempotente por día:** si ya hay una entrada hoy, por cualquier vía, devuelve esa (200) y no crea otra; no aplica
+  la regla de entradas múltiples.
+- App del miembro: tarjeta "Registrar entrenamiento" en el inicio (en lugar de la del QR) e "Iniciar rutina" sobre
+  los ejercicios de un día de entrenamiento (`TrainingEntryCard`). Recepción la ve como "Rutina".
+- Riesgo aceptado: el miembro puede marcarla desde la casa. El panel se lo advierte al dueño al apagar el registro
+  en la puerta con los logros encendidos, o al encender los logros sin registro (etapa 4 de A8).
+
+## 14. Entrenar fuera de la sede y conteo con el primer ejercicio (T4)
+
+Dos opciones nuevas en `attendance.checkin_settings` (migración `V2_T4_RemoteTraining`, sin SQL a mano). Detalle en `GSM-tipos-de-negocio.md` §5.
+
+- **`remote_training`:** el canal `routine` no exige el horario de apertura (QR, documento y recepción sí); `OccupancyEstimator` y `GetHourlyCountsAsync` excluyen las entradas `routine`; la membresía se exige igual.
+- **`training_entry_trigger` (`start`/`first_log`):** con `first_log` `POST /api/attendance/routine-start` responde 403 y el día lo cuenta `RoutineExerciseLoggedCountsTheDayHandler` al registrar un ejercicio. Routines publica `RoutineExerciseLogged` con cada ejercicio nuevo (no solo el primero del día), así que si el primero se rechazó y la membresía se renovó, el siguiente cuenta. Un rechazo deja el intento y no pierde el registro.
+- `IAttendanceReader.GetRoutineEntryModeAsync` devuelve `(RoutineEntry, FirstLog)` en una lectura; `IsRemoteTrainingAsync` lo lee el onboarding.
+- La plantilla `personal_trainer` enciende ambas opciones; box, estudio y academia usan cartel fijo con permanencia de 60, 60 y 90 minutos.

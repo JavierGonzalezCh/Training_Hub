@@ -413,3 +413,9 @@ Todos bajo `[Authorize(Policy = RequireSuperAdmin)]`. `POST /api/gyms` (alta, et
 14. Un usuario no superadmin recibe `403` en todo `/api/admin/*`.
 
 ---
+
+## Tipo de negocio (T1–T7)
+
+- La cartera y la ficha llevan el tipo; `GET /api/admin/gyms?type=` filtra y `PUT /api/admin/gyms/{id}/type` lo cambia (sin reaplicar la plantilla).
+- La ficha muestra si la plantilla quedó aplicada (`GymDetailResponse.Template`: entrada, membresías, rutinas, logros), leído por los readers de cada módulo. «Sin plantilla» es normal en gyms anteriores a las plantillas; en uno nuevo apunta a un handler pendiente de reintento.
+- El panel de plataforma suma `AdminDashboardResponse.ByType`: gyms, pagando, en prueba, MRR, miembros activos y avance prueba → pago (`pagando / (pagando + prueba)`) por tipo. La barra de impersonación muestra el tipo del gym.

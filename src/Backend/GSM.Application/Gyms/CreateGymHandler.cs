@@ -66,14 +66,14 @@ public sealed class CreateGymHandler(
         }
 
         var gym = Gym.Create(
-            request.Name, slug, request.Nit, request.Phone, request.Email);
+            request.Name, slug, request.Nit, request.Phone, request.Email, type: request.Type);
         if (!hasTrial)
         {
             // Sin prueba el gym nace activo (SuperAdmin §V2).
             gym.SetCommercialStatus(GymStatus.Active);
         }
 
-        var featureFlags = GymFeatureFlags.Default(gym.Id);
+        var featureFlags = GymFeatureFlags.ForType(gym.Id, gym.Type);
 
         OwnerInvitation? invitation = null;
         var ownerId = Guid.Empty;
@@ -110,7 +110,7 @@ public sealed class CreateGymHandler(
 
         await events.PublishAsync(
             new GymCreated(
-                gym.Id, gym.Name, request.SaasPlanId, request.TrialDays, firstPayment, request.MonthlyPrice ?? 0m, createdBy),
+                gym.Id, gym.Name, request.SaasPlanId, request.TrialDays, firstPayment, request.MonthlyPrice ?? 0m, createdBy, gym.Type),
             cancellationToken);
 
         var sent = invitation is null || await SendInvitationAsync(request.Owner, gym.Name, invitation, cancellationToken);

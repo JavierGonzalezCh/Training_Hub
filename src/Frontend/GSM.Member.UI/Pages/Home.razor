@@ -142,18 +142,32 @@
         else if (_home?.Gym is { } gymNow)
         {
             <div class="mb-3"><GymOpenBadge Status="@gymNow.OpenStatus" /></div>
-            <MemberOccupancyCard Resolved="true" Level="@gymNow.OccupancyLevel" />
+            @if (GymCtx.FeatureFlags?.ShowFrontDesk != false)
+            {
+                <MemberOccupancyCard Resolved="true" Level="@gymNow.OccupancyLevel" />
+            }
         }
         else
         {
             <div class="mb-3"><GymOpenBadge /></div>
-            <MemberOccupancyCard />
+            @if (GymCtx.FeatureFlags?.ShowFrontDesk != false)
+            {
+                <MemberOccupancyCard />
+            }
         }
     </text>;
 
     // 3. Entrada
     private RenderFragment EntryBlock => @<text>
-        @if (_home?.Entry is { CheckedInToday: true, CheckedInAt: { } enteredAt })
+        @if (GymCtx.FeatureFlags?.RoutineEntry == true)
+        {
+            @* A8: sin registro en la puerta, el día se cuenta al empezar a entrenar. *@
+            <TrainingEntryCard Title="Registrar entrenamiento" ButtonText="Registrar entrenamiento"
+                               FirstLog="GymCtx.FeatureFlags?.RoutineEntryFirstLog == true"
+                               CountedAt="@(_home?.Entry is { CheckedInToday: true } entry ? entry.CheckedInAt : null)"
+                               OnCounted="ReloadHomeAsync" />
+        }
+        else if (_home?.Entry is { CheckedInToday: true, CheckedInAt: { } enteredAt })
         {
             <section class="gsm-m-card gsm-m-checkin-done" id="checkin-done" role="status">
                 <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /></span>
@@ -347,6 +361,19 @@
         }
 
         Navigation.NavigateTo(GymCodeLink.PathFor(code));
+    }
+
+    // Tras contar el día por el entrenamiento, la racha y el progreso del inicio cambian.
+    private async Task ReloadHomeAsync()
+    {
+        try
+        {
+            _home = await Me.GetMyHomeAsync();
+        }
+        catch (GsmApiException)
+        {
+            // La tarjeta ya muestra que el día cuenta; el resto se actualiza al volver a entrar.
+        }
     }
 
     public void Dispose() => Viewport.Changed -= OnViewportChanged;

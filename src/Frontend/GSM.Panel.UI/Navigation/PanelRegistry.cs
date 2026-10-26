@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using GSM.UI.Shared.Auth;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GSM.Panel.UI.Navigation;
@@ -19,14 +20,15 @@ public sealed class PanelRegistry
     }
 
     /// <summary>El menú lateral de escritorio: todas las entradas visibles, por grupo.</summary>
-    public IReadOnlyList<PanelMenuGroup> GetMenu(ClaimsPrincipal user) => Group(Visible(user));
+    public IReadOnlyList<PanelMenuGroup> GetMenu(ClaimsPrincipal user, GymContext? gym = null) => Group(Visible(user, gym));
 
     /// <summary>Las entradas de la barra inferior del celular, en su orden.</summary>
-    public IReadOnlyList<PanelMenuEntry> GetBottomBar(ClaimsPrincipal user)
-        => Visible(user).Where(e => e.BottomBar).OrderBy(e => e.BottomOrder).ToList();
+    public IReadOnlyList<PanelMenuEntry> GetBottomBar(ClaimsPrincipal user, GymContext? gym = null)
+        => Visible(user, gym).Where(e => e.BottomBar).OrderBy(e => e.BottomOrder).ToList();
 
     /// <summary>"Más": lo que no cabe en la barra inferior, por grupo.</summary>
-    public IReadOnlyList<PanelMenuGroup> GetMore(ClaimsPrincipal user) => Group(Visible(user).Where(e => !e.BottomBar));
+    public IReadOnlyList<PanelMenuGroup> GetMore(ClaimsPrincipal user, GymContext? gym = null)
+        => Group(Visible(user, gym).Where(e => !e.BottomBar));
 
     public IReadOnlyList<PanelSettingsSection> GetSettingsSections(ClaimsPrincipal user)
         => _settings.Where(s => s.IsVisibleTo(user)).ToList();
@@ -43,7 +45,8 @@ public sealed class PanelRegistry
             .Select(g => new PanelSettingsGroup(g.Key, g.OrderBy(s => s.Order).ToList()))
             .ToList();
 
-    private IEnumerable<PanelMenuEntry> Visible(ClaimsPrincipal user) => _entries.Where(e => e.IsVisibleTo(user));
+    private IEnumerable<PanelMenuEntry> Visible(ClaimsPrincipal user, GymContext? gym)
+        => _entries.Where(e => e.IsVisibleTo(user, gym));
 
     private static IReadOnlyList<PanelMenuGroup> Group(IEnumerable<PanelMenuEntry> entries)
         => entries

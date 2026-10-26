@@ -10,6 +10,7 @@ public sealed class AttendanceEnums : IModuleEnums
         PgEnumMapping.Of<GSM.Domain.Attendance.AttendanceMethod>("attendance_method", "attendance", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Attendance.LocationCheck>("location_check", "attendance", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Attendance.CheckinMode>("checkin_mode", "attendance", LowerCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Attendance.TrainingEntryTrigger>("training_entry_trigger", "attendance", SnakeCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Attendance.CheckinRejectionReason>("checkin_rejection_reason", "attendance", SnakeCaseNameTranslator.Instance),
     ];
 }

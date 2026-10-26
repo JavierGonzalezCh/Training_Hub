@@ -138,9 +138,11 @@ public sealed class AttendanceRepository(GsmDbContext dbContext) : IAttendanceRe
             .ToListAsync(cancellationToken);
 
     public Task<int> CountDistinctMembersInWindowAsync(
-        Guid gymId, DateTimeOffset sinceUtc, DateTimeOffset untilUtc, CancellationToken cancellationToken = default)
+        Guid gymId, DateTimeOffset sinceUtc, DateTimeOffset untilUtc, CancellationToken cancellationToken = default,
+        bool excludeRoutineEntries = false)
         => Attendances
-            .Where(a => a.GymId == gymId && a.VoidedAt == null && a.CheckedInAt > sinceUtc && a.CheckedInAt <= untilUtc)
+            .Where(a => a.GymId == gymId && a.VoidedAt == null && a.CheckedInAt > sinceUtc && a.CheckedInAt <= untilUtc
+                        && (!excludeRoutineEntries || a.Method != GSM.Domain.Attendance.AttendanceMethod.Routine))
             .Select(a => a.MemberId)
             .Distinct()
             .CountAsync(cancellationToken);

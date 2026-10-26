@@ -130,7 +130,9 @@ else
                     _detail = "Vuelve a escanear el código de la entrada.";
                     break;
                 case 403:
+                    // El gym apagó el check-in con QR (p. ej. un QR viejo que sigue pegado): decir qué hacer, no solo qué pasó.
                     _state = State.Disabled;
+                    _detail = "Tu gimnasio registra las entradas en recepción. Pide allí que registren la tuya.";
                     break;
                 default:
                     _state = State.Error;

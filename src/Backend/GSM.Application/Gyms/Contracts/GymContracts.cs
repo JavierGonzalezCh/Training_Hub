@@ -23,7 +23,8 @@ public sealed record CreateGymRequest(
     CreateGymOwner Owner,
     int? TrialDays = null,
     decimal? MonthlyPrice = null,
-    CreateGymFirstPayment? FirstPayment = null);
+    CreateGymFirstPayment? FirstPayment = null,
+    GymType Type = GymType.Gym);
 
 public sealed record CreateGymOwner(string Email, string FullName);
 
@@ -60,7 +61,29 @@ public sealed record UpdateGymRequest(
     string? FacebookUrl = null,
     string? TikTokUrl = null,
     string? WebsiteUrl = null,
-    string? WhatsAppPhone = null);
+    string? WhatsAppPhone = null,
+    GymType? Type = null);
+
+/// <summary>
+/// La configuración recomendada para el tipo de negocio del gym (docs/GSM-tipos-de-negocio.md §9): los mismos valores de la
+/// plantilla de arranque. Solo se lee; cada cambio se guarda por el endpoint normal de su módulo.
+/// </summary>
+/// <param name="Type">Tipo de negocio al que corresponde.</param>
+public sealed record RecommendedConfiguration(
+    string Type,
+    GymFeatureFlagsResponse Modules,
+    RecommendedCheckin Checkin,
+    RecommendedMemberships Memberships,
+    RecommendedRoutines Routines);
+
+public sealed record RecommendedCheckin(string Mode, int AssumedStayMinutes, bool RemoteTraining, string TrainingEntryTrigger);
+
+public sealed record RecommendedMemberships(int GraceDays, int ExpiringDays, decimal EnrollmentFee);
+
+public sealed record RecommendedRoutines(int ReviewWeeks);
+
+/// <summary>El SuperAdmin cambia el tipo de negocio de un gym (docs/GSM-tipos-de-negocio.md §9). No reaplica la plantilla.</summary>
+public sealed record ChangeGymTypeRequest(GymType Type);
 
 public sealed record UpdateFeatureFlagsRequest(
     bool ShowRoutines,
@@ -71,7 +94,8 @@ public sealed record UpdateFeatureFlagsRequest(
     bool CheckinQr,
     bool MembersCanCreateRoutines,
     bool MembersCanReportEquipment,
-    bool? ShowRanking = null);
+    bool? ShowRanking = null,
+    bool? ShowFrontDesk = null);
 
 public sealed record GymResponse(
     Guid Id,
@@ -99,7 +123,8 @@ public sealed record GymResponse(
     string? TikTokUrl,
     string? WebsiteUrl,
     string? WhatsAppPhone,
-    SubscriptionInfo? Subscription = null);
+    SubscriptionInfo? Subscription = null,
+    string Type = nameof(GymType.Gym));
 
 /// <summary>
 /// Lo que el miembro ve de su gimnasio ("Mi gimnasio"). Sin NIT, razón social ni datos comerciales.
@@ -135,4 +160,5 @@ public sealed record GymFeatureFlagsResponse(
     bool CheckinQr,
     bool MembersCanCreateRoutines,
     bool MembersCanReportEquipment,
-    bool ShowRanking);
+    bool ShowRanking,
+    bool ShowFrontDesk = true);

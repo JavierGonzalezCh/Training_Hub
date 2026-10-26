@@ -15,6 +15,13 @@
             <MudTextField T="string" @bind-Value="_nit" Label="NIT" Class="mb-3" />
             <MudTextField T="string" @bind-Value="_phone" Label="Teléfono" Class="mb-3" />
             <MudTextField T="string" @bind-Value="_email" Label="Email del gym" InputType="InputType.Email" Class="mb-3" />
+            <MudSelect T="int" @bind-Value="_type" Label="Tipo de negocio" Class="mb-3" data-testid="type-select"
+                       HelperText="@GymTypeLabels.Hint(_type)">
+                @foreach (var (value, _, label, _) in GymTypeLabels.All)
+                {
+                    <MudSelectItem Value="value">@label</MudSelectItem>
+                }
+            </MudSelect>
             <MudSelect T="Guid?" @bind-Value="_planId" Label="Plan" Class="mb-4" data-testid="plan-select" ToStringFunc="PlanText">
                 @foreach (var plan in _plans)
                 {
@@ -76,6 +83,7 @@
     private string? _nit;
     private string? _phone;
     private string? _email;
+    private int _type;
     private Guid? _planId;
     private List<SaasPlanItem> _plans = [];
     private string _ownerName = string.Empty;
@@ -134,6 +142,7 @@
                 Phone = _phone,
                 Email = _email,
                 SaasPlanId = _planId,
+                Type = _type,
                 Owner = new CreateGymOwner { Email = _ownerEmail, FullName = _ownerName },
                 MonthlyPrice = (double)_monthlyPrice,
                 TrialDays = _withTrial ? _trialDays : null,

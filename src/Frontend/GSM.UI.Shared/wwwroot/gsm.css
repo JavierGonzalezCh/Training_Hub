@@ -2560,6 +2560,21 @@ a.gsm-m-stats {
     text-decoration: none;
 }
 
+/* A8: "Registrar entrenamiento" / "Iniciar rutina": el botón es la acción principal y su texto es largo, así que va
+   en su propia línea y a todo el ancho en lugar de apretar el texto de la tarjeta. */
+.gsm-m-training-entry {
+    flex-wrap: wrap;
+}
+
+.gsm-m-training-entry .gsm-m-card__body {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.gsm-m-training-entry__action {
+    flex: 1 1 100%;
+}
+
 a.gsm-m-card:hover {
     border-color: var(--gsm-accent);
 }
@@ -4084,3 +4099,82 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 .gsm-profile__photo input[type="file"]::file-selector-button:hover {
     border-color: var(--gsm-accent);
 }
+
+/* Cumplimiento de la rutina (T6) */
+.gsm-adh-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    height: 9rem;
+    list-style: none;
+}
+
+.gsm-adh-bar {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    min-width: 0;
+    height: 100%;
+    padding-bottom: 2.4rem;
+}
+
+.gsm-adh-bar__fill {
+    display: block;
+    width: 100%;
+    max-width: 2.2rem;
+    background: var(--gsm-ok);
+    border-radius: 3px 3px 0 0;
+}
+
+.gsm-adh-bar__fill.is-behind { background: var(--gsm-warn); }
+
+.gsm-adh-bar__label,
+.gsm-adh-bar__value {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: var(--gsm-text-2);
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+.gsm-adh-bar__label { bottom: 1.1rem; }
+.gsm-adh-bar__value { bottom: 0; color: var(--gsm-text); }
+
+.gsm-adh-days {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: 0.5rem;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.gsm-adh-day {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-left-width: 3px;
+    border-radius: var(--gsm-radius-lg);
+    font-size: 0.8rem;
+}
+
+.gsm-adh-day__date { color: var(--gsm-text-2); }
+.gsm-adh-day__status { font-weight: 600; }
+.gsm-adh-day__detail { color: var(--gsm-text-2); font-size: 0.72rem; }
+.gsm-adh-day--done { border-left-color: var(--gsm-ok); }
+.gsm-adh-day--missed { border-left-color: var(--gsm-warn); }
+.gsm-adh-day--today { border-left-color: var(--gsm-accent-text); }
+.gsm-adh-day--offplan { border-left-color: var(--gsm-text-2); }
+.gsm-adh-day--upcoming,
+.gsm-adh-day--rest,
+.gsm-adh-day--none { border-left-color: var(--gsm-border-strong); }

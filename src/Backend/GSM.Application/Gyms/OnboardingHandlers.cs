@@ -30,6 +30,7 @@ public sealed class GetOnboardingHandler(
     IMembershipReader memberships,
     IMemberReader members,
     IIdentityReader identity,
+    GSM.Application.Attendance.Public.IAttendanceReader attendance,
     IUnitOfWork unitOfWork)
 {
     public const string StepGym = "gym";
@@ -43,7 +44,22 @@ public sealed class GetOnboardingHandler(
 
     private static readonly string[] StepKeys = [StepGym, StepLocation, StepHours, StepEquipment, StepPlans, StepEntry, StepTeam];
 
-    private const int RequiredSteps = 5;
+    /// <summary>
+    /// Qué pasos de datos son obligatorios, derivado de las <b>opciones</b> del gym y no de su tipo (T5, §5.4): datos y
+    /// planes siempre; ubicación y horario salvo que los miembros entrenen fuera de la sede; y los equipos salvo eso, o si
+    /// ni las rutinas ni los reportes de fallas los usan. Un paso que deja de ser obligatorio sigue apareciendo como opcional.
+    /// </summary>
+    internal static bool[] RequiredFor(bool remoteTraining, bool showRoutines, bool membersCanReportEquipment)
+        =>
+        [
+            true,
+            !remoteTraining,
+            !remoteTraining,
+            !remoteTraining && (membersCanReportEquipment || showRoutines),
+            true,
+            false,
+            false,
+        ];
 
     public Task<OnboardingResponse> HandleAsync(CancellationToken cancellationToken)
         => HandleAsync(currentUser.RequireGymId(), cancellationToken);
@@ -61,6 +77,11 @@ public sealed class GetOnboardingHandler(
         var team = await identity.GetTeamSetupAsync(gymId, cancellationToken);
         var owners = await identity.ListActiveOwnersAsync(gymId, cancellationToken);
         var memberCount = await members.GetActiveCountAsync(gymId, cancellationToken);
+        var flags = await gymReader.GetFeatureFlagsAsync(gymId, cancellationToken);
+        var required = RequiredFor(
+            await attendance.IsRemoteTrainingAsync(gymId, cancellationToken),
+            flags?.ShowRoutines ?? true,
+            flags?.MembersCanReportEquipment ?? true);
 
         var done = new[]
         {
@@ -73,7 +94,7 @@ public sealed class GetOnboardingHandler(
             team.ActiveStaff > 0 || owners.Count > 1,
         };
 
-        var requiredMet = done.Take(RequiredSteps).All(d => d);
+        var requiredMet = done.Where((_, i) => required[i]).All(d => d);
         if (requiredMet && (onboarding is null || !onboarding.IsDone))
         {
             if (onboarding is null)
@@ -87,7 +108,7 @@ public sealed class GetOnboardingHandler(
         }
 
         var steps = StepKeys
-            .Select((key, i) => new OnboardingStepResponse(key, i + 1, i < RequiredSteps, done[i]))
+            .Select((key, i) => new OnboardingStepResponse(key, i + 1, required[i], done[i]))
             .ToList();
         var isComplete = onboarding?.IsDone ?? false;
         var next = isComplete ? null : steps.FirstOrDefault(s => s.Required && !s.Done)?.Key;

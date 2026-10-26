@@ -40,13 +40,15 @@ public static class OccupancyEstimator
         IAttendanceRepository attendance,
         CancellationToken cancellationToken)
     {
-        var stay = (await settings.GetAsync(gymId, cancellationToken))?.AssumedStayMinutes
-            ?? CheckinSettings.DefaultAssumedStayMinutes;
+        var current = await settings.GetAsync(gymId, cancellationToken);
+        var stay = current?.AssumedStayMinutes ?? CheckinSettings.DefaultAssumedStayMinutes;
         var capacity = await gyms.GetCapacityAsync(gymId, cancellationToken);
 
         var now = clock.UtcNow;
         var people = await attendance.CountDistinctMembersInWindowAsync(
-            gymId, now.AddMinutes(-stay), now, cancellationToken);
+            gymId, now.AddMinutes(-stay), now, cancellationToken,
+            // Quien entrena fuera de la sede no está «dentro» de un local: no cuenta para el aforo.
+            excludeRoutineEntries: current is { RemoteTraining: true });
 
         int? percent = capacity is > 0 ? (int)Math.Round(people * 100.0 / capacity.Value, MidpointRounding.AwayFromZero) : null;
         return new OccupancyResponse(people, capacity is > 0 ? capacity : null, percent, OccupancyLevel.For(people, capacity), stay);

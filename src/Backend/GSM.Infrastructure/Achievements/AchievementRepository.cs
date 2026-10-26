@@ -29,6 +29,13 @@ public sealed class AchievementRepository(GsmDbContext dbContext) : IAchievement
 
     public void Add(Achievement achievement) => Achievements.Add(achievement);
 
+    public async Task<IReadOnlySet<string>> GetNamesForGymAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => (await Achievements.IgnoreQueryFilters()
+                .Where(a => a.GymId == gymId)
+                .Select(a => a.Name)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+
     public async Task<IReadOnlyList<Achievement>> ListPendingForMemberAsync(
         Guid memberId, CancellationToken cancellationToken = default)
     {

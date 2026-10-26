@@ -226,6 +226,9 @@ public sealed class MembershipReader(GsmDbContext dbContext, IClock clock, IMemb
             .Select(m => (DateOnly?)m.EndDate)
             .MaxAsync(cancellationToken);
 
+    public Task<bool> HasSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<MembershipSettings>().IgnoreQueryFilters().AnyAsync(s => s.GymId == gymId, cancellationToken);
+
     public Task<bool> IsActiveAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
         var today = clock.Today;

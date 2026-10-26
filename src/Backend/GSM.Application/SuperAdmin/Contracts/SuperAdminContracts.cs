@@ -3,10 +3,12 @@ using GSM.Domain.Payments;
 
 namespace GSM.Application.SuperAdmin.Contracts;
 
-/// <summary>Filtro opcional de la cartera por estado efectivo (nombre del enum, case-insensitive).</summary>
+/// <summary>Filtros opcionales de la cartera: estado efectivo y tipo de negocio (nombre del enum, case-insensitive).</summary>
 public sealed record PortfolioQuery
 {
     public string? Status { get; init; }
+
+    public string? Type { get; init; }
 }
 
 public sealed record PortfolioItem(
@@ -20,7 +22,8 @@ public sealed record PortfolioItem(
     DateOnly PaidThrough,
     int? DaysUntilDisabled,
     int? MemberLimit,
-    int CountedMembers);
+    int CountedMembers,
+    string Type = nameof(GymType.Gym));
 
 public sealed record PortfolioResponse(
     IReadOnlyList<PortfolioItem> Items,
@@ -33,7 +36,19 @@ public sealed record GymDetailResponse(
     string? Nit,
     string? Phone,
     string? Email,
-    SubscriptionDetail Subscription);
+    SubscriptionDetail Subscription,
+    string Type = nameof(GymType.Gym),
+    GymTemplateStatus? Template = null);
+
+/// <summary>
+/// Qué partes de la plantilla del tipo quedaron aplicadas al crear el gym (docs/GSM-tipos-de-negocio.md §7.3). Una
+/// marca en <c>false</c> es un handler que falló o un gym anterior a las plantillas: el gym opera con los valores
+/// por defecto de ese módulo y el fallo queda en el reintento de eventos.
+/// </summary>
+public sealed record GymTemplateStatus(bool Checkin, bool Memberships, bool Routines, bool Achievements)
+{
+    public bool Complete => Checkin && Memberships && Routines && Achievements;
+}
 
 /// <param name="Plan">Nombre del plan del SaaS.</param>
 /// <param name="MemberLimit">Límite efectivo (override del cliente o el del plan). Nulo = sin límite.</param>
@@ -139,7 +154,23 @@ public sealed record AdminDashboardResponse(
     PlatformTotals Platform,
     AdminAttentionBlock? Attention,
     AdminStartupBlock? Startup,
-    AdminLimitsBlock? Limits);
+    AdminLimitsBlock? Limits,
+    IReadOnlyList<TypeMetricsRow>? ByType = null);
+
+/// <summary>
+/// Cartera partida por tipo de negocio (docs/GSM-tipos-de-negocio.md §11). <c>Paying</c>: al día o en mora; <c>Trial</c>:
+/// en prueba o con la prueba terminada. <c>Mrr</c>: lo mensual contratado por los que pagan (mismo criterio que
+/// <c>PlatformRevenue.Mrr</c>). <c>ConversionPercent</c>: <c>Paying / (Paying + Trial)</c>, el avance prueba → pago; nulo si
+/// ninguno está en esos estados.
+/// </summary>
+public sealed record TypeMetricsRow(
+    string Type,
+    int Gyms,
+    int Paying,
+    int Trial,
+    decimal Mrr,
+    int ActiveMembers,
+    int? ConversionPercent);
 
 /// <summary>
 /// "Requiere acción" (Dashboards §3): cuatro listas cortas (máximo 10 filas, con el total real para el "Ver todos").

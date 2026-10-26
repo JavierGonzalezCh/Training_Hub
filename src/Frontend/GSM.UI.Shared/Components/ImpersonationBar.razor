@@ -4,12 +4,18 @@
 @inject AuthenticationStateProvider AuthState
 @inject ITokenStore TokenStore
 @inject ImpersonationService Impersonation
+@inject GymContext GymCtx
 
 @if (_visible)
 {
     <div class="gsm-impersonation-bar">
         <MudIcon Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small" Class="mr-2" />
         <span>Viendo como SuperAdmin — @(_write ? "escritura" : "solo lectura") @(_remaining is { } r ? $"· queda {r:mm\\:ss}" : "")</span>
+        @if (GymCtx.Gym is { } gym)
+        {
+            @* Soporte entiende así por qué un gym no tiene Recepción o QR: depende de su tipo de negocio. *@
+            <span class="ml-2" data-testid="impersonation-gym-type">· @gym.Name (@GymTypeLabels.Label(gym.Type))</span>
+        }
         <MudSpacer />
         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Inherit" OnClick="EndAsync">Finalizar</MudButton>
     </div>

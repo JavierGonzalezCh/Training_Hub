@@ -2,6 +2,7 @@ using GSM.Application.Common.Abstractions;
 using GSM.Application.SuperAdmin.Abstractions;
 using GSM.Application.SuperAdmin.Contracts;
 using GSM.Domain.Common.Exceptions;
+using GSM.Domain.Gyms;
 using GSM.Domain.SuperAdmin;
 using Microsoft.Extensions.Logging;
 
@@ -31,6 +32,17 @@ public sealed class ListGymPortfolioHandler(
             filter = parsed;
         }
 
+        GymType? typeFilter = null;
+        if (!string.IsNullOrWhiteSpace(query.Type))
+        {
+            if (!Enum.TryParse<GymType>(query.Type, ignoreCase: true, out var parsedType))
+            {
+                throw new ValidationDomainException($"Tipo '{query.Type}' no reconocido.");
+            }
+
+            typeFilter = parsedType;
+        }
+
         var planList = await saasPlans.ListAsync(cancellationToken);
         var plansById = planList.ToDictionary(p => p.Id);
 
@@ -45,7 +57,7 @@ public sealed class ListGymPortfolioHandler(
             var key = effective.ToString();
             countByStatus[key] = countByStatus.GetValueOrDefault(key) + 1;
 
-            if (filter is { } f && effective != f)
+            if ((filter is { } f && effective != f) || (typeFilter is { } t && row.Type != t))
             {
                 continue;
             }
@@ -66,7 +78,8 @@ public sealed class ListGymPortfolioHandler(
                 row.PaidThrough,
                 GymSubscription.DaysUntilDisabled(row.ManualStatus, today, row.PaidThrough, row.TrialEndsOn, row.TrialGraceDays),
                 row.MemberLimitOverride ?? plan?.MemberLimit,
-                await memberships.GetCountedMemberCountAsync(row.GymId, cancellationToken)));
+                await memberships.GetCountedMemberCountAsync(row.GymId, cancellationToken),
+                row.Type.ToString()));
         }
 
         logger.LogInformation("Cartera SaaS consultada: {Total} suscripciones, filtro '{Filter}'", rows.Count, query.Status);

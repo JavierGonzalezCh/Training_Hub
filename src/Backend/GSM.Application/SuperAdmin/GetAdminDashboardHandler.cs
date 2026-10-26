@@ -86,6 +86,7 @@ public sealed class GetAdminDashboardHandler(
         var mrr = 0m;
         var expiring = 0;
 
+        var byType = new Dictionary<GSM.Domain.Gyms.GymType, (int Gyms, int Paying, int Trial, decimal Mrr, int Members)>();
         var usage = new List<GymUsageRow>(rows.Count);
         var effectiveByGym = new Dictionary<Guid, EffectiveSubscriptionStatus>(rows.Count);
         var totalActiveMembers = 0;
@@ -118,6 +119,17 @@ public sealed class GetAdminDashboardHandler(
             }
 
             var activeMembers = activeByGym.GetValueOrDefault(row.GymId);
+
+            var agg = byType.GetValueOrDefault(row.Type);
+            var paying = effective is EffectiveSubscriptionStatus.Active or EffectiveSubscriptionStatus.Overdue;
+            var trial = effective is EffectiveSubscriptionStatus.Trial or EffectiveSubscriptionStatus.TrialEnded;
+            byType[row.Type] = (
+                agg.Gyms + 1,
+                agg.Paying + (paying ? 1 : 0),
+                agg.Trial + (trial ? 1 : 0),
+                agg.Mrr + (paying ? row.MonthlyPrice : 0m),
+                agg.Members + activeMembers);
+
             var checkIns = checkInsByGym.GetValueOrDefault(row.GymId);
             var memberRevenue = revenueByGym.GetValueOrDefault(row.GymId);
             DateOnly? lastCheckIn = lastCheckInByGym.TryGetValue(row.GymId, out var last) ? last : null;
@@ -160,7 +172,15 @@ public sealed class GetAdminDashboardHandler(
             new PlatformTotals(rows.Count, totalActiveMembers, totalCheckIns),
             attention,
             startup,
-            limitsBlock);
+            limitsBlock,
+            byType
+                .OrderBy(t => t.Key)
+                .Select(t => new TypeMetricsRow(
+                    t.Key.ToString(), t.Value.Gyms, t.Value.Paying, t.Value.Trial, t.Value.Mrr, t.Value.Members,
+                    t.Value.Paying + t.Value.Trial == 0
+                        ? null
+                        : (int)Math.Round(t.Value.Paying * 100m / (t.Value.Paying + t.Value.Trial), MidpointRounding.AwayFromZero)))
+                .ToList());
     }
 
     /// <summary>

@@ -36,10 +36,11 @@ namespace GSM.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes", "tenure_months", "referrals", "manual", "personal_records", "lifted_volume" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual", "document" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual", "document", "routine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_mode", new[] { "rotating", "static" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership", "gym_closed", "membership_frozen", "pass_exhausted", "member_inactive", "already_checked_in" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "location_check", new[] { "inside", "outside", "denied" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "training_entry_trigger", new[] { "start", "first_log" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_booking_status", new[] { "booked", "cancelled", "attended", "no_show" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_session_status", new[] { "scheduled", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
@@ -54,6 +55,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_status", new[] { "available", "maintenance", "out_of_service" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "equipment", "equipment_type", new[] { "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith_machine", "bench", "rack", "resistance_band", "trx", "medicine_ball", "mat", "box", "jump_rope", "bodyweight", "cardio_machine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_status", new[] { "trial", "active", "suspended" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "gyms", "gym_type", new[] { "gym", "box", "studio", "personal_trainer", "academy", "other" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_access_audit_action", new[] { "invited", "profile_changed", "permission_granted", "permission_revoked", "link_copied", "owner_added", "owner_promoted", "owner_removed", "owner_demoted" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_permission", new[] { "view_member_health", "trainer", "manage_attendance", "void_payments", "view_finances" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "identity", "staff_profile", new[] { "reception", "trainer", "administrator" });
@@ -512,9 +514,21 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("attendance.checkin_mode")
                         .HasColumnName("mode");
 
+                    b.Property<bool>("RemoteTraining")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("remote_training");
+
                     b.Property<int>("StaticCodeVersion")
                         .HasColumnType("integer")
                         .HasColumnName("static_code_version");
+
+                    b.Property<TrainingEntryTrigger>("TrainingEntryTrigger")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("attendance.training_entry_trigger")
+                        .HasDefaultValue(TrainingEntryTrigger.Start)
+                        .HasColumnName("training_entry_trigger");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1834,6 +1848,12 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("character varying(2048)")
                         .HasColumnName("tik_tok_url");
 
+                    b.Property<GymType>("Type")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("gyms.gym_type")
+                        .HasDefaultValue(GymType.Gym)
+                        .HasColumnName("type");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1905,6 +1925,12 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("show_community");
+
+                    b.Property<bool>("ShowFrontDesk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("show_front_desk");
 
                     b.Property<bool>("ShowGamification")
                         .ValueGeneratedOnAdd()

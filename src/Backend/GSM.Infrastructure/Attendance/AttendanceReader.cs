@@ -151,7 +151,37 @@ public sealed class AttendanceReader(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    // --- Lecturas del dashboard del panel (D1) ---
+    public Task<bool> HasCheckinSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<GSM.Domain.Attendance.CheckinSettings>().IgnoreQueryFilters()
+            .AnyAsync(s => s.GymId == gymId, cancellationToken);
+
+    public async Task<bool> IsRemoteTrainingAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => await checkinSettings.GetAsync(gymId, cancellationToken) is { RemoteTraining: true };
+
+    public async Task<bool> IsFirstLogEntryAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => (await GetRoutineEntryModeAsync(gymId, cancellationToken)).FirstLog;
+
+    public async Task<bool> IsRoutineEntryAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => (await GetRoutineEntryModeAsync(gymId, cancellationToken)).RoutineEntry;
+
+    public async Task<RoutineEntryMode> GetRoutineEntryModeAsync(Guid gymId, CancellationToken cancellationToken = default)
+    {
+        var flags = await gyms.GetFeatureFlagsAsync(gymId, cancellationToken);
+        if (flags is null || flags.CheckinQr)
+        {
+            return new RoutineEntryMode(false, false);
+        }
+
+        // Ajustes perezosos: sin fila la entrada con documento está apagada y el conteo es al iniciar.
+        var settings = await checkinSettings.GetAsync(gymId, cancellationToken);
+        if (settings is { ByDocument: true })
+        {
+            return new RoutineEntryMode(false, false);
+        }
+
+        return new RoutineEntryMode(
+            true, settings is { TrainingEntryTrigger: GSM.Domain.Attendance.TrainingEntryTrigger.FirstLog });
+    }
 
     public async Task<OccupancyView> GetOccupancyAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
@@ -201,8 +231,13 @@ public sealed class AttendanceReader(
         var from = clock.BusinessDayRange(today.AddDays(-(Math.Max(days, 1) - 1))).Start;
         var to = clock.BusinessDayRange(today).End;
 
+        // El filtro global deja solo los ajustes del gym del llamador.
+        var remote = await dbContext.Set<GSM.Domain.Attendance.CheckinSettings>()
+            .AnyAsync(s => s.RemoteTraining, cancellationToken);
+
         var instants = await Attendances
-            .Where(a => a.CheckedInAt >= from && a.CheckedInAt < to)
+            .Where(a => a.CheckedInAt >= from && a.CheckedInAt < to
+                        && (!remote || a.Method != GSM.Domain.Attendance.AttendanceMethod.Routine))
             .Select(a => a.CheckedInAt)
             .ToListAsync(cancellationToken);
 

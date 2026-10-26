@@ -2144,6 +2144,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2209,6 +2216,107 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/gyms/{gymId}/type": {
+      "put": {
+        "tags": [
+          "AdminGyms"
+        ],
+        "operationId": "ChangeGymType",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeGymTypeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeGymTypeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeGymTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "text/plain": {
                 "schema": {
@@ -5234,6 +5342,56 @@
           },
           "required": true
         },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/routine-start": {
+      "post": {
+        "tags": [
+          "Attendance"
+        ],
+        "operationId": "StartTrainingCheckin",
         "responses": {
           "201": {
             "description": "Created",
@@ -12298,6 +12456,36 @@
         }
       }
     },
+    "/api/gym/recommended-configuration": {
+      "get": {
+        "tags": [
+          "Gym"
+        ],
+        "operationId": "GetRecommendedConfiguration",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendedConfiguration"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendedConfiguration"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendedConfiguration"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gym/member-usage": {
       "get": {
         "tags": [
@@ -13691,6 +13879,56 @@
                   "items": {
                     "$ref": "#/components/schemas/RoutineHistoryItem"
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/adherence": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "operationId": "GetMyAdherence",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAdherence"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAdherence"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAdherence"
                 }
               }
             }
@@ -21473,6 +21711,77 @@
         }
       }
     },
+    "/api/routines/adherence": {
+      "get": {
+        "tags": [
+          "Routines"
+        ],
+        "operationId": "ListRoutineAdherence",
+        "parameters": [
+          {
+            "name": "weekStart",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "onlyBehind",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberAdherenceRow"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberAdherenceRow"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfMemberAdherenceRow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/routines/{id}/review": {
       "post": {
         "tags": [
@@ -21884,6 +22193,80 @@
                   "items": {
                     "$ref": "#/components/schemas/ExerciseSubstitutionItem"
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{memberId}/adherence": {
+      "get": {
+        "tags": [
+          "MemberAdherence"
+        ],
+        "operationId": "GetMemberAdherence",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "weeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAdherence"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAdherence"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAdherence"
                 }
               }
             }
@@ -23937,6 +24320,137 @@
           }
         }
       },
+      "AdherenceDayItem": {
+        "required": [
+          "date",
+          "status",
+          "dayName",
+          "plannedExercises",
+          "doneExercises"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "dayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "plannedExercises": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "doneExercises": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdherenceWeekItem": {
+        "required": [
+          "weekStart",
+          "plannedDays",
+          "doneDays",
+          "dueDays",
+          "plannedExercises",
+          "doneExercises",
+          "offPlanDays",
+          "compliancePercent",
+          "selfAssigned",
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "plannedDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "doneDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dueDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "plannedExercises": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "doneExercises": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "offPlanDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "compliancePercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "selfAssigned": {
+            "type": "boolean"
+          },
+          "days": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AdherenceDayItem"
+            }
+          }
+        }
+      },
       "AdminAttentionBlock": {
         "required": [
           "trialEnded",
@@ -24016,6 +24530,15 @@
                 "$ref": "#/components/schemas/AdminLimitsBlock"
               }
             ]
+          },
+          "byType": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TypeMetricsRow"
+            }
           }
         }
       },
@@ -25312,6 +25835,17 @@
           }
         }
       },
+      "ChangeGymTypeRequest": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/GymType"
+          }
+        }
+      },
       "ChangePasswordRequest": {
         "required": [
           "currentPassword",
@@ -25666,6 +26200,14 @@
               "string"
             ],
             "format": "int32"
+          },
+          "remoteTraining": {
+            "type": "boolean",
+            "default": false
+          },
+          "trainingEntryTrigger": {
+            "type": "string",
+            "default": "Start"
           }
         }
       },
@@ -26627,6 +27169,9 @@
                 "$ref": "#/components/schemas/CreateGymFirstPayment"
               }
             ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/GymType"
           }
         }
       },
@@ -28782,6 +29327,20 @@
           },
           "subscription": {
             "$ref": "#/components/schemas/SubscriptionDetail"
+          },
+          "type": {
+            "type": "string",
+            "default": "Gym"
+          },
+          "template": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GymTemplateStatus"
+              }
+            ]
           }
         }
       },
@@ -28825,6 +29384,10 @@
           },
           "showRanking": {
             "type": "boolean"
+          },
+          "showFrontDesk": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -29073,8 +29636,41 @@
                 "$ref": "#/components/schemas/SubscriptionInfo"
               }
             ]
+          },
+          "type": {
+            "type": "string",
+            "default": "Gym"
           }
         }
+      },
+      "GymTemplateStatus": {
+        "required": [
+          "checkin",
+          "memberships",
+          "routines",
+          "achievements"
+        ],
+        "type": "object",
+        "properties": {
+          "checkin": {
+            "type": "boolean"
+          },
+          "memberships": {
+            "type": "boolean"
+          },
+          "routines": {
+            "type": "boolean"
+          },
+          "achievements": {
+            "type": "boolean"
+          },
+          "complete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GymType": {
+        "type": "integer"
       },
       "GymUsageRow": {
         "required": [
@@ -30249,6 +30845,18 @@
           },
           "showRanking": {
             "type": "boolean"
+          },
+          "routineEntry": {
+            "type": "boolean",
+            "default": false
+          },
+          "routineEntryFirstLog": {
+            "type": "boolean",
+            "default": false
+          },
+          "showFrontDesk": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -30275,6 +30883,10 @@
           },
           "secondaryColor": {
             "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "default": "Gym"
           }
         }
       },
@@ -30377,6 +30989,109 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "MemberAdherence": {
+        "required": [
+          "memberId",
+          "hasRoutine",
+          "weeks"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hasRoutine": {
+            "type": "boolean"
+          },
+          "weeks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdherenceWeekItem"
+            }
+          }
+        }
+      },
+      "MemberAdherenceRow": {
+        "required": [
+          "memberId",
+          "fullName",
+          "routineId",
+          "routineName",
+          "selfAssigned",
+          "weekStart",
+          "plannedDays",
+          "doneDays",
+          "currentWeekPercent",
+          "recentPercent",
+          "lastLogOn"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "routineId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "routineName": {
+            "type": "string"
+          },
+          "selfAssigned": {
+            "type": "boolean"
+          },
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "plannedDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "doneDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "currentWeekPercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "recentPercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastLogOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -33611,6 +34326,55 @@
           }
         }
       },
+      "PagedResultOfMemberAdherenceRow": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberAdherenceRow"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "PagedResultOfMemberChangeItem": {
         "required": [
           "items",
@@ -34747,6 +35511,10 @@
               "string"
             ],
             "format": "int32"
+          },
+          "type": {
+            "type": "string",
+            "default": "Gym"
           }
         }
       },
@@ -35507,6 +36275,111 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "RecommendedCheckin": {
+        "required": [
+          "mode",
+          "assumedStayMinutes",
+          "remoteTraining",
+          "trainingEntryTrigger"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "assumedStayMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "remoteTraining": {
+            "type": "boolean"
+          },
+          "trainingEntryTrigger": {
+            "type": "string"
+          }
+        }
+      },
+      "RecommendedConfiguration": {
+        "required": [
+          "type",
+          "modules",
+          "checkin",
+          "memberships",
+          "routines"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "modules": {
+            "$ref": "#/components/schemas/GymFeatureFlagsResponse"
+          },
+          "checkin": {
+            "$ref": "#/components/schemas/RecommendedCheckin"
+          },
+          "memberships": {
+            "$ref": "#/components/schemas/RecommendedMemberships"
+          },
+          "routines": {
+            "$ref": "#/components/schemas/RecommendedRoutines"
+          }
+        }
+      },
+      "RecommendedMemberships": {
+        "required": [
+          "graceDays",
+          "expiringDays",
+          "enrollmentFee"
+        ],
+        "type": "object",
+        "properties": {
+          "graceDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expiringDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "enrollmentFee": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "RecommendedRoutines": {
+        "required": [
+          "reviewWeeks"
+        ],
+        "type": "object",
+        "properties": {
+          "reviewWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -38970,6 +39843,72 @@
           }
         }
       },
+      "TypeMetricsRow": {
+        "required": [
+          "type",
+          "gyms",
+          "paying",
+          "trial",
+          "mrr",
+          "activeMembers",
+          "conversionPercent"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "gyms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "paying": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "trial": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mrr": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "activeMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "conversionPercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "UnlockedAchievement": {
         "required": [
           "achievementId",
@@ -39242,6 +40181,18 @@
               "string"
             ],
             "format": "int32"
+          },
+          "remoteTraining": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "trainingEntryTrigger": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -39483,6 +40434,12 @@
               "null",
               "boolean"
             ]
+          },
+          "showFrontDesk": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -39613,6 +40570,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GymType"
+              }
             ]
           }
         }
@@ -40829,6 +41796,9 @@
     },
     {
       "name": "MemberRoutines"
+    },
+    {
+      "name": "MemberAdherence"
     },
     {
       "name": "RoutineSettings"

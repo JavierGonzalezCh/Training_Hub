@@ -19,6 +19,7 @@ public static class RoutinesInfrastructureRegistration
         services.AddScoped<IRoutineTemplateRepository, RoutineTemplateRepository>();
         services.AddScoped<IRoutineLogRepository, RoutineLogRepository>();
         services.AddScoped<IRoutineReader, RoutineReader>();
+        services.AddScoped<IAdherenceSource, AdherenceSource>();
 
         return services;
     }

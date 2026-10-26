@@ -87,6 +87,7 @@ public class GymProfileUiTests : TestContext
     {
         RegisterPanel(Gym());
 
+        RenderComponent<MudBlazor.MudPopoverProvider>();
         var cut = RenderComponent<GymDataTab>();
 
         cut.WaitForAssertion(() => Assert.Contains("Razón social", cut.Markup));
@@ -108,6 +109,7 @@ public class GymProfileUiTests : TestContext
     {
         RegisterPanel(Gym(address: null, city: null));
 
+        RenderComponent<MudBlazor.MudPopoverProvider>();
         var cut = RenderComponent<GymDataTab>();
 
         // Sin dirección no se guarda, pero la pantalla no abre en rojo: lo explica con una nota neutra.
@@ -121,6 +123,7 @@ public class GymProfileUiTests : TestContext
     {
         var stub = RegisterPanel(Gym());
 
+        RenderComponent<MudBlazor.MudPopoverProvider>();
         var cut = RenderComponent<GymDataTab>();
         cut.WaitForAssertion(() => Assert.False(cut.Find("#gym-save").HasAttribute("disabled")));
         cut.Find("#gym-save").Click();

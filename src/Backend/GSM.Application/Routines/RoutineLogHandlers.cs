@@ -108,6 +108,12 @@ public sealed class LogRoutineExerciseHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (existing is null)
+        {
+            await events.PublishAsync(
+                new RoutineExerciseLogged(memberId, reference.GymId, today, reference.SelfAssigned), cancellationToken);
+        }
+
         if (firstOfDay)
         {
             logger.LogInformation(

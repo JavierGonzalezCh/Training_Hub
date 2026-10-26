@@ -29,4 +29,5 @@ public sealed record PortfolioRow(
     DateOnly PaidThrough,
     Guid? SaasPlanId,
     int? MemberLimitOverride,
-    int TrialGraceDays);
+    int TrialGraceDays,
+    GSM.Domain.Gyms.GymType Type = GSM.Domain.Gyms.GymType.Gym);

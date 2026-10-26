@@ -43,10 +43,22 @@
     {
         GymContext.Changed += OnGymChanged;
         var state = await AuthState.GetAuthenticationStateAsync();
-        _groups = Registry.GetMenu(state.User);
+        _user = state.User;
+        _groups = Registry.GetMenu(_user, GymContext);
     }
 
-    private void OnGymChanged() => InvokeAsync(StateHasChanged);
+    private System.Security.Claims.ClaimsPrincipal? _user;
+
+    // Si el gym cambia (o se apaga Recepción), el menú se vuelve a armar con sus opciones.
+    private void OnGymChanged()
+    {
+        if (_user is not null)
+        {
+            _groups = Registry.GetMenu(_user, GymContext);
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
 
     private static string RoleLabel(string? role) => role switch
     {

@@ -2,6 +2,7 @@ using GSM.Application.Achievements.Public;
 using GSM.Application.Attendance.Abstractions;
 using GSM.Application.Attendance.Contracts;
 using GSM.Application.Attendance.Events;
+using GSM.Application.Attendance.Public;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Common.Events;
 using GSM.Application.Gyms;
@@ -35,6 +36,7 @@ public sealed class CheckInHandler(
     ICheckinAttemptRepository attempts,
     IMemberEntryRuleRepository entryRules,
     ICheckinCodeSigner signer,
+    IAttendanceReader attendanceReader,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<CheckInHandler> logger)
@@ -61,11 +63,54 @@ public sealed class CheckInHandler(
         return response;
     }
 
+    /// <summary>
+    /// A8: en un gym sin registro de entrada en la puerta (QR y documento apagados), el miembro cuenta su día al
+    /// iniciar el entrenamiento. Las mismas reglas que el QR (gym abierto, miembro activo, veredicto de Memberships,
+    /// rechazo con intento), sin código. Es idempotente por día: si ya hay una entrada hoy, por cualquier vía,
+    /// devuelve esa (200) y no crea otra, así iniciar la rutina dos veces no suma dos visitas.
+    /// </summary>
+    public async Task<(CheckInResponse Response, bool Created)> HandleRoutineStartAsync(CancellationToken cancellationToken)
+    {
+        if (currentUser.Role != UserRole.Member)
+        {
+            throw new ForbiddenDomainException("Solo los miembros registran su entrenamiento.");
+        }
+
+        var gymId = currentUser.RequireGymId();
+        if (!await attendanceReader.IsRoutineEntryAsync(gymId, cancellationToken))
+        {
+            throw new ForbiddenDomainException(
+                "Tu gimnasio registra la entrada en la puerta: escanea el QR o pasa por recepción.");
+        }
+
+        // T4: con «cuenta al registrar el primer ejercicio» tocar un botón no basta; el día lo cuenta el registro.
+        if (await attendanceReader.IsFirstLogEntryAsync(gymId, cancellationToken))
+        {
+            throw new ForbiddenDomainException(
+                "Tu día cuenta en cuanto registres tu primer ejercicio. Anota un ejercicio de tu rutina.");
+        }
+
+        var userId = currentUser.UserId ?? throw new UnauthorizedDomainException("Sin usuario en el contexto.");
+        var member = await members.ResolveByUserIdAsync(userId, cancellationToken)
+            ?? throw new ForbiddenDomainException("Tu cuenta no está vinculada a un miembro.");
+        return await RunAsync(new CheckInRequest(member.Id, null), member, EntryChannel.Routine, cancellationToken);
+    }
+
+    /// <summary>
+    /// T4: cuenta el día de un miembro porque registró su primer ejercicio (ajuste <c>first_log</c>). Lo llama el handler del
+    /// evento <c>RoutineSessionLogged</c>, que ya comprobó el ajuste. Mismas reglas que iniciar el entrenamiento
+    /// (membresía, horario salvo entrenamiento remoto, una entrada por día) y también idempotente por día.
+    /// </summary>
+    internal async Task<(CheckInResponse Response, bool Created)> HandleRoutineLogAsync(
+        MemberInfo member, CancellationToken cancellationToken)
+        => await RunAsync(new CheckInRequest(member.Id, null), member, EntryChannel.Routine, cancellationToken);
+
     private enum EntryChannel
     {
         Qr,
         Staff,
         Document,
+        Routine,
     }
 
     private async Task<(CheckInResponse Response, bool Created)> RunAsync(
@@ -87,7 +132,11 @@ public sealed class CheckInHandler(
         }
 
         // Gym cerrado según su horario: va antes que todo lo demás, no deja intento y no admite "Dejar pasar".
-        await EnsureGymOpenAsync(gymId, cancellationToken);
+        // T4: quien entrena fuera de la sede cuenta su día por entrenamiento aunque el local esté cerrado.
+        if (channel != EntryChannel.Routine || !settings.RemoteTraining)
+        {
+            await EnsureGymOpenAsync(gymId, cancellationToken);
+        }
 
         // Un código inválido es un error de forma del QR, no un intento rechazado.
         if (channel == EntryChannel.Qr
@@ -117,7 +166,9 @@ public sealed class CheckInHandler(
         // de crear otra (que en una tiquetera gastaría dos) o de responder 409.
         await using var memberLock = await attendance.LockMemberAsync(member.Id, cancellationToken);
         var entriesToday = await attendance.GetEntriesOnDateAsync(member.Id, today, cancellationToken);
-        if (entriesToday.Count > 0 && clock.UtcNow - entriesToday[^1].CheckedInAt < DuplicateWindow)
+        // A8: iniciar el entrenamiento cuenta el día una sola vez, sin importar la regla de entradas múltiples.
+        if (entriesToday.Count > 0
+            && (channel == EntryChannel.Routine || clock.UtcNow - entriesToday[^1].CheckedInAt < DuplicateWindow))
         {
             return (await ReplayAsync(entriesToday[^1], member, cancellationToken), false);
         }
@@ -174,6 +225,7 @@ public sealed class CheckInHandler(
         {
             EntryChannel.Qr => AttendanceMethod.Qr,
             EntryChannel.Document => AttendanceMethod.Document,
+            EntryChannel.Routine => AttendanceMethod.Routine,
             _ => AttendanceMethod.Manual,
         };
 

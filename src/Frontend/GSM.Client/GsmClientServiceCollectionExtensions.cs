@@ -69,6 +69,7 @@ public static class GsmClientServiceCollectionExtensions
         AddApiClient<IRoutineExercisesClient, RoutineExercisesClient>(services, baseUri);
         AddApiClient<IRoutinesClient, RoutinesClient>(services, baseUri);
         AddApiClient<IMemberRoutinesClient, MemberRoutinesClient>(services, baseUri);
+        AddApiClient<IMemberAdherenceClient, MemberAdherenceClient>(services, baseUri);
         AddApiClient<IRoutineTemplatesClient, RoutineTemplatesClient>(services, baseUri);
         AddApiClient<IRoutineSettingsClient, RoutineSettingsClient>(services, baseUri);
         AddApiClient<IStaffClient, StaffClient>(services, baseUri);

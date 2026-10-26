@@ -53,6 +53,8 @@ else if (_response?.Routine is null)
 }
 else
 {
+    <WeekAdherenceCard />
+
     <MudText HtmlTag="h2" Typo="Typo.h6" Class="mb-1">@_response.Routine.Name</MudText>
     @if (_response.Routine is { SelfAssigned: false, ReviewOn: { } reviewOn })
     {
@@ -77,6 +79,14 @@ else
         @if (!today.IsRest && RoutineLabels.MuscleGroupsSummary(today.MuscleGroups) is { } todayGroups)
         {
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4 d-block" data-testid="today-groups">Hoy trabajas: @todayGroups</MudText>
+        }
+
+        @if (!today.IsRest && GymCtx.FeatureFlags?.RoutineEntry == true)
+        {
+            <div class="mb-4">
+                <TrainingEntryCard Title="¿Empiezas a entrenar?" ButtonText="Iniciar rutina" CountedAt="_countedAt"
+                                   FirstLog="GymCtx.FeatureFlags?.RoutineEntryFirstLog == true" ShowFirstLogHint="true" />
+            </div>
         }
 
         @if (!today.IsRest)
@@ -279,6 +289,7 @@ else
         public bool Picking { get; set; }
     }
     private bool _loading = true;
+    private DateTimeOffset? _countedAt;
     private string? _createError;
 
     protected override async Task OnInitializedAsync()
@@ -295,6 +306,12 @@ else
             if (_response.Today is { IsRest: false } todayView)
             {
                 await LoadTodayAsync(todayView);
+                if (GymCtx.FeatureFlags?.RoutineEntry == true)
+                {
+                    // A8: ¿el día ya cuenta? (lo pudo marcar desde el inicio o recepción).
+                    var entry = (await Me.GetMyHomeAsync()).Entry;
+                    _countedAt = entry is { CheckedInToday: true } ? entry.CheckedInAt : null;
+                }
             }
         }
         catch (GsmApiException ex) when (ex.StatusCode == 403)

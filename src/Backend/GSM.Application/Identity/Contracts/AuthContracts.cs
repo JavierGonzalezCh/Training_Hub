@@ -101,7 +101,7 @@ public sealed record MeResponse(
     MeFeatureFlags? FeatureFlags = null,
     SubscriptionInfo? Subscription = null);
 
-public sealed record MeGym(string Name, string? LogoUrl, string PrimaryColor, string SecondaryColor);
+public sealed record MeGym(string Name, string? LogoUrl, string PrimaryColor, string SecondaryColor, string Type = "Gym");
 
 public sealed record MeFeatureFlags(
     bool ShowRoutines,
@@ -112,4 +112,7 @@ public sealed record MeFeatureFlags(
     bool CheckinQr,
     bool MembersCanCreateRoutines,
     bool MembersCanReportEquipment,
-    bool ShowRanking);
+    bool ShowRanking,
+    bool RoutineEntry = false,
+    bool RoutineEntryFirstLog = false,
+    bool ShowFrontDesk = true);

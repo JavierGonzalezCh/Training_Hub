@@ -371,7 +371,10 @@ else if (_dashboard is { } dashboard)
                                   Hint="@RevenueHint(finances)" />
                     </div>
                 }
-                <OccupancyCard AutoLoad="false" Value="_occupancy" />
+                @if (GymContext.FeatureFlags?.ShowFrontDesk != false)
+                {
+                    <OccupancyCard AutoLoad="false" Value="_occupancy" />
+                }
                 <MemberLimitCard />
                 @if (d.MyMembers is null)
                 {

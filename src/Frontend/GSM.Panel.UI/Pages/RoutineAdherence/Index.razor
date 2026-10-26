@@ -1,0 +1,86 @@
+@page "/routines/adherence"
+@attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
+@using GSM.UI.Shared.Routines
+@inject IRoutinesClient Routines
+@inject ISnackbar Snackbar
+
+<PageTitle>Cumplimiento de rutinas — TrainingHub OS</PageTitle>
+
+<PageHeader Title="Cumplimiento de rutinas" />
+
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+    Qué tanto siguen la rutina los miembros que tienen una. Se mide en las últimas 2 semanas: los días que entrenaron
+    sobre los días que les tocaban, sin contar los descansos planificados ni los días que aún no llegan.
+</MudText>
+
+<ServerTable @ref="_table" TItem="MemberAdherenceRow" Load="LoadAsync">
+    <ToolBarContent>
+        <MudSwitch T="bool" Value="_onlyBehind" ValueChanged="OnBehindChangedAsync" Color="Color.Primary"
+                   Label="@($"Van atrasados (menos de {AdherenceLabels.BehindThresholdPercent} %)")" data-testid="adherence-behind" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Miembro</MudTh>
+        <MudTh>Rutina</MudTh>
+        <MudTh>Esta semana</MudTh>
+        <MudTh>Últimas 2 semanas</MudTh>
+        <MudTh>Último registro</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Miembro">
+            <MudLink Href="@($"/members/{context.MemberId}")" Underline="Underline.None">@context.FullName</MudLink>
+        </MudTd>
+        <MudTd DataLabel="Rutina">@RoutineText(context)</MudTd>
+        <MudTd DataLabel="Esta semana" Class="gsm-mono">@AdherenceLabels.DaysOf(context.DoneDays, context.PlannedDays)</MudTd>
+        <MudTd DataLabel="Últimas 2 semanas">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="gsm-mono"
+                     Color="@PercentColor(context.RecentPercent)">@AdherenceLabels.Percent(context.RecentPercent)</MudChip>
+        </MudTd>
+        <MudTd DataLabel="Último registro">@LastLog(context)</MudTd>
+    </RowTemplate>
+    <CardTemplate>
+        <div class="gsm-card__row">
+            <MudLink Href="@($"/members/{context.MemberId}")" Underline="Underline.None" Class="gsm-card__title">@context.FullName</MudLink>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="gsm-mono"
+                     Color="@PercentColor(context.RecentPercent)">@AdherenceLabels.Percent(context.RecentPercent)</MudChip>
+        </div>
+        <div class="gsm-card__meta">@RoutineText(context) · @AdherenceLabels.DaysOf(context.DoneDays, context.PlannedDays) · @LastLog(context)</div>
+    </CardTemplate>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="adherence-empty">
+            @(_onlyBehind ? "Nadie va atrasado." : "Ningún miembro activo tiene una rutina asignada.")
+        </MudText>
+    </NoRecordsContent>
+</ServerTable>
+
+@code {
+    private ServerTable<MemberAdherenceRow> _table = null!;
+    private bool _onlyBehind;
+
+    private static string RoutineText(MemberAdherenceRow row) => row.SelfAssigned ? $"{row.RoutineName} (propia)" : row.RoutineName;
+
+    private static string LastLog(MemberAdherenceRow row)
+        => row.LastLogOn is { } last ? GsmFormat.Day(last) : "Nunca";
+
+    private static Color PercentColor(int? percent)
+        => percent is null ? Color.Default : AdherenceLabels.IsBehind(percent) ? Color.Warning : Color.Success;
+
+    private Task OnBehindChangedAsync(bool value)
+    {
+        _onlyBehind = value;
+        return _table.RefreshAsync();
+    }
+
+    private async Task<ServerTablePage<MemberAdherenceRow>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await Routines.ListRoutineAdherenceAsync(null, _onlyBehind, page, pageSize, cancellationToken);
+            return new ServerTablePage<MemberAdherenceRow>(result.Items.ToList(), result.Total);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            return new ServerTablePage<MemberAdherenceRow>([], 0);
+        }
+    }
+}

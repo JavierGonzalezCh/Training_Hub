@@ -218,4 +218,93 @@ public class GymOnboardingUiTests : TestContext
 
         Assert.Empty(cut.FindAll("[data-testid='to-complete']"));
     }
+
+    // ---- Planes sugeridos por tipo (T3) ----
+
+    [Fact]
+    public void Suggested_plans_follow_the_business_type_and_never_come_with_a_price()
+    {
+        Assert.Equal(["Día", "Mensual", "Trimestral", "Anual"], PlanTemplate.For("Gym").Select(t => t.Name));
+        Assert.Equal(["Día", "Mensual", "Trimestral", "Anual"], PlanTemplate.For(null).Select(t => t.Name));
+        Assert.Equal(["Mensual", "Tiquetera 12 clases"], PlanTemplate.For("Box").Select(t => t.Name));
+        Assert.Equal(
+            ["Tiquetera 8 clases", "Tiquetera 4 clases", "Clase suelta"], PlanTemplate.For("Studio").Select(t => t.Name));
+        Assert.Equal(["Mensual", "Paquete 12 sesiones"], PlanTemplate.For("PersonalTrainer").Select(t => t.Name));
+        Assert.Equal(["Mensual", "Trimestral"], PlanTemplate.For("Academy").Select(t => t.Name));
+
+        var pass = PlanTemplate.For("Studio").Single(t => t.Key == "pass8").ToRequest(80000m);
+        Assert.Equal("pass", pass.Kind);
+        Assert.Equal(8, pass.Entries);
+        Assert.Equal(30, pass.ValidityDays);
+        Assert.Equal(30, pass.DurationValue);
+        Assert.Equal("days", pass.DurationUnit);
+
+        var single = PlanTemplate.For("Studio").Single(t => t.Key == "single").ToRequest(25000m);
+        Assert.Equal(1, single.Entries);
+        Assert.Equal(7, single.ValidityDays);
+
+        // Un plan por tiempo no lleva entradas ni vigencia propias.
+        var monthly = PlanTemplate.For("PersonalTrainer").Single(t => t.Key == "month30").ToRequest(150000m);
+        Assert.Equal("time", monthly.Kind);
+        Assert.Null(monthly.Entries);
+        Assert.Null(monthly.ValidityDays);
+        Assert.Equal(30, monthly.DurationValue);
+    }
+
+    [Fact]
+    public void The_plans_step_offers_the_plans_of_the_gym_type_and_creates_a_pass_with_its_entries()
+    {
+        this.AddTestAuthorization().SetAuthorized("owner").SetRoles("owner");
+        var gym = RegisterGym();
+        gym.Handlers["OnboardingAsync"] = _ => State(false, "plans", true, true, true);
+        gym.Handlers["GymGETAsync"] = _ => new GymResponse { Type = "Studio", Name = "Estudio Luna" };
+        var (plans, plansFake) = Fake<IMembershipPlansClient>();
+        plansFake.Handlers["MembershipPlansAllAsync"] = _ => new List<PlanResponse>();
+        plansFake.Handlers["MembershipPlansPOSTAsync"] = _ => new PlanResponse { Id = Guid.NewGuid(), Name = "Tiquetera 8 clases" };
+        Services.AddSingleton(plans);
+        RegisterContext("owner");
+        Services.AddScoped<OnboardingGate>();
+
+        var cut = RenderComponent<OnboardingIndex>();
+
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='onboarding-plan-pass8']")));
+        Assert.Empty(cut.FindAll("[data-testid='onboarding-plan-year']"));
+        Assert.Equal(3, cut.FindAll("[data-testid^='onboarding-plan-'][data-testid$='-price']").Count);
+
+        cut.Find("[data-testid='onboarding-plan-pass8']").Change(true);
+        cut.Find("[data-testid='onboarding-plan-pass8-price']").Change("80000");
+        cut.Find("[data-testid='onboarding-plans-create']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var call = Assert.Single(plansFake.Calls, c => c.Method == "MembershipPlansPOSTAsync");
+            var request = Assert.IsType<CreatePlanRequest>(call.Args[0]);
+            Assert.Equal("pass", request.Kind);
+            Assert.Equal(8, request.Entries);
+            Assert.Equal(80000d, request.Price);
+        });
+    }
+
+    [Fact]
+    public void A_personal_trainer_does_not_read_about_the_gym_entrance_in_the_wizard()
+    {
+        this.AddTestAuthorization().SetAuthorized("owner").SetRoles("owner");
+        var gym = RegisterGym();
+        gym.Handlers["OnboardingAsync"] = _ => State(false, "equipment", true, true);
+        gym.Handlers["GymGETAsync"] = _ => new GymResponse { Type = "PersonalTrainer", Name = "Coach Ana" };
+        RegisterContext("owner");
+        Services.AddScoped<OnboardingGate>();
+
+        var cut = RenderComponent<OnboardingIndex>();
+
+        // El asistente abre en el primer paso obligatorio pendiente (ninguno): vamos al paso de entrada.
+        cut.WaitForAssertion(() => cut.Find("[data-testid='onboarding-step-entry']"));
+        cut.Find("[data-testid='onboarding-step-entry']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Entrenamientos", cut.Markup);
+            Assert.DoesNotContain("kiosco", cut.Markup);
+        });
+    }
 }
