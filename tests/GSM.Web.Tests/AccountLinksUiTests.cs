@@ -23,7 +23,7 @@ public class AccountLinksUiTests : TestContext
         /// <summary>Si se fija, el siguiente cambio de contraseña falla con este 422.</summary>
         public string? ChangeFailsWith { get; set; }
 
-        public Task PasswordAsync(ChangePasswordRequest body, CancellationToken cancellationToken = default)
+        public Task PasswordPOSTAsync(ChangePasswordRequest body, CancellationToken cancellationToken = default)
         {
             if (ChangeFailsWith is not null)
             {

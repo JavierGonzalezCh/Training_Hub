@@ -117,7 +117,7 @@ public sealed class SessionService(
         {
             await auth.MeAsync(cancellationToken);
             var tokens = await tokenStore.GetAsync(cancellationToken);
-            await auth.PasswordAsync(
+            await auth.PasswordPOSTAsync(
                 new ChangePasswordRequest
                 {
                     CurrentPassword = currentPassword,

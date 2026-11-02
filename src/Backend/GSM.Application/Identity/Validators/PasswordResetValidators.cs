@@ -38,3 +38,9 @@ public sealed class ChangePasswordRequestValidator : AbstractValidator<ChangePas
         RuleFor(x => x.RefreshToken).MaximumLength(512);
     }
 }
+
+public sealed class AdminSetPasswordRequestValidator : AbstractValidator<AdminSetPasswordRequest>
+{
+    public AdminSetPasswordRequestValidator()
+        => RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(10).MaximumLength(256);
+}

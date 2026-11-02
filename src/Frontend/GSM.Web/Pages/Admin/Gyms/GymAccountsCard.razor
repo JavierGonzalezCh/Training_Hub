@@ -1,0 +1,92 @@
+@* Cuentas del gym en la ficha del SuperAdmin (PW1): owners, staff y miembros, con "Cambiar clave" para dar acceso
+   sin correo. Una persona que es staff y miembro sale dos veces (una por acceso). *@
+@inject IAdminGymAccountsClient Accounts
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h6" Class="mb-2">Cuentas</MudText>
+<ServerTable @ref="_table" TItem="GymAccountResponse" Load="LoadAsync" Class="mb-6">
+    <ToolBarContent>
+        <MudTextField T="string" Value="_search" Placeholder="Buscar por nombre o email" Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" DebounceInterval="400"
+                      ValueChanged="OnSearchChangedAsync" Style="max-width:320px" data-testid="admin-accounts-search" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Nombre</MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh>Rol</MudTh>
+        <MudTh>Cuenta</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nombre">@context.FullName</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Rol">@RoleLabel(context.Role)</MudTd>
+        <MudTd DataLabel="Cuenta">
+            <MudChip T="string" Color="@(!context.IsActive ? Color.Default : context.HasPassword ? Color.Info : Color.Warning)"
+                     Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
+                @(!context.IsActive ? "INACTIVA" : context.HasPassword ? "CON CLAVE" : "SIN CLAVE")
+            </MudChip>
+        </MudTd>
+        <MudTd>
+            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => OpenSetPasswordAsync(context))"
+                       data-testid="admin-set-password">Cambiar clave</MudButton>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Color="Color.Secondary">No hay cuentas con ese filtro.</MudText>
+    </NoRecordsContent>
+</ServerTable>
+
+@code {
+    [Parameter]
+    public Guid GymId { get; set; }
+
+    private ServerTable<GymAccountResponse> _table = null!;
+    private string? _search;
+
+    private static string RoleLabel(string role) => role switch
+    {
+        "owner" => "Owner",
+        "staff" => "Staff",
+        "member" => "Miembro",
+        _ => role,
+    };
+
+    private async Task OnSearchChangedAsync(string value)
+    {
+        _search = value;
+        await _table.RefreshAsync();
+    }
+
+    private async Task<ServerTablePage<GymAccountResponse>> LoadAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await Accounts.AccountsAsync(
+                GymId, string.IsNullOrWhiteSpace(_search) ? null : _search.Trim(), page, pageSize, cancellationToken);
+            return new ServerTablePage<GymAccountResponse>(result.Items.ToList(), result.Total);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+            return new ServerTablePage<GymAccountResponse>([], 0);
+        }
+    }
+
+    private async Task OpenSetPasswordAsync(GymAccountResponse account)
+    {
+        var parameters = new DialogParameters<SetPasswordDialog>
+        {
+            { d => d.GymId, GymId },
+            { d => d.Account, account },
+        };
+        var dialog = await Dialogs.ShowAsync<SetPasswordDialog>("Cambiar clave", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add($"Clave de {account.FullName} cambiada. Sus sesiones se cerraron.", Severity.Success);
+            await _table.RefreshAsync();
+        }
+    }
+}

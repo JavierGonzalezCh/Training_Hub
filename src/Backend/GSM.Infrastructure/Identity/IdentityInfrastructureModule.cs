@@ -51,6 +51,7 @@ public static class IdentityInfrastructureRegistration
         services.AddSingleton<IAccountLinkBuilder, AccountLinkBuilder>();
         services.AddSingleton<IMemberRegistrationLinks>(sp => (AccountLinkBuilder)sp.GetRequiredService<IAccountLinkBuilder>());
         services.AddScoped<IAccountLinkService, AccountLinkService>();
+        services.AddScoped<IAdminAccountService, AdminAccountService>();
         services.AddScoped<IUserCredentialsService, UserCredentialsService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IGymAccessService, GymAccessService>();

@@ -58,6 +58,12 @@ public enum StaffAccessAuditAction
 
     /// <summary>Un Owner quedó como staff (<c>NewValue</c>: su perfil de staff). I4.</summary>
     OwnerDemoted,
+
+    /// <summary>
+    /// El SuperAdmin fijó la contraseña de la persona (soporte: sin correo para restablecerla). Sus sesiones se
+    /// cerraron. Vale para cualquier acceso del gym, también el de miembro; la contraseña nunca se guarda aquí.
+    /// </summary>
+    PasswordSetByAdmin,
 }
 
 /// <summary>
