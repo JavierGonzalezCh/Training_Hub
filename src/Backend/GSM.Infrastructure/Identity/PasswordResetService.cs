@@ -70,17 +70,19 @@ public sealed class PasswordResetService(UserManager<AppUser> userManager, IRefr
         }
 
         await AfterPasswordSetAsync(user, cancellationToken);
-        return new AccountIdentity(user.Id, user.Email ?? string.Empty, user.FullName, user.IsSuperAdmin);
+        return new AccountIdentity(user.Id, user.Email ?? string.Empty, user.FullName, user.IsSuperAdmin, user.MustChangePassword);
     }
 
     // Una contraseña nueva por enlace prueba el acceso al correo: levanta el bloqueo por intentos y cierra
     // todas las sesiones de la persona (en todos sus gyms).
     private async Task AfterPasswordSetAsync(AppUser user, CancellationToken cancellationToken)
     {
-        if (user.AccessFailedCount != 0 || user.LockoutEnd is not null)
+        // Con una contraseña elegida (o puesta por soporte) ya no queda la clave provisional del primer ingreso.
+        if (user.AccessFailedCount != 0 || user.LockoutEnd is not null || user.MustChangePassword)
         {
             user.AccessFailedCount = 0;
             user.LockoutEnd = null;
+            user.MustChangePassword = false;
             await userManager.UpdateAsync(user);
         }
 

@@ -197,3 +197,42 @@ public sealed class ResendOwnerAccessHandler(
         logger.LogInformation("Acceso reenviado al owner {UserId} del gym {GymId} por {ActorId}", userId, gymId, actorId);
     }
 }
+
+/// <summary>
+/// FL1: quien entró con la clave provisional (su documento) crea su contraseña. Cierra las demás sesiones y
+/// devuelve una sesión nueva en el mismo acceso, ya sin el claim <c>pwd_change</c>.
+/// </summary>
+public sealed class SetInitialPasswordHandler(
+    ICurrentUserService currentUser,
+    IUserCredentialsService credentials,
+    IGymAccessService accesses,
+    IRefreshTokenService refreshTokens,
+    SessionIssuer sessions,
+    ILogger<SetInitialPasswordHandler> logger)
+{
+    public async Task<AuthTokensResponse> HandleAsync(SetInitialPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var userId = currentUser.UserId
+            ?? throw new UnauthorizedDomainException("No hay usuario autenticado en el contexto.");
+        var gymId = currentUser.GymId
+            ?? throw new ForbiddenDomainException("Esta sesión no corresponde a un gimnasio.");
+        var role = currentUser.Role
+            ?? throw new ForbiddenDomainException("Esta sesión no corresponde a un gimnasio.");
+
+        var outcome = await credentials.SetInitialPasswordAsync(userId, request.NewPassword, cancellationToken);
+        if (!outcome.Succeeded)
+        {
+            throw new ValidationDomainException(outcome.Error ?? "No se pudo crear la contraseña.");
+        }
+
+        await refreshTokens.RevokeAllForUserAsync(userId, keepPlaintextToken: null, cancellationToken);
+
+        var account = await credentials.FindActiveByIdAsync(userId, cancellationToken)
+            ?? throw new UnauthorizedDomainException("La cuenta no está disponible.");
+        var access = await accesses.FindActiveAsync(userId, gymId, role, cancellationToken)
+            ?? throw new ForbiddenDomainException("No tienes un acceso activo a ese gimnasio.");
+
+        logger.LogInformation("La cuenta {UserId} creó su contraseña tras el primer ingreso", userId);
+        return await sessions.IssueForAccessAsync(account, access, cancellationToken);
+    }
+}

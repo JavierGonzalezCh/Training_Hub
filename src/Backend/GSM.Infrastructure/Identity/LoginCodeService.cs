@@ -108,7 +108,7 @@ public sealed class LoginCodeService(
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.ConsumedAt, now), cancellationToken);
 
         return consumed == 1
-            ? new AccountIdentity(user.Id, user.Email ?? string.Empty, user.FullName, user.IsSuperAdmin)
+            ? new AccountIdentity(user.Id, user.Email ?? string.Empty, user.FullName, user.IsSuperAdmin, user.MustChangePassword)
             : null;
     }
 

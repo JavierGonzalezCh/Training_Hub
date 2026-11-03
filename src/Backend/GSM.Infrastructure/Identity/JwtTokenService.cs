@@ -35,6 +35,11 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
             claims[GsmClaims.Permission] = permissions.Select(PermissionName.ToClaim).ToArray();
         }
 
+        if (user.MustChangePassword)
+        {
+            claims[GsmClaims.PasswordChangeRequired] = "true";
+        }
+
         return Issue(claims, _options.AccessTokenMinutes);
     }
 

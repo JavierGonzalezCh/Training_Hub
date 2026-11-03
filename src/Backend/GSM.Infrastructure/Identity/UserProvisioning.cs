@@ -67,6 +67,42 @@ public sealed class UserProvisioning(
         return user.Id;
     }
 
+    public async Task<Guid> CreatePendingMemberUserAsync(
+        string email, string fullName, IReadOnlyCollection<Guid> gymIds, CancellationToken cancellationToken = default)
+    {
+        if (await userManager.FindByEmailAsync(email) is not null)
+        {
+            throw new ConflictException("Ese email ya tiene una cuenta.");
+        }
+
+        // Sin contraseña: la clave provisional es el documento de la ficha (la valida Members en cada ingreso)
+        // hasta que la persona cree la suya.
+        var user = new AppUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            FullName = fullName,
+            IsActive = true,
+            MustChangePassword = true,
+        };
+
+        var result = await userManager.CreateAsync(user);
+        if (!result.Succeeded)
+        {
+            throw new ValidationDomainException(
+                "No se pudo crear el usuario: " +
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
+
+        foreach (var gymId in gymIds)
+        {
+            await GrantAsync(user.Id, gymId, UserRole.Member, cancellationToken);
+        }
+
+        return user.Id;
+    }
+
     public async Task<OwnerInvitation> InviteGymOwnerAsync(
         string email, string fullName, Guid gymId, CancellationToken cancellationToken = default)
     {

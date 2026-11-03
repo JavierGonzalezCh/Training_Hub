@@ -7,8 +7,18 @@ public sealed class LoginRequestValidator : AbstractValidator<LoginRequest>
 {
     public LoginRequestValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        // FL1: el campo admite el correo o el celular; el celular se resuelve en el caso de uso.
+        RuleFor(x => x.Email).NotEmpty().MaximumLength(256)
+            .EmailAddress().When(x => x.Email?.Contains('@') == true);
         RuleFor(x => x.Password).NotEmpty().MaximumLength(256);
+    }
+}
+
+public sealed class SetInitialPasswordRequestValidator : AbstractValidator<SetInitialPasswordRequest>
+{
+    public SetInitialPasswordRequestValidator()
+    {
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(10).MaximumLength(256);
     }
 }
 

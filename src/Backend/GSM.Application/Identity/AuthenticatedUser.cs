@@ -6,7 +6,9 @@ namespace GSM.Application.Identity;
 /// La persona (cuenta): lo que no depende de a qué gym entra. El gym y el rol viven en el acceso
 /// (<see cref="Abstractions.GymAccessRecord"/>).
 /// </summary>
-public sealed record AccountIdentity(Guid Id, string Email, string FullName, bool IsSuperAdmin);
+/// <param name="MustChangePassword">FL1: entró con una clave provisional y debe crear su contraseña.</param>
+public sealed record AccountIdentity(
+    Guid Id, string Email, string FullName, bool IsSuperAdmin, bool MustChangePassword = false);
 
 /// <summary>
 /// Identidad con la que se emite un access token: la persona vista desde un acceso concreto
@@ -19,4 +21,5 @@ public sealed record AuthenticatedUser(
     string FullName,
     UserRole Role,
     Guid? GymId,
-    IReadOnlyCollection<StaffPermission>? Permissions = null);
+    IReadOnlyCollection<StaffPermission>? Permissions = null,
+    bool MustChangePassword = false);

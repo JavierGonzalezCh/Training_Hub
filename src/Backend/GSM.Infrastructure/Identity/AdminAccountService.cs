@@ -76,10 +76,12 @@ public sealed class AdminAccountService(
                 "No se pudo cambiar la contraseña: " + string.Join("; ", result.Errors.Select(e => e.Description)));
         }
 
-        if (user.AccessFailedCount != 0 || user.LockoutEnd is not null)
+        // Con una contraseña elegida (o puesta por soporte) ya no queda la clave provisional del primer ingreso.
+        if (user.AccessFailedCount != 0 || user.LockoutEnd is not null || user.MustChangePassword)
         {
             user.AccessFailedCount = 0;
             user.LockoutEnd = null;
+            user.MustChangePassword = false;
             await userManager.UpdateAsync(user);
         }
 

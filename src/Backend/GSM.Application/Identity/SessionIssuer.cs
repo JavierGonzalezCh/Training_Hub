@@ -101,7 +101,8 @@ public sealed class SessionIssuer(
 
         var permissions = await accesses.GetEffectivePermissionsAsync(access, cancellationToken);
         var user = new AuthenticatedUser(
-            account.Id, account.Email, account.FullName, access.Role, access.GymId, permissions);
+            account.Id, account.Email, account.FullName, access.Role, access.GymId, permissions,
+            account.MustChangePassword);
         var accessToken = jwtTokens.CreateAccessToken(user);
         var refreshToken = await refreshTokens.IssueAsync(account.Id, access.Id, cancellationToken);
         await accesses.MarkUsedAsync(access.Id, clock.UtcNow, cancellationToken);

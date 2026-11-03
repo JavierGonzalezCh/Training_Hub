@@ -2,7 +2,11 @@ using GSM.Application.Common;
 
 namespace GSM.Application.Identity.Contracts;
 
+/// <param name="Email">El correo o, desde FL1, el celular (10 dígitos, sin el +57).</param>
 public sealed record LoginRequest(string Email, string Password);
+
+/// <summary>FL1: la contraseña que crea quien entró con la clave provisional.</summary>
+public sealed record SetInitialPasswordRequest(string NewPassword);
 
 public sealed record RefreshRequest(string RefreshToken);
 

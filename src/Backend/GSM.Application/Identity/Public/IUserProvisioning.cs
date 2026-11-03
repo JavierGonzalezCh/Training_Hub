@@ -35,6 +35,14 @@ public interface IUserProvisioning
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// FL1: primer ingreso de un miembro con su documento. Crea la cuenta <b>sin contraseña</b> y con
+    /// <c>MustChangePassword</c>, con acceso de miembro en cada gym de <paramref name="gymIds"/>.
+    /// <c>ConflictException</c> si el email ya tiene cuenta (el primer ingreso es solo para quien no la tiene).
+    /// </summary>
+    Task<Guid> CreatePendingMemberUserAsync(
+        string email, string fullName, IReadOnlyCollection<Guid> gymIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Alta del Owner de un gym nuevo <b>sin contraseña</b> (Gyms §4): la cuenta nace sin ella y el Owner la
     /// define con el enlace de activación (72 h). Si el email ya tiene cuenta, solo se agrega el acceso y el
     /// enlace lo lleva a entrar. <c>ConflictException</c> si la cuenta no puede recibir accesos.

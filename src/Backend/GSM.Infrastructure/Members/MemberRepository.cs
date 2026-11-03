@@ -20,6 +20,22 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
         Guid userId, CancellationToken cancellationToken = default)
         => await Members.IgnoreQueryFilters().Where(m => m.UserId == userId).ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Member>> GetActiveByPhoneAcrossGymsAsync(
+        string phoneE164, CancellationToken cancellationToken = default)
+        => await Members.IgnoreQueryFilters()
+            .Where(m => m.Phone == phoneE164 && m.Status != MemberStatus.Inactive)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Member>> GetUnlinkedByEmailAcrossGymsAsync(
+        string email, CancellationToken cancellationToken = default)
+    {
+        var normalized = email.Trim().ToLowerInvariant();
+        return await Members.IgnoreQueryFilters()
+            .Where(m => m.UserId == null && m.Status != MemberStatus.Inactive
+                && m.Email != null && m.Email.ToLower() == normalized)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<(IReadOnlyList<Member> Items, int Total)> GetPageAsync(
         MemberPageQuery query, CancellationToken cancellationToken = default)
     {
@@ -186,7 +202,7 @@ public sealed class MemberRepository(GsmDbContext dbContext) : IMemberRepository
         => Invitations.IgnoreQueryFilters().AnyAsync(i => i.Code == code, cancellationToken);
 
     public Task RemovePendingInvitationsAsync(Guid memberId, CancellationToken cancellationToken = default)
-        => Invitations
+        => Invitations.IgnoreQueryFilters()
             .Where(i => i.MemberId == memberId && i.RedeemedAt == null)
             .ExecuteDeleteAsync(cancellationToken);
 

@@ -21,6 +21,16 @@ public interface IUserCredentialsService
     Task<AccountIdentity?> FindActiveByIdAsync(
         Guid userId, CancellationToken cancellationToken = default);
 
+    /// <summary>FL1: <c>true</c> si el email ya tiene cuenta (activa o no).</summary>
+    Task<bool> ExistsAsync(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// FL1: crea la contraseña de quien entró con la clave provisional (<c>MustChangePassword</c>) y quita la
+    /// marca. Falla si la cuenta ya no la tiene marcada.
+    /// </summary>
+    Task<PasswordChangeOutcome> SetInitialPasswordAsync(
+        Guid userId, string newPassword, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Cambia la contraseña de quien tiene sesión, pidiendo la actual. Una actual incorrecta cuenta como
     /// intento fallido (una sesión robada no puede adivinarla sin límite).

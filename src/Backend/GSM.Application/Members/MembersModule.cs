@@ -15,6 +15,9 @@ public static class MembersModuleRegistration
         services.AddScoped<GSM.Application.Members.MyProfileComposer>();
         services.AddScoped<GSM.Application.Members.MemberAnonymizer>();
 
+        // FL1: puerto de Identity para el login por celular y el primer ingreso con el documento.
+        services.AddScoped<GSM.Application.Identity.Abstractions.IMemberLoginDirectory, GSM.Application.Members.MemberLoginDirectory>();
+
         return services;
     }
 }

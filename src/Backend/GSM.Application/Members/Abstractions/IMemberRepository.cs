@@ -39,6 +39,12 @@ public interface IMemberRepository
     /// </summary>
     Task<IReadOnlyList<Member>> GetByUserAcrossGymsAsync(Guid userId, CancellationToken cancellationToken = default);
 
+    /// <summary>FL1: fichas no inactivas, de cualquier gym, con ese teléfono en E.164.</summary>
+    Task<IReadOnlyList<Member>> GetActiveByPhoneAcrossGymsAsync(string phoneE164, CancellationToken cancellationToken = default);
+
+    /// <summary>FL1: fichas no inactivas y sin cuenta, de cualquier gym, con ese email (sin distinguir mayúsculas).</summary>
+    Task<IReadOnlyList<Member>> GetUnlinkedByEmailAcrossGymsAsync(string email, CancellationToken cancellationToken = default);
+
     void Add(Member member);
 
     // --- Historial de cambios ---

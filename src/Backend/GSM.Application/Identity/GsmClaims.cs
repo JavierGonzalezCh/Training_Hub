@@ -24,4 +24,10 @@ public static class GsmClaims
     public const string ImpersonationMode = "impersonation_mode";
 
     public const string ImpersonationModeWrite = "write";
+
+    /// <summary>
+    /// FL1: presente y "true" mientras la cuenta deba crear su contraseña (entró con la cédula). La API solo
+    /// atiende las acciones marcadas con <c>[AllowWhilePasswordChangeRequired]</c>.
+    /// </summary>
+    public const string PasswordChangeRequired = "pwd_change";
 }

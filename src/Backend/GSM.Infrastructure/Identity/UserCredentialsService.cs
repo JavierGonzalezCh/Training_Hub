@@ -16,7 +16,8 @@ namespace GSM.Infrastructure.Identity;
 public sealed class UserCredentialsService(
     UserManager<AppUser> userManager,
     IClock clock,
-    IOptions<IdentityOptions> identityOptions) : IUserCredentialsService
+    IOptions<IdentityOptions> identityOptions,
+    IMemberLoginDirectory memberLogins) : IUserCredentialsService
 {
     private LockoutOptions Lockout => identityOptions.Value.Lockout;
 
@@ -38,7 +39,12 @@ public sealed class UserCredentialsService(
             return new CredentialCheck(null);
         }
 
-        if (await userManager.CheckPasswordAsync(user, password))
+        // FL1: mientras no cree su contraseña, la clave provisional es el documento de su ficha.
+        var valid = user.PasswordHash is null && user.MustChangePassword
+            ? await memberLogins.DocumentMatchesAsync(user.Id, password, cancellationToken)
+            : await userManager.CheckPasswordAsync(user, password);
+
+        if (valid)
         {
             await ClearFailuresAsync(user);
             return new CredentialCheck(Map(user));
@@ -57,6 +63,40 @@ public sealed class UserCredentialsService(
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         return user is { IsActive: true } ? Map(user) : null;
+    }
+
+    public async Task<bool> ExistsAsync(string email, CancellationToken cancellationToken = default)
+        => await userManager.FindByEmailAsync(email) is not null;
+
+    public async Task<PasswordChangeOutcome> SetInitialPasswordAsync(
+        Guid userId, string newPassword, CancellationToken cancellationToken = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is not { IsActive: true })
+        {
+            return new PasswordChangeOutcome(false, Error: "La cuenta no está disponible.");
+        }
+
+        if (!user.MustChangePassword)
+        {
+            return new PasswordChangeOutcome(false, Error: "Tu cuenta ya tiene contraseña: cámbiala desde tu perfil.");
+        }
+
+        // Con o sin contraseña previa, por el token interno de restablecimiento: aplica la política de contraseñas.
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await userManager.ResetPasswordAsync(user, token, newPassword);
+        if (!result.Succeeded)
+        {
+            return new PasswordChangeOutcome(
+                false, Error: "No se pudo crear la contraseña: " +
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
+
+        user.MustChangePassword = false;
+        user.AccessFailedCount = 0;
+        user.LockoutEnd = null;
+        await userManager.UpdateAsync(user);
+        return new PasswordChangeOutcome(true);
     }
 
     public async Task<PasswordChangeOutcome> ChangePasswordAsync(
@@ -121,5 +161,5 @@ public sealed class UserCredentialsService(
     }
 
     private static AccountIdentity Map(AppUser user)
-        => new(user.Id, user.Email ?? string.Empty, user.FullName, user.IsSuperAdmin);
+        => new(user.Id, user.Email ?? string.Empty, user.FullName, user.IsSuperAdmin, user.MustChangePassword);
 }

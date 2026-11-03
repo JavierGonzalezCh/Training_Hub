@@ -19,6 +19,7 @@ public static class LockoutPolicy
 
 public sealed class LoginHandler(
     IUserCredentialsService credentials,
+    IMemberLoginDirectory memberLogins,
     IEmailSender emailSender,
     SessionIssuer sessions,
     ILogStore logStore,
@@ -26,11 +27,14 @@ public sealed class LoginHandler(
 {
     public async Task<LoginResponse> HandleAsync(LoginRequest request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Login solicitado para {Email}", request.Email);
+        logger.LogInformation("Login solicitado para {Identifier}", request.Email);
+
+        // FL1: se entra con el correo o con el celular (10 dígitos); el celular se traduce al correo de la cuenta.
+        var email = await ResolveEmailAsync(request.Email.Trim(), cancellationToken);
 
         // Email inexistente, contraseña mala, cuenta bloqueada o sin accesos: mismo mensaje y mismo código,
         // para no revelar si el email tiene cuenta.
-        var check = await credentials.SignInAsync(request.Email, request.Password, cancellationToken);
+        var check = await credentials.SignInAsync(email, request.Password, cancellationToken);
 
         if (check.LockedOutNow && check.LockedAccount is { } locked)
         {
@@ -38,7 +42,17 @@ public sealed class LoginHandler(
             await NotifyLockoutAsync(locked, cancellationToken);
         }
 
-        if (check.Account is null)
+        var signedIn = check.Account;
+
+        // FL1: primer ingreso de un miembro sin cuenta, con su documento como clave provisional.
+        if (signedIn is null && !check.LockedOutNow && !await credentials.ExistsAsync(email, cancellationToken)
+            && await memberLogins.ProvisionFirstLoginAsync(email, request.Password, cancellationToken) is { } newUserId)
+        {
+            signedIn = await credentials.FindActiveByIdAsync(newUserId, cancellationToken);
+            logger.LogInformation("Primer ingreso de la cuenta {UserId}: debe crear su contraseña", newUserId);
+        }
+
+        if (signedIn is null)
         {
             // Seguridad (docs/GSM-logs.md §4.7): el email intentado, nunca la contraseña.
             logStore.RecordSecurityEvent(new SecurityEventLogEntry(
@@ -51,10 +65,42 @@ public sealed class LoginHandler(
             }
         }
 
-        var account = check.Account
+        var account = signedIn
             ?? throw new UnauthorizedDomainException("Credenciales inválidas.");
 
         return await sessions.IssueLoginAsync(account, cancellationToken);
+    }
+
+    /// <summary>
+    /// Con <c>@</c> es un correo. Si no, se trata como celular: con una sola cuenta (o ficha sin cuenta) detrás,
+    /// se usa su correo; si el número no es de nadie, se deja tal cual y el login falla como cualquier otro.
+    /// </summary>
+    private async Task<string> ResolveEmailAsync(string identifier, CancellationToken cancellationToken)
+    {
+        if (identifier.Contains('@'))
+        {
+            return identifier;
+        }
+
+        var emails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var candidate in await memberLogins.FindByPhoneAsync(identifier, cancellationToken))
+        {
+            var email = candidate.UserId is { } userId
+                ? (await credentials.FindActiveByIdAsync(userId, cancellationToken))?.Email
+                : candidate.Email;
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                emails.Add(email.Trim());
+            }
+        }
+
+        return emails.Count switch
+        {
+            1 => emails.First(),
+            0 => identifier,
+            _ => throw new UnauthorizedDomainException(
+                "Ese celular está en más de una cuenta. Entra con tu correo."),
+        };
     }
 
     private async Task NotifyLockoutAsync(AccountIdentity account, CancellationToken cancellationToken)
