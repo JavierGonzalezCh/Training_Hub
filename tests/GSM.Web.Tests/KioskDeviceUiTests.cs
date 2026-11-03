@@ -32,6 +32,7 @@ public class KioskDeviceUiTests : TestContext
 
         public Task<AuthTokensResponse> Refresh2Async(KioskRefreshRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<MeResponse> MeAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<AuthTokensResponse> InitialPasswordAsync(SetInitialPasswordRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task PasswordPOSTAsync(ChangePasswordRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<LoginResponse> ActivateAsync(ActivateAccountRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<LoginResponse> LoginAsync(LoginRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();

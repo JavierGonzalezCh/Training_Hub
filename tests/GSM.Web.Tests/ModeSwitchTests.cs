@@ -50,6 +50,7 @@ public class ModeSwitchTests : TestContext
         public Task<ICollection<GymAccessOption>> AccessesAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<AuthTokensResponse> RefreshAsync(RefreshRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task LogoutAsync(LogoutRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<AuthTokensResponse> InitialPasswordAsync(SetInitialPasswordRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task PasswordPOSTAsync(ChangePasswordRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task ForgotPasswordAsync(ForgotPasswordRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task ResetPasswordAsync(ResetPasswordRequest body, CancellationToken cancellationToken = default) => throw new NotSupportedException();

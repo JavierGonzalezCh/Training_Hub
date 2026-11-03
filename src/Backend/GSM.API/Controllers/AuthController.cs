@@ -125,6 +125,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("logout")]
     [Authorize]
+    [AllowWhilePasswordChangeRequired]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Logout(
         LogoutRequest request, [FromServices] LogoutHandler handler, CancellationToken cancellationToken)
@@ -181,6 +182,24 @@ public sealed class AuthController : ControllerBase
     /// todos sus gyms: se conserva la del <c>refreshToken</c> que manda el cliente. 422 si la contraseña
     /// actual es incorrecta.
     /// </summary>
+    /// <summary>
+    /// FL1: quien entró con su documento como clave provisional crea su contraseña (mínimo 10 caracteres, con
+    /// mayúscula, minúscula y número). Cierra sus otras sesiones y devuelve una sesión nueva en el mismo gym, ya
+    /// sin la marca. 422 si no cumple la política o la cuenta ya tenía contraseña.
+    /// </summary>
+    [HttpPost("~/api/me/initial-password")]
+    [Authorize]
+    [SubscriptionGateExempt]
+    [AllowWhilePasswordChangeRequired]
+    [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<AuthTokensResponse>> SetInitialPassword(
+        SetInitialPasswordRequest request,
+        [FromServices] SetInitialPasswordHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
     [HttpPost("~/api/me/password")]
     [Authorize]
     [SubscriptionGateExempt]
@@ -236,6 +255,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpGet("me")]
     [Authorize]
+    [AllowWhilePasswordChangeRequired]
     [ProducesResponseType<MeResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<MeResponse>> Me(

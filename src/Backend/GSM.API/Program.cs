@@ -55,6 +55,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services
     .AddControllers(options =>
     {
+        options.Filters.Add<PasswordChangeGateFilter>();
         options.Filters.Add<SubscriptionGateFilter>();
         options.Filters.Add<ValidationActionFilter>();
         options.Filters.Add<TraceIdResultFilter>();
