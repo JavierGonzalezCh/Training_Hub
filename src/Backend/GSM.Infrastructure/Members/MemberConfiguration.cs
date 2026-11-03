@@ -42,6 +42,9 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
         builder.HasIndex(m => new { m.GymId, m.Status });
         builder.HasIndex(m => m.UserId);
 
+        // FL1: el login por celular busca la ficha por su teléfono (E.164) en todos los gyms.
+        builder.HasIndex(m => m.Phone);
+
         // M6: la tarea de anonimización busca las bajas sin anonimizar.
         builder.Ignore(m => m.IsAnonymized);
         builder.HasIndex(m => new { m.Status, m.DeactivatedOn })

@@ -2377,6 +2377,9 @@ namespace GSM.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_members");
 
+                    b.HasIndex("Phone")
+                        .HasDatabaseName("ix_members_phone");
+
                     b.HasIndex("ReferredByMemberId")
                         .HasDatabaseName("ix_members_referred_by_member_id");
 
@@ -4936,6 +4939,12 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
+
+                    b.Property<bool>("MustChangePassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("must_change_password");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)

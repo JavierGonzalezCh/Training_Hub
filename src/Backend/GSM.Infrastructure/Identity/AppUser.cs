@@ -23,5 +23,12 @@ public sealed class AppUser : IdentityUser<Guid>
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// FL1: la cuenta entró con una clave provisional (la cédula del miembro en su primer ingreso) y debe crear
+    /// su contraseña antes de usar la app. Mientras esté en <c>true</c>, el token lleva el claim
+    /// <c>pwd_change</c> y la API solo deja crear la contraseña, ver la sesión y salir.
+    /// </summary>
+    public bool MustChangePassword { get; set; }
+
     public ICollection<RefreshToken> RefreshTokens { get; } = [];
 }
