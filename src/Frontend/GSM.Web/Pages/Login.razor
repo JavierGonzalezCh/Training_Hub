@@ -34,8 +34,9 @@ else
        Enter desde el propio campo mandaría el modelo sin el último texto tecleado.
        autocomplete: sin estos valores ni el navegador ni un gestor de contraseñas
        rellenan el formulario (WCAG 2.2 SC 1.3.5). *@
-    <MudTextField T="string" @bind-Value="_model.Email" Label="Email" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Email" Required="true"
-                  RequiredError="El email es obligatorio." InputType="InputType.Email" Class="mb-3"
+    <MudTextField T="string" @bind-Value="_model.Email" Label="Correo o celular" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Person" Required="true"
+                  RequiredError="Escribe tu correo o tu celular." InputType="InputType.Text" Class="mb-3"
+                  HelperText="El celular, con sus 10 dígitos (sin +57)."
                   Immediate="true" autocomplete="username" OnKeyDown="HandleKeyDownAsync" />
     <PasswordField @bind-Value="_model.Password" Label="Contraseña" Variant="Variant.Outlined" Required="true"
                   RequiredError="La contraseña es obligatoria."  Class="mb-2"
@@ -105,7 +106,7 @@ else
                 return;
             }
 
-            Enter(outcome.Me!);
+            await EnterAsync(outcome.Me!);
         }
         catch (ApiErrorException ex)
         {
@@ -123,7 +124,7 @@ else
         _submitting = true;
         try
         {
-            Enter(await Session.SelectGymAsync(_selection!, access.AccessId));
+            await EnterAsync(await Session.SelectGymAsync(_selection!, access.AccessId));
         }
         catch (ApiErrorException ex)
         {
@@ -142,14 +143,10 @@ else
         _model.Password = string.Empty;
     }
 
-    private void Enter(MeResponse me)
-        => Navigation.NavigateTo(GSM.UI.Shared.Auth.ReturnUrl.Sanitize(ReturnUrl) ?? GsmRoles.HomeFor(me.Role), replace: true);
+    private async Task EnterAsync(MeResponse me)
+        => Navigation.NavigateTo(await Session.HomeAfterLoginAsync(me, ReturnUrl), replace: true);
 
-    private static string Describe(ApiErrorException ex) => ex.Error switch
-    {
-        { IsUnauthorized: true } => "Credenciales inválidas.",
-        _ => ex.Error.DisplayMessage,
-    };
+    private static string Describe(ApiErrorException ex) => SessionService.LoginErrorMessage(ex, "Credenciales inválidas.");
 
     private sealed class LoginModel
     {

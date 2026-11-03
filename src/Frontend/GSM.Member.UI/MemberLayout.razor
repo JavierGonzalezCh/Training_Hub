@@ -153,6 +153,13 @@
 
         try
         {
+            // FL1: entró con su documento y aún no crea su contraseña; la API no le deja hacer nada más.
+            if (await Session.MustChangePasswordAsync())
+            {
+                Navigation.NavigateTo(SessionService.CreatePasswordPath, replace: true);
+                return;
+            }
+
             if (!GymCtx.IsLoaded)
             {
                 await Session.BootstrapAsync();

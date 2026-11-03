@@ -32,7 +32,8 @@ else
         <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" data-testid="login-error">@_error</MudAlert>
     }
 
-    <MudTextField T="string" @bind-Value="_email" Label="Email" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Email" InputType="InputType.Email" Class="mb-3"
+    <MudTextField T="string" @bind-Value="_email" Label="@(_useCode ? "Correo" : "Correo o celular")" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Person" InputType="InputType.Text" Class="mb-3"
+                  HelperText="@(_useCode ? null : "El celular, con sus 10 dígitos (sin +57). La primera vez, tu contraseña es tu número de documento.")"
                   Immediate="true" autocomplete="username" Disabled="_codeSent" data-testid="login-email" />
 
     @if (!_useCode)
@@ -155,18 +156,19 @@ else
     {
         if (!HasEmail() || string.IsNullOrWhiteSpace(_password))
         {
-            _error = "Escribe tu email y tu contraseña.";
+            _error = "Escribe tu correo o tu celular, y tu contraseña.";
             return;
         }
 
-        await RunAsync(async () => Finish(await Session.LoginAsync(_email.Trim(), _password)));
+        await RunAsync(async () => await FinishAsync(await Session.LoginAsync(_email.Trim(), _password)));
     }
 
     private async Task SendCodeAsync()
     {
-        if (!HasEmail())
+        // El código llega al correo: con un celular no hay a dónde mandarlo.
+        if (!HasEmail() || !_email.Contains('@'))
         {
-            _error = "Escribe tu email.";
+            _error = "El código llega a tu correo: escribe tu correo.";
             return;
         }
 
@@ -187,13 +189,13 @@ else
             return;
         }
 
-        await RunAsync(async () => Finish(await Session.VerifyLoginCodeAsync(_email.Trim(), _code.Trim())));
+        await RunAsync(async () => await FinishAsync(await Session.VerifyLoginCodeAsync(_email.Trim(), _code.Trim())));
     }
 
     private async Task SelectAsync(GymAccessOption access)
-        => await RunAsync(async () => Enter(await Session.SelectGymAsync(_selection!, access.AccessId)));
+        => await RunAsync(async () => await EnterAsync(await Session.SelectGymAsync(_selection!, access.AccessId)));
 
-    private void Finish(LoginOutcome outcome)
+    private async Task FinishAsync(LoginOutcome outcome)
     {
         if (outcome.Selection is { } selection)
         {
@@ -202,14 +204,13 @@ else
             return;
         }
 
-        Enter(outcome.Me!);
+        await EnterAsync(outcome.Me!);
     }
 
-    private void Enter(MeResponse me)
+    private async Task EnterAsync(MeResponse me)
     {
         _ = Branding.RememberAsync(me.Gym);
-        Navigation.NavigateTo(
-            GSM.UI.Shared.Auth.ReturnUrl.Sanitize(ReturnUrl) ?? GsmRoles.HomeFor(me.Role), replace: true);
+        Navigation.NavigateTo(await Session.HomeAfterLoginAsync(me, ReturnUrl), replace: true);
     }
 
     private async Task RunAsync(Func<Task> action)
@@ -230,11 +231,8 @@ else
         }
     }
 
-    private static string Describe(ApiErrorException ex) => ex.Error switch
-    {
-        { IsUnauthorized: true } => "Los datos no son correctos. Revisa e inténtalo de nuevo.",
-        _ => ex.Error.DisplayMessage,
-    };
+    private static string Describe(ApiErrorException ex)
+        => SessionService.LoginErrorMessage(ex, "Los datos no son correctos. Revisa e inténtalo de nuevo.");
 
     private bool HasEmail() => !string.IsNullOrWhiteSpace(_email);
 

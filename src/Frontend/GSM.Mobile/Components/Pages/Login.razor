@@ -20,7 +20,8 @@
 }
 else
 {
-    <MudTextField T="string" @bind-Value="_email" Label="Email" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Email" InputType="InputType.Email" Class="mb-3" />
+    <MudTextField T="string" @bind-Value="_email" Label="Correo o celular" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Person" InputType="InputType.Text" Class="mb-3"
+                  HelperText="El celular, con sus 10 dígitos (sin +57). La primera vez, tu contraseña es tu número de documento." />
     <PasswordField @bind-Value="_password" Label="Contraseña" Variant="Variant.Outlined" Class="mb-4" />
 
     <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_submitting">
@@ -45,20 +46,20 @@ else
         _submitting = true;
         try
         {
-            var outcome = await Session.LoginAsync(_email, _password);
+            var outcome = await Session.LoginAsync(_email.Trim(), _password);
             if (outcome.Selection is { } selection)
             {
                 _selection = selection;
                 return;
             }
 
-            Navigation.NavigateTo(GsmRoles.HomeFor(outcome.Me!.Role), replace: true);
+            Navigation.NavigateTo(await Session.HomeAfterLoginAsync(outcome.Me!), replace: true);
         }
         catch (ApiErrorException ex)
         {
             // Un 401 al iniciar sesión es "datos incorrectos"; el texto genérico del 401 ("Tu sesión ha caducado")
             // solo tiene sentido con una sesión ya abierta. Igual que en el login de la web.
-            _error = ex.Error.IsUnauthorized ? "Credenciales inválidas." : ex.Error.DisplayMessage;
+            _error = SessionService.LoginErrorMessage(ex, "Credenciales inválidas.");
         }
         finally
         {
@@ -73,7 +74,7 @@ else
         try
         {
             var me = await Session.SelectGymAsync(_selection!, access.AccessId);
-            Navigation.NavigateTo(GsmRoles.HomeFor(me.Role), replace: true);
+            Navigation.NavigateTo(await Session.HomeAfterLoginAsync(me), replace: true);
         }
         catch (ApiErrorException ex)
         {

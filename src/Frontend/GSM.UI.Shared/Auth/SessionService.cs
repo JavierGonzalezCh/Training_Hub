@@ -237,6 +237,47 @@ public sealed class SessionService(
         return await StartSessionAsync(tokens, cancellationToken);
     }
 
+    /// <summary>Ruta de la pantalla donde quien entró con su documento crea su contraseña (FL1).</summary>
+    public const string CreatePasswordPath = "/app/crear-contrasena";
+
+    /// <summary>FL1: la sesión actual entró con la clave provisional (el documento) y debe crear su contraseña.</summary>
+    public async Task<bool> MustChangePasswordAsync(CancellationToken cancellationToken = default)
+        => JwtPayload.TryRead((await tokenStore.GetAsync(cancellationToken))?.AccessToken)?.MustChangePassword ?? false;
+
+    /// <summary>
+    /// A dónde ir tras entrar: a crear la contraseña si hace falta (FL1); si no, al <paramref name="returnUrl"/>
+    /// local o al inicio del rol.
+    /// </summary>
+    public async Task<string> HomeAfterLoginAsync(MeResponse me, string? returnUrl = null, CancellationToken cancellationToken = default)
+        => await MustChangePasswordAsync(cancellationToken)
+            ? CreatePasswordPath
+            : ReturnUrl.Sanitize(returnUrl) ?? GSM.Client.GsmRoles.HomeFor(me.Role);
+
+    /// <summary>FL1: crea la contraseña de quien entró con su documento y continúa con la sesión nueva.</summary>
+    public async Task<MeResponse> SetInitialPasswordAsync(string newPassword, CancellationToken cancellationToken = default)
+    {
+        AuthTokensResponse tokens;
+        try
+        {
+            tokens = await auth.InitialPasswordAsync(new SetInitialPasswordRequest { NewPassword = newPassword }, cancellationToken);
+        }
+        catch (GsmApiException ex)
+        {
+            throw new ApiErrorException(ApiError.FromException(ex));
+        }
+
+        return await StartSessionAsync(tokens, cancellationToken);
+    }
+
+    /// <summary>
+    /// Texto de un error al iniciar sesión: un 401 es "datos incorrectos" (<paramref name="fallback"/>), salvo el
+    /// celular que está en varias cuentas, que pide usar el correo.
+    /// </summary>
+    public static string LoginErrorMessage(ApiErrorException ex, string fallback)
+        => ex.Error is { IsUnauthorized: true, Detail: { } detail } && detail.Contains("celular", StringComparison.OrdinalIgnoreCase)
+            ? detail
+            : ex.Error.IsUnauthorized ? fallback : ex.Error.DisplayMessage;
+
     /// <summary>Relee <c>/api/auth/me</c> y refresca el <see cref="GymContext"/>.</summary>
     public async Task<MeResponse> BootstrapAsync(CancellationToken cancellationToken = default)
     {

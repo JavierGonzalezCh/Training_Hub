@@ -7,7 +7,8 @@ namespace GSM.Client.Http;
 /// la UI según el rol; la validación de verdad la hace la API en cada petición.
 /// Claims de GSM: <c>sub</c>, <c>gym_id</c>, <c>role</c>, <c>name</c>, <c>impersonating</c>, <c>exp</c> y
 /// <c>perm</c> (permisos especiales de staff; ver <see cref="GsmPermissions"/>) e
-/// <c>impersonation_mode</c> (<c>read</c> o <c>write</c>, solo en tokens de impersonación).
+/// <c>impersonation_mode</c> (<c>read</c> o <c>write</c>, solo en tokens de impersonación) y <c>pwd_change</c>
+/// (FL1: la cuenta entró con su documento y debe crear su contraseña).
 /// </summary>
 public sealed record JwtPayload(
     string? Subject,
@@ -17,7 +18,8 @@ public sealed record JwtPayload(
     bool Impersonating,
     DateTimeOffset? ExpiresAt,
     IReadOnlyList<string>? Permissions = null,
-    string? ImpersonationMode = null)
+    string? ImpersonationMode = null,
+    bool MustChangePassword = false)
 {
     public bool IsExpired(DateTimeOffset now) => ExpiresAt is { } exp && exp <= now;
 
@@ -49,7 +51,8 @@ public sealed record JwtPayload(
                     ? DateTimeOffset.FromUnixTimeSeconds(seconds)
                     : null,
                 Permissions: GetStrings(root, "perm"),
-                ImpersonationMode: GetString(root, "impersonation_mode"));
+                ImpersonationMode: GetString(root, "impersonation_mode"),
+                MustChangePassword: string.Equals(GetString(root, "pwd_change"), "true", StringComparison.OrdinalIgnoreCase));
         }
         catch (JsonException)
         {
