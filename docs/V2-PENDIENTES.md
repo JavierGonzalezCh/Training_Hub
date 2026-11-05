@@ -47,6 +47,8 @@ Claves de configuración que la API exige o usa en producción: `Checkin:Signing
 - **Patrón a revisar:** 5 handlers de ajustes perezosos (`CheckinSettings`, `CommunicationsSettings` ×2, `MembershipSettings`, `RoutineSettings`) añaden la entidad antes de validar. En producción no se nota (cada petición tiene su contexto); se corrigió solo en `MemberSettings`.
 
 - **Tipos de negocio (T1–T7):** construido (`GSM-tipos-de-negocio.md`). Queda pendiente: sugerencias de equipos en el onboarding, `BusinessNoun` en correos y avisos de suscripción, ocultar la sección «Kioscos» con `ShowFrontDesk` apagado, mostrar en «Para completar» los pasos que dejan de ser obligatorios, refrescar sola la tarjeta de Mi rutina tras el primer ejercicio y validar los valores de las plantillas con negocios reales (preguntas abiertas del doc).
+- **Sesión perdida (SP1–SP4):** diseño en `GSM-sesion-perdida.md`, sin construir. Ejecutar cualquier día del plan, detectar la rutina perdida de ayer, sugerir o preguntar si la recupera, y reorganizar la semana con los descansos fijos. Primero SP1–SP3; quedan 6 preguntas abiertas.
+- **Recordatorio de entrenamiento (TR1–TR4):** diseño en `GSM-recordatorio-entrenamiento.md`, sin construir; necesita Firebase y la tarea periódica en Dokploy.
 - **Tipos de negocio, sin navegador:** T1–T7 se probaron con integración y bUnit, no se recorrieron en navegador ni en Android; súmalo al recorrido de `V1-RECORRIDO.md`.
 
 ## 5. Para cerrar la v2

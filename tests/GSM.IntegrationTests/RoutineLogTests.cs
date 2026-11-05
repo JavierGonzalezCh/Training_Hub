@@ -68,6 +68,37 @@ public sealed class RoutineLogTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     [Fact]
+    public async Task Any_day_of_the_plan_can_be_done_on_a_rest_day_and_is_logged_with_the_real_date()
+    {
+        // SP1: el miembro hace la rutina de otro día; la sesión queda con la fecha de hoy, no con la del día del plan.
+        // Que no cumpla el día de hoy lo cubre AdherenceCalculatorTests (A_log_of_another_line…).
+        var w = await SeedAsync(exercisesPerDay: 1);
+        DateOnly startsOn;
+        using (var scope = factory.CreateScopeWithMigration())
+        {
+            scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+            startsOn = await scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<GSM.Domain.Routines.Routine>()
+                .Where(r => r.MemberId == w.MemberId).Select(r => r.StartsOn).SingleAsync();
+        }
+
+        var restDay = startsOn.AddDays(1); // ciclo D1 · descanso
+        using (var scope = AsMember(w, restDay))
+        {
+            var log = await scope.ServiceProvider.GetRequiredService<LogRoutineExerciseHandler>()
+                .HandleAsync(w.ExerciseLineIds[0], new LogRoutineExerciseRequest(null, [new LogSetRequest("normal", 10, 30m, null, null, null)]), default);
+
+            Assert.Equal(restDay, log.PerformedOn);
+        }
+
+        using (var scope = AsMember(w, restDay))
+        {
+            var history = await scope.ServiceProvider.GetRequiredService<GetMyRoutineHistoryHandler>()
+                .HandleAsync(restDay, restDay, default);
+            Assert.Equal(w.ExerciseLineIds[0], Assert.Single(history).RoutineExerciseId);
+        }
+    }
+
+    [Fact]
     public async Task A_member_cannot_log_on_another_members_routine()
     {
         var w = await SeedAsync(exercisesPerDay: 1);

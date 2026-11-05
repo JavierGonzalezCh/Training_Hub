@@ -81,7 +81,33 @@ else
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4 d-block" data-testid="today-groups">Hoy trabajas: @todayGroups</MudText>
         }
 
-        @if (!today.IsRest && GymCtx.FeatureFlags?.RoutineEntry == true)
+        var trainingDays = TrainingDays();
+        @if (trainingDays.Count > 0)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">@(today.IsRest ? "Hoy descansas. ¿Quieres hacer otra rutina?" : "¿Hoy haces otra rutina?")</MudText>
+            <MudChipSet T="Guid?" SelectedValue="_selectedDayId" SelectedValueChanged="SelectDay" SelectionMode="SelectionMode.SingleSelection"
+                        CheckMark="false" Class="mb-3" data-testid="day-picker">
+                @if (!today.IsRest)
+                {
+                    <MudChip T="Guid?" Value="@((Guid?)null)" Variant="Variant.Outlined" Color="Color.Primary" data-testid="day-today">Hoy · @today.DayName</MudChip>
+                }
+                @foreach (var day in trainingDays)
+                {
+                    <MudChip T="Guid?" Value="@((Guid?)day.Id)" Variant="Variant.Outlined" Color="Color.Primary" data-testid="@($"day-{day.Id}")">@DayLabel(day)</MudChip>
+                }
+            </MudChipSet>
+        }
+
+        var shownDay = ShownDay();
+        @if (shownDay is not null)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" data-testid="other-day-notice">
+                Estás haciendo <strong>@shownDay.Name</strong>. Se guarda con la fecha de hoy, pero no cuenta como la rutina de hoy en tu cumplimiento. Si no estás seguro, pregúntale a tu entrenador.
+            </MudAlert>
+        }
+
+        var shown = shownDay?.Exercises ?? (today.IsRest ? [] : today.Exercises);
+        @if (shown.Count > 0 && GymCtx.FeatureFlags?.RoutineEntry == true)
         {
             <div class="mb-4">
                 <TrainingEntryCard Title="¿Empiezas a entrenar?" ButtonText="Iniciar rutina" CountedAt="_countedAt"
@@ -89,10 +115,10 @@ else
             </div>
         }
 
-        @if (!today.IsRest)
+        @if (shown.Count > 0)
         {
-            var groupLabels = SetPlan.GroupLabels(today.Exercises);
-            @foreach (var exercise in today.Exercises)
+            var groupLabels = SetPlan.GroupLabels(shown);
+            @foreach (var exercise in shown)
             {
                 var state = StateOf(exercise);
                 var fields = TrackingFields.Of(state.Replacement?.TrackingType ?? exercise.TrackingType);
@@ -292,6 +318,35 @@ else
     private DateTimeOffset? _countedAt;
     private string? _createError;
 
+    /// <summary>SP1: el día del plan que el miembro eligió hacer hoy; <c>null</c> = el que toca hoy.</summary>
+    private Guid? _selectedDayId;
+
+    // Los días de entrenamiento del plan, menos el de hoy (ese es el chip "Hoy").
+    private List<RoutineDayResponse> TrainingDays()
+    {
+        var days = _response?.Routine?.Days.Where(d => !d.IsRest && d.Exercises.Count > 0) ?? [];
+        var todayView = _response?.Today;
+        var todayDay = todayView is { IsRest: false } ? DayOf(todayView) : null;
+        return days.Where(d => d.Id != todayDay?.Id)
+            .OrderBy(d => d.DayOfWeek ?? d.Position).ThenBy(d => d.Position).ToList();
+    }
+
+    private RoutineDayResponse? ShownDay()
+        => _selectedDayId is { } id ? _response?.Routine?.Days.FirstOrDefault(d => d.Id == id) : null;
+
+    // El día del plan que corresponde a hoy: el mismo día de la semana (semanal) o la misma posición (rotativo).
+    private RoutineDayResponse? DayOf(TodayView today)
+        => _response?.Routine?.Days.FirstOrDefault(d => _response.Routine.ScheduleMode == "weekly"
+            ? d.DayOfWeek == today.DayOfWeek
+            : d.Position == today.Position);
+
+    private string DayLabel(RoutineDayResponse day)
+        => day.DayOfWeek is { } weekday && _response?.Routine?.ScheduleMode == "weekly"
+            ? $"{RoutineLabels.IsoWeekdayLabel(weekday)} · {day.Name}"
+            : day.Name;
+
+    private void SelectDay(Guid? dayId) => _selectedDayId = dayId;
+
     protected override async Task OnInitializedAsync()
     {
         if (GymCtx.FeatureFlags?.ShowRoutines == false)
@@ -303,9 +358,13 @@ else
         try
         {
             _response = await Me.RoutinesGETAsync();
-            if (_response.Today is { IsRest: false } todayView)
+            if (_response.Today is { } todayView)
             {
                 await LoadTodayAsync(todayView);
+            }
+
+            if (_response.Today is not null)
+            {
                 if (GymCtx.FeatureFlags?.RoutineEntry == true)
                 {
                     // A8: ¿el día ya cuenta? (lo pudo marcar desde el inicio o recepción).
@@ -386,18 +445,30 @@ else
         });
     }
 
-    // Lo ya registrado hoy se carga al abrir la pantalla, para poder corregirlo y no perderlo al recargar.
+    // Lo ya registrado hoy se carga al abrir la pantalla, para poder corregirlo y no perderlo al recargar. Incluye lo
+    // registrado de otro día del plan (SP1): esa rutina se abre sola para que el miembro la encuentre.
     private async Task LoadTodayAsync(TodayView today)
     {
         try
         {
             var logged = await Me.HistoryAsync(today.Date, today.Date);
+            var todayIds = today.IsRest ? [] : today.Exercises.Select(e => e.Id).ToHashSet();
             foreach (var item in logged)
             {
                 var exercise = today.Exercises.FirstOrDefault(e => e.Id == item.RoutineExerciseId);
                 if (exercise is null)
                 {
-                    continue;
+                    var otherDay = _response?.Routine?.Days.FirstOrDefault(d => d.Exercises.Any(e => e.Id == item.RoutineExerciseId));
+                    exercise = otherDay?.Exercises.First(e => e.Id == item.RoutineExerciseId);
+                    if (exercise is null)
+                    {
+                        continue;
+                    }
+
+                    if (!todayIds.Overlaps(logged.Select(l => l.RoutineExerciseId)))
+                    {
+                        _selectedDayId ??= otherDay!.Id;
+                    }
                 }
 
                 var state = StateOf(exercise);
