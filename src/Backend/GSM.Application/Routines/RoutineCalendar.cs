@@ -13,10 +13,15 @@ public static class RoutineCalendar
     /// <param name="Routine">La rutina vigente ese día; <c>null</c> si no había ninguna.</param>
     /// <param name="Day">El día del ciclo o de la semana que toca; <c>null</c> si no hay (descanso sin fila, o sin días vigentes).</param>
     /// <param name="IsPlannedRest">Descanso planificado: un día marcado como descanso, o en modo semanal un día de la semana sin fila.</param>
-    public sealed record Resolution(AdherenceRoutine? Routine, AdherenceDay? Day, bool IsPlannedRest)
+    /// <param name="PlannedDay">Con un ajuste del miembro (SP), el día que tocaba según el plan; si no, <c>null</c>.</param>
+    public sealed record Resolution(
+        AdherenceRoutine? Routine, AdherenceDay? Day, bool IsPlannedRest, AdherenceDay? PlannedDay = null)
     {
         /// <summary>Toca entrenar.</summary>
         public bool IsTraining => Day is { IsRest: false };
+
+        /// <summary>El miembro cambió lo que tocaba en esta fecha (sesión recuperada o semana reorganizada).</summary>
+        public bool IsOverridden => PlannedDay is not null;
     }
 
     /// <summary>Más reciente primero y, a igual inicio, la activa primero (la rutina vigente es la primera que cubre la fecha).</summary>
@@ -24,7 +29,38 @@ public static class RoutineCalendar
         => routines.OrderByDescending(r => r.StartsOn).ThenByDescending(r => r.IsActive).ToList();
 
     /// <param name="ordered">Rutinas ya ordenadas con <see cref="Order"/>.</param>
-    public static Resolution Resolve(IReadOnlyList<AdherenceRoutine> ordered, DateOnly date)
+    /// <param name="overrides">
+    /// Ajustes del miembro por fecha (SP): el día que cuenta en lugar del planeado. Solo aplican si el ajuste es de la
+    /// rutina vigente, el día que tocaba era de entrenamiento y el día que se hace está vigente esa fecha; si no, se ignoran.
+    /// </param>
+    public static Resolution Resolve(
+        IReadOnlyList<AdherenceRoutine> ordered, DateOnly date,
+        IReadOnlyDictionary<DateOnly, AdherenceOverride>? overrides = null)
+    {
+        var planned = ResolvePlanned(ordered, date);
+        if (overrides is null || !overrides.TryGetValue(date, out var change)
+            || planned.Routine is null || planned.Routine.Id != change.RoutineId || !planned.IsTraining)
+        {
+            return planned;
+        }
+
+        var performed = planned.Routine.Days.FirstOrDefault(d =>
+            d.Id == change.PerformedDayId && !d.IsRest && InForce(d, date));
+        return performed is null || performed.Id == planned.Day!.Id
+            ? planned
+            : new Resolution(planned.Routine, performed, false, planned.Day);
+    }
+
+    /// <summary>Ajustes de un miembro indexados por fecha, para <see cref="Resolve"/>.</summary>
+    public static IReadOnlyDictionary<DateOnly, AdherenceOverride> ByDate(IEnumerable<AdherenceOverride> overrides)
+        => overrides.GroupBy(o => o.Date).ToDictionary(g => g.Key, g => g.First());
+
+    /// <summary>¿El día estaba vigente en esa fecha?</summary>
+    public static bool InForce(AdherenceDay day, DateOnly date)
+        => day.AddedOn <= date && (day.RetiredOn is null || date < day.RetiredOn);
+
+    /// <summary>Lo que toca según el plan, sin ajustes del miembro.</summary>
+    private static Resolution ResolvePlanned(IReadOnlyList<AdherenceRoutine> ordered, DateOnly date)
     {
         var routine = ordered.FirstOrDefault(r =>
             r.StartsOn <= date && (r.DeactivatedOn is null || date <= r.DeactivatedOn));
@@ -34,7 +70,7 @@ public static class RoutineCalendar
         }
 
         var inForce = routine.Days
-            .Where(d => d.AddedOn <= date && (d.RetiredOn is null || date < d.RetiredOn))
+            .Where(d => InForce(d, date))
             .ToList();
         if (inForce.Count == 0)
         {

@@ -14104,6 +14104,116 @@
         }
       }
     },
+    "/api/me/routines/missed-session": {
+      "post": {
+        "tags": [
+          "Me"
+        ],
+        "operationId": "RecoverMyMissedSession",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoverMissedSessionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoverMissedSessionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoverMissedSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyRoutineResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyRoutineResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyRoutineResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me/routines/history": {
       "get": {
         "tags": [
@@ -24632,6 +24742,16 @@
               "string"
             ],
             "format": "int32"
+          },
+          "plannedDayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isChanged": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -33088,6 +33208,85 @@
           }
         }
       },
+      "MissedSessionOptionView": {
+        "required": [
+          "week",
+          "lostDayName"
+        ],
+        "type": "object",
+        "properties": {
+          "week": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeekSlotView"
+            }
+          },
+          "lostDayName": {
+            "type": "string"
+          }
+        }
+      },
+      "MissedSessionView": {
+        "required": [
+          "missedOn",
+          "missedDayId",
+          "missedDayName",
+          "todayIsRest",
+          "week",
+          "swap",
+          "reorganize",
+          "trainerName"
+        ],
+        "type": "object",
+        "properties": {
+          "missedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "missedDayId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "missedDayName": {
+            "type": "string"
+          },
+          "todayIsRest": {
+            "type": "boolean"
+          },
+          "week": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeekSlotView"
+            }
+          },
+          "swap": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MissedSessionOptionView"
+              }
+            ]
+          },
+          "reorganize": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MissedSessionOptionView"
+              }
+            ]
+          },
+          "trainerName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "MonthlyMetricItem": {
         "required": [
           "month",
@@ -33803,6 +34002,16 @@
               },
               {
                 "$ref": "#/components/schemas/TodayView"
+              }
+            ]
+          },
+          "missedSession": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MissedSessionView"
               }
             ]
           }
@@ -36793,6 +37002,22 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "RecoverMissedSessionRequest": {
+        "required": [
+          "performedDayId",
+          "reorganize"
+        ],
+        "type": "object",
+        "properties": {
+          "performedDayId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reorganize": {
+            "type": "boolean"
           }
         }
       },
@@ -40103,6 +40328,19 @@
             "items": {
               "type": "string"
             }
+          },
+          "dayId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "plannedDayName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -41886,6 +42124,46 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "WeekSlotView": {
+        "required": [
+          "date",
+          "dayOfWeek",
+          "isRest",
+          "dayId",
+          "dayName"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "dayOfWeek": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isRest": {
+            "type": "boolean"
+          },
+          "dayId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "dayName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

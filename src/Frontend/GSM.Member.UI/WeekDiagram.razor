@@ -1,0 +1,49 @@
+@using GSM.UI.Shared.Formatting
+
+@* Diagrama antes/después de lo que queda de la semana (regla 6 de docs/GSM-sesion-perdida.md). Las fechas que cambian
+   se marcan; los descansos se muestran atenuados porque nunca se mueven. *@
+@{
+    var before = Before.ToList();
+    var after = After.ToList();
+}
+<table class="gsm-weekdiag" data-testid="week-diagram">
+    <thead>
+        <tr>
+            <th scope="col"><span class="visually-hidden">Semana</span></th>
+            @foreach (var slot in before)
+            {
+                <th scope="col">@ShortDay(slot.DayOfWeek)</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th scope="row">Antes</th>
+            @foreach (var slot in before)
+            {
+                <td class="@(slot.IsRest ? "is-rest" : null)">@Label(slot)</td>
+            }
+        </tr>
+        <tr>
+            <th scope="row">Después</th>
+            @for (var i = 0; i < after.Count; i++)
+            {
+                var slot = after[i];
+                var changed = i < before.Count && before[i].DayId != slot.DayId;
+                <td class="@(slot.IsRest ? "is-rest" : changed ? "is-changed" : null)" data-testid="@(changed ? "diagram-changed" : null)">@Label(slot)</td>
+            }
+        </tr>
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public ICollection<WeekSlotView> Before { get; set; } = [];
+
+    [Parameter, EditorRequired] public ICollection<WeekSlotView> After { get; set; } = [];
+
+    private static readonly string[] Short = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+    private static string ShortDay(int isoDay) => isoDay is >= 1 and <= 7 ? Short[isoDay - 1] : "?";
+
+    private static string Label(WeekSlotView slot) => slot.IsRest ? "Descanso" : slot.DayName ?? "?";
+}

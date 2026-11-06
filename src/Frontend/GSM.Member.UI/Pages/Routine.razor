@@ -71,8 +71,19 @@ else
             }
         </ul>
     }
+    @if (_response.MissedSession is { } missedSession)
+    {
+        <MissedSessionCard @key="missedSession.MissedOn" Missed="missedSession" TodayName="@(_response.Today?.DayName ?? "la de hoy")"
+                           OnDoDay="SelectDay" OnRecovered="OnRecoveredAsync" />
+    }
     @if (_response.Today is { } today)
     {
+        @if (today.PlannedDayName is { } plannedName)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2" data-testid="today-changed">
+                Hoy haces <strong>@today.DayName</strong> en lugar de @plannedName: cuenta como la rutina de hoy.
+            </MudAlert>
+        }
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
             Hoy: @(_response.Routine.ScheduleMode == "weekly" ? $"{RoutineLabels.IsoWeekdayLabel(today.DayOfWeek)} · " : "")@today.DayName @(today.IsRest && today.DayName != "Descanso" ? "· descanso" : "")
         </MudText>
@@ -334,9 +345,12 @@ else
     private RoutineDayResponse? ShownDay()
         => _selectedDayId is { } id ? _response?.Routine?.Days.FirstOrDefault(d => d.Id == id) : null;
 
-    // El día del plan que corresponde a hoy: el mismo día de la semana (semanal) o la misma posición (rotativo).
+    // El día del plan que corresponde a hoy: el que manda el servidor (con el cambio del miembro, SP) o, en clientes
+    // anteriores, el mismo día de la semana (semanal) o la misma posición (rotativo).
     private RoutineDayResponse? DayOf(TodayView today)
-        => _response?.Routine?.Days.FirstOrDefault(d => _response.Routine.ScheduleMode == "weekly"
+        => today.DayId is { } dayId
+            ? _response?.Routine?.Days.FirstOrDefault(d => d.Id == dayId)
+            : _response?.Routine?.Days.FirstOrDefault(d => _response.Routine.ScheduleMode == "weekly"
             ? d.DayOfWeek == today.DayOfWeek
             : d.Position == today.Position);
 
@@ -346,6 +360,20 @@ else
             : day.Name;
 
     private void SelectDay(Guid? dayId) => _selectedDayId = dayId;
+
+    private void SelectDay(Guid dayId) => _selectedDayId = dayId;
+
+    // SP3: guardó el cambio; hoy ya muestra la rutina recuperada.
+    private async Task OnRecoveredAsync(MyRoutineResponse response)
+    {
+        _response = response;
+        _selectedDayId = null;
+        _states.Clear();
+        if (response.Today is { } todayView)
+        {
+            await LoadTodayAsync(todayView);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

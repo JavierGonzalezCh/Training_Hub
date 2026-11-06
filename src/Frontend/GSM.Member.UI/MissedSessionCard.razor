@@ -1,0 +1,113 @@
+@using GSM.UI.Shared.Routines
+@inject IMeClient Me
+@inject ISnackbar Snackbar
+
+@* SP3–SP4 (docs/GSM-sesion-perdida.md): ayer tocaba entrenar y no entrenó. Hoy descansa: se sugiere hacerla.
+   Hoy toca entrenar: se pregunta; si la hace, se le muestra cómo queda su semana con cada opción antes de decidir. *@
+@if (!_dismissed)
+{
+    <section class="gsm-m-card gsm-missed" aria-label="Rutina de ayer sin hacer" data-testid="missed-session">
+        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.EventBusy" /></span>
+        <div class="gsm-m-card__body">
+            <h2 class="gsm-m-card__title">Ayer te faltó @Missed.MissedDayName</h2>
+
+            @if (Missed.TodayIsRest)
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">Hoy descansas. Si quieres, puedes hacerla hoy; tu semana no cambia.</MudText>
+                <div class="gsm-missed__actions">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" data-testid="missed-do-on-rest"
+                               OnClick="() => OnDoDay.InvokeAsync(Missed.MissedDayId)">Hacer @Missed.MissedDayName</MudButton>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" data-testid="missed-dismiss" OnClick="Dismiss">Hoy descanso</MudButton>
+                </div>
+            }
+            else if (!_choosing)
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">¿Haces hoy la de ayer o sigues con la de hoy (@TodayName)?</MudText>
+                <div class="gsm-missed__actions">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" data-testid="missed-do"
+                               OnClick="() => _choosing = true">Hacer @Missed.MissedDayName</MudButton>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" data-testid="missed-keep-today" OnClick="Dismiss">Seguir con @TodayName</MudButton>
+                </div>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    @(Missed.Reorganize is null
+                        ? $"Hoy haces {Missed.MissedDayName} y {TodayName} queda sin hacer. El resto de tu semana no cambia."
+                        : "¿Reorganizas tu semana? Así queda con cada opción:")
+                </MudText>
+
+                <div class="gsm-missed__options">
+                    <div class="gsm-missed__option" data-testid="missed-option-swap">
+                        <h3 class="gsm-missed__option-title">Solo cambiar</h3>
+                        <WeekDiagram Before="Missed.Week" After="Missed.Swap!.Week" />
+                        <p class="gsm-missed__lost">Queda sin hacer: <strong>@Missed.Swap!.LostDayName</strong></p>
+                        <MudButton Variant="@(Missed.Reorganize is null ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" Size="Size.Small"
+                                   Disabled="_saving" data-testid="missed-confirm-swap" OnClick="() => RecoverAsync(false)">
+                            @(Missed.Reorganize is null ? $"Hacer {Missed.MissedDayName} hoy" : "Solo cambiar")
+                        </MudButton>
+                    </div>
+                    @if (Missed.Reorganize is { } reorganize)
+                    {
+                        <div class="gsm-missed__option" data-testid="missed-option-reorganize">
+                            <h3 class="gsm-missed__option-title">Reorganizar la semana</h3>
+                            <WeekDiagram Before="Missed.Week" After="reorganize.Week" />
+                            <p class="gsm-missed__lost">Los descansos no se mueven. Queda sin hacer: <strong>@reorganize.LostDayName</strong></p>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       Disabled="_saving" data-testid="missed-confirm-reorganize" OnClick="() => RecoverAsync(true)">Reorganizar</MudButton>
+                        </div>
+                    }
+                </div>
+
+                <MudButton Variant="Variant.Text" Size="Size.Small" Class="mt-1" OnClick="() => _choosing = false">Volver</MudButton>
+            }
+
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2" data-testid="missed-ask-trainer">
+                Si no estás seguro, pregúntale a tu entrenador@(Missed.TrainerName is { Length: > 0 } trainer ? $" ({trainer})" : "").
+            </MudText>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public MissedSessionView Missed { get; set; } = default!;
+
+    /// <summary>El nombre de la rutina que toca hoy.</summary>
+    [Parameter] public string TodayName { get; set; } = "la de hoy";
+
+    /// <summary>Hoy es descanso y el miembro quiere hacer la perdida: abre ese día (sin cambiar la semana).</summary>
+    [Parameter] public EventCallback<Guid> OnDoDay { get; set; }
+
+    /// <summary>Se guardó el cambio: la rutina del miembro ya con hoy cambiado.</summary>
+    [Parameter] public EventCallback<MyRoutineResponse> OnRecovered { get; set; }
+
+    private bool _dismissed;
+    private bool _choosing;
+    private bool _saving;
+
+    private void Dismiss() => _dismissed = true;
+
+    private async Task RecoverAsync(bool reorganize)
+    {
+        _saving = true;
+        try
+        {
+            var response = await Me.RecoverMyMissedSessionAsync(new RecoverMissedSessionRequest
+            {
+                PerformedDayId = Missed.MissedDayId,
+                Reorganize = reorganize,
+            });
+            Snackbar.Add(reorganize ? "Listo: reorganizamos tu semana." : $"Listo: hoy haces {Missed.MissedDayName}.", Severity.Success);
+            _dismissed = true;
+            await OnRecovered.InvokeAsync(response);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

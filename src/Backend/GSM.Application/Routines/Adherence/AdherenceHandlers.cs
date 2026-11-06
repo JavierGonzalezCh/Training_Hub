@@ -24,7 +24,8 @@ public sealed class MemberAdherenceService(IClock clock, IAdherenceSource source
         var first = last.AddDays(-7 * (weeks - 1));
 
         var data = await source.LoadAsync([memberId], first, last.AddDays(6), cancellationToken);
-        var items = AdherenceCalculator.Weeks(data.Routines, data.Logs, last, weeks, today, withDaysForCurrent);
+        var items = AdherenceCalculator.Weeks(
+            data.Routines, data.Logs, last, weeks, today, withDaysForCurrent, data.OverridesOrEmpty);
         return new MemberAdherence(memberId, data.Routines.Any(r => r.IsActive), items);
     }
 }
@@ -107,6 +108,7 @@ public sealed class ListRoutineAdherenceHandler(
 
         var routinesByMember = data.Routines.ToLookup(r => r.MemberId);
         var logsByMember = data.Logs.ToLookup(l => l.MemberId);
+        var overridesByMember = data.OverridesOrEmpty.ToLookup(o => o.MemberId);
 
         var rows = new List<MemberAdherenceRow>(withRoutine.Count);
         foreach (var memberId in withRoutine)
@@ -122,7 +124,8 @@ public sealed class ListRoutineAdherenceHandler(
             }
 
             var weeks = AdherenceCalculator.Weeks(
-                memberRoutines, logsByMember[memberId].ToList(), week, 2, today, withDaysForLast: false);
+                memberRoutines, logsByMember[memberId].ToList(), week, 2, today, withDaysForLast: false,
+                overridesByMember[memberId].ToList());
             var thisWeek = weeks[1];
             var recent = AdherenceCalculator.Percent(weeks);
 

@@ -12,5 +12,6 @@ public sealed class RoutinesEnums : IModuleEnums
         PgEnumMapping.Of<GSM.Domain.Routines.TrackingType>("tracking_type", "routines", SnakeCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Routines.Difficulty>("difficulty", "routines", LowerCaseNameTranslator.Instance),
         PgEnumMapping.Of<GSM.Domain.Routines.ScheduleMode>("schedule_mode", "routines", LowerCaseNameTranslator.Instance),
+        PgEnumMapping.Of<GSM.Domain.Routines.RoutineDayOverrideReason>("routine_day_override_reason", "routines", LowerCaseNameTranslator.Instance),
     ];
 }

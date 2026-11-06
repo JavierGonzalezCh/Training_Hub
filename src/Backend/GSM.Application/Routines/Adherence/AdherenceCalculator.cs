@@ -25,17 +25,20 @@ public static class AdherenceCalculator
         DateOnly lastWeekStart,
         int weekCount,
         DateOnly today,
-        bool withDaysForLast)
+        bool withDaysForLast,
+        IReadOnlyList<AdherenceOverride>? overrides = null)
     {
         // Misma regla que el calendario de la racha (RoutineCalendar): la más reciente, y a igual inicio la activa.
         var ordered = RoutineCalendar.Order(routines);
         var logsByDate = logs.ToLookup(l => l.PerformedOn);
+        // Ajustes del miembro (SP): ese día cuenta con los registros del día que se hizo, no del planeado.
+        var changes = RoutineCalendar.ByDate(overrides ?? []);
 
         var weeks = new List<AdherenceWeekItem>(weekCount);
         for (var i = weekCount - 1; i >= 0; i--)
         {
             var start = lastWeekStart.AddDays(-7 * i);
-            weeks.Add(Week(ordered, logsByDate, start, today, withDaysForLast && i == 0));
+            weeks.Add(Week(ordered, logsByDate, changes, start, today, withDaysForLast && i == 0));
         }
 
         return weeks;
@@ -57,6 +60,7 @@ public static class AdherenceCalculator
     private static AdherenceWeekItem Week(
         IReadOnlyList<AdherenceRoutine> routines,
         ILookup<DateOnly, AdherenceLog> logsByDate,
+        IReadOnlyDictionary<DateOnly, AdherenceOverride> changes,
         DateOnly weekStart,
         DateOnly today,
         bool withDays)
@@ -69,7 +73,7 @@ public static class AdherenceCalculator
         {
             var date = weekStart.AddDays(offset);
             var logged = logsByDate[date].Select(l => l.RoutineExerciseId).ToHashSet();
-            var resolution = RoutineCalendar.Resolve(routines, date);
+            var resolution = RoutineCalendar.Resolve(routines, date, changes);
             var (routine, day) = (resolution.Routine, resolution.Day);
 
             if (!resolution.IsTraining)
@@ -106,7 +110,8 @@ public static class AdherenceCalculator
             }
 
             var status = isDone ? "done" : date < today ? "missed" : date == today ? "today" : "upcoming";
-            days?.Add(new AdherenceDayItem(date, status, day.Name, lines.Count, doneLines));
+            days?.Add(new AdherenceDayItem(
+                date, status, day.Name, lines.Count, doneLines, resolution.PlannedDay?.Name, resolution.IsOverridden));
         }
 
         int? percent = due == 0 ? null : (int)Math.Round(done * 100m / due, MidpointRounding.AwayFromZero);

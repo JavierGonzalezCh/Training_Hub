@@ -56,6 +56,10 @@ else
                         <li class="@AdherenceLabels.StatusCssClass(day.Status)" data-testid="@($"adherence-day-{day.Status}")">
                             <span class="gsm-adh-day__date">@GsmFormat.DayCompact(day.Date)</span>
                             <span class="gsm-adh-day__status">@AdherenceLabels.StatusLabel(day.Status)</span>
+                            @if (day.IsChanged == true && day.PlannedDayName is { } plannedName)
+                            {
+                                <span class="gsm-adh-day__detail" data-testid="adherence-day-changed">@day.DayName en lugar de @plannedName</span>
+                            }
                             @if (day.PlannedExercises > 0)
                             {
                                 <span class="gsm-adh-day__detail gsm-mono">@day.DoneExercises/@day.PlannedExercises ejercicios</span>

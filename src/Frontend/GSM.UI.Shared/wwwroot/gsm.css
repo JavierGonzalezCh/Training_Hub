@@ -4178,3 +4178,35 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 .gsm-adh-day--upcoming,
 .gsm-adh-day--rest,
 .gsm-adh-day--none { border-left-color: var(--gsm-border-strong); }
+
+/* SP3–SP4: rutina de ayer sin hacer y diagrama antes/después de la semana. */
+.gsm-missed { margin-bottom: 1rem; }
+.gsm-missed__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.gsm-missed__options { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+.gsm-missed__option {
+  border: 1px solid var(--mud-palette-lines-default);
+  border-radius: 8px;
+  padding: 0.75rem;
+  min-width: 0;
+}
+.gsm-missed__option-title { font-size: var(--gsm-fs-small); font-weight: 600; margin: 0 0 0.5rem; }
+.gsm-missed__lost { font-size: var(--gsm-fs-small); margin: 0.5rem 0; color: var(--mud-palette-text-secondary); }
+.gsm-weekdiag {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.72rem;
+}
+.gsm-weekdiag th, .gsm-weekdiag td {
+  padding: 0.25rem 0.15rem;
+  text-align: center;
+  border-bottom: 1px solid var(--mud-palette-lines-default);
+  overflow-wrap: anywhere;
+}
+.gsm-weekdiag thead th { color: var(--mud-palette-text-secondary); font-weight: 600; }
+.gsm-weekdiag tbody th { text-align: left; font-weight: 600; width: 4.2rem; }
+.gsm-weekdiag td.is-rest { color: var(--mud-palette-text-disabled); }
+.gsm-weekdiag td.is-changed {
+  background: color-mix(in srgb, var(--mud-palette-primary) 18%, transparent);
+  font-weight: 600;
+}

@@ -348,7 +348,9 @@ public sealed class GetMyRoutineHandler(
     IMemberReader members,
     IExerciseRepository exercises,
     ExerciseEquipmentResolver equipment,
-    IRoutineRepository routines)
+    IRoutineRepository routines,
+    IRoutineDayOverrideRepository overrides,
+    MissedSession.MissedSessionService missed)
 {
     public async Task<MyRoutineResponse> HandleAsync(CancellationToken cancellationToken)
     {
@@ -370,7 +372,7 @@ public sealed class GetMyRoutineHandler(
         var response = RoutineMapper.ToResponse(routine, names, machines);
 
         var today = clock.Today;
-        var day = RoutineSchedule.DayOn(routine, today);
+        var (day, planned) = await RoutineSchedule.DayOnWithOverrideAsync(routine, today, overrides, self.Id, cancellationToken);
 
         // Semanal sin fila para hoy = descanso: no hay RoutineDay al que apuntar.
         var todayView = day is null
@@ -383,8 +385,12 @@ public sealed class GetMyRoutineHandler(
                 day.Exercises.OrderBy(e => e.Order)
                     .Select(e => RoutineMapper.ToExerciseResponse(e, names, machines)).ToList(),
                 IsoWeekDay.Of(today),
-                RoutineMapper.MuscleGroupsOf(day, names));
+                RoutineMapper.MuscleGroupsOf(day, names),
+                day.Id,
+                planned is null ? null : RoutineMapper.DayName(planned));
 
-        return new MyRoutineResponse(response, todayView);
+        var missedSession = await missed.ViewAsync(
+            self.Id, today, routine.AssignedBy, routine.SelfAssigned, cancellationToken);
+        return new MyRoutineResponse(response, todayView, missedSession);
     }
 }

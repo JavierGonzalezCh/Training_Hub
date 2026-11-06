@@ -18,6 +18,7 @@ public static class RoutinesInfrastructureRegistration
         services.AddScoped<IRoutineRepository, RoutineRepository>();
         services.AddScoped<IRoutineTemplateRepository, RoutineTemplateRepository>();
         services.AddScoped<IRoutineLogRepository, RoutineLogRepository>();
+        services.AddScoped<IRoutineDayOverrideRepository, RoutineDayOverrideRepository>();
         services.AddScoped<IRoutineReader, RoutineReader>();
         services.AddScoped<IAdherenceSource, AdherenceSource>();
 

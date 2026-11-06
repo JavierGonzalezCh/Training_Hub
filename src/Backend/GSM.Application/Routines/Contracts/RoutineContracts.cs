@@ -121,10 +121,35 @@ public sealed record RoutineListItem(
     int CycleLength,
     string ScheduleMode);
 
-/// <summary>Rutina activa del miembro + qué toca hoy (o descanso).</summary>
+/// <summary>Rutina activa del miembro + qué toca hoy (o descanso) + la sesión perdida de ayer, si hay que ofrecerla.</summary>
 public sealed record MyRoutineResponse(
     RoutineResponse? Routine,
-    TodayView? Today);
+    TodayView? Today,
+    MissedSessionView? MissedSession = null);
+
+/// <summary>Una fecha de lo que queda de la semana (de hoy al domingo) con el día que cuenta en ella.</summary>
+public sealed record WeekSlotView(DateOnly Date, int DayOfWeek, bool IsRest, Guid? DayId, string? DayName);
+
+/// <summary>Cómo queda la semana con una decisión y qué rutina se pierde con ella.</summary>
+public sealed record MissedSessionOptionView(IReadOnlyList<WeekSlotView> Week, string LostDayName);
+
+/// <summary>
+/// La rutina de ayer quedó sin hacer (SP, docs/GSM-sesion-perdida.md). Hoy descansa: se sugiere hacerla
+/// (<c>Swap</c> y <c>Reorganize</c> nulos). Hoy toca entrenar: se pregunta; <c>Reorganize</c> es nulo en una rutina
+/// rotativa (solo se reorganizan las semanales). <c>TrainerName</c>: quien asignó la rutina, para «pregúntale a tu entrenador».
+/// </summary>
+public sealed record MissedSessionView(
+    DateOnly MissedOn,
+    Guid MissedDayId,
+    string MissedDayName,
+    bool TodayIsRest,
+    IReadOnlyList<WeekSlotView> Week,
+    MissedSessionOptionView? Swap,
+    MissedSessionOptionView? Reorganize,
+    string? TrainerName);
+
+/// <summary>Hacer hoy la sesión perdida de ayer: solo cambiarla (la de hoy queda perdida) o reorganizar la semana.</summary>
+public sealed record RecoverMissedSessionRequest(Guid PerformedDayId, bool Reorganize);
 
 /// <summary>
 /// En modo semanal <c>Position</c> es 0 y <c>DayName</c> "Descanso" cuando hoy no tiene fila (descanso).
@@ -137,4 +162,6 @@ public sealed record TodayView(
     bool IsRest,
     IReadOnlyList<RoutineExerciseResponse> Exercises,
     int DayOfWeek,
-    IReadOnlyList<string>? MuscleGroups = null);
+    IReadOnlyList<string>? MuscleGroups = null,
+    Guid? DayId = null,
+    string? PlannedDayName = null);

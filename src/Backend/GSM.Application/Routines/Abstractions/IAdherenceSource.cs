@@ -30,14 +30,24 @@ public sealed record AdherenceRoutine(
 /// <summary>Un ejercicio registrado: qué línea de la rutina y qué día de negocio.</summary>
 public sealed record AdherenceLog(Guid MemberId, DateOnly PerformedOn, Guid RoutineExerciseId);
 
-public sealed record AdherenceData(IReadOnlyList<AdherenceRoutine> Routines, IReadOnlyList<AdherenceLog> Logs);
+/// <summary>Ajuste del calendario de un miembro (SP): en <paramref name="Date"/> cuenta <paramref name="PerformedDayId"/>.</summary>
+public sealed record AdherenceOverride(
+    Guid MemberId, Guid RoutineId, DateOnly Date, Guid PlannedDayId, Guid PerformedDayId, RoutineDayOverrideReason Reason);
+
+public sealed record AdherenceData(
+    IReadOnlyList<AdherenceRoutine> Routines,
+    IReadOnlyList<AdherenceLog> Logs,
+    IReadOnlyList<AdherenceOverride>? Overrides = null)
+{
+    public IReadOnlyList<AdherenceOverride> OverridesOrEmpty => Overrides ?? [];
+}
 
 /// <summary>Lectura plana para el cumplimiento de la rutina (docs/GSM-tipos-de-negocio.md §6). Solo lectura.</summary>
 public interface IAdherenceSource
 {
     /// <summary>
     /// Rutinas que se cruzan con <c>[from, to]</c> de cada miembro, con todos sus días y líneas (también los
-    /// retirados), y los registros de ejercicio de esa ventana.
+    /// retirados), los registros de ejercicio de esa ventana y los ajustes del calendario (SP) de esa ventana.
     /// </summary>
     Task<AdherenceData> LoadAsync(
         IReadOnlyCollection<Guid> memberIds, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);

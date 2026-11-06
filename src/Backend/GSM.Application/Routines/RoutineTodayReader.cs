@@ -11,7 +11,8 @@ namespace GSM.Application.Routines;
 public sealed class RoutineTodayReader(
     IClock clock,
     IRoutineRepository routines,
-    IExerciseRepository exercises) : IRoutineTodayReader
+    IExerciseRepository exercises,
+    IRoutineDayOverrideRepository overrides) : IRoutineTodayReader
 {
     public async Task<TodayTrainingView?> GetAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
@@ -22,7 +23,7 @@ public sealed class RoutineTodayReader(
         }
 
         var today = clock.Today;
-        var day = RoutineSchedule.DayOn(routine, today);
+        var (day, _) = await RoutineSchedule.DayOnWithOverrideAsync(routine, today, overrides, memberId, cancellationToken);
 
         // Semanal sin fila para hoy = descanso: no hay día al que apuntar.
         var isRest = day is null || day.IsRest;

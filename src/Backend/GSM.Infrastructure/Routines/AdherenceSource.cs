@@ -43,11 +43,17 @@ public sealed class AdherenceSource(GsmDbContext dbContext) : IAdherenceSource
             .Select(l => new AdherenceLog(l.MemberId, l.PerformedOn, l.RoutineExerciseId))
             .ToListAsync(cancellationToken);
 
+        var overrides = await dbContext.Set<RoutineDayOverride>().AsNoTracking()
+            .Where(o => memberIds.Contains(o.MemberId) && o.Date >= from && o.Date <= to)
+            .Select(o => new AdherenceOverride(o.MemberId, o.RoutineId, o.Date, o.PlannedDayId, o.PerformedDayId, o.Reason))
+            .ToListAsync(cancellationToken);
+
         return new AdherenceData(
             routines.Select(r => new AdherenceRoutine(
                 r.MemberId, r.Id, r.Name, r.SelfAssigned, r.ScheduleMode, r.StartsOn, r.DeactivatedOn, r.IsActive,
                 daysByRoutine[r.Id].ToList())).ToList(),
-            logs);
+            logs,
+            overrides);
     }
 
     public async Task<IReadOnlyDictionary<Guid, DateOnly>> GetLastLogDatesAsync(

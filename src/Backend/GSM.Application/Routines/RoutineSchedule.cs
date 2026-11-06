@@ -30,6 +30,28 @@ public static class RoutineSchedule
         return days.FirstOrDefault(d => d.Position == position);
     }
 
+    /// <summary>
+    /// Como <see cref="DayOn"/>, pero con el cambio que el miembro haya decidido para esa fecha (SP): devuelve el día que
+    /// cuenta y, si cambió, el que tocaba según el plan. El cambio se ignora si no es de esta rutina, si el día que tocaba
+    /// era descanso o si el día que se hace ya no está en la rutina (misma regla que <c>RoutineCalendar.Resolve</c>).
+    /// </summary>
+    public static async Task<(RoutineDay? Day, RoutineDay? Planned)> DayOnWithOverrideAsync(
+        Routine routine, DateOnly date, Abstractions.IRoutineDayOverrideRepository overrides, Guid memberId,
+        CancellationToken cancellationToken)
+    {
+        var day = DayOn(routine, date);
+        if (day is null || day.IsRest)
+        {
+            return (day, null);
+        }
+
+        var change = (await overrides.ListAsync(memberId, date, date, cancellationToken))
+            .FirstOrDefault(o => o.RoutineId == routine.Id);
+        var performed = change is null ? null
+            : routine.Days.FirstOrDefault(d => d.Id == change.PerformedDayId && !d.IsRest);
+        return performed is null || performed.Id == day.Id ? (day, null) : (performed, day);
+    }
+
     public static string ModeToText(ScheduleMode mode)
         => mode == ScheduleMode.Weekly ? "weekly" : "rotating";
 

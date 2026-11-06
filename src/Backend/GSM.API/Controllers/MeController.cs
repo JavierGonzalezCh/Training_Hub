@@ -106,6 +106,23 @@ public sealed class MeController : ControllerBase
         [FromServices] GetMyRoutineHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>
+    /// Hacer hoy la rutina que faltó ayer (SP): <c>reorganize = false</c> solo la cambia por la de hoy (que queda
+    /// perdida); <c>true</c> corre la semana con los descansos fijos. Devuelve la rutina ya con el cambio.
+    /// 409 si no hay sesión perdida que recuperar; 422 si el día no es el de ayer, hoy es descanso o la rutina no es semanal.
+    /// </summary>
+    [HttpPost("routines/missed-session")]
+    [EndpointName("RecoverMyMissedSession")]
+    [ProducesResponseType<MyRoutineResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<MyRoutineResponse>> RecoverMissedSession(
+        RecoverMissedSessionRequest request,
+        [FromServices] GSM.Application.Routines.MissedSession.RecoverMissedSessionHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(request, cancellationToken));
+
     /// <summary>Auto-servicio: el miembro se arma su propia rutina. 403 si <c>members_can_create_routines = false</c>.</summary>
     [HttpPost("routines")]
     [ProducesResponseType<RoutineResponse>(StatusCodes.Status201Created)]

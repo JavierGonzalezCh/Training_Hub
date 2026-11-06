@@ -86,7 +86,8 @@ public sealed class RoutineReader(GsmDbContext dbContext, IClock clock) : IRouti
                 .Select(d => new AdherenceDay(d.Id, d.Position, d.IsRest, d.DayOfWeek, d.AddedOn, d.RetiredOn, d.Name, []))
                 .ToList())));
 
-        // R2b: cada fecha se juzga con lo que estaba vigente ese día (regla única en RoutineCalendar).
+        // R2b: cada fecha se juzga con lo que estaba vigente ese día (regla única en RoutineCalendar). Los ajustes del
+        // miembro (SP) no cambian qué fechas son de entrenamiento o descanso, solo qué día cuenta: la racha no los necesita.
         for (var date = from; date <= to; date = date.AddDays(1))
         {
             var resolution = RoutineCalendar.Resolve(ordered, date);

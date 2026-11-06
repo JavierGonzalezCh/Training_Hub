@@ -25060,6 +25060,11 @@ namespace GSM.Client.Generated
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<MyRoutineResponse> RecoverMyMissedSessionAsync(RecoverMissedSessionRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoutineHistoryItem>> HistoryAsync(System.DateOnly? from = null, System.DateOnly? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -25933,6 +25938,114 @@ namespace GSM.Client.Generated
                                 throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new GsmApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new GsmApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="GsmApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<MyRoutineResponse> RecoverMyMissedSessionAsync(RecoverMissedSessionRequest body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (body == null)
+                throw new System.ArgumentNullException("body");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/me/routines/missed-session"
+                    urlBuilder_.Append("api/me/routines/missed-session");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<MyRoutineResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new GsmApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new GsmApiException<ProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -44932,6 +45045,12 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("doneExercises")]
         public int DoneExercises { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("plannedDayName")]
+        public string? PlannedDayName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isChanged")]
+        public bool? IsChanged { get; set; } = false;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -51133,6 +51252,66 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MissedSessionOptionView
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("week")]
+        public System.Collections.Generic.ICollection<WeekSlotView> Week { get; set; } = new System.Collections.ObjectModel.Collection<WeekSlotView>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("lostDayName")]
+        public string LostDayName { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MissedSessionView
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("missedOn")]
+        public System.DateOnly MissedOn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("missedDayId")]
+        public System.Guid MissedDayId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("missedDayName")]
+        public string MissedDayName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("todayIsRest")]
+        public bool TodayIsRest { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("week")]
+        public System.Collections.Generic.ICollection<WeekSlotView> Week { get; set; } = new System.Collections.ObjectModel.Collection<WeekSlotView>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("swap")]
+        public MissedSessionOptionView? Swap { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("reorganize")]
+        public MissedSessionOptionView? Reorganize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("trainerName")]
+        public string? TrainerName { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class MonthlyMetricItem
     {
 
@@ -51579,6 +51758,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("today")]
         public TodayView? Today { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("missedSession")]
+        public MissedSessionView? MissedSession { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -53691,6 +53873,27 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("membershipId")]
         public System.Guid? MembershipId { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RecoverMissedSessionRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("performedDayId")]
+        public System.Guid PerformedDayId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("reorganize")]
+        public bool Reorganize { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -56284,6 +56487,12 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("muscleGroups")]
         public System.Collections.Generic.ICollection<string>? MuscleGroups { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("dayId")]
+        public System.Guid? DayId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("plannedDayName")]
+        public string? PlannedDayName { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -57585,6 +57794,36 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("offerExpiresAt")]
         public System.DateTimeOffset? OfferExpiresAt { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WeekSlotView
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("date")]
+        public System.DateOnly Date { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dayOfWeek")]
+        public int DayOfWeek { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isRest")]
+        public bool IsRest { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dayId")]
+        public System.Guid? DayId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dayName")]
+        public string? DayName { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

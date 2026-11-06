@@ -1,6 +1,6 @@
 # Sesión perdida y reorganización de la semana (SP)
 
-**Estado:** SP1 construido (2026-11-05); SP2–SP4 en diseño. Pedido el 2026-11-05. Sirve a cualquier tipo de negocio (no hay `if (tipo == …)`); pesa más en entrenador personal y estudio, donde el día cuenta al entrenar.
+**Estado:** SP1–SP4 construidos (2026-11-05), sin recorrer en navegador. Pedido el 2026-11-05. Sirve a cualquier tipo de negocio (no hay `if (tipo == …)`); pesa más en entrenador personal y estudio, donde el día cuenta al entrenar.
 
 ## 1. Qué resuelve
 
@@ -54,40 +54,49 @@ La regla de qué toca cada fecha es una sola, `RoutineCalendar`, y la usan la ra
 
 | Dónde | Qué |
 |---|---|
-| `routines.routine_day_overrides` (nueva) | `id`, `gym_id`, `member_id`, `routine_id`, `date`, `planned_day_id` (lo que tocaba), `performed_day_id` (null = perdida), `reason` (`swap` / `reorganize`), `created_at`. Índice único `(member_id, date)`. |
+| `routines.routine_day_overrides` (migración `V2_SP2_RoutineDayOverrides`) | `id`, `gym_id`, `member_id`, `routine_id`, `date`, `planned_day_id` (lo que tocaba), `performed_day_id` (lo que cuenta), `reason` (enum `routine_day_override_reason`: `swap` / `reorganize`), `created_at`, `updated_at`. Índice único `(member_id, date)`. FK a la rutina en cascada y a los días con `NO ACTION`. |
 
-Una reorganización escribe una fila por cada fecha de la semana que cambia, en una transacción. Deshacer es borrar las filas futuras de esa semana (pregunta abierta 3).
+«Perdida» no se guarda: un día que tocaba y no tiene registros de sus líneas ya es perdido, y la rutina que no cabe al reorganizar simplemente no queda en ninguna fecha. Por eso `performed_day_id` no es nulo. Una reorganización escribe una fila por cada fecha de la semana que cambia, en una transacción.
 
 ## 6. API y pantallas
 
-- `GET /api/me/routines/today`: lo que hoy devuelve más `missedYesterday` (el día perdido o null) y `options` (hacer la perdida, seguir con la de hoy).
-- `POST /api/me/routines/swap`: `{ date, performedDayId, reorganize }`. Valida que la perdida sea la de ayer y que la fecha sea hoy.
-- `GET /api/me/routines/reorganize-preview?performedDayId=…`: la semana antes/después, para el diagrama. La misma función pura que aplica la regla 5 la calcula, así que lo que se muestra es lo que se guarda.
+- `GET /api/me/routines`: `today` trae `dayId` y, si hoy cambió, `plannedDayName` (lo que tocaba). Nuevo bloque `missedSession` (nulo si no hay nada que ofrecer): el día perdido, `todayIsRest`, la semana de hoy al domingo (`week`) y, si hoy toca entrenar, cómo queda con cada opción (`swap` y, solo en rutinas semanales, `reorganize`), con la rutina que se pierde en cada una, y `trainerName` (quien asignó la rutina). La vista previa viaja aquí y no en un endpoint aparte: la misma función pura (`MissedSessionPlanner`) arma la vista previa y lo que se guarda.
+- `POST /api/me/routines/missed-session` `{ performedDayId, reorganize }`: guarda el cambio y devuelve la rutina ya cambiada. 409 si no hay sesión perdida (ya decidió, ya registró algo hoy, ayer lo hizo); 422 si el día no es el de ayer, hoy es descanso o pide reorganizar una rotativa.
+- La tarjeta de inicio del miembro (`IRoutineTodayReader`) también muestra el día cambiado.
 - **App del miembro (GO), `/app/rutina`:**
   - selector para ver y ejecutar cualquier día del plan (regla 1);
-  - tarjeta «Ayer te faltó *Pecho*» con las opciones (reglas 3 y 4);
-  - diagrama antes/después y la nota del entrenador (reglas 6 y 7).
-- **Panel:** en la ficha del miembro (pestaña Rutina) y en el historial, los días cambiados y perdidos con su etiqueta, para que el entrenador lo vea.
+  - tarjeta «Ayer te faltó *Pecho*» (`MissedSessionCard`): en descanso, «Hacer *Pecho*» abre ese día sin guardar nada; en día de entrenamiento, «Hacer *Pecho*» / «Seguir con *Pierna*»;
+  - al elegir hacerla, el diagrama antes/después de la semana con cada opción (`WeekDiagram`) y «Queda sin hacer: …»; la nota «Si no estás seguro, pregúntale a tu entrenador (nombre)»;
+  - con el cambio guardado, el aviso «Hoy haces *Pecho* en lugar de *Pierna*: cuenta como la rutina de hoy».
+- **Panel:** en el cumplimiento de la ficha del miembro (`AdherencePanel`), los días cambiados dicen «*Pecho* en lugar de *Pierna*» (`isChanged`, `plannedDayName`).
 
 ## 7. Etapas
 
 | Etapa | Qué | Tests |
 |---|---|---|
 | **SP1** ✓ | Regla 1: ver y ejecutar cualquier día del plan, registro con fecha real (registro libre, no cumple día). La API ya lo permitía; se agregó el selector de día en `/app/rutina` y lo registrado hoy de otro día reabre ese día. | `RoutineLogTests` + `RoutineOtherDayUiTests` |
-| **SP2** | Dominio + migración de `routine_day_overrides`; `RoutineCalendar` lo consulta; racha y cumplimiento con cambios. | unitarios de la función pura + integración (zona horaria Colombia) |
-| **SP3** | Reglas 2–4 con 4b-no: detectar la perdida de ayer, sugerir o preguntar, cambiar. API y pantallas. | integración HTTP + bUnit |
-| **SP4** | Regla 5 (reorganizar, solo semanal): vista previa, aplicar, diagrama antes/después, avisos. | unitarios de la regla + bUnit |
+| **SP2** ✓ | `RoutineDayOverride` + migración; `RoutineCalendar.Resolve` recibe los cambios del miembro; el cumplimiento cuenta el día con los registros del día que se hizo. | `MissedSessionPlannerTests` (puros) + `MissedSessionTests` (Postgres, reloj del gym) |
+| **SP3** ✓ | Reglas 2–4 con 4b-no: `MissedSessionPlanner.Detect`, bloque `missedSession`, `POST …/missed-session`, tarjeta en `/app/rutina`, día cambiado en la tarjeta de inicio y en el panel. | ídem + `MissedSessionUiTests` |
+| **SP4** ✓ | Regla 5 (solo semanal): la opción `reorganize` con su semana, diagrama antes/después de las dos opciones. | ídem |
 
 SP1 a SP3 es «lo básico» que pidió el dueño. SP4 puede venir después.
 
-## 8. Preguntas abiertas
+## 8. Decisiones tomadas al construir
 
-1. **Racha:** al recuperar el lunes el martes, ¿el lunes deja de cortar la racha (como si fuera un congelador gratis) o la racha solo mira si cada día se hizo lo que tocaba después del ajuste? Propuesta: el lunes sigue como fallo y gasta congelador, para no inflar la racha.
-2. **Rutinas rotativas:** ¿se reorganizan corriendo el ciclo (todo se corre un día, como la opción B anterior) o se dejan solo con cambiar?
-3. **Deshacer:** ¿puede el miembro deshacer una reorganización el mismo día? ¿Y el entrenador desde el panel?
-4. **Logros:** ¿la sesión recuperada cuenta para logros igual que una normal? Propuesta: sí, porque es su rutina asignada, no una auto-asignada.
-5. **Aviso al entrenador:** ¿recibe aviso (campana) cuando un miembro reorganiza su semana?
-6. **Semana:** ¿empieza el lunes para todos los gyms, o debe ser configurable?
+Se construyó con las propuestas del propio documento; cualquiera se puede cambiar.
+
+1. **Racha:** recuperar no perdona el día perdido. Los cambios no alteran qué fechas son de entrenamiento o de descanso, así que la racha no los lee: el lunes sigue como fallo y gasta congelador.
+2. **Rutinas rotativas:** solo cambiar; no se ofrece reorganizar.
+3. **Deshacer:** no hay en esta versión. Tampoco el entrenador puede cambiarlo desde el panel.
+4. **Logros:** la sesión recuperada cuenta igual que una normal (los registros son los mismos).
+5. **Aviso al entrenador:** no hay campana; lo ve en el cumplimiento de la ficha.
+6. **Semana:** de lunes a domingo para todos los gyms.
+
+Otras reglas que salieron al construir:
+
+- Solo se ofrece si hoy todavía no registró nada y no hay un cambio para hoy: empezar con la de hoy es «seguir con la de hoy» (4a). «Seguir con…» solo oculta la tarjeta; no guarda nada.
+- Solo si la rutina de ayer es la misma que la de hoy y el día perdido sigue vigente.
+- En descanso no se guarda cambio: hacer la perdida es un registro libre (SP1), que el cumplimiento muestra como «fuera de plan».
 
 ## 9. Fuera de alcance
 

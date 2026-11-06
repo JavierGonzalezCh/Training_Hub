@@ -5,12 +5,17 @@ namespace GSM.Application.Routines.Contracts;
 /// <c>missed</c> (tocaba, ya pasó y no registró), <c>today</c> (toca hoy y falta), <c>upcoming</c> (toca más
 /// adelante), <c>rest</c> (descanso planificado), <c>offplan</c> (registró un día que no tocaba) o <c>none</c>.
 /// </summary>
+/// <param name="DayName">El día que cuenta esa fecha (con un cambio del miembro, el que se hizo).</param>
+/// <param name="PlannedDayName">Con un cambio del miembro (SP), el día que tocaba según el plan.</param>
+/// <param name="IsChanged">El miembro cambió lo que tocaba esa fecha (sesión recuperada o semana reorganizada).</param>
 public sealed record AdherenceDayItem(
     DateOnly Date,
     string Status,
     string? DayName,
     int PlannedExercises,
-    int DoneExercises);
+    int DoneExercises,
+    string? PlannedDayName = null,
+    bool IsChanged = false);
 
 /// <summary>
 /// Una semana de negocio (lunes a domingo). <paramref name="CompliancePercent"/> = días hechos sobre los días que

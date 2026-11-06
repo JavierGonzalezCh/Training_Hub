@@ -86,6 +86,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "difficulty", new[] { "beginner", "intermediate", "advanced" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "exercise_type", new[] { "strength", "cardio", "mobility", "stretching", "plyometrics" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "traps", "obliques", "adductors", "abductors" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "routine_day_override_reason", new[] { "swap", "reorganize" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "schedule_mode", new[] { "rotating", "weekly" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "tracking_type", new[] { "reps_weight", "reps", "time", "distance", "time_distance", "weight_distance" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "superadmin", "impersonation_mode", new[] { "read", "write" });
@@ -4309,6 +4310,68 @@ namespace GSM.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineDayOverride", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<Guid>("PerformedDayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("performed_day_id");
+
+                    b.Property<Guid>("PlannedDayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("planned_day_id");
+
+                    b.Property<RoutineDayOverrideReason>("Reason")
+                        .HasColumnType("routines.routine_day_override_reason")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("RoutineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("routine_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_routine_day_overrides");
+
+                    b.HasIndex("PerformedDayId")
+                        .HasDatabaseName("ix_routine_day_overrides_performed_day_id");
+
+                    b.HasIndex("PlannedDayId")
+                        .HasDatabaseName("ix_routine_day_overrides_planned_day_id");
+
+                    b.HasIndex("RoutineId")
+                        .HasDatabaseName("ix_routine_day_overrides_routine_id");
+
+                    b.HasIndex("MemberId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("ix_routine_day_overrides_member_id_date");
+
+                    b.ToTable("routine_day_overrides", "routines");
+                });
+
             modelBuilder.Entity("GSM.Domain.Routines.RoutineExercise", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5785,6 +5848,30 @@ namespace GSM.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_routine_days_routines_routine_id");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Routines.RoutineDayOverride", b =>
+                {
+                    b.HasOne("GSM.Domain.Routines.RoutineDay", null)
+                        .WithMany()
+                        .HasForeignKey("PerformedDayId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_routine_day_overrides_routine_days_performed_day_id");
+
+                    b.HasOne("GSM.Domain.Routines.RoutineDay", null)
+                        .WithMany()
+                        .HasForeignKey("PlannedDayId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_routine_day_overrides_routine_days_planned_day_id");
+
+                    b.HasOne("GSM.Domain.Routines.Routine", null)
+                        .WithMany()
+                        .HasForeignKey("RoutineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_routine_day_overrides_routines_routine_id");
                 });
 
             modelBuilder.Entity("GSM.Domain.Routines.RoutineExercise", b =>
