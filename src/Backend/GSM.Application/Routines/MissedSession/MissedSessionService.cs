@@ -50,11 +50,12 @@ public sealed class MissedSessionService(IAdherenceSource source, IIdentityReade
             Slots(plan.Before),
             plan.Swap is { } swap ? Option(swap) : null,
             plan.Reorganize is { } reorganize ? Option(reorganize) : null,
+            plan.Routine.Mode == ScheduleMode.Rotating,
             trainer);
     }
 
     private static MissedSessionOptionView Option(MissedSessionOption option)
-        => new(Slots(option.Week), option.LostDayName);
+        => new(Slots(option.Week), option.LostDayName, option.ShiftsCycle);
 
     private static List<WeekSlotView> Slots(IReadOnlyList<WeekSlot> week)
         => week.Select(s => new WeekSlotView(s.Date, IsoWeekDay.Of(s.Date), s.IsRest, s.DayId, s.DayName)).ToList();
@@ -95,15 +96,18 @@ public sealed class RecoverMissedSessionHandler(
                 "Hoy es descanso: puedes hacer la rutina de ayer sin cambiar tu semana.");
         }
 
-        var option = request.Reorganize
-            ? plan.Reorganize ?? throw new ValidationDomainException("Solo las rutinas por día de la semana se reorganizan.")
-            : plan.Swap!;
-        var reason = request.Reorganize ? RoutineDayOverrideReason.Reorganize : RoutineDayOverrideReason.Swap;
+        var option = request.Reorganize ? plan.Reorganize! : plan.Swap!;
+        var reason = !request.Reorganize ? RoutineDayOverrideReason.Swap
+            : option.ShiftsCycle ? RoutineDayOverrideReason.Shift
+            : RoutineDayOverrideReason.Reorganize;
 
-        // Reemplaza los cambios que hubiera de hoy al domingo por los de esta decisión.
-        var weekEnd = MissedSessionPlanner.WeekEndOf(today);
-        var changes = MissedSessionPlanner.Changes(option);
-        var touched = request.Reorganize ? option.Week.Select(s => s.Date).ToHashSet() : [today];
+        // Reemplaza los cambios que hubiera en las fechas que toca esta decisión. Correr el ciclo es una sola fila hoy:
+        // vale para hoy y todo lo que sigue.
+        var weekEnd = option.Week[^1].Date;
+        IReadOnlyList<PlannedOverride> changes = option.ShiftsCycle
+            ? [new PlannedOverride(today, plan.Before[0].PlannedDayId!.Value, plan.MissedDay.Id)]
+            : MissedSessionPlanner.Changes(option);
+        var touched = reason == RoutineDayOverrideReason.Reorganize ? option.Week.Select(s => s.Date).ToHashSet() : [today];
         foreach (var existing in await overrides.ListAsync(memberId, today, weekEnd, cancellationToken))
         {
             if (touched.Contains(existing.Date))

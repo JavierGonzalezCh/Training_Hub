@@ -130,13 +130,17 @@ public sealed record MyRoutineResponse(
 /// <summary>Una fecha de lo que queda de la semana (de hoy al domingo) con el día que cuenta en ella.</summary>
 public sealed record WeekSlotView(DateOnly Date, int DayOfWeek, bool IsRest, Guid? DayId, string? DayName);
 
-/// <summary>Cómo queda la semana con una decisión y qué rutina se pierde con ella.</summary>
-public sealed record MissedSessionOptionView(IReadOnlyList<WeekSlotView> Week, string LostDayName);
+/// <summary>
+/// Cómo quedan los próximos días con una decisión y qué rutina se pierde con ella. <c>ShiftsCycle</c>: corre todo el
+/// ciclo de una rotativa un día (no se pierde ninguna; <c>LostDayName</c> nulo).
+/// </summary>
+public sealed record MissedSessionOptionView(IReadOnlyList<WeekSlotView> Week, string? LostDayName, bool ShiftsCycle);
 
 /// <summary>
 /// La rutina de ayer quedó sin hacer (SP, docs/GSM-sesion-perdida.md). Hoy descansa: se sugiere hacerla
-/// (<c>Swap</c> y <c>Reorganize</c> nulos). Hoy toca entrenar: se pregunta; <c>Reorganize</c> es nulo en una rutina
-/// rotativa (solo se reorganizan las semanales). <c>TrainerName</c>: quien asignó la rutina, para «pregúntale a tu entrenador».
+/// (<c>Swap</c> y <c>Reorganize</c> nulos). Hoy toca entrenar: se pregunta. <c>Reorganize</c> en una semanal corre la
+/// semana con los descansos fijos; en una rotativa (<c>IsRotating</c>) corre todo el ciclo un día.
+/// <c>TrainerName</c>: quien asignó la rutina, para «pregúntale a tu entrenador».
 /// </summary>
 public sealed record MissedSessionView(
     DateOnly MissedOn,
@@ -146,6 +150,7 @@ public sealed record MissedSessionView(
     IReadOnlyList<WeekSlotView> Week,
     MissedSessionOptionView? Swap,
     MissedSessionOptionView? Reorganize,
+    bool IsRotating,
     string? TrainerName);
 
 /// <summary>Hacer hoy la sesión perdida de ayer: solo cambiarla (la de hoy queda perdida) o reorganizar la semana.</summary>

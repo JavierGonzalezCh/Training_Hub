@@ -37,8 +37,30 @@ public static class RoutineCalendar
         IReadOnlyList<AdherenceRoutine> ordered, DateOnly date,
         IReadOnlyDictionary<DateOnly, AdherenceOverride>? overrides = null)
     {
-        var planned = ResolvePlanned(ordered, date);
+        var planned = ResolvePlanned(ordered, date, 0);
+
+        // Rotativa con el ciclo corrido (SP): cada corrida hasta esta fecha atrasa el ciclo un día.
+        var shifts = planned.Routine is { Mode: ScheduleMode.Rotating } routine && overrides is not null
+            ? ShiftsUpTo(overrides, routine.Id, date)
+            : 0;
+        if (shifts > 0)
+        {
+            var shifted = ResolvePlanned(ordered, date, shifts);
+            if (overrides!.TryGetValue(date, out var today) && today.Reason == RoutineDayOverrideReason.Shift
+                && shifted.IsTraining)
+            {
+                // El día en que se corrió: cuenta el día corrido «en lugar de» el que tocaba antes de correr.
+                var before = ResolvePlanned(ordered, date, shifts - 1);
+                return before.Day is { } beforeDay && beforeDay.Id != shifted.Day!.Id
+                    ? shifted with { PlannedDay = beforeDay }
+                    : shifted;
+            }
+
+            planned = shifted;
+        }
+
         if (overrides is null || !overrides.TryGetValue(date, out var change)
+            || change.Reason == RoutineDayOverrideReason.Shift
             || planned.Routine is null || planned.Routine.Id != change.RoutineId || !planned.IsTraining)
         {
             return planned;
@@ -51,6 +73,11 @@ public static class RoutineCalendar
             : new Resolution(planned.Routine, performed, false, planned.Day);
     }
 
+    /// <summary>Cuántas veces se corrió el ciclo de una rutina rotativa hasta <paramref name="date"/> (incluida).</summary>
+    public static int ShiftsUpTo(IReadOnlyDictionary<DateOnly, AdherenceOverride> overrides, Guid routineId, DateOnly date)
+        => overrides.Values.Count(o =>
+            o.Reason == RoutineDayOverrideReason.Shift && o.RoutineId == routineId && o.Date <= date);
+
     /// <summary>Ajustes de un miembro indexados por fecha, para <see cref="Resolve"/>.</summary>
     public static IReadOnlyDictionary<DateOnly, AdherenceOverride> ByDate(IEnumerable<AdherenceOverride> overrides)
         => overrides.GroupBy(o => o.Date).ToDictionary(g => g.Key, g => g.First());
@@ -60,7 +87,8 @@ public static class RoutineCalendar
         => day.AddedOn <= date && (day.RetiredOn is null || date < day.RetiredOn);
 
     /// <summary>Lo que toca según el plan, sin ajustes del miembro.</summary>
-    private static Resolution ResolvePlanned(IReadOnlyList<AdherenceRoutine> ordered, DateOnly date)
+    /// <param name="shifts">Días que se corrió el ciclo (solo rotativas).</param>
+    private static Resolution ResolvePlanned(IReadOnlyList<AdherenceRoutine> ordered, DateOnly date, int shifts)
     {
         var routine = ordered.FirstOrDefault(r =>
             r.StartsOn <= date && (r.DeactivatedOn is null || date <= r.DeactivatedOn));
@@ -87,7 +115,7 @@ public static class RoutineCalendar
 
         // Rotativo: el ciclo de ese día tiene los días vigentes ese día, ordenados por posición.
         var cycle = inForce.OrderBy(d => d.Position).ThenBy(d => d.AddedOn).ToList();
-        var current = cycle[RoutineCycle.PositionOn(routine.StartsOn, cycle.Count, date) - 1];
+        var current = cycle[RoutineCycle.PositionOn(routine.StartsOn, cycle.Count, date.AddDays(-shifts)) - 1];
         return new Resolution(routine, current, current.IsRest);
     }
 }

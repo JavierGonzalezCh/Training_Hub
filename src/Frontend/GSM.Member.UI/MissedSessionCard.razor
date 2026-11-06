@@ -34,7 +34,9 @@
                 <MudText Typo="Typo.body2" Class="mb-2">
                     @(Missed.Reorganize is null
                         ? $"Hoy haces {Missed.MissedDayName} y {TodayName} queda sin hacer. El resto de tu semana no cambia."
-                        : "¿Reorganizas tu semana? Así queda con cada opción:")
+                        : Missed.Reorganize.ShiftsCycle
+                            ? "¿Corres tu rutina? Así quedan tus próximos días con cada opción:"
+                            : "¿Reorganizas tu semana? Así queda con cada opción:")
                 </MudText>
 
                 <div class="gsm-missed__options">
@@ -50,11 +52,20 @@
                     @if (Missed.Reorganize is { } reorganize)
                     {
                         <div class="gsm-missed__option" data-testid="missed-option-reorganize">
-                            <h3 class="gsm-missed__option-title">Reorganizar la semana</h3>
+                            <h3 class="gsm-missed__option-title">@(reorganize.ShiftsCycle ? "Correr toda la rutina" : "Reorganizar la semana")</h3>
                             <WeekDiagram Before="Missed.Week" After="reorganize.Week" />
-                            <p class="gsm-missed__lost">Los descansos no se mueven. Queda sin hacer: <strong>@reorganize.LostDayName</strong></p>
+                            @if (reorganize.ShiftsCycle)
+                            {
+                                <p class="gsm-missed__lost">Todo se corre un día, también los descansos. No se pierde ninguna rutina.</p>
+                            }
+                            else
+                            {
+                                <p class="gsm-missed__lost">Los descansos no se mueven. Queda sin hacer: <strong>@reorganize.LostDayName</strong></p>
+                            }
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                                       Disabled="_saving" data-testid="missed-confirm-reorganize" OnClick="() => RecoverAsync(true)">Reorganizar</MudButton>
+                                       Disabled="_saving" data-testid="missed-confirm-reorganize" OnClick="() => RecoverAsync(true)">
+                                @(reorganize.ShiftsCycle ? "Correr la rutina" : "Reorganizar")
+                            </MudButton>
                         </div>
                     }
                 </div>
@@ -97,7 +108,11 @@
                 PerformedDayId = Missed.MissedDayId,
                 Reorganize = reorganize,
             });
-            Snackbar.Add(reorganize ? "Listo: reorganizamos tu semana." : $"Listo: hoy haces {Missed.MissedDayName}.", Severity.Success);
+            Snackbar.Add(
+                !reorganize ? $"Listo: hoy haces {Missed.MissedDayName}."
+                : Missed.Reorganize?.ShiftsCycle == true ? "Listo: corrimos tu rutina un día."
+                : "Listo: reorganizamos tu semana.",
+                Severity.Success);
             _dismissed = true;
             await OnRecovered.InvokeAsync(response);
         }

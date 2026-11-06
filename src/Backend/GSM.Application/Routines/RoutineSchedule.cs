@@ -39,7 +39,11 @@ public static class RoutineSchedule
         Routine routine, DateOnly date, Abstractions.IRoutineDayOverrideRepository overrides, Guid memberId,
         CancellationToken cancellationToken)
     {
-        var day = DayOn(routine, date);
+        // Rotativa con el ciclo corrido: cada corrida hasta esta fecha atrasa el ciclo un día.
+        var shifts = routine.ScheduleMode == ScheduleMode.Rotating
+            ? await overrides.CountShiftsAsync(memberId, routine.Id, date, cancellationToken)
+            : 0;
+        var day = DayOn(routine, date.AddDays(-shifts));
         if (day is null || day.IsRest)
         {
             return (day, null);
@@ -47,6 +51,13 @@ public static class RoutineSchedule
 
         var change = (await overrides.ListAsync(memberId, date, date, cancellationToken))
             .FirstOrDefault(o => o.RoutineId == routine.Id);
+        if (change?.Reason == RoutineDayOverrideReason.Shift)
+        {
+            // El día en que se corrió: cuenta el corrido «en lugar de» el que tocaba antes de correr.
+            var before = DayOn(routine, date.AddDays(-(shifts - 1)));
+            return before is null || before.Id == day.Id ? (day, null) : (day, before);
+        }
+
         var performed = change is null ? null
             : routine.Days.FirstOrDefault(d => d.Id == change.PerformedDayId && !d.IsRest);
         return performed is null || performed.Id == day.Id ? (day, null) : (performed, day);

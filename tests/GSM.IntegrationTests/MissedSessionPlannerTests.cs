@@ -107,17 +107,47 @@ public sealed class MissedSessionPlannerTests
     }
 
     [Fact]
-    public void A_rotating_routine_can_only_swap()
+    public void A_rotating_routine_shifts_the_whole_cycle_including_rest_and_loses_nothing()
     {
-        var a = new AdherenceDay(Guid.CreateVersion7(), 1, false, null, Monday, null, "A", [new AdherenceLine(Guid.CreateVersion7(), null)]);
-        var b = new AdherenceDay(Guid.CreateVersion7(), 2, false, null, Monday, null, "B", [new AdherenceLine(Guid.CreateVersion7(), null)]);
-        var rotating = new AdherenceRoutine(Member, Guid.CreateVersion7(), "Rot", false, ScheduleMode.Rotating, Monday, null, true, [a, b]);
+        // Ciclo A · B · descanso desde el lunes. Faltó A el lunes; hoy martes toca B.
+        var (a, b, rest, rotating) = Rotating();
 
         var plan = Detect(Day(1), routine: rotating)!;
 
         Assert.Equal(a.Id, plan.MissedDay.Id);
-        Assert.NotNull(plan.Swap);
-        Assert.Null(plan.Reorganize);
+        Assert.Equal(["B", "Descanso", "A", "B", "Descanso", "A", "B"], plan.Before.Select(s => s.DayName));
+        Assert.Equal("B", plan.Swap!.LostDayName);
+        Assert.True(plan.Reorganize!.ShiftsCycle);
+        Assert.Null(plan.Reorganize.LostDayName);
+        Assert.Equal(["A", "B", "Descanso", "A", "B", "Descanso", "A"], plan.Reorganize.Week.Select(s => s.DayName));
+    }
+
+    [Fact]
+    public void A_shift_stays_in_force_after_its_date_and_marks_only_its_own_day_as_changed()
+    {
+        var (a, b, rest, rotating) = Rotating();
+        var shift = RoutineCalendar.ByDate(
+            [new AdherenceOverride(Member, rotating.Id, Day(1), b.Id, a.Id, RoutineDayOverrideReason.Shift)]);
+        var ordered = RoutineCalendar.Order([rotating]);
+
+        var tuesday = RoutineCalendar.Resolve(ordered, Day(1), shift);
+        Assert.Equal(a.Id, tuesday.Day!.Id);
+        Assert.Equal(b.Id, tuesday.PlannedDay!.Id);
+
+        var nextMonday = RoutineCalendar.Resolve(ordered, Day(7), shift);
+        Assert.Equal(a.Id, nextMonday.Day!.Id);   // sin correr tocaba B
+        Assert.False(nextMonday.IsOverridden);
+
+        Assert.True(RoutineCalendar.Resolve(ordered, Day(3), shift).IsPlannedRest); // el descanso se corrió al jueves
+        Assert.Equal(a.Id, RoutineCalendar.Resolve(ordered, Day(0), shift).Day!.Id); // el pasado no cambia
+    }
+
+    private static (AdherenceDay A, AdherenceDay B, AdherenceDay RestDay, AdherenceRoutine Routine) Rotating()
+    {
+        var a = new AdherenceDay(Guid.CreateVersion7(), 1, false, null, Monday, null, "A", [new AdherenceLine(Guid.CreateVersion7(), null)]);
+        var b = new AdherenceDay(Guid.CreateVersion7(), 2, false, null, Monday, null, "B", [new AdherenceLine(Guid.CreateVersion7(), null)]);
+        var rest = new AdherenceDay(Guid.CreateVersion7(), 3, true, null, Monday, null, "Descanso", []);
+        return (a, b, rest, new AdherenceRoutine(Member, Guid.CreateVersion7(), "Rot", false, ScheduleMode.Rotating, Monday, null, true, [a, b, rest]));
     }
 
     [Fact]

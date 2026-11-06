@@ -16,6 +16,13 @@ public sealed class RoutineDayOverrideRepository(GsmDbContext dbContext) : IRout
             .OrderBy(o => o.Date)
             .ToListAsync(cancellationToken);
 
+    public Task<int> CountShiftsAsync(
+        Guid memberId, Guid routineId, DateOnly upTo, CancellationToken cancellationToken = default)
+        => Overrides.CountAsync(
+            o => o.MemberId == memberId && o.RoutineId == routineId
+                 && o.Reason == RoutineDayOverrideReason.Shift && o.Date <= upTo,
+            cancellationToken);
+
     public void Add(RoutineDayOverride change) => Overrides.Add(change);
 
     public void Remove(RoutineDayOverride change) => Overrides.Remove(change);

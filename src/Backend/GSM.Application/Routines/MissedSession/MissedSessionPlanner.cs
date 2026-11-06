@@ -7,13 +7,17 @@ namespace GSM.Application.Routines.MissedSession;
 /// <param name="PlannedDayId">El día que toca según el plan, sin ajustes del miembro.</param>
 public sealed record WeekSlot(DateOnly Date, bool IsRest, Guid? DayId, string? DayName, Guid? PlannedDayId);
 
-/// <summary>Una de las dos salidas al recuperar la sesión perdida: cómo queda la semana y qué rutina se pierde.</summary>
-public sealed record MissedSessionOption(IReadOnlyList<WeekSlot> Week, string LostDayName);
+/// <summary>
+/// Una de las dos salidas al recuperar la sesión perdida: cómo quedan los próximos días y qué rutina se pierde
+/// (<c>null</c> al correr el ciclo de una rotativa: no se pierde ninguna).
+/// </summary>
+public sealed record MissedSessionOption(IReadOnlyList<WeekSlot> Week, string? LostDayName, bool ShiftsCycle = false);
 
 /// <summary>
 /// La sesión perdida de ayer (SP, docs/GSM-sesion-perdida.md): qué faltó, cómo está la semana y, si hoy toca entrenar,
-/// cómo queda con cada decisión. <see cref="Swap"/> es nulo si hoy es descanso (solo se sugiere hacerla);
-/// <see cref="Reorganize"/>, además, si la rutina es rotativa (solo se reorganizan las semanales).
+/// cómo queda con cada decisión. <see cref="Swap"/> y <see cref="Reorganize"/> son nulos si hoy es descanso (solo se
+/// sugiere hacerla). En una semanal, reorganizar corre la semana con los descansos fijos; en una rotativa, corre todo
+/// el ciclo un día.
 /// </summary>
 public sealed record MissedSessionPlan(
     AdherenceRoutine Routine,
@@ -78,7 +82,10 @@ public static class MissedSessionPlanner
             return null;
         }
 
-        var before = Week(ordered, overrides, today);
+        var rotating = current.Routine.Mode == ScheduleMode.Rotating;
+        // Semanal: hasta el domingo (la regla 5 es dentro de la semana). Rotativa: los próximos 7 días.
+        var until = rotating ? today.AddDays(6) : WeekEndOf(today);
+        var before = Week(ordered, overrides, today, until);
         if (!current.IsTraining)
         {
             return new MissedSessionPlan(current.Routine, yesterday, missedDay, true, before, null, null);
@@ -89,25 +96,36 @@ public static class MissedSessionPlanner
         swapped[0] = swapped[0] with { DayId = missedDay.Id, DayName = NameOf(missedDay) };
         var swap = new MissedSessionOption(swapped, NameOf(current.Day!));
 
-        // Regla 5: los descansos quedan fijos y las rutinas se corren en orden dentro de la semana; la última no cabe.
-        MissedSessionOption? reorganize = null;
-        if (current.Routine.Mode == ScheduleMode.Weekly)
+        MissedSessionOption reorganize;
+        if (rotating)
         {
-            var shifted = before.ToList();
-            var carry = (Id: (Guid?)missedDay.Id, Name: (string?)NameOf(missedDay));
-            for (var i = 0; i < shifted.Count; i++)
+            // Rotativa: todo el ciclo se corre un día (también los descansos); no se pierde ninguna.
+            var withShift = new Dictionary<DateOnly, AdherenceOverride>(overrides)
             {
-                if (shifted[i].IsRest)
+                [today] = new AdherenceOverride(
+                    current.Routine.MemberId, current.Routine.Id, today, current.Day!.Id, missedDay.Id,
+                    RoutineDayOverrideReason.Shift),
+            };
+            reorganize = new MissedSessionOption(Week(ordered, withShift, today, until), null, ShiftsCycle: true);
+        }
+        else
+        {
+            // Regla 5: los descansos quedan fijos y las rutinas se corren en orden dentro de la semana; la última no cabe.
+            var moved = before.ToList();
+            var carry = (Id: (Guid?)missedDay.Id, Name: (string?)NameOf(missedDay));
+            for (var i = 0; i < moved.Count; i++)
+            {
+                if (moved[i].IsRest)
                 {
                     continue;
                 }
 
-                var displaced = (Id: shifted[i].DayId, Name: shifted[i].DayName);
-                shifted[i] = shifted[i] with { DayId = carry.Id, DayName = carry.Name };
+                var displaced = (Id: moved[i].DayId, Name: moved[i].DayName);
+                moved[i] = moved[i] with { DayId = carry.Id, DayName = carry.Name };
                 carry = displaced;
             }
 
-            reorganize = new MissedSessionOption(shifted, carry.Name ?? "?");
+            reorganize = new MissedSessionOption(moved, carry.Name ?? "?");
         }
 
         return new MissedSessionPlan(current.Routine, yesterday, missedDay, false, before, swap, reorganize);
@@ -123,14 +141,15 @@ public static class MissedSessionPlanner
             .Select(s => new PlannedOverride(s.Date, s.PlannedDayId!.Value, s.DayId!.Value))
             .ToList();
 
-    /// <summary>De hoy al domingo, con lo que cuenta en cada fecha según <see cref="RoutineCalendar"/>.</summary>
+    /// <summary>De hoy a <paramref name="until"/>, con lo que cuenta en cada fecha según <see cref="RoutineCalendar"/>.</summary>
     private static List<WeekSlot> Week(
         IReadOnlyList<AdherenceRoutine> ordered,
         IReadOnlyDictionary<DateOnly, AdherenceOverride> overrides,
-        DateOnly today)
+        DateOnly today,
+        DateOnly until)
     {
         var slots = new List<WeekSlot>(7);
-        for (var date = today; date <= WeekEndOf(today); date = date.AddDays(1))
+        for (var date = today; date <= until; date = date.AddDays(1))
         {
             var resolution = RoutineCalendar.Resolve(ordered, date, overrides);
             var planned = resolution.PlannedDay ?? resolution.Day;

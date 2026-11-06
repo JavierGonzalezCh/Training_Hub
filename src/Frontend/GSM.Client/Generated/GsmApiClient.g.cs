@@ -51259,7 +51259,10 @@ namespace GSM.Client.Generated
         public System.Collections.Generic.ICollection<WeekSlotView> Week { get; set; } = new System.Collections.ObjectModel.Collection<WeekSlotView>();
 
         [System.Text.Json.Serialization.JsonPropertyName("lostDayName")]
-        public string LostDayName { get; set; } = default!;
+        public string? LostDayName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("shiftsCycle")]
+        public bool ShiftsCycle { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -51296,6 +51299,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("reorganize")]
         public MissedSessionOptionView? Reorganize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isRotating")]
+        public bool IsRotating { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("trainerName")]
         public string? TrainerName { get; set; } = default!;

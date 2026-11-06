@@ -9,6 +9,10 @@ public interface IRoutineDayOverrideRepository
     Task<IReadOnlyList<RoutineDayOverride>> ListAsync(
         Guid memberId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 
+    /// <summary>Cuántas veces se corrió el ciclo de la rutina hasta <paramref name="upTo"/> (incluida).</summary>
+    Task<int> CountShiftsAsync(
+        Guid memberId, Guid routineId, DateOnly upTo, CancellationToken cancellationToken = default);
+
     void Add(RoutineDayOverride change);
 
     void Remove(RoutineDayOverride change);

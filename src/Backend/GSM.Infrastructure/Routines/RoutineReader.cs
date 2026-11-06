@@ -86,11 +86,17 @@ public sealed class RoutineReader(GsmDbContext dbContext, IClock clock) : IRouti
                 .Select(d => new AdherenceDay(d.Id, d.Position, d.IsRest, d.DayOfWeek, d.AddedOn, d.RetiredOn, d.Name, []))
                 .ToList())));
 
-        // R2b: cada fecha se juzga con lo que estaba vigente ese día (regla única en RoutineCalendar). Los ajustes del
-        // miembro (SP) no cambian qué fechas son de entrenamiento o descanso, solo qué día cuenta: la racha no los necesita.
+        // Cambiar o reorganizar (SP) no mueve qué fechas son de entrenamiento o descanso; correr el ciclo de una rotativa
+        // sí (el descanso también se corre), así que la racha lee esas filas.
+        var shifts = RoutineCalendar.ByDate(await dbContext.Set<RoutineDayOverride>().AsNoTracking()
+            .Where(o => o.MemberId == memberId && o.Reason == RoutineDayOverrideReason.Shift && o.Date <= to)
+            .Select(o => new AdherenceOverride(o.MemberId, o.RoutineId, o.Date, o.PlannedDayId, o.PerformedDayId, o.Reason))
+            .ToListAsync(cancellationToken));
+
+        // R2b: cada fecha se juzga con lo que estaba vigente ese día (regla única en RoutineCalendar).
         for (var date = from; date <= to; date = date.AddDays(1))
         {
-            var resolution = RoutineCalendar.Resolve(ordered, date);
+            var resolution = RoutineCalendar.Resolve(ordered, date, shifts);
             if (resolution.IsTraining)
             {
                 training.Add(date);

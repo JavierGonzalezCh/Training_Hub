@@ -33211,7 +33211,8 @@
       "MissedSessionOptionView": {
         "required": [
           "week",
-          "lostDayName"
+          "lostDayName",
+          "shiftsCycle"
         ],
         "type": "object",
         "properties": {
@@ -33222,7 +33223,13 @@
             }
           },
           "lostDayName": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shiftsCycle": {
+            "type": "boolean"
           }
         }
       },
@@ -33235,6 +33242,7 @@
           "week",
           "swap",
           "reorganize",
+          "isRotating",
           "trainerName"
         ],
         "type": "object",
@@ -33278,6 +33286,9 @@
                 "$ref": "#/components/schemas/MissedSessionOptionView"
               }
             ]
+          },
+          "isRotating": {
+            "type": "boolean"
           },
           "trainerName": {
             "type": [

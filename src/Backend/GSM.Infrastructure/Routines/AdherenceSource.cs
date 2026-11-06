@@ -44,7 +44,9 @@ public sealed class AdherenceSource(GsmDbContext dbContext) : IAdherenceSource
             .ToListAsync(cancellationToken);
 
         var overrides = await dbContext.Set<RoutineDayOverride>().AsNoTracking()
-            .Where(o => memberIds.Contains(o.MemberId) && o.Date >= from && o.Date <= to)
+            // Correr el ciclo vale desde su fecha en adelante: esas filas se leen aunque sean de antes de la ventana.
+            .Where(o => memberIds.Contains(o.MemberId) && o.Date <= to
+                        && (o.Date >= from || o.Reason == RoutineDayOverrideReason.Shift))
             .Select(o => new AdherenceOverride(o.MemberId, o.RoutineId, o.Date, o.PlannedDayId, o.PerformedDayId, o.Reason))
             .ToListAsync(cancellationToken);
 

@@ -48,20 +48,20 @@ La regla de qué toca cada fecha es una sola, `RoutineCalendar`, y la usan la ra
 
 - **Todo vive en Routines.** No hay escritura cruzada nueva ni puertos nuevos. Attendance ya cuenta el día por entrenamiento con `RoutineExerciseLogged`, sin saber de qué día era la rutina.
 - **Sin proceso en segundo plano.** «Perdida» se deriva al leer, como el cumplimiento: ayer tocaba entrenar (`RoutineCalendar`) y no hay registros. Solo se persiste lo que decide el miembro: el cambio y la reorganización.
-- **Rutinas rotativas** (`ScheduleMode.Rotating`): la regla 5 habla de semana y de descansos fijos, así que en la primera versión **solo se reorganizan las semanales**. En una rotativa se ofrece solo cambiar (4b-no). Ver la pregunta abierta 2.
+- **Rutinas rotativas** (`ScheduleMode.Rotating`): la regla 5 habla de semana y de descansos fijos, que en un ciclo no existen. Por eso en una rotativa «reorganizar» es **correr toda la rutina un día**: hoy la de ayer, mañana la de hoy, y así; los descansos también se corren y no se pierde ninguna. Se guarda una sola fila (`reason = shift`) con la fecha de hoy, que vale para esa fecha y todas las siguientes: `RoutineCalendar` atrasa el ciclo un día por cada corrida hasta esa fecha. Como sí cambia qué fechas son descanso, la racha lee esas filas.
 
 ## 5. Datos (borrador)
 
 | Dónde | Qué |
 |---|---|
-| `routines.routine_day_overrides` (migración `V2_SP2_RoutineDayOverrides`) | `id`, `gym_id`, `member_id`, `routine_id`, `date`, `planned_day_id` (lo que tocaba), `performed_day_id` (lo que cuenta), `reason` (enum `routine_day_override_reason`: `swap` / `reorganize`), `created_at`, `updated_at`. Índice único `(member_id, date)`. FK a la rutina en cascada y a los días con `NO ACTION`. |
+| `routines.routine_day_overrides` (migración `V2_SP2_RoutineDayOverrides`) | `id`, `gym_id`, `member_id`, `routine_id`, `date`, `planned_day_id` (lo que tocaba), `performed_day_id` (lo que cuenta), `reason` (enum `routine_day_override_reason`: `swap` / `reorganize` / `shift`), `created_at`, `updated_at`. Índice único `(member_id, date)`. FK a la rutina en cascada y a los días con `NO ACTION`. |
 
 «Perdida» no se guarda: un día que tocaba y no tiene registros de sus líneas ya es perdido, y la rutina que no cabe al reorganizar simplemente no queda en ninguna fecha. Por eso `performed_day_id` no es nulo. Una reorganización escribe una fila por cada fecha de la semana que cambia, en una transacción.
 
 ## 6. API y pantallas
 
-- `GET /api/me/routines`: `today` trae `dayId` y, si hoy cambió, `plannedDayName` (lo que tocaba). Nuevo bloque `missedSession` (nulo si no hay nada que ofrecer): el día perdido, `todayIsRest`, la semana de hoy al domingo (`week`) y, si hoy toca entrenar, cómo queda con cada opción (`swap` y, solo en rutinas semanales, `reorganize`), con la rutina que se pierde en cada una, y `trainerName` (quien asignó la rutina). La vista previa viaja aquí y no en un endpoint aparte: la misma función pura (`MissedSessionPlanner`) arma la vista previa y lo que se guarda.
-- `POST /api/me/routines/missed-session` `{ performedDayId, reorganize }`: guarda el cambio y devuelve la rutina ya cambiada. 409 si no hay sesión perdida (ya decidió, ya registró algo hoy, ayer lo hizo); 422 si el día no es el de ayer, hoy es descanso o pide reorganizar una rotativa.
+- `GET /api/me/routines`: `today` trae `dayId` y, si hoy cambió, `plannedDayName` (lo que tocaba). Nuevo bloque `missedSession` (nulo si no hay nada que ofrecer): el día perdido, `todayIsRest`, la semana de hoy al domingo (`week`) y, si hoy toca entrenar, cómo queda con cada opción (`swap` y `reorganize`: en semanales corre la semana; en rotativas, con `shiftsCycle`, corre todo el ciclo y no pierde ninguna), con la rutina que se pierde en cada una, `isRotating`, y `trainerName` (quien asignó la rutina). La vista previa viaja aquí y no en un endpoint aparte: la misma función pura (`MissedSessionPlanner`) arma la vista previa y lo que se guarda.
+- `POST /api/me/routines/missed-session` `{ performedDayId, reorganize }`: guarda el cambio y devuelve la rutina ya cambiada. 409 si no hay sesión perdida (ya decidió, ya registró algo hoy, ayer lo hizo); 422 si el día no es el de ayer o hoy es descanso.
 - La tarjeta de inicio del miembro (`IRoutineTodayReader`) también muestra el día cambiado.
 - **App del miembro (GO), `/app/rutina`:**
   - selector para ver y ejecutar cualquier día del plan (regla 1);
@@ -77,7 +77,7 @@ La regla de qué toca cada fecha es una sola, `RoutineCalendar`, y la usan la ra
 | **SP1** ✓ | Regla 1: ver y ejecutar cualquier día del plan, registro con fecha real (registro libre, no cumple día). La API ya lo permitía; se agregó el selector de día en `/app/rutina` y lo registrado hoy de otro día reabre ese día. | `RoutineLogTests` + `RoutineOtherDayUiTests` |
 | **SP2** ✓ | `RoutineDayOverride` + migración; `RoutineCalendar.Resolve` recibe los cambios del miembro; el cumplimiento cuenta el día con los registros del día que se hizo. | `MissedSessionPlannerTests` (puros) + `MissedSessionTests` (Postgres, reloj del gym) |
 | **SP3** ✓ | Reglas 2–4 con 4b-no: `MissedSessionPlanner.Detect`, bloque `missedSession`, `POST …/missed-session`, tarjeta en `/app/rutina`, día cambiado en la tarjeta de inicio y en el panel. | ídem + `MissedSessionUiTests` |
-| **SP4** ✓ | Regla 5 (solo semanal): la opción `reorganize` con su semana, diagrama antes/después de las dos opciones. | ídem |
+| **SP4** ✓ | Regla 5: en semanales corre la semana con los descansos fijos; en rotativas corre todo el ciclo un día (`shift`). Diagrama antes/después de las dos opciones. | ídem |
 
 SP1 a SP3 es «lo básico» que pidió el dueño. SP4 puede venir después.
 
@@ -85,8 +85,8 @@ SP1 a SP3 es «lo básico» que pidió el dueño. SP4 puede venir después.
 
 Se construyó con las propuestas del propio documento; cualquiera se puede cambiar.
 
-1. **Racha:** recuperar no perdona el día perdido. Los cambios no alteran qué fechas son de entrenamiento o de descanso, así que la racha no los lee: el lunes sigue como fallo y gasta congelador.
-2. **Rutinas rotativas:** solo cambiar; no se ofrece reorganizar.
+1. **Racha:** recuperar no perdona el día perdido: ayer sigue como fallo y gasta congelador. Cambiar y reorganizar no alteran qué fechas son de entrenamiento o descanso; correr el ciclo sí, y la racha lo tiene en cuenta desde esa fecha.
+2. **Rutinas rotativas:** se ofrecen «solo cambiar» y «correr toda la rutina» (todo el ciclo un día, sin perder ninguna).
 3. **Deshacer:** no hay en esta versión. Tampoco el entrenador puede cambiarlo desde el panel.
 4. **Logros:** la sesión recuperada cuenta igual que una normal (los registros son los mismos).
 5. **Aviso al entrenador:** no hay campana; lo ve en el cumplimiento de la ficha.

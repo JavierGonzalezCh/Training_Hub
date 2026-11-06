@@ -11,6 +11,12 @@ public enum RoutineDayOverrideReason
 
     /// <summary>Corrió la semana: las rutinas se corren en orden, los descansos quedan fijos.</summary>
     Reorganize,
+
+    /// <summary>
+    /// Rutina rotativa: corrió todo el ciclo un día desde esta fecha (hoy la de ayer, mañana la de hoy…). Los descansos
+    /// también se corren y no se pierde ninguna. Una fila por corrida; vale para esa fecha y todas las siguientes.
+    /// </summary>
+    Shift,
 }
 
 /// <summary>

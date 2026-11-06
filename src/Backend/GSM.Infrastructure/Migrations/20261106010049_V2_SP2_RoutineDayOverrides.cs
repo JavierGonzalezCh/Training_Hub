@@ -64,7 +64,7 @@ namespace GSM.Infrastructure.Migrations
                 .Annotation("Npgsql:Enum:routines.difficulty", "beginner,intermediate,advanced")
                 .Annotation("Npgsql:Enum:routines.exercise_type", "strength,cardio,mobility,stretching,plyometrics")
                 .Annotation("Npgsql:Enum:routines.muscle", "chest,back,shoulders,biceps,triceps,forearms,quadriceps,hamstrings,glutes,calves,abs,lower_back,neck,full_body,traps,obliques,adductors,abductors")
-                .Annotation("Npgsql:Enum:routines.routine_day_override_reason", "swap,reorganize")
+                .Annotation("Npgsql:Enum:routines.routine_day_override_reason", "swap,reorganize,shift")
                 .Annotation("Npgsql:Enum:routines.schedule_mode", "rotating,weekly")
                 .Annotation("Npgsql:Enum:routines.tracking_type", "reps_weight,reps,time,distance,time_distance,weight_distance")
                 .Annotation("Npgsql:Enum:superadmin.impersonation_mode", "read,write")
@@ -302,7 +302,7 @@ namespace GSM.Infrastructure.Migrations
                 .OldAnnotation("Npgsql:Enum:routines.difficulty", "beginner,intermediate,advanced")
                 .OldAnnotation("Npgsql:Enum:routines.exercise_type", "strength,cardio,mobility,stretching,plyometrics")
                 .OldAnnotation("Npgsql:Enum:routines.muscle", "chest,back,shoulders,biceps,triceps,forearms,quadriceps,hamstrings,glutes,calves,abs,lower_back,neck,full_body,traps,obliques,adductors,abductors")
-                .OldAnnotation("Npgsql:Enum:routines.routine_day_override_reason", "swap,reorganize")
+                .OldAnnotation("Npgsql:Enum:routines.routine_day_override_reason", "swap,reorganize,shift")
                 .OldAnnotation("Npgsql:Enum:routines.schedule_mode", "rotating,weekly")
                 .OldAnnotation("Npgsql:Enum:routines.tracking_type", "reps_weight,reps,time,distance,time_distance,weight_distance")
                 .OldAnnotation("Npgsql:Enum:superadmin.impersonation_mode", "read,write");

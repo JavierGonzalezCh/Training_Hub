@@ -93,8 +93,9 @@ public class MissedSessionUiTests : TestContext
                     missedDayName = "Pecho",
                     todayIsRest,
                     week = new[] { Slot("2026-11-03", 2, false, LegDay, "Pierna"), Slot("2026-11-04", 3, true, null, "Descanso") },
-                    swap = todayIsRest ? null : new { week = changedWeek, lostDayName = "Pierna" },
-                    reorganize = todayIsRest || !weekly ? null : new { week = changedWeek, lostDayName = "Hombro" },
+                    isRotating = !weekly,
+                    swap = todayIsRest ? null : new { week = changedWeek, lostDayName = (string?)"Pierna", shiftsCycle = false },
+                    reorganize = todayIsRest ? null : new { week = changedWeek, lostDayName = weekly ? (string?)"Hombro" : null, shiftsCycle = !weekly },
                     trainerName = "Laura",
                 },
             });
@@ -166,16 +167,18 @@ public class MissedSessionUiTests : TestContext
     }
 
     [Fact]
-    public void A_rotating_routine_only_offers_to_swap()
+    public void A_rotating_routine_offers_to_shift_the_whole_cycle_without_losing_any()
     {
         var cut = Render(weekly: false);
 
         Click(cut, "missed-do");
 
-        Assert.Empty(cut.FindAll("[data-testid='missed-option-reorganize']"));
-        Click(cut, "missed-confirm-swap");
+        var option = cut.Find("[data-testid='missed-option-reorganize']").TextContent;
+        Assert.Contains("Correr toda la rutina", option);
+        Assert.Contains("No se pierde ninguna rutina", option);
+        Click(cut, "missed-confirm-reorganize");
         cut.WaitForAssertion(() => Assert.True(_api.Recovered));
-        Assert.Contains("\"reorganize\":false", _api.Body!.Replace(" ", ""));
+        Assert.Contains("\"reorganize\":true", _api.Body!.Replace(" ", ""));
     }
 
     [Fact]

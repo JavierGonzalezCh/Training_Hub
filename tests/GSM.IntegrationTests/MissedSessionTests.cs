@@ -108,6 +108,40 @@ public sealed class MissedSessionTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
+    public async Task A_rotating_routine_shifts_the_whole_cycle_from_today_on()
+    {
+        var w = await SeedAsync();
+        var routine = await AssignAsync(w, new SaveRoutineRequest("Ciclo", null,
+        [
+            new RoutineDayInput("A", false, [Line(w, 0)]),
+            new RoutineDayInput("B", false, [Line(w, 1)]),
+            new RoutineDayInput(null, true, []),
+        ]));
+        var a = DayNamed(routine, "A");
+
+        // Lunes A (faltó), martes B: correr el ciclo deja martes A, miércoles B, jueves descanso…
+        var missed = (await MineAsync(w, Day(1))).MissedSession!;
+        Assert.True(missed.IsRotating);
+        Assert.True(missed.Reorganize!.ShiftsCycle);
+        Assert.Null(missed.Reorganize.LostDayName);
+
+        var after = await RecoverAsync(w, Day(1), a.Id, reorganize: true);
+        Assert.Equal("A", after.Today!.DayName);
+        Assert.Equal("B", after.Today.PlannedDayName);
+
+        Assert.Equal("B", (await MineAsync(w, Day(2))).Today!.DayName);
+        Assert.True((await MineAsync(w, Day(3))).Today!.IsRest);
+        var nextMonday = (await MineAsync(w, Day(7))).Today!;
+        Assert.Equal("A", nextMonday.DayName); // sin correr tocaba B
+        Assert.Null(nextMonday.PlannedDayName);
+
+        // El cumplimiento de la semana siguiente también lo ve corrido.
+        await LogAsync(w, a.Exercises[0].Id, Day(7));
+        var days = (await AdherenceAsync(w, Day(7))).Weeks[^1].Days!;
+        Assert.Equal("done", days[0].Status);
+    }
+
+    [Fact]
     public async Task Only_yesterdays_day_can_be_recovered_and_only_once()
     {
         var (w, routine) = await SeedPlanAsync();
