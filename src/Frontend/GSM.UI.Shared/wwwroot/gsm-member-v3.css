@@ -235,5 +235,6 @@
 /* Logros: la medalla de cada logro (gris y con candado mientras falta). */
 .gsm-medal { position: relative; display: inline-block; width: 84px; height: 84px; margin-bottom: 0.5rem; }
 .gsm-medal img { width: 100%; height: 100%; object-fit: contain; }
-.gsm-medal.is-locked img { filter: grayscale(1) brightness(0.55); }
+/* Bloqueada: la medalla oscurecida en relieve; se intuye el dibujo y el color se revela al ganarla. */
+.gsm-medal.is-locked img { filter: grayscale(1) brightness(0.32) contrast(1.6); }
 .gsm-medal__lock { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gsm-bg); border: 1px solid var(--gsm-m-glass-border); color: var(--gsm-text-2); }
