@@ -227,3 +227,7 @@
 @media (min-width: 600px) {
     .gsm-m-shell:not(.gsm-m-desktop) .gsm-m-dayhero { margin: -16px -24px 1rem; }
 }
+
+/* Hoy: novedades del gym en una sola tarjeta (el título en una o dos líneas, nunca más). */
+.gsm-m-news__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gsm-m-news__more { flex: none; padding: 0.35rem 0.7rem; border-radius: 999px; background: var(--gsm-m-hot); color: #fff; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }

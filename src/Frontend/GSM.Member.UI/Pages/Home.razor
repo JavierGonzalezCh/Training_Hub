@@ -24,6 +24,7 @@
             <div class="gsm-m-home__main">
                 @Hero(member)
                 @MembershipBlock(member)
+                @NewsBlock
                 @PendingBlock
                 @EntryBlock
                 @TrainingBlock
@@ -39,6 +40,7 @@
             <div class="gsm-m-home__main">
                 @Hero(member)
                 @MembershipBlock(member)
+                @NewsBlock
                 @EntryBlock
                 @TrainingBlock
                 @BodyBlock
@@ -133,6 +135,30 @@
         else if (member.CurrentMembership is { EntriesTotal: { } passTotal } pass)
         {
             <p class="gsm-m-card__text" id="pass-balance">@PlanDurationLabels.Balance(pass.EntriesLeft ?? 0, passTotal)</p>
+        }
+    </text>;
+
+    // 2b. Novedades del gym: una sola tarjeta, solo si hay algo fijado o sin leer. Muestra el anuncio destacado y
+    // cuántos más hay sin leer; toda la tarjeta lleva a Novedades. No crece con la cantidad de anuncios.
+    private RenderFragment NewsBlock => @<text>
+        @if (GymCtx.FeatureFlags?.ShowCommunity == true && _home?.News is { Featured: { } featured } news
+             && (news.UnreadAnnouncements > 0 || featured.Pinned))
+        {
+            <a class="gsm-m-card gsm-m-news" id="home-news" href="/app/novedades">
+                <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Campaign" /></span>
+                <div class="gsm-m-card__body">
+                    <span class="gsm-m-card__kicker">@(featured.Pinned ? "Novedades · Fijado" : "Novedades")</span>
+                    <h2 class="gsm-m-card__title gsm-m-news__title">@featured.Title</h2>
+                </div>
+                @if (news.UnreadAnnouncements > 0)
+                {
+                    <span class="gsm-m-news__more" id="home-news-unread">@(news.UnreadAnnouncements == 1 ? "1 sin leer" : $"{news.UnreadAnnouncements} sin leer")</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
+                }
+            </a>
         }
     </text>;
 

@@ -140,11 +140,10 @@ public class MemberHomeUiTests : TestContext
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
 
         Assert.Empty(cut.FindAll(".gsm-m-home__side"));
-        Assert.Empty(cut.FindAll("#home-news"));
         var markup = cut.Markup;
         var order = new[]
         {
-            "gsm-m-hero", "home-notice", "home-offer", "checkin-done", "home-training",
+            "gsm-m-hero", "home-notice", "home-news", "home-offer", "checkin-done", "home-training",
             "home-next-class", "gym-open-badge", "home-progress",
         };
         var positions = order.Select(marker => markup.IndexOf(marker, StringComparison.Ordinal)).ToArray();
@@ -332,6 +331,35 @@ public class MemberHomeUiTests : TestContext
 
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
         Assert.Empty(cut.FindAll("#home-ranking"));
+    }
+
+    [Fact]
+    public void Pinned_or_unread_news_is_one_card_with_the_unread_count_that_opens_the_news()
+    {
+        var cut = RenderHome(FullHome(), narrow: true);
+
+        cut.WaitForAssertion(() =>
+        {
+            var news = cut.Find("#home-news");
+            Assert.Contains("Cierre por festivo", news.TextContent);
+            Assert.Contains("Fijado", news.TextContent);
+            Assert.Contains("2 sin leer", cut.Find("#home-news-unread").TextContent);
+            Assert.Equal("/app/novedades", news.GetAttribute("href"));
+        });
+        Assert.Single(cut.FindAll("#home-news"));
+    }
+
+    [Fact]
+    public void News_already_read_and_not_pinned_does_not_take_space_on_today()
+    {
+        var home = FullHome();
+        home.News.Featured.Pinned = false;
+        home.News.UnreadAnnouncements = 0;
+
+        var cut = RenderHome(home, narrow: true);
+
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-training")));
+        Assert.Empty(cut.FindAll("#home-news"));
     }
 
     [Fact]
