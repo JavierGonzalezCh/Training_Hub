@@ -1,67 +1,85 @@
 @* Mapa muscular: silueta propia de frente y de espalda; cada músculo del catálogo (Chest, Lower_back…) es una zona
-   que se colorea por separado. Dos usos: qué trabaja un ejercicio o un día (Primary en rojo, Secondary en rosa) y
-   la recuperación estimada (Recovery: 0–100 por músculo; cansado en rojo, recuperando en rosa, listo en gris). *@
+   que se colorea por separado. Dos usos: qué trabaja un ejercicio o un día (Primary en rojo, Secondary en naranja) y
+   la recuperación estimada (Recovery: 0–100 por músculo; cansado en rojo, recuperando en naranja, listo en gris).
+   La figura va en gris claro y los músculos en colores vivos para que se lean sobre el fondo oscuro. *@
 <div class="gsm-musclemap @(Compact ? "is-compact" : null)" role="img" aria-label="@Label" data-testid="muscle-map">
-    <svg viewBox="0 0 100 220" style="@Style" aria-hidden="true" focusable="false">
-        <g stroke="#0d0c0b" stroke-width="1.2">
-            <circle cx="50" cy="15" r="10" fill="#3a3633" />
-            <rect x="45" y="24" width="10" height="8" rx="3" fill="var(--m-neck,#2e2b29)" />
-            <path d="M38 33 L45 30 L55 30 L62 33 L56 37 L44 37 Z" fill="var(--m-traps,#2e2b29)" />
-            <ellipse cx="31" cy="43" rx="9" ry="8" fill="var(--m-shoulders,#2e2b29)" />
-            <ellipse cx="69" cy="43" rx="9" ry="8" fill="var(--m-shoulders,#2e2b29)" />
-            <path d="M39 38 Q50 36 49 40 L49 58 Q40 60 36 54 Q34 44 39 38 Z" fill="var(--m-chest,#2e2b29)" />
-            <path d="M61 38 Q50 36 51 40 L51 58 Q60 60 64 54 Q66 44 61 38 Z" fill="var(--m-chest,#2e2b29)" />
-            <rect x="42" y="61" width="16" height="40" rx="6" fill="var(--m-abs,#2e2b29)" />
-            <path d="M36 60 Q40 62 41 66 L41 98 Q36 96 35 88 Z" fill="var(--m-obliques,#2e2b29)" />
-            <path d="M64 60 Q60 62 59 66 L59 98 Q64 96 65 88 Z" fill="var(--m-obliques,#2e2b29)" />
-            <ellipse cx="25" cy="64" rx="6" ry="12" fill="var(--m-biceps,#2e2b29)" />
-            <ellipse cx="75" cy="64" rx="6" ry="12" fill="var(--m-biceps,#2e2b29)" />
-            <ellipse cx="20" cy="92" rx="5" ry="14" fill="var(--m-forearms,#2e2b29)" />
-            <ellipse cx="80" cy="92" rx="5" ry="14" fill="var(--m-forearms,#2e2b29)" />
-            <circle cx="17" cy="111" r="4" fill="#3a3633" /><circle cx="83" cy="111" r="4" fill="#3a3633" />
-            <path d="M36 102 Q50 98 64 102 L62 112 L38 112 Z" fill="var(--m-abductors,#3a3633)" />
-            <path d="M38 113 Q35 135 39 160 Q44 164 48 158 L49 118 Q44 112 38 113 Z" fill="var(--m-quadriceps,#2e2b29)" />
-            <path d="M62 113 Q65 135 61 160 Q56 164 52 158 L51 118 Q56 112 62 113 Z" fill="var(--m-quadriceps,#2e2b29)" />
-            <path d="M48 118 L49 150 Q46 146 46 132 Z" fill="var(--m-adductors,#2e2b29)" />
-            <path d="M52 118 L51 150 Q54 146 54 132 Z" fill="var(--m-adductors,#2e2b29)" />
-            <ellipse cx="43" cy="188" rx="5" ry="18" fill="var(--m-calves,#2e2b29)" />
-            <ellipse cx="57" cy="188" rx="5" ry="18" fill="var(--m-calves,#2e2b29)" />
-            <ellipse cx="42" cy="210" rx="5" ry="3" fill="#3a3633" /><ellipse cx="58" cy="210" rx="5" ry="3" fill="#3a3633" />
+    <svg viewBox="0 0 120 240" style="@Style" aria-hidden="true" focusable="false">
+        <g class="gsm-musclemap__body">
+            <ellipse cx="60" cy="18" rx="10" ry="12" />
+            <circle cx="50" cy="168" r="4" /><circle cx="70" cy="168" r="4" />
+            <ellipse cx="28" cy="116" rx="4" ry="6" /><ellipse cx="92" cy="116" rx="4" ry="6" />
+            <ellipse cx="49" cy="230" rx="6" ry="4" /><ellipse cx="71" cy="230" rx="6" ry="4" />
+        </g>
+        <g class="gsm-musclemap__muscles">
+            <path d="M54 29 L66 29 L67 38 L53 38 Z" fill="var(--m-neck,var(--m-base))" />
+            <path d="M44 40 Q52 36 54 38 L53 43 Q47 44 44 40 Z" fill="var(--m-traps,var(--m-base))" />
+            <path d="M76 40 Q68 36 66 38 L67 43 Q73 44 76 40 Z" fill="var(--m-traps,var(--m-base))" />
+            <path d="M43 41 Q31 42 29 56 Q32 60 37 58 Q41 50 46 45 Z" fill="var(--m-shoulders,var(--m-base))" />
+            <path d="M77 41 Q89 42 91 56 Q88 60 83 58 Q79 50 74 45 Z" fill="var(--m-shoulders,var(--m-base))" />
+            <path d="M47 45 Q58 43 59 47 L59 63 Q50 67 42 61 Q40 51 47 45 Z" fill="var(--m-chest,var(--m-base))" />
+            <path d="M73 45 Q62 43 61 47 L61 63 Q70 67 78 61 Q80 51 73 45 Z" fill="var(--m-chest,var(--m-base))" />
+            <path d="M30 60 Q35 58 38 62 Q39 74 35 82 Q30 82 28 76 Q27 66 30 60 Z" fill="var(--m-biceps,var(--m-base))" />
+            <path d="M90 60 Q85 58 82 62 Q81 74 85 82 Q90 82 92 76 Q93 66 90 60 Z" fill="var(--m-biceps,var(--m-base))" />
+            <path d="M28 85 Q34 83 36 87 Q35 100 31 110 Q27 111 25 108 Q24 96 28 85 Z" fill="var(--m-forearms,var(--m-base))" />
+            <path d="M92 85 Q86 83 84 87 Q85 100 89 110 Q93 111 95 108 Q96 96 92 85 Z" fill="var(--m-forearms,var(--m-base))" />
+            <rect x="52" y="67" width="7" height="8" rx="2" fill="var(--m-abs,var(--m-base))" />
+            <rect x="61" y="67" width="7" height="8" rx="2" fill="var(--m-abs,var(--m-base))" />
+            <rect x="52" y="77" width="7" height="8" rx="2" fill="var(--m-abs,var(--m-base))" />
+            <rect x="61" y="77" width="7" height="8" rx="2" fill="var(--m-abs,var(--m-base))" />
+            <rect x="52" y="87" width="7" height="8" rx="2" fill="var(--m-abs,var(--m-base))" />
+            <rect x="61" y="87" width="7" height="8" rx="2" fill="var(--m-abs,var(--m-base))" />
+            <path d="M52 97 L68 97 L66 110 Q60 114 54 110 Z" fill="var(--m-abs,var(--m-base))" />
+            <path d="M43 65 Q49 67 50 71 L50 106 Q45 102 42 94 Q40 79 43 65 Z" fill="var(--m-obliques,var(--m-base))" />
+            <path d="M77 65 Q71 67 70 71 L70 106 Q75 102 78 94 Q80 79 77 65 Z" fill="var(--m-obliques,var(--m-base))" />
+            <path d="M42 99 Q46 107 50 114 L46 120 Q40 114 40 104 Z" fill="var(--m-abductors,var(--m-base))" />
+            <path d="M78 99 Q74 107 70 114 L74 120 Q80 114 80 104 Z" fill="var(--m-abductors,var(--m-base))" />
+            <path d="M44 119 Q52 116 56 122 Q57 144 54 162 Q48 166 45 160 Q40 142 44 119 Z" fill="var(--m-quadriceps,var(--m-base))" />
+            <path d="M76 119 Q68 116 64 122 Q63 144 66 162 Q72 166 75 160 Q80 142 76 119 Z" fill="var(--m-quadriceps,var(--m-base))" />
+            <path d="M57 122 L59 124 L59 148 Q56 144 56 134 Z" fill="var(--m-adductors,var(--m-base))" />
+            <path d="M63 122 L61 124 L61 148 Q64 144 64 134 Z" fill="var(--m-adductors,var(--m-base))" />
+            <path d="M45 175 Q51 173 54 179 Q54 199 51 217 Q47 219 45 215 Q42 195 45 175 Z" fill="var(--m-calves,var(--m-base))" />
+            <path d="M75 175 Q69 173 66 179 Q66 199 69 217 Q73 219 75 215 Q78 195 75 175 Z" fill="var(--m-calves,var(--m-base))" />
         </g>
     </svg>
-    <svg viewBox="0 0 100 220" style="@Style" aria-hidden="true" focusable="false">
-        <g stroke="#0d0c0b" stroke-width="1.2">
-            <circle cx="50" cy="15" r="10" fill="#3a3633" />
-            <path d="M50 26 L64 36 L50 50 L36 36 Z" fill="var(--m-traps,#2e2b29)" />
-            <ellipse cx="31" cy="43" rx="9" ry="8" fill="var(--m-shoulders,#2e2b29)" />
-            <ellipse cx="69" cy="43" rx="9" ry="8" fill="var(--m-shoulders,#2e2b29)" />
-            <path d="M37 40 L49 52 L49 84 Q40 80 36 66 Q33 50 37 40 Z" fill="var(--m-back,#2e2b29)" />
-            <path d="M63 40 L51 52 L51 84 Q60 80 64 66 Q67 50 63 40 Z" fill="var(--m-back,#2e2b29)" />
-            <rect x="42" y="84" width="16" height="18" rx="5" fill="var(--m-lower_back,#2e2b29)" />
-            <ellipse cx="25" cy="64" rx="6" ry="12" fill="var(--m-triceps,#2e2b29)" />
-            <ellipse cx="75" cy="64" rx="6" ry="12" fill="var(--m-triceps,#2e2b29)" />
-            <ellipse cx="20" cy="92" rx="5" ry="14" fill="var(--m-forearms,#2e2b29)" />
-            <ellipse cx="80" cy="92" rx="5" ry="14" fill="var(--m-forearms,#2e2b29)" />
-            <circle cx="17" cy="111" r="4" fill="#3a3633" /><circle cx="83" cy="111" r="4" fill="#3a3633" />
-            <path d="M37 104 Q43 100 49 104 L49 122 Q41 126 37 118 Z" fill="var(--m-glutes,#2e2b29)" />
-            <path d="M63 104 Q57 100 51 104 L51 122 Q59 126 63 118 Z" fill="var(--m-glutes,#2e2b29)" />
-            <path d="M38 124 Q37 145 41 162 Q46 164 48 158 L49 126 Z" fill="var(--m-hamstrings,#2e2b29)" />
-            <path d="M62 124 Q63 145 59 162 Q54 164 52 158 L51 126 Z" fill="var(--m-hamstrings,#2e2b29)" />
-            <ellipse cx="43" cy="186" rx="6" ry="17" fill="var(--m-calves,#2e2b29)" />
-            <ellipse cx="57" cy="186" rx="6" ry="17" fill="var(--m-calves,#2e2b29)" />
-            <ellipse cx="42" cy="210" rx="5" ry="3" fill="#3a3633" /><ellipse cx="58" cy="210" rx="5" ry="3" fill="#3a3633" />
+    <svg viewBox="0 0 120 240" style="@Style" aria-hidden="true" focusable="false">
+        <g class="gsm-musclemap__body">
+            <ellipse cx="60" cy="18" rx="10" ry="12" />
+            <circle cx="50" cy="168" r="4" /><circle cx="70" cy="168" r="4" />
+            <ellipse cx="28" cy="116" rx="4" ry="6" /><ellipse cx="92" cy="116" rx="4" ry="6" />
+            <ellipse cx="49" cy="230" rx="6" ry="4" /><ellipse cx="71" cy="230" rx="6" ry="4" />
+        </g>
+        <g class="gsm-musclemap__muscles">
+            <path d="M60 29 L75 41 L66 58 L60 64 L54 58 L45 41 Z" fill="var(--m-traps,var(--m-base))" />
+            <path d="M43 41 Q31 42 29 56 Q32 60 37 58 Q41 50 45 44 Z" fill="var(--m-shoulders,var(--m-base))" />
+            <path d="M77 41 Q89 42 91 56 Q88 60 83 58 Q79 50 75 44 Z" fill="var(--m-shoulders,var(--m-base))" />
+            <path d="M46 47 L57 60 L58 90 Q50 90 44 78 Q40 61 46 47 Z" fill="var(--m-back,var(--m-base))" />
+            <path d="M74 47 L63 60 L62 90 Q70 90 76 78 Q80 61 74 47 Z" fill="var(--m-back,var(--m-base))" />
+            <path d="M52 92 L68 92 L67 108 L53 108 Z" fill="var(--m-lower_back,var(--m-base))" />
+            <path d="M30 60 Q35 58 38 62 Q39 74 35 82 Q30 82 28 76 Q27 66 30 60 Z" fill="var(--m-triceps,var(--m-base))" />
+            <path d="M90 60 Q85 58 82 62 Q81 74 85 82 Q90 82 92 76 Q93 66 90 60 Z" fill="var(--m-triceps,var(--m-base))" />
+            <path d="M28 85 Q34 83 36 87 Q35 100 31 110 Q27 111 25 108 Q24 96 28 85 Z" fill="var(--m-forearms,var(--m-base))" />
+            <path d="M92 85 Q86 83 84 87 Q85 100 89 110 Q93 111 95 108 Q96 96 92 85 Z" fill="var(--m-forearms,var(--m-base))" />
+            <path d="M43 110 Q51 106 59 110 L59 130 Q50 136 42 126 Q40 116 43 110 Z" fill="var(--m-glutes,var(--m-base))" />
+            <path d="M77 110 Q69 106 61 110 L61 130 Q70 136 78 126 Q80 116 77 110 Z" fill="var(--m-glutes,var(--m-base))" />
+            <path d="M44 134 Q51 137 58 134 Q58 152 55 164 Q49 166 46 162 Q42 148 44 134 Z" fill="var(--m-hamstrings,var(--m-base))" />
+            <path d="M76 134 Q69 137 62 134 Q62 152 65 164 Q71 166 74 162 Q78 148 76 134 Z" fill="var(--m-hamstrings,var(--m-base))" />
+            <path d="M45 175 Q52 173 55 181 Q55 199 51 215 Q46 217 44 209 Q41 191 45 175 Z" fill="var(--m-calves,var(--m-base))" />
+            <path d="M75 175 Q68 173 65 181 Q65 199 69 215 Q74 217 76 209 Q79 191 75 175 Z" fill="var(--m-calves,var(--m-base))" />
         </g>
     </svg>
 </div>
 
 @code {
-    public const string Hot = "#B50016";
-    public const string Warm = "#ff6b78";
+    /// <summary>Principal o cansado: rojo vivo.</summary>
+    public const string Hot = "#FF3347";
+
+    /// <summary>Secundario o recuperando: naranja, para que no se confunda con el principal.</summary>
+    public const string Warm = "#FF9F43";
 
     /// <summary>Músculos principales (en rojo).</summary>
     [Parameter] public IEnumerable<string>? Primary { get; set; }
 
-    /// <summary>Músculos secundarios (en rosa).</summary>
+    /// <summary>Músculos secundarios (en naranja).</summary>
     [Parameter] public IEnumerable<string>? Secondary { get; set; }
 
     /// <summary>Recuperación 0–100 por músculo; si viene, manda sobre Primary/Secondary.</summary>

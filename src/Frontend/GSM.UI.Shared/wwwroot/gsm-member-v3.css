@@ -10,7 +10,8 @@
     --gsm-m-glass: rgba(255, 255, 255, 0.06);
     --gsm-m-glass-border: rgba(255, 255, 255, 0.11);
     --gsm-m-hot: #B50016;
-    --gsm-m-warm: #ff6b78;
+    --gsm-m-warm: #FF9F43;
+    --gsm-m-hot-text: #FF3347;
     background:
         radial-gradient(120% 50% at 85% -10%, rgba(181, 0, 22, 0.35), transparent 60%),
         radial-gradient(80% 40% at -10% 45%, rgba(181, 0, 22, 0.14), transparent 60%),
@@ -81,16 +82,18 @@
 .gsm-m-tabbar a.gsm-m-fab:focus-visible { outline: 2px solid var(--gsm-ring); outline-offset: 4px; }
 
 /* Mapa muscular. */
-.gsm-musclemap { display: flex; gap: 4px; justify-content: center; flex: none; }
-.gsm-musclemap svg { width: 92px; height: 202px; }
-.gsm-musclemap.is-compact svg { width: 46px; height: 101px; }
+.gsm-musclemap { display: flex; gap: 6px; justify-content: center; flex: none; --m-base: #4d4844; }
+.gsm-musclemap svg { width: 92px; height: 184px; }
+.gsm-musclemap.is-compact svg { width: 58px; height: 116px; }
+.gsm-musclemap__body { fill: #8a837d; }
+.gsm-musclemap__muscles path, .gsm-musclemap__muscles rect { stroke: #141211; stroke-width: 1.1; stroke-linejoin: round; }
 .gsm-m-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: #3a3633; }
-.gsm-m-dot.is-hot { background: var(--gsm-m-hot); }
+.gsm-m-dot.is-hot { background: var(--gsm-m-hot-text); }
 .gsm-m-dot.is-warm { background: var(--gsm-m-warm); }
 .gsm-m-worked { align-items: center; }
 .gsm-m-legend { display: flex; gap: 14px; justify-content: center; font-size: 0.78rem; color: var(--gsm-text-2); margin-top: 0.5rem; }
-.gsm-m-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; background: #2e2b29; border: 1px solid #555; }
-.gsm-m-legend i.is-hot { background: var(--gsm-m-hot); border-color: var(--gsm-m-hot); }
+.gsm-m-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; background: #4d4844; border: 1px solid #8a837d; }
+.gsm-m-legend i.is-hot { background: var(--gsm-m-hot-text); border-color: var(--gsm-m-hot-text); }
 .gsm-m-legend i.is-warm { background: var(--gsm-m-warm); border-color: var(--gsm-m-warm); }
 
 /* Hoy: tarjeta con foto, semana y cuerpo. */
@@ -211,3 +214,16 @@
 
 /* Plan: el día de hoy. */
 .gsm-m-daycard__go { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 0.55rem 0.9rem; border-radius: 14px; background: var(--gsm-m-hot); color: #fff; font-weight: 600; font-size: 0.9rem; }
+
+
+/* La portada del entrenamiento va de borde a borde en el celular (sin el margen del contenedor). */
+.gsm-m-shell:not(.gsm-m-desktop) .gsm-m-dayhero {
+    margin: -16px -16px 1rem;
+    min-height: 280px;
+    border: 0;
+    border-radius: 0 0 28px 28px;
+}
+
+@media (min-width: 600px) {
+    .gsm-m-shell:not(.gsm-m-desktop) .gsm-m-dayhero { margin: -16px -24px 1rem; }
+}
