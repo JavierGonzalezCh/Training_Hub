@@ -124,21 +124,22 @@ estudio se comporten igual. El entrenador personal cobra a mano y con menos rigo
 
 ### 4.5 Logros sembrados (`SeedDefaultAchievementsHandler`)
 
-Hoy se siembran ocho logros iguales para todos. Con el tipo, el catálogo cambia:
+Desde AC1 (2026-11-07) el catálogo son cadenas por nivel con medalla (`GSM-modulo-achievements.md` §12). Por tipo:
 
-| Logro | gym | box | studio | personal_trainer | academy |
-|---|---|---|---|---|---|
-| Primera visita / 10 / 50 visitas | sí | sí | sí | **no** | sí |
-| Racha de 7 y de 30 días | sí | sí | sí | sí | sí |
-| 1 año con nosotros (permanencia) | sí | sí | sí | sí | sí |
-| Primer récord | sí | sí | **no** | sí | **no** |
-| Primer amigo (referidos) | sí | sí | sí | sí | sí |
-| **10 clases / 50 clases** (`Classes`) | no | **sí** | **sí** | no | **sí** |
-| **10 / 50 sesiones de rutina** (`RoutineSessions`) | no | no | no | **sí** | no |
-| **Volumen: 10 000 kg** (`LiftedVolume`) | no | **sí** | no | **sí** | no |
+| Cadena | gym | box | studio | personal_trainer | academy | other |
+|---|---|---|---|---|---|---|
+| Asistencia (6) | sí | sí | sí | **no** | sí | sí |
+| Rachas (5) | sí | sí | sí | sí | sí | sí |
+| Disciplina: sesiones completas (5) | sí | sí | **no** | sí | **no** | sí |
+| Fuerza: récords, levantamientos y tonelaje (6) | sí | sí | **no** | sí | **no** | sí |
+| Clases (5) | no | **sí** | **sí** | no | **sí** | no |
+| Horarios (5) | sí | sí | sí | **no** | sí | sí |
+| Ranking mensual (4) | sí | sí | sí | **no** | sí | sí |
+| 1 año con nosotros y Primer amigo | sí | sí | sí | sí | sí | sí |
 
-Para el entrenador personal las «visitas» no significan nada (no hay visita); lo que cuenta son las sesiones de rutina
-registradas.
+El entrenador personal no tiene puerta: sin visitas, horarios ni ranking (su plantilla apaga el ranking). Antes de AC1
+se sembraban ocho logros (visitas, rachas, permanencia, primer récord, primer amigo y, según el tipo, clases, sesiones
+de rutina y volumen).
 
 ### 4.6 Lo que la plantilla **no** crea
 

@@ -15,6 +15,7 @@ Este archivo es el resumen que debes tener presente siempre. Antes de generar en
 | `docs/GSM-logs.md`, `docs/GSM-dashboards.md`, `docs/GSM-apps-y-vistas.md` | Transversales: logs y errores, los tres dashboards, apps y vistas (panel, miembro, nativa) |
 | `docs/V2-PENDIENTES.md` | **Qué falta** y qué necesita al dueño (cuentas externas, Android, despliegue) |
 | `docs/DEPLOY-DOKPLOY-PLAN.md` | Plan de despliegue con Dokploy (**planificado, sin empezar**) |
+| `docs/GSM-app-miembro-v3.md` | App del miembro v3: Hoy, Plan, botón central al entrenamiento, modo sesión, mapa muscular, estilo propio (**construido**) |
 | `docs/GSM-sesion-perdida.md` | Sesión perdida: hacer cualquier día del plan, recuperar la de ayer y reorganizar la semana (**construido**, SP1–SP4) |
 | `docs/GSM-tipos-de-negocio.md` | Tipo de negocio del tenant (gym, box, estudio, entrenador personal, academia) y plantillas de configuración; cumplimiento de la rutina (**construido**, T1–T7; lo que quedó fuera está al final de §15) |
 | `docs/BUGS.md`, `docs/V1-RECORRIDO.md` | Bugs conocidos y recorrido de punta a punta en navegador |

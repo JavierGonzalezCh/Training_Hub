@@ -35,6 +35,10 @@ La afluencia por hora y la lista "Para completar" quedan al final.
 
 ## 2. Inicio del miembro (`/app`)
 
+> **Reemplazado por la app del miembro v3** (`GSM-app-miembro-v3.md` §3): «Hoy» ya no lleva el QR (va en el
+> encabezado) y suma la foto del entrenamiento, el anillo de la semana, la recuperación muscular y las novedades en una
+> sola tarjeta. Lo de abajo queda como historia de la v2.
+
 **Antes de la v2:** saludo, estado, plan con barra de días, escanear, racha y congeladores, entrenamiento de hoy,
 últimas visitas.
 

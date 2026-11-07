@@ -581,7 +581,15 @@ POST   /api/routine-exercises/{id}/log         marcar y/o registrar carga (idemp
 DELETE /api/routine-exercises/{id}/log?date=   desmarcar
 GET    /api/me/routines/history?from=&to=
 GET    /api/me/streak                          racha + congeladores disponibles
+GET    /api/me/routines/week?date=             planificador: la semana con lo que toca, lo hecho y hoy
+GET    /api/me/body                            recuperación estimada por músculo (estimación, sin tabla)
+GET    /api/me/progress/weekly?weeks=          volumen, series y sesiones por semana
 ```
+
+Desde la app del miembro v3 (`GSM-app-miembro-v3.md`): `RoutineExerciseResponse` trae los músculos y la imagen o el
+video del ejercicio; el modo sesión guarda **por serie** reenviando las series hechas al mismo endpoint de registro; la
+app del miembro **no muestra el RIR** (el panel sí). `Exercise.PowerLift` marca sentadilla, banca y peso muerto para el
+logro «Club de la Fuerza» (`GSM-modulo-achievements.md` §11).
 
 Un rol `member` solo alcanza sus propios datos; se reutiliza el patrón `MemberSelfAccess` existente.
 

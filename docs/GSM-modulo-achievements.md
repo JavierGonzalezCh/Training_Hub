@@ -190,4 +190,50 @@ aparecen en la rutina** y la rutina no aparece en "Mi progreso" (decidido 2026-1
 
 ## Catálogo sembrado por tipo (T2)
 
-`SeedDefaultAchievementsHandler` siembra `AchievementTemplates.For(tipo)` al crear el gym y es idempotente (solo agrega los nombres que faltan, consultando por gym). El entrenador personal no recibe logros de visitas sino de sesiones de rutina; box, estudio y academia reciben logros de clases; box y entrenador personal, el de volumen. Ver `GSM-tipos-de-negocio.md` §4.5.
+`SeedDefaultAchievementsHandler` siembra `AchievementTemplates.For(tipo)` al crear el gym y es idempotente (solo agrega los nombres que faltan, consultando por gym). Desde AC1 el catálogo son las cadenas de §12; ver `GSM-tipos-de-negocio.md` §4.5.
+
+## 11. Condiciones nuevas (AC1, construido 2026-11-07)
+
+| Tipo (`condition_type`) | Qué cuenta | De dónde sale |
+|---|---|---|
+| `early_visits` | Días con entrada **antes de las 8:00** (hora del gym) | `IAttendanceReader.GetVisitHabitsAsync` |
+| `late_visits` | Días con entrada **desde las 20:00** | ídem |
+| `weekends` | **Fines de semana distintos** con entrada (sábado y domingo de la misma semana cuentan 1) | ídem |
+| `complete_sessions` | Días en que registró **todas** las líneas vigentes de un día de su rutina (el que tocaba u otro del plan; solo rutinas asignadas) | `IRoutineReader.GetCompleteSessionCountAsync`, `CompleteSessionCalculator` |
+| `distinct_classes` | Clases distintas a las que asistió | `IClassReader.GetDistinctAttendedClassCountAsync` |
+| `power_lifts` | Cuántos de los tres levantamientos tiene registrados con peso (la meta es 3) | `IRoutineReader.GetPowerLiftCountAsync`; los ejercicios llevan `Exercise.PowerLift` (`squat`, `bench`, `deadlift`) y el catálogo del sistema trae marcados «Sentadilla con barra», «Press de banca plana con barra» y «Peso muerto convencional» |
+| `monthly_ranking_top` | Terminar un **mes cerrado** del ranking en el puesto `condition_value` o mejor (50, 10, 3, 1) | `achievements.ranking_month_results` |
+
+- Las horas son **fijas** para todos los gyms (decidido 2026-11-07).
+- Las métricas van en `AchievementExtraMetrics` y solo se calculan si hay un logro pendiente que las pide
+  (`AchievementMetrics.ComputeExtraAsync`); los retroactivos las calculan miembro por miembro.
+- **Cierre de mes del ranking:** `CloseRankingMonthHandler`, paso `ranking_close` de la tarea periódica. Para cada gym
+  con el ranking encendido y participantes guarda una vez el puesto final de cada uno en el mes anterior (único por
+  gym, mes y miembro) y vuelve a evaluar sus logros. Un mes sin clasificados no deja filas y se reintenta (barato).
+- Migración `V2_AC1_AchievementChains` (aplicada en producción el 2026-11-07).
+- **Tiempo en sala** se descartó: la app registra la entrada, no la salida.
+
+## 12. Catálogo con medallas (AC1)
+
+Un gym nuevo arranca con cadenas por nivel, cada logro con su medalla (imágenes en
+`GSM.UI.Shared/wwwroot/achievements`, ruta `/_content/GSM.UI.Shared/achievements/<slug>.webp`):
+
+| Cadena | Logros (valor) |
+|---|---|
+| Asistencia (`visits`) | Primeros Pasos 5 · Constante 10 · Veterano 25 · Medio Centenar 50 · Centurión 100 · Leyenda del Club 250 |
+| Rachas (`streak`) | Fuego Inicial 3 · Semana Perfecta 7 · Imparable 14 · Hábito de Hierro 21 · Inquebrantable 30 |
+| Disciplina (`complete_sessions`) | Enfocado 5 · Disciplinado 15 · Atleta Metódico 30 · Maestro de la Rutina 60 · Perfeccionista 100 |
+| Clases | Curioso 3 · Fan de las Clases 10 · Compañero de Fila 25 · Master de Estudio 50 (`classes`) · Polifacético 4 (`distinct_classes`) |
+| Fuerza | Rompiendo Barreras I 1 y II 5 (`personal_records`) · Club de la Fuerza 3 (`power_lifts`) · Tonelaje I 10.000 · Tonelaje II 100.000 · Hércules 500.000 kg acumulados (`lifted_volume`) |
+| Horarios | Madrugador I 5 y II 20 (`early_visits`) · Noctámbulo I 5 y II 20 (`late_visits`) · Guerrero de Fin de Semana 8 (`weekends`) |
+| Ranking (`monthly_ranking_top`) | En el Tablero 50 · Aspirante al Podio 10 · Medallero 3 · Número Uno 1 |
+| Otros | 1 año con nosotros (`tenure_months` 12) · Primer amigo (`referrals` 1) |
+
+Por tipo: el **entrenador personal** no recibe asistencia, horarios ni ranking; **estudio y academia** no reciben
+disciplina ni fuerza; las **clases** van a box, estudio y academia. Un gym tipo gym recibe 33. El tonelaje es
+acumulado (la propuesta original era por sesión: 5.000, 15.000 y 30.000 kg). **Los gyms que ya existían no reciben
+el catálogo nuevo** (solo se siembra al crear el gym).
+
+En la app, la medalla ganada se ve a color y la bloqueada **oscurecida en relieve** (se intuye el dibujo; la silueta
+pura dejaba un círculo negro igual en todas las medallas redondas), con candado. El ranking muestra la meta como
+«Top 10 en un mes» en lugar de un conteo.

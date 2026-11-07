@@ -167,6 +167,12 @@ rutinas**: la dependencia va en un solo sentido, Routines → Equipment.
 - **Editor de rutinas:** avisa si una línea usa una máquina en mantenimiento ("Prensa 45° en
   mantenimiento hasta el 15 oct"). No impide guardar, porque la rutina dura varias semanas.
 
+**Entrenamiento a distancia (2026-11-07).** Si el gym tiene `RemoteTraining` (la plantilla del entrenador personal lo
+activa), el inventario **no decide** la disponibilidad: los miembros entrenan en lugares que el negocio no controla, así
+que ningún ejercicio sale como «no disponible» y el filtro «solo lo que se puede hacer aquí» no esconde nada. Las
+máquinas registradas se siguen mostrando (foto e instrucciones). Routines lee el ajuste por el puerto invertido
+`IRemoteTrainingPolicy` (lo implementa Attendance).
+
 ## 6. App del miembro
 
 En la pantalla del ejercicio que está haciendo:

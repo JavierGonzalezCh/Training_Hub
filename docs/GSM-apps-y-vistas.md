@@ -101,6 +101,9 @@ y para iPhone mientras no exista la app de iOS.
 
 ## 6. El miembro en la web de escritorio
 
+> **Actualizado por la app del miembro v3** (`GSM-app-miembro-v3.md`): el menú lateral tiene los mismos destinos que la
+> barra del celular (Hoy, Entrenar hoy, Plan, Progreso, Gym) y el QR va en el encabezado.
+
 - `/app` en pantalla grande usa **menú lateral** en lugar de la barra inferior.
 - **Varias columnas** donde aporta:
   - Inicio: a la izquierda, plan, entrada y entrenamiento de hoy; a la derecha, próxima clase,
