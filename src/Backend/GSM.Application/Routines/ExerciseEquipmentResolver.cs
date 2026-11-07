@@ -21,6 +21,9 @@ public sealed record ExerciseNeed(Guid ExerciseId, IReadOnlyList<EquipmentType> 
 ///   sistema): sí, si al menos una está disponible. Las ligas del gym <b>reemplazan</b> a las de modelo.</item>
 ///   <item>Si no hay máquinas ligadas que el gym tenga: sí, si el gym tiene disponibles todos los tipos que pide.</item>
 ///   <item>Si el gym no tiene inventario (o la petición no es de un gym): sí.</item>
+///   <item>Si el gym entrena a distancia (<c>RemoteTraining</c>, p. ej. un entrenador personal): sí, siempre. El
+///   inventario es del entrenador, no del lugar donde entrena el miembro; las máquinas se siguen mostrando (foto e
+///   instrucciones), pero nunca como «no disponible».</item>
 /// </list>
 /// El resultado no trae entrada para los ejercicios sin información: quien consulta debe tratar la ausencia como
 /// "disponible, sin máquinas".
@@ -28,7 +31,8 @@ public sealed record ExerciseNeed(Guid ExerciseId, IReadOnlyList<EquipmentType> 
 public sealed class ExerciseEquipmentResolver(
     ICurrentUserService currentUser,
     IExerciseEquipmentRepository links,
-    IEquipmentReader equipment)
+    IEquipmentReader equipment,
+    IRemoteTrainingPolicy remoteTraining)
 {
     public async Task<IReadOnlyDictionary<Guid, ExerciseEquipmentInfo>> ResolveAsync(
         IReadOnlyCollection<ExerciseNeed> needs, CancellationToken cancellationToken)
@@ -45,6 +49,7 @@ public sealed class ExerciseEquipmentResolver(
             return result;
         }
 
+        var remote = await remoteTraining.IsRemoteTrainingAsync(gymId, cancellationToken);
         var ids = needs.Select(n => n.ExerciseId).Distinct().ToList();
         var modelLinks = (await links.ListModelLinksAsync(ids, cancellationToken))
             .ToLookup(l => l.ExerciseId, l => l.ModelId);
@@ -61,9 +66,10 @@ public sealed class ExerciseEquipmentResolver(
         foreach (var need in needs)
         {
             var machines = CandidateMachines(inventory, itemLinks[need.ExerciseId], modelLinks[need.ExerciseId]);
-            var available = machines.Count > 0
-                ? machines.Any(m => m.Status == EquipmentStatus.Available)
-                : availability.CoversAll(need.Types);
+            var available = remote
+                || (machines.Count > 0
+                    ? machines.Any(m => m.Status == EquipmentStatus.Available)
+                    : availability.CoversAll(need.Types));
 
             result[need.ExerciseId] = new ExerciseEquipmentInfo(
                 available,

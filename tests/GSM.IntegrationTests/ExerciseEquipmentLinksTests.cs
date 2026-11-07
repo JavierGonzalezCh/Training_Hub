@@ -296,6 +296,40 @@ public sealed class ExerciseEquipmentLinksTests(ApiFactory factory) : IClassFixt
         }
     }
 
+    [Fact]
+    public async Task With_remote_training_the_inventory_never_marks_an_exercise_as_unavailable()
+    {
+        // Un entrenador personal registra sus barras; sus clientes entrenan en gyms que él no controla.
+        var world = await SeedAsync();
+        var barbell = await CreateGymExerciseAsync(world, "Con barra", [EquipmentType.Barbell]);
+        var machine = await CreateGymExerciseAsync(world, "En máquina", [EquipmentType.Machine]);
+        try
+        {
+            using (var scope = Staff(world.GymA, world.StaffA))
+            {
+                await scope.ServiceProvider.GetRequiredService<CreateEquipmentHandler>().HandleAsync(
+                    new SaveEquipmentRequest("Barra " + world.Suffix, EquipmentType.Barbell, null, null, null, null, 1, null, null), default);
+            }
+
+            var before = await ListAsync(world.GymA, world.StaffA, world.Suffix, onlyHere: false);
+            Assert.False(before.Single(e => e.Id == machine).IsAvailableHere);
+
+            using (var scope = Staff(world.GymA, world.StaffA))
+            {
+                await scope.ServiceProvider.GetRequiredService<GSM.Application.Attendance.UpdateCheckinSettingsHandler>()
+                    .HandleAsync(new GSM.Application.Attendance.Contracts.UpdateCheckinSettingsRequest("Rotating", RemoteTraining: true), default);
+            }
+
+            var remote = await ListAsync(world.GymA, world.StaffA, world.Suffix, onlyHere: true);
+            Assert.Equal(new[] { barbell, machine }.Order(), remote.Select(e => e.Id).Order());
+            Assert.All(remote, e => Assert.True(e.IsAvailableHere));
+        }
+        finally
+        {
+            await CleanupAsync([barbell, machine], []);
+        }
+    }
+
     // --- Rutina: aviso en el editor y foto, zona e instrucciones en la app ---
 
     [Fact]

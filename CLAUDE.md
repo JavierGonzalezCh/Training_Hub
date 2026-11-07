@@ -21,7 +21,7 @@ Este archivo es el resumen que debes tener presente siempre. Antes de generar en
 
 ## Estado actual
 
-Todos los módulos están construidos en la rama `v2`: Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements, Routines, Classes, SuperAdmin, Comunicaciones, Equipment y Notifications, más Logs y los dashboards. Suite: **1310 tests de integración (Postgres real) + 802 bUnit**. La rama `v2` aún no se une a `main`.
+Todos los módulos están construidos en la rama `v2`: Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements, Routines, Classes, SuperAdmin, Comunicaciones, Equipment y Notifications, más Logs y los dashboards. Suite: **1311 tests de integración (Postgres real) + 802 bUnit**. La rama `v2` aún no se une a `main`.
 
 Falta, y está en `docs/V2-PENDIENTES.md`: **despliegue** (servidor propio con Dokploy, no Railway), cuentas externas (Cloudflare R2, Resend, Firebase: sin ellas las subidas de archivo fallan, los correos van al log y no hay push), y **verificar `GSM.Mobile` en un Android real** (compila para Android, nunca se ha ejecutado en un dispositivo; iOS necesita host macOS). `docs/V1-RECORRIDO.md` lista lo que falta recorrer en el navegador.
 
@@ -63,7 +63,7 @@ GSM.Application/{Módulo}/
 - `Achievements.Public.IAchievementService` — el check-in evalúa los logros de forma síncrona para devolverlos en su respuesta.
 - `Gyms.Public.IGymAdministration` — `suspend`/`reactivate` de SuperAdmin escriben `Gym.Status`.
 
-**Antes de añadir una cuarta, agota el camino normal** (lecturas por reader, reacciones por evento): "es más cómodo" no basta. Contraejemplo a imitar: el alta de suscripción se resolvió con un handler de `GymCreated`. Otros puertos invertidos (los declara quien los usa, los implementa el dueño del dato): `IGymLoginGate` (Identity ← SuperAdmin) e `IMembershipPaidAmountProvider` (Memberships ← Payments). El único ciclo entre módulos es deliberado: `Attendance ↔ Achievements`.
+**Antes de añadir una cuarta, agota el camino normal** (lecturas por reader, reacciones por evento): "es más cómodo" no basta. Contraejemplo a imitar: el alta de suscripción se resolvió con un handler de `GymCreated`. Otros puertos invertidos (los declara quien los usa, los implementa el dueño del dato): `IGymLoginGate` (Identity ← SuperAdmin), `IMembershipPaidAmountProvider` (Memberships ← Payments) e `IRemoteTrainingPolicy` (Routines ← Attendance: con entrenamiento a distancia el inventario no decide qué ejercicio está disponible). El único ciclo entre módulos es deliberado: `Attendance ↔ Achievements`.
 
 **Casos de uso:** una clase por caso con un único `HandleAsync`, registrada en DI e inyectada en el controller. Sin bus de comandos.
 
