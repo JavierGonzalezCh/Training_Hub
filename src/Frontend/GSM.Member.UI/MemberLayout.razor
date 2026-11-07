@@ -100,14 +100,26 @@
        texto suelto y no navegaban. *@
     @if (Viewport.IsNarrow)
     {
-    <nav class="gsm-tabbar" aria-label="Navegación principal" data-testid="member-tabbar">
-        @foreach (var item in Destinations)
+    @* Barra flotante de vidrio: Hoy, Plan, el botón central (la barra de press: el entrenamiento de hoy), Progreso y Gym. *@
+    <nav class="gsm-tabbar gsm-m-tabbar" aria-label="Navegación principal" data-testid="member-tabbar">
+        <NavLink href="/app" Match="NavLinkMatch.All">
+            <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />
+            <span class="gsm-tabbar-label">Hoy</span>
+        </NavLink>
+        @if (RoutinesOn)
         {
-            <NavLink href="@item.Href" Match="@(item.MatchAll ? NavLinkMatch.All : NavLinkMatch.Prefix)">
-                <MudIcon Icon="@item.Icon" Size="Size.Small" />
-                <span class="gsm-tabbar-label">@item.Title</span>
+            <NavLink href="/app/plan">
+                <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" />
+                <span class="gsm-tabbar-label">Plan</span>
+            </NavLink>
+            <NavLink href="/app/rutina" class="gsm-m-fab" aria-label="Entrenamiento de hoy" data-testid="tab-train">
+                <BarbellIcon />
             </NavLink>
         }
+        <NavLink href="/app/progreso">
+            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" />
+            <span class="gsm-tabbar-label">Progreso</span>
+        </NavLink>
         @if (!_loading)
         {
             <GymTabLink Community="@(GymCtx.FeatureFlags?.ShowCommunity == true)" />
@@ -125,16 +137,19 @@
 
     private sealed record Destination(string Href, string Title, string Icon, bool MatchAll = false);
 
-    // Cuatro destinos, iguales en el celular y en escritorio: Hoy, Entrenar, Progreso y Gym (GymTabLink, que reúne
-    // Mi gimnasio, Clases y Novedades). Entrenar no aparece si el gym no tiene rutinas.
+    private bool RoutinesOn => GymCtx.FeatureFlags?.ShowRoutines != false;
+
+    // Los mismos destinos que la barra del celular (en escritorio, en el menú lateral): Hoy, Entrenar hoy, Plan,
+    // Progreso y Gym (GymTabLink, que reúne Mi gimnasio, Clases y Novedades). Sin rutinas no hay Entrenar ni Plan.
     private IEnumerable<Destination> Destinations
     {
         get
         {
             yield return new("/app", "Hoy", Icons.Material.Filled.Home, true);
-            if (GymCtx.FeatureFlags?.ShowRoutines != false)
+            if (RoutinesOn)
             {
-                yield return new("/app/rutina", "Entrenar", Icons.Material.Filled.FitnessCenter);
+                yield return new("/app/rutina", "Entrenar hoy", Icons.Material.Filled.FitnessCenter);
+                yield return new("/app/plan", "Plan", Icons.Material.Outlined.CalendarMonth);
             }
 
             yield return new("/app/progreso", "Progreso", Icons.Material.Filled.TrendingUp);

@@ -8,11 +8,21 @@
 @inject IRoutineExercisesClient RoutineExercises
 @inject IExercisesClient ExercisesApi
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Entrenar — TrainingHub GO</PageTitle>
 
-@* Entrenar: el planificador de la semana (navegable), lo que toca hoy con su lista completa de ejercicios para ver
-   el volumen de un vistazo, y en cada ejercicio el registro de series y el cambio por una alternativa. *@
+@* Entrenamiento de hoy (botón central de la barra). Antes de empezar: el día, sus cifras, «Hoy trabajas» y la lista
+   completa de ejercicios para ver el volumen de un vistazo (cada uno se abre para ver su mapa, el equipo y registrar).
+   «Empezar» abre el modo sesión: un ejercicio por pantalla, series ya llenas que se guardan al tocar ✓, descanso que
+   inicia el miembro y, al terminar, el resumen. El planificador de la semana vive en Plan (/app/plan). *@
+@if (_session is not null && _response?.Today is { } sessionToday)
+{
+    @SessionView(sessionToday)
+    return;
+}
 <div class="d-flex align-center justify-space-between mb-3">
     <MudText Typo="Typo.h5" HtmlTag="h1">Entrenar</MudText>
     @if (GymCtx.FeatureFlags?.ShowRoutines != false)
@@ -55,9 +65,7 @@ else if (_response?.Routine is null)
 }
 else
 {
-    <RoutineWeekPlanner @ref="_planner" SelectedDayId="_selectedDayId" TodayDayId="TodayDayId" OnPick="SelectDay" />
-
-    <MudText HtmlTag="h2" Typo="Typo.h6" Class="mb-1">@_response.Routine.Name</MudText>
+    <MudText HtmlTag="h2" Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-1">@_response.Routine.Name</MudText>
     @if (_response.Routine is { SelfAssigned: false, ReviewOn: { } reviewOn })
     {
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2" data-testid="routine-review-on">
@@ -82,7 +90,7 @@ else
         </MudText>
         @if (!today.IsRest && RoutineLabels.MuscleGroupsSummary(today.MuscleGroups) is { } todayGroups)
         {
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4 d-block" data-testid="today-groups">Hoy trabajas: @todayGroups</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block" data-testid="today-groups">Hoy trabajas: @todayGroups</MudText>
         }
 
         var trainingDays = TrainingDays();
@@ -111,6 +119,21 @@ else
         }
 
         var shown = shownDay?.Exercises ?? (today.IsRest ? [] : today.Exercises);
+        @if (shown.Count > 0)
+        {
+            var (dayPrimary, daySecondary) = MusclesOf(shown);
+            <section class="gsm-m-card gsm-m-worked" data-testid="today-muscles">
+                <MuscleMap Primary="dayPrimary" Secondary="daySecondary" Compact="true" Label="Músculos que trabajas hoy" />
+                <div class="gsm-m-card__body">
+                    <span class="gsm-m-card__kicker">Hoy trabajas</span>
+                    <h2 class="gsm-m-card__title">@MuscleLabels.Capitalize(MuscleLabels.Join(dayPrimary.Take(3)))</h2>
+                    @if (daySecondary.Count > 0)
+                    {
+                        <p class="gsm-m-card__text">También: @MuscleLabels.Join(daySecondary.Take(5))</p>
+                    }
+                </div>
+            </section>
+        }
         @if (shown.Count > 0 && GymCtx.FeatureFlags?.RoutineEntry == true)
         {
             <div class="mb-4">
@@ -125,13 +148,10 @@ else
             var doneCount = shown.Count(e => StateOf(e).Done);
             <div class="gsm-m-startbar" data-testid="start-bar">
                 <span class="gsm-m-startbar__summary">@shown.Count ejercicios · @totalSets series@(doneCount > 0 ? $" · {doneCount} hechos" : "")</span>
-                @if (doneCount < shown.Count)
-                {
-                    <button type="button" class="gsm-m-cta" data-testid="start-day" @onclick="() => StartNext(shown)">
-                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" />
-                        <span>@(doneCount == 0 ? $"Empezar {shownDay?.Name ?? today.DayName}" : "Siguiente ejercicio")</span>
-                    </button>
-                }
+                <button type="button" class="gsm-m-cta" data-testid="start-day" @onclick="() => StartSessionAsync(shown, shownDay?.Name ?? today.DayName)">
+                    <BarbellIcon Width="34" />
+                    <span>@(doneCount == 0 ? $"Empezar {shownDay?.Name ?? today.DayName}" : doneCount < shown.Count ? "Continuar el entrenamiento" : "Ver el resumen")</span>
+                </button>
             </div>
         }
 
@@ -150,8 +170,11 @@ else
                     <div class="gsm-m-ex__row">
                     <button type="button" class="gsm-m-ex__head" aria-expanded="@(state.Open ? "true" : "false")"
                             @onclick="() => state.Open = !state.Open">
-                        <span class="gsm-m-ex__check" aria-hidden="true">
-                            <MudIcon Icon="@(state.Done ? Icons.Material.Filled.CheckCircle : Icons.Material.Outlined.RadioButtonUnchecked)" />
+                        <span class="gsm-m-ex__thumb" style="background-image:url('@PlaceholderMedia.Exercise(exercise.ImageUrl, exercise.PrimaryMuscle, 160)')" aria-hidden="true">
+                            @if (state.Done)
+                            {
+                                <span class="gsm-m-ex__done"><MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" /></span>
+                            }
                         </span>
                         <span class="gsm-m-ex__title">
                             <span class="gsm-m-ex__name">@(state.Replacement?.Name ?? exercise.ExerciseName)@(inGroup ? $" · superserie {groupLabel}" : "")</span>
@@ -181,6 +204,19 @@ else
                     @if (state.Open)
                     {
                         <div class="gsm-m-ex__body">
+                            @if (exercise.PrimaryMuscle is { } primaryMuscle)
+                            {
+                                <div class="gsm-m-ex__muscles" data-testid="@($"muscles-{exercise.Id}")">
+                                    <MuscleMap Primary="[primaryMuscle]" Secondary="exercise.SecondaryMuscles" Compact="true" Label="@($"Músculos de {exercise.ExerciseName}")" />
+                                    <div>
+                                        <div><span class="gsm-m-dot is-hot"></span>Principal: @MuscleLabels.Label(primaryMuscle)</div>
+                                        @if (exercise.SecondaryMuscles is { Count: > 0 } secondary)
+                                        {
+                                            <div class="gsm-m-ex__sub"><span class="gsm-m-dot is-warm"></span>Secundarios: @MuscleLabels.Join(secondary)</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
                             @if (exercise.Equipment is { } equipment)
                             {
                                 var machine = EquipmentNotice.Primary(equipment);
@@ -318,6 +354,19 @@ else
     private MyRoutineResponse? _response;
     private RoutineWeekPlanner? _planner;
 
+    /// <summary>Un día del plan pedido desde Plan (<c>?dia=</c>): se abre para hacerlo hoy.</summary>
+    [Parameter, SupplyParameterFromQuery(Name = "dia")]
+    public Guid? Dia { get; set; }
+
+    // Principales y secundarios de un grupo de ejercicios, sin repetir (un principal no se repite como secundario).
+    private static (List<string> Primary, List<string> Secondary) MusclesOf(IEnumerable<RoutineExerciseResponse> exercises)
+    {
+        var list = exercises.ToList();
+        var primary = list.Select(e => e.PrimaryMuscle).Where(m => m is not null).Select(m => m!).Distinct().ToList();
+        var secondary = list.SelectMany(e => e.SecondaryMuscles ?? []).Distinct().Where(m => !primary.Contains(m)).ToList();
+        return (primary, secondary);
+    }
+
     // El día del plan que toca hoy (null en descanso): el planificador lo trata como "hoy".
     private Guid? TodayDayId => _response?.Today is { IsRest: false } todayView ? DayOf(todayView)?.Id : null;
 
@@ -340,6 +389,8 @@ else
 
     private sealed class SetRow
     {
+        /// <summary>Modo sesión: la serie está marcada como hecha (y guardada).</summary>
+        public bool Done { get; set; }
         public string Type { get; set; } = "normal";
         public double? Weight { get; set; }
         public int? Reps { get; set; }
@@ -428,6 +479,11 @@ else
             if (_response.Today is { } todayView)
             {
                 await LoadTodayAsync(todayView);
+            }
+
+            if (Dia is { } wanted && wanted != TodayDayId && _response.Routine?.Days.Any(d => d.Id == wanted && !d.IsRest) == true)
+            {
+                _selectedDayId = wanted;
             }
 
             if (_response.Today is not null)
@@ -549,6 +605,7 @@ else
                 {
                     state.Rows = sets.OrderBy(x => x.Number).Select(x => new SetRow
                     {
+                        Done = true,
                         Type = (x.SetType ?? "normal").ToLowerInvariant(),
                         Weight = x.WeightKg,
                         Reps = x.Reps,
@@ -609,6 +666,11 @@ else
             });
             state.Done = true;
             state.Open = false;
+            foreach (var saved in state.Rows.Where(HasValues))
+            {
+                saved.Done = true;
+            }
+
             Snackbar.Add("Ejercicio registrado.", Severity.Success);
             if (_planner is not null)
             {
@@ -642,4 +704,516 @@ else
             state.Saving = false;
         }
     }
+
+    // ===================================================================================================
+    // Modo sesión: un ejercicio por pantalla. Cada ✓ guarda las series hechas del ejercicio (el endpoint reemplaza el
+    // registro del día, así que guardar por serie no necesita nada nuevo en la API). El descanso lo inicia el miembro.
+    // ===================================================================================================
+
+    private sealed class SessionState
+    {
+        public List<RoutineExerciseResponse> Exercises { get; init; } = [];
+        public string DayName { get; init; } = string.Empty;
+        public int Index { get; set; }
+        public bool Summary { get; set; }
+        public DateTimeOffset Start { get; set; }
+        public List<string> NewRecords { get; } = [];
+    }
+
+    private SessionState? _session;
+    private bool _extrasLoaded;
+    private readonly Dictionary<Guid, (double? Weight, int? Reps)> _last = [];
+    private readonly Dictionary<Guid, double> _best = [];
+    private int? _restLeft;
+    private CancellationTokenSource? _restCts;
+
+    // Al cambiar de pantalla (empezar, otro ejercicio, resumen) se vuelve arriba: si no, se queda el scroll de la lista.
+    private async Task ScrollTopAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("scrollTo", 0, 0);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private string SessionKey => $"gsm.session.{GsmFormat.Today():yyyy-MM-dd}";
+
+    private static bool HasValues(SetRow r)
+        => r.Reps is not null || r.Weight is not null || r.DurationSeconds is not null || r.DistanceM is not null;
+
+    private Guid PerformedId(RoutineExerciseResponse exercise, ExerciseState state) => state.Replacement?.Id ?? exercise.ExerciseId;
+
+    private async Task StartSessionAsync(IEnumerable<RoutineExerciseResponse> shown, string dayName)
+    {
+        var exercises = shown.ToList();
+        await LoadExtrasAsync();
+        var start = DateTimeOffset.UtcNow;
+        try
+        {
+            var saved = await JS.InvokeAsync<string?>("localStorage.getItem", SessionKey);
+            if (DateTimeOffset.TryParse(saved, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed))
+            {
+                start = parsed;
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("localStorage.setItem", SessionKey, start.ToString("O"));
+            }
+        }
+        catch (Exception)
+        {
+            // Sin almacenamiento local la duración cuenta desde ahora.
+        }
+
+        var firstPending = exercises.FindIndex(e => !StateOf(e).Done);
+        _session = new SessionState
+        {
+            Exercises = exercises,
+            DayName = dayName,
+            Index = firstPending < 0 ? Math.Max(0, exercises.Count - 1) : firstPending,
+            Summary = firstPending < 0,
+            Start = start,
+        };
+        PrefillCurrent();
+        await ScrollTopAsync();
+    }
+
+    // La última carga de cada ejercicio (últimos 120 días) y su mejor peso, para prellenar y avisar récords.
+    private async Task LoadExtrasAsync()
+    {
+        if (_extrasLoaded)
+        {
+            return;
+        }
+
+        _extrasLoaded = true;
+        try
+        {
+            var today = GsmFormat.Today();
+            var history = await Me.HistoryAsync(today.AddDays(-120), today.AddDays(-1)) ?? [];
+            foreach (var item in history.OrderBy(h => h.PerformedOn))
+            {
+                var first = item.Sets?.OrderBy(x => x.Number).FirstOrDefault(x => !string.Equals(x.SetType, "warmup", StringComparison.OrdinalIgnoreCase));
+                if (first is not null)
+                {
+                    _last[item.ExerciseId] = (first.WeightKg, first.Reps);
+                }
+            }
+        }
+        catch (GsmApiException)
+        {
+        }
+
+        try
+        {
+            foreach (var summary in await Me.GetMyProgressAsync() ?? [])
+            {
+                var best = summary.Records?.FirstOrDefault(r => r.Kind == "best_weight");
+                if (best is not null)
+                {
+                    _best[summary.ExerciseId] = best.Value;
+                }
+            }
+        }
+        catch (GsmApiException)
+        {
+        }
+    }
+
+    // Las series sin hacer y vacías se llenan con la meta o con la última carga: casi siempre basta con tocar ✓.
+    private void PrefillCurrent()
+    {
+        if (_session is not { Summary: false } session || session.Exercises.Count == 0)
+        {
+            return;
+        }
+
+        var exercise = session.Exercises[session.Index];
+        var state = StateOf(exercise);
+        var targets = state.Replacement is null ? exercise.SetTargets.OrderBy(t => t.Number).ToList() : [];
+        _last.TryGetValue(PerformedId(exercise, state), out var last);
+        for (var i = 0; i < state.Rows.Count; i++)
+        {
+            var row = state.Rows[i];
+            if (row.Done || HasValues(row))
+            {
+                continue;
+            }
+
+            var target = i < targets.Count ? targets[i] : null;
+            row.Weight = target?.WeightKg ?? last.Weight;
+            row.Reps = target?.RepsMin ?? last.Reps;
+            row.DurationSeconds = target?.DurationSeconds;
+            row.DistanceM = target?.DistanceM;
+        }
+    }
+
+    private async Task ToggleSetAsync(RoutineExerciseResponse exercise, ExerciseState state, SetRow row)
+    {
+        if (!row.Done && !HasValues(row))
+        {
+            Snackbar.Add("Anota el peso o las repeticiones de la serie.", Severity.Warning);
+            return;
+        }
+
+        row.Done = !row.Done;
+        state.Saving = true;
+        try
+        {
+            var done = state.Rows.Where(r => r.Done).ToList();
+            if (done.Count == 0)
+            {
+                if (state.Done)
+                {
+                    await RoutineExercises.LogDELETEAsync(exercise.Id);
+                }
+
+                state.Done = false;
+                return;
+            }
+
+            await RoutineExercises.LogPOSTAsync(exercise.Id, new LogRoutineExerciseRequest
+            {
+                ReplacementExerciseId = state.Replacement?.Id,
+                Sets = done.Select(r => new LogSetRequest
+                {
+                    SetType = r.Type,
+                    Reps = r.Reps,
+                    WeightKg = r.Weight,
+                    DurationSeconds = r.DurationSeconds,
+                    DistanceM = r.DistanceM,
+                    Rir = r.Rir,
+                }).ToList(),
+            });
+            state.Done = true;
+
+            var performed = PerformedId(exercise, state);
+            if (row.Done && row.Weight is { } weight && weight > 0
+                && (!_best.TryGetValue(performed, out var best) || weight > best))
+            {
+                var hadRecord = _best.ContainsKey(performed);
+                _best[performed] = weight;
+                if (hadRecord)
+                {
+                    var name = state.Replacement?.Name ?? exercise.ExerciseName;
+                    _session?.NewRecords.Add($"{name}: {weight:0.#} kg");
+                    Snackbar.Add($"¡Nuevo récord en {name}: {weight:0.#} kg!", Severity.Success);
+                }
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            row.Done = !row.Done;
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            state.Saving = false;
+        }
+    }
+
+    private async Task StartRestAsync(int seconds)
+    {
+        _restCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _restCts = cts;
+        _restLeft = seconds;
+        try
+        {
+            while (_restLeft > 0)
+            {
+                await Task.Delay(1000, cts.Token);
+                _restLeft--;
+                StateHasChanged();
+            }
+
+            _restLeft = null;
+            Snackbar.Add("Descanso terminado: a la siguiente serie.", Severity.Info);
+            try
+            {
+                await JS.InvokeVoidAsync("navigator.vibrate", 400);
+            }
+            catch (Exception)
+            {
+                // Sin vibración en este dispositivo.
+            }
+
+            StateHasChanged();
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    private void StopRest()
+    {
+        _restCts?.Cancel();
+        _restLeft = null;
+    }
+
+    private async Task Go(int delta)
+    {
+        if (_session is null)
+        {
+            return;
+        }
+
+        StopRest();
+        _session.Index = Math.Clamp(_session.Index + delta, 0, _session.Exercises.Count - 1);
+        PrefillCurrent();
+        await ScrollTopAsync();
+    }
+
+    private async Task GoTo(int index)
+    {
+        if (_session is null)
+        {
+            return;
+        }
+
+        StopRest();
+        _session.Summary = false;
+        _session.Index = index;
+        PrefillCurrent();
+        await ScrollTopAsync();
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_session is null)
+        {
+            return;
+        }
+
+        StopRest();
+        _session.Summary = true;
+        await ScrollTopAsync();
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.removeItem", SessionKey);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private void ExitSession()
+    {
+        StopRest();
+        _session = null;
+    }
+
+    public void Dispose() => _restCts?.Cancel();
+
+    private RenderFragment SessionView(TodayView today) => __builder =>
+    {
+        var session = _session!;
+        if (session.Summary)
+        {
+            var exercises = session.Exercises;
+            var done = exercises.Count(e => StateOf(e).Done);
+            var rows = exercises.SelectMany(e => StateOf(e).Rows.Where(r => r.Done)).ToList();
+            var volume = rows.Sum(r => (r.Weight ?? 0) * (r.Reps ?? 0));
+            var minutes = Math.Max(1, (int)Math.Round((DateTimeOffset.UtcNow - session.Start).TotalMinutes));
+            var (primary, secondary) = MusclesOf(exercises.Where(e => StateOf(e).Done));
+            <section class="gsm-m-summary" data-testid="session-summary">
+                <span class="gsm-m-card__kicker">@(done == exercises.Count ? "Sesión completa" : "Resumen de la sesión")</span>
+                <h1 class="gsm-m-summary__title">@session.DayName</h1>
+                <div class="gsm-m-kpis">
+                    <div class="gsm-m-kpi"><b>@(minutes >= 300 ? "—" : $"{minutes}")</b><span>minutos</span></div>
+                    <div class="gsm-m-kpi"><b>@done/@exercises.Count</b><span>ejercicios</span></div>
+                    <div class="gsm-m-kpi"><b>@rows.Count</b><span>series</span></div>
+                    <div class="gsm-m-kpi"><b>@(volume >= 1000 ? $"{volume / 1000:0.#} t" : $"{volume:0} kg")</b><span>volumen</span></div>
+                </div>
+                @if (primary.Count > 0)
+                {
+                    <div class="gsm-m-card gsm-m-worked">
+                        <MuscleMap Primary="primary" Secondary="secondary" Compact="true" Label="Músculos que trabajaste" />
+                        <div class="gsm-m-card__body">
+                            <span class="gsm-m-card__kicker">Trabajaste</span>
+                            <h2 class="gsm-m-card__title">@MuscleLabels.Capitalize(MuscleLabels.Join(primary.Take(4)))</h2>
+                        </div>
+                    </div>
+                }
+                @if (session.NewRecords.Count > 0)
+                {
+                    <div class="gsm-m-card gsm-m-records" data-testid="session-records">
+                        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Filled.EmojiEvents" /></span>
+                        <div class="gsm-m-card__body">
+                            <h2 class="gsm-m-card__title">@(session.NewRecords.Count == 1 ? "Nuevo récord" : $"{session.NewRecords.Count} récords nuevos")</h2>
+                            <p class="gsm-m-card__text">@string.Join(" · ", session.NewRecords)</p>
+                        </div>
+                    </div>
+                }
+                @if (done < exercises.Count)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                        Te faltaron @(exercises.Count - done == 1 ? "1 ejercicio" : $"{exercises.Count - done} ejercicios").
+                        <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => GoTo(exercises.FindIndex(e => !StateOf(e).Done)))">Volver a ellos</MudButton>
+                    </MudAlert>
+                }
+                <a class="gsm-m-cta" href="/app" data-testid="session-done">Listo</a>
+                <a class="gsm-m-secondary" href="/app/progreso?tab=fuerza">Ver mi progreso</a>
+            </section>
+            return;
+        }
+
+        var exercise = session.Exercises[session.Index];
+        var state = StateOf(exercise);
+        var fields = TrackingFields.Of(state.Replacement?.TrackingType ?? exercise.TrackingType);
+        var unilateral = state.Replacement?.IsUnilateral ?? exercise.IsUnilateral == true;
+        var targets = exercise.SetTargets.OrderBy(t => t.Number).ToList();
+        _last.TryGetValue(PerformedId(exercise, state), out var last);
+        var progress = (session.Index + 1) * 100 / Math.Max(1, session.Exercises.Count);
+        var isLast = session.Index == session.Exercises.Count - 1;
+        var rest = exercise.RestSeconds ?? 90;
+        <section class="gsm-m-session" data-testid="session" aria-label="@($"Ejercicio {session.Index + 1} de {session.Exercises.Count}")">
+            <div class="gsm-m-session__top">
+                <span data-testid="session-position">Ejercicio @(session.Index + 1) de @session.Exercises.Count</span>
+                <button type="button" class="gsm-m-session__exit" @onclick="ExitSession" data-testid="session-exit">
+                    <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" /> Salir
+                </button>
+            </div>
+            <div class="gsm-m-session__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@progress" aria-label="Avance de la sesión">
+                <span style="@($"width:{progress}%")"></span>
+            </div>
+
+            <div class="gsm-m-session__media" style="background-image:url('@PlaceholderMedia.Exercise(state.Replacement is null ? exercise.ImageUrl : null, exercise.PrimaryMuscle, 900)')">
+                @if (exercise.PrimaryMuscle is { } muscle)
+                {
+                    <div class="gsm-m-session__map"><MuscleMap Primary="[muscle]" Secondary="exercise.SecondaryMuscles" Compact="true" Label="@($"Músculos de {exercise.ExerciseName}")" /></div>
+                }
+                @if (state.Replacement is null && exercise.VideoUrl is { Length: > 0 } video)
+                {
+                    <a class="gsm-m-session__video" href="@video" target="_blank" rel="noopener noreferrer">
+                        <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Size="Size.Small" /> Ver video
+                    </a>
+                }
+            </div>
+
+            <div class="gsm-m-session__head">
+                <div>
+                    <h1 class="gsm-m-session__name" data-testid="session-exercise">@(state.Replacement?.Name ?? exercise.ExerciseName)</h1>
+                    @if (state.Replacement is not null)
+                    {
+                        <span class="gsm-m-session__sub">Hoy en lugar de @exercise.ExerciseName</span>
+                    }
+                    <span class="gsm-m-session__sub">
+                        Meta: @SetPlan.Summary(targets, exercise.IsUnilateral == true)@(last.Weight is not null || last.Reps is not null ? $" · la vez pasada {(last.Weight is { } lw ? $"{lw:0.#} kg" : "")}{(last.Weight is not null && last.Reps is not null ? " × " : "")}{last.Reps}" : "")
+                    </span>
+                </div>
+                <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" aria-label="Cambiar por otro ejercicio hoy" aria-pressed="@(state.Picking ? "true" : "false")"
+                               data-testid="session-swap" OnClick="@(() => state.Picking = !state.Picking)" />
+            </div>
+            @if (state.Picking)
+            {
+                <AlternativePicker ExerciseId="exercise.ExerciseId" TestIdPrefix="@($"session-{exercise.Id}-")"
+                                   OnPick="@(async alt => { await ChooseReplacement(exercise, state, alt); PrefillCurrent(); })" />
+                @if (state.Replacement is not null)
+                {
+                    <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => { ClearReplacement(exercise, state); PrefillCurrent(); })">Volver al planeado</MudButton>
+                }
+            }
+            @if (EquipmentNotice.Warning(exercise.Equipment) is { } warning)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">@warning</MudAlert>
+            }
+
+            <ol class="gsm-m-sets">
+                @for (var n = 0; n < state.Rows.Count; n++)
+                {
+                    var row = state.Rows[n];
+                    var index = n;
+                    var target = index < targets.Count ? targets[index] : null;
+                    <li class="gsm-m-set @(row.Done ? "is-done" : null)" data-testid="@($"session-set-{index}")">
+                        <button type="button" class="gsm-m-set__check" disabled="@state.Saving"
+                                aria-pressed="@(row.Done ? "true" : "false")"
+                                aria-label="@($"Serie {index + 1} {(row.Done ? "hecha; tocar para desmarcar" : "por hacer; tocar al terminarla")}")"
+                                data-testid="@($"session-check-{index}")"
+                                @onclick="() => ToggleSetAsync(exercise, state, row)">
+                            @if (row.Done)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" />
+                            }
+                            else
+                            {
+                                <span>@(index + 1)</span>
+                            }
+                        </button>
+                        <div class="gsm-m-set__fields">
+                            @if (fields.Weight)
+                            {
+                                <MudNumericField T="double?" @bind-Value="row.Weight" Label="kg" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Min="0" Max="1000" Step="2.5" HideSpinButtons="true" Immediate="true" ReadOnly="row.Done"
+                                                 aria-label="@($"Peso de la serie {index + 1}, en kilos")" />
+                            }
+                            @if (fields.Reps)
+                            {
+                                <MudNumericField T="int?" @bind-Value="row.Reps" Label="@(unilateral ? "reps/lado" : "reps")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Min="0" Max="500" HideSpinButtons="true" Immediate="true" ReadOnly="row.Done"
+                                                 aria-label="@($"Repeticiones de la serie {index + 1}")" />
+                            }
+                            @if (fields.Time)
+                            {
+                                <MudNumericField T="int?" @bind-Value="row.DurationSeconds" Label="seg" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Min="0" Max="86400" HideSpinButtons="true" Immediate="true" ReadOnly="row.Done"
+                                                 aria-label="@($"Tiempo de la serie {index + 1}, en segundos")" />
+                            }
+                            @if (fields.Distance)
+                            {
+                                <MudNumericField T="int?" @bind-Value="row.DistanceM" Label="m" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Min="0" Max="1000000" HideSpinButtons="true" Immediate="true" ReadOnly="row.Done"
+                                                 aria-label="@($"Distancia de la serie {index + 1}, en metros")" />
+                            }
+                        </div>
+                        <span class="gsm-m-set__plan">@(target is null ? "Extra" : target.SetType is "normal" or null ? "" : SetPlan.SetTypeLabel(target.SetType))</span>
+                    </li>
+                }
+            </ol>
+            <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="() => AddSet(state)">Agregar serie</MudButton>
+
+            @if (_restLeft is { } left)
+            {
+                <div class="gsm-m-rest is-running" role="timer" aria-live="polite" data-testid="session-rest">
+                    <span class="gsm-m-rest__time">@($"{left / 60}:{left % 60:00}")</span>
+                    <button type="button" class="gsm-m-chip" @onclick="() => _restLeft = left + 15">+15 s</button>
+                    <button type="button" class="gsm-m-chip" @onclick="StopRest">Saltar</button>
+                </div>
+            }
+            else
+            {
+                <button type="button" class="gsm-m-rest" data-testid="session-rest-start" @onclick="() => StartRestAsync(rest)">
+                    <MudIcon Icon="@Icons.Material.Outlined.Timer" Size="Size.Small" /> Iniciar descanso · @(rest >= 60 && rest % 60 == 0 ? $"{rest / 60} min" : $"{rest} s")
+                </button>
+            }
+
+            <div class="gsm-m-session__nav">
+                <button type="button" class="gsm-m-secondary" disabled="@(session.Index == 0)" @onclick="() => Go(-1)" data-testid="session-prev">Anterior</button>
+                @if (isLast)
+                {
+                    <button type="button" class="gsm-m-cta" @onclick="FinishAsync" data-testid="session-finish">Terminar</button>
+                }
+                else
+                {
+                    <button type="button" class="gsm-m-cta" @onclick="() => Go(1)" data-testid="session-next">Siguiente</button>
+                }
+            </div>
+
+            <ol class="gsm-m-session__list" aria-label="Ejercicios de la sesión">
+                @for (var i = 0; i < session.Exercises.Count; i++)
+                {
+                    var item = session.Exercises[i];
+                    var position = i;
+                    <li>
+                        <button type="button" class="@($"{(position == session.Index ? "is-current" : "")} {(StateOf(item).Done ? "is-done" : "")}")" @onclick="() => GoTo(position)">
+                            @(position + 1). @(StateOf(item).Replacement?.Name ?? item.ExerciseName)
+                        </button>
+                    </li>
+                }
+            </ol>
+        </section>
+    };
 }

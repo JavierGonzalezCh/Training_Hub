@@ -21,7 +21,7 @@ Este archivo es el resumen que debes tener presente siempre. Antes de generar en
 
 ## Estado actual
 
-Todos los módulos están construidos en la rama `v2`: Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements, Routines, Classes, SuperAdmin, Comunicaciones, Equipment y Notifications, más Logs y los dashboards. Suite: **1304 tests de integración (Postgres real) + 794 bUnit**. La rama `v2` aún no se une a `main`.
+Todos los módulos están construidos en la rama `v2`: Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements, Routines, Classes, SuperAdmin, Comunicaciones, Equipment y Notifications, más Logs y los dashboards. Suite: **1310 tests de integración (Postgres real) + 802 bUnit**. La rama `v2` aún no se une a `main`.
 
 Falta, y está en `docs/V2-PENDIENTES.md`: **despliegue** (servidor propio con Dokploy, no Railway), cuentas externas (Cloudflare R2, Resend, Firebase: sin ellas las subidas de archivo fallan, los correos van al log y no hay push), y **verificar `GSM.Mobile` en un Android real** (compila para Android, nunca se ha ejecutado en un dispositivo; iOS necesita host macOS). `docs/V1-RECORRIDO.md` lista lo que falta recorrer en el navegador.
 
@@ -108,7 +108,7 @@ Migraciones, SQL a mano (`Migrations/Scripts/V2_<id>.sql`), cliente NSwag y test
 | `GSM.Client` | Cliente NSwag generado (`scripts/generate-client.ps1`), `AuthenticatedHttpHandler`, `ApiError`, `ITokenStore` |
 | `GSM.UI.Shared` | Tema (`GsmTheme`, Forja: rojo `#B50016` sobre negro), sesión (`SessionService`, `GymContext`), `GsmLoader` (la barra del logo como indicador de carga), `ServerTable<T>`, `StatusChip`, `QrCodeSvg`, `IClipboard`, marca en `wwwroot/brand/` |
 | `GSM.Panel.UI` | El panel del gym entero (RCL): layout y todas sus páginas; menú y pestañas de `/settings` declarados por módulo en `Navigation/Modules/*PanelModule.cs` (`IPanelModule`); `ServerTable` con `CardTemplate` para celular, corte en 960 px (`ViewportState`) |
-| `GSM.Member.UI` | Las pantallas del miembro (RCL), adaptables a celular y escritorio. Cuatro pestañas: Hoy (`/app`), Entrenar (`/app/rutina`, con el planificador de `GET /api/me/routines/week`), Progreso (`/app/progreso`: constancia, fuerza, logros y ranking) y Gym (`/app/gimnasio`, que reúne clases y novedades); el QR de la entrada va en el encabezado (`CheckinButton`) |
+| `GSM.Member.UI` | Las pantallas del miembro (RCL), adaptables a celular y escritorio. Barra flotante: Hoy (`/app`), Plan (`/app/plan`: planificador de `GET /api/me/routines/week` y días de la rutina), botón central (barra de press) al entrenamiento de hoy (`/app/rutina`, con modo sesión: un ejercicio por pantalla, guardado por serie), Progreso (`/app/progreso`: constancia, fuerza, logros y ranking) y Gym (`/app/gimnasio`, que reúne clases y novedades); el QR de la entrada va en el encabezado (`CheckinButton`). Estilo propio (redondeado y vidrio) en `gsm-member-v3.css`; `MuscleMap` dibuja músculos y recuperación (`GET /api/me/body`); fotos de muestra en `PlaceholderMedia` mientras no haya reales |
 | `GSM.Web` | Host Blazor WASM (puertos `7220`/`5220`): login, "olvidé mi contraseña", `/admin` (SuperAdmin), `/kiosk`; sirve `/app` como PWA (manifiestos de OS y de GO) |
 | `GSM.Mobile` | MAUI Blazor Hybrid (Android y Windows) con el panel y la app del miembro; **vive fuera del `.slnx`**: `dotnet build src/Frontend/GSM.Mobile -f net10.0-android -p:RuntimeIdentifier=android-arm64` |
 

@@ -27,6 +27,8 @@
                 @PendingBlock
                 @EntryBlock
                 @TrainingBlock
+                @WeekBlock
+                @BodyBlock
                 @NextClassBlock
                 @GymNowBlock
                 @ProgressBlock
@@ -39,8 +41,10 @@
                 @MembershipBlock(member)
                 @EntryBlock
                 @TrainingBlock
+                @BodyBlock
             </div>
             <div class="gsm-m-home__side">
+                @WeekBlock
                 @PendingBlock
                 @NextClassBlock
                 @GymNowBlock
@@ -53,6 +57,8 @@
 @code {
     private int _pendingConsents;
     private MemberHomeResponse? _home;
+    private AdherenceWeekItem? _week;
+    private MyBodyStatusResponse? _body;
     private bool _loaded;
 
     // 1. Saludo y estado
@@ -210,7 +216,8 @@
     private RenderFragment TrainingBlock => @<text>
         @if (GymCtx.FeatureFlags?.ShowRoutines != false && _home?.Training is { } training)
         {
-            <section class="gsm-m-card gsm-m-today" id="home-training" aria-labelledby="home-training-title">
+            <section class="gsm-m-card gsm-m-today" id="home-training" aria-labelledby="home-training-title"
+                     style="background-image:url('@PlaceholderMedia.Gym')">
                 <div class="gsm-m-card__body">
                     <span class="gsm-m-card__kicker">@(training.IsRest ? "Hoy" : "Hoy toca")</span>
                     <h2 class="gsm-m-card__title gsm-m-today__title" id="home-training-title">@training.DayName</h2>
@@ -220,9 +227,76 @@
                         <p class="gsm-m-card__text gsm-m-card__text--warn" id="home-review">@ReviewText(reviewOn, reviewLeft)</p>
                     }
                     <a class="gsm-m-cta" href="/app/rutina" data-testid="home-start">
-                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" />
+                        <BarbellIcon Width="34" />
                         <span>@(training.IsRest ? "Entrenar de todos modos" : "Empezar a entrenar")</span>
                     </a>
+                </div>
+            </section>
+        }
+    </text>;
+
+    // 5b. La semana en un anillo (días hechos de los que tocaban) y la racha.
+    private RenderFragment WeekBlock => @<text>
+        @if (_week is { PlannedDays: > 0 } week)
+        {
+            var pct = Math.Clamp(week.DoneDays * 100 / week.PlannedDays, 0, 100);
+            var dash = (pct * 94.2 / 100).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+            <div class="gsm-m-duo" data-testid="home-week">
+                <a class="gsm-m-card gsm-m-ringcard" href="/app/plan">
+                    <svg class="gsm-m-ring" viewBox="0 0 36 36" aria-hidden="true">
+                        <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="4" />
+                        @if (pct > 0)
+                        {
+                            <circle cx="18" cy="18" r="15" fill="none" stroke="#B50016" stroke-width="4" stroke-linecap="round"
+                                    stroke-dasharray="@($"{dash} 94.2")" transform="rotate(-90 18 18)" />
+                        }
+                    </svg>
+                    <div class="gsm-m-card__body">
+                        <span class="gsm-m-card__kicker">Esta semana</span>
+                        <span class="gsm-m-card__title">@week.DoneDays de @week.PlannedDays días</span>
+                    </div>
+                </a>
+                @if (_home?.Progress is { } streak)
+                {
+                    <a class="gsm-m-card gsm-m-statcard" href="/app/progreso">
+                        <span class="gsm-m-card__kicker"><MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Size="Size.Small" /> Racha</span>
+                        <span class="gsm-m-statcard__value">@streak.CurrentStreak<small>@(streak.CurrentStreak == 1 ? "día" : "días")</small></span>
+                    </a>
+                }
+            </div>
+        }
+    </text>;
+
+    // 5c. Tu cuerpo hoy: recuperación estimada por músculo (de tus registros).
+    private RenderFragment BodyBlock => @<text>
+        @if (GymCtx.FeatureFlags?.ShowRoutines != false && _body is { } body && body.DaysSinceLastWorkout is not null)
+        {
+            var recovery = body.Muscles.ToDictionary(m => m.Muscle, m => m.RecoveryPercent);
+            var tired = body.Muscles.Where(m => m.RecoveryPercent < 100).OrderBy(m => m.RecoveryPercent).Take(4).ToList();
+            <section class="gsm-m-card gsm-m-body" id="home-body" aria-labelledby="home-body-title">
+                <div class="gsm-m-card__body">
+                    <span class="gsm-m-card__kicker" id="home-body-title">Tu cuerpo hoy · estimado</span>
+                    <div class="gsm-m-body__kpis">
+                        <div><b>@body.DaysSinceLastWorkout</b><span>@(body.DaysSinceLastWorkout == 1 ? "día" : "días") desde tu último entreno</span></div>
+                        <div><b>@body.ReadyCount</b><span>músculos listos para entrenar</span></div>
+                    </div>
+                    <div class="gsm-m-body__map">
+                        <MuscleMap Recovery="recovery" Label="Recuperación estimada de tus músculos" />
+                        @if (tired.Count > 0)
+                        {
+                            <ul class="gsm-m-body__list">
+                                @foreach (var m in tired)
+                                {
+                                    <li><span class="gsm-m-dot @(m.RecoveryPercent < 50 ? "is-hot" : "is-warm")"></span>@MuscleLabels.Capitalize(MuscleLabels.Label(m.Muscle)) <b>@m.RecoveryPercent %</b></li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="gsm-m-card__text">Todo listo: puedes entrenar lo que quieras.</p>
+                        }
+                    </div>
+                    <div class="gsm-m-legend"><span><i class="is-hot"></i>Cansado</span><span><i class="is-warm"></i>Recuperando</span><span><i></i>Listo</span></div>
                 </div>
             </section>
         }
@@ -346,6 +420,26 @@
         finally
         {
             _loaded = true;
+        }
+
+        if (GymCtx.FeatureFlags?.ShowRoutines != false)
+        {
+            // La semana y el cuerpo son extras: si fallan, Hoy se ve igual.
+            try
+            {
+                _week = (await Me.GetMyAdherenceAsync())?.Weeks?.LastOrDefault();
+            }
+            catch (GsmApiException)
+            {
+            }
+
+            try
+            {
+                _body = await Me.GetMyBodyStatusAsync();
+            }
+            catch (GsmApiException)
+            {
+            }
         }
     }
 }

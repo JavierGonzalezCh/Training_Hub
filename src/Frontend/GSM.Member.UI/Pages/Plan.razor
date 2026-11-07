@@ -1,0 +1,116 @@
+@page "/app/plan"
+@layout MemberLayout
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@using GSM.UI.Shared.Routines
+@inject GymContext GymCtx
+@inject IMeClient Me
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Plan — TrainingHub GO</PageTitle>
+
+@* Plan: el planificador del mes (semanas navegables) y la biblioteca de días de la rutina. Tocar un día lo abre en
+   Entrenar para hacerlo hoy (SP1). El entrenamiento de hoy está en el botón central de la barra. *@
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-3">Tu plan</MudText>
+
+@if (GymCtx.FeatureFlags?.ShowRoutines == false)
+{
+    <MudAlert Severity="Severity.Normal">Las rutinas no están activadas en este gimnasio.</MudAlert>
+}
+else if (_loading)
+{
+    <GsmLoader />
+}
+else if (_response?.Routine is not { } routine)
+{
+    <div class="gsm-empty">
+        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Large" Class="gsm-empty-icon" />
+        <div class="gsm-empty-title">Todavía no tienes una rutina</div>
+        @if (GymCtx.FeatureFlags?.MembersCanCreateRoutines == true)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/app/rutina/nueva" Class="mt-2">Crear mi rutina</MudButton>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">Pídele una a tu entrenador y aparecerá aquí.</MudText>
+        }
+    </div>
+}
+else
+{
+    <RoutineWeekPlanner TodayDayId="TodayDayId" OnPick="OpenDay" />
+
+    <div class="gsm-m-plan-head">
+        <h2 class="gsm-m-plan-head__name" data-testid="plan-routine">@routine.Name</h2>
+        <span class="gsm-m-plan-head__meta">
+            @(routine.ScheduleMode == "weekly" ? "Semanal" : "Rotativa") · @TrainingDays(routine).Count días
+            @if (routine is { SelfAssigned: false, ReviewOn: { } reviewOn })
+            {
+                <text> · se revisa el @GsmFormat.Day(reviewOn)</text>
+            }
+        </span>
+    </div>
+
+    <ul class="gsm-m-daylist" aria-label="Los días de tu rutina">
+        @foreach (var day in TrainingDays(routine))
+        {
+            var primary = day.Exercises.Select(e => e.PrimaryMuscle).Where(m => m is not null).Select(m => m!).ToList();
+            var isToday = day.Id == TodayDayId;
+            <li>
+                <a class="gsm-m-card gsm-m-daycard @(isToday ? "is-today" : null)" href="@($"/app/rutina?dia={day.Id}")" data-testid="@($"plan-day-{day.Id}")">
+                    <span class="gsm-m-daycard__photo" style="background-image:url('@PlaceholderMedia.Exercise(day.Exercises.FirstOrDefault()?.ImageUrl, primary.FirstOrDefault(), 200)')" aria-hidden="true"></span>
+                    <div class="gsm-m-card__body">
+                        <span class="gsm-m-card__kicker">@(isToday ? "Hoy" : routine.ScheduleMode == "weekly" && day.DayOfWeek is { } wd ? RoutineLabels.IsoWeekdayLabel(wd) : $"Día {day.Position}")</span>
+                        <h3 class="gsm-m-card__title">@day.Name</h3>
+                        <p class="gsm-m-card__text">@day.Exercises.Count ejercicios · @day.Exercises.Sum(e => Math.Max(1, e.SetTargets.Count)) series@(primary.Count > 0 ? $" · {MuscleLabels.Join(primary.Take(3))}" : "")</p>
+                    </div>
+                    <MuscleMap Primary="primary" Compact="true" Label="@($"Músculos de {day.Name}")" />
+                </a>
+            </li>
+        }
+    </ul>
+
+    @if (routine.Notes is { Length: > 0 } notes)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mt-4">@notes</MudAlert>
+    }
+}
+
+@code {
+    private MyRoutineResponse? _response;
+    private bool _loading = true;
+
+    private Guid? TodayDayId => _response?.Today is { IsRest: false, DayId: { } id } ? id : null;
+
+    private static List<RoutineDayResponse> TrainingDays(RoutineResponse routine)
+        => routine.Days.Where(d => !d.IsRest && d.Exercises.Count > 0)
+            .OrderBy(d => d.DayOfWeek ?? d.Position).ThenBy(d => d.Position).ToList();
+
+    private void OpenDay(Guid? dayId)
+        => Navigation.NavigateTo(dayId is { } id ? $"/app/rutina?dia={id}" : "/app/rutina");
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GymCtx.FeatureFlags?.ShowRoutines == false)
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            _response = await Me.RoutinesGETAsync();
+        }
+        catch (GsmApiException ex) when (ex.StatusCode == 403)
+        {
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

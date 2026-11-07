@@ -30,6 +30,33 @@
 <div role="tabpanel" aria-labelledby="@($"progress-tab-{_active}")" data-testid="@($"panel-{_active}")">
     @if (_active == "racha")
     {
+        @if (_volume is { Count: > 0 } weeks && weeks.Any(w => w.Sessions > 0))
+        {
+            var max = Math.Max(1d, weeks.Max(w => w.VolumeKg));
+            var current = weeks[^1];
+            var previous = weeks.Count > 1 ? weeks[^2].VolumeKg : 0;
+            <section class="gsm-m-card gsm-m-volume" data-testid="weekly-volume">
+                <div class="gsm-m-card__body">
+                    <span class="gsm-m-card__kicker">Volumen semanal</span>
+                    <span class="gsm-m-volume__value">
+                        @(current.VolumeKg >= 1000 ? $"{current.VolumeKg / 1000:0.#} t" : $"{current.VolumeKg:0} kg")
+                        @if (previous > 0)
+                        {
+                            var change = (int)Math.Round((current.VolumeKg - previous) * 100 / previous);
+                            <small class="@(change >= 0 ? "is-up" : "is-down")">@(change >= 0 ? "+" : "")@change % vs. la semana pasada</small>
+                        }
+                    </span>
+                    <span class="gsm-m-card__text">@current.Sessions @(current.Sessions == 1 ? "entreno" : "entrenos") · @current.Sets series esta semana</span>
+                    <div class="gsm-m-bars" aria-hidden="true">
+                        @foreach (var w in weeks)
+                        {
+                            <span class="@(ReferenceEquals(w, current) ? "is-on" : null)" style="@($"height:{Math.Max(4, w.VolumeKg * 100 / max).ToString("0", System.Globalization.CultureInfo.InvariantCulture)}%")" title="@($"{w.WeekStart:dd/MM}: {w.VolumeKg:0} kg")"></span>
+                        }
+                    </div>
+                    <div class="gsm-m-bars__labels" aria-hidden="true"><span>Hace @(weeks.Count - 1) semanas</span><span>Esta semana</span></div>
+                </div>
+            </section>
+        }
         <StreakPanel />
     }
     else if (_active == "ranking")
@@ -57,6 +84,24 @@
     public string? Tab { get; set; }
 
     private string _active = "racha";
+    private IList<WeeklyVolumeItem>? _volume;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GymCtx.FeatureFlags?.ShowRoutines == false)
+        {
+            return;
+        }
+
+        try
+        {
+            _volume = (await Me.GetMyWeeklyVolumeAsync(8))?.ToList();
+        }
+        catch (GsmApiException)
+        {
+            // Sin el volumen, Constancia se ve igual.
+        }
+    }
 
     private bool RankingOn => GymCtx.FeatureFlags is not { ShowRanking: false } and not { ShowGamification: false };
 

@@ -1,0 +1,16 @@
+@* La barra de press: el ícono del botón central y de «Empezar». Toma el color del texto. *@
+<svg class="gsm-barbell @Class" viewBox="0 0 48 24" width="@Width" height="@(Width / 2)" aria-hidden="true" focusable="false">
+    <g fill="currentColor">
+        <rect x="1" y="7" width="4" height="10" rx="1.5" />
+        <rect x="6" y="3" width="5" height="18" rx="2" />
+        <rect x="11" y="10.5" width="26" height="3" rx="1.5" />
+        <rect x="37" y="3" width="5" height="18" rx="2" />
+        <rect x="43" y="7" width="4" height="10" rx="1.5" />
+    </g>
+</svg>
+
+@code {
+    [Parameter] public int Width { get; set; } = 40;
+
+    [Parameter] public string? Class { get; set; }
+}
