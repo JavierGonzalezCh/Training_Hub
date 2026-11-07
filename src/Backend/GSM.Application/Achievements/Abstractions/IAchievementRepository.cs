@@ -53,4 +53,12 @@ public interface IAchievementRepository
         Guid memberId, CancellationToken cancellationToken = default);
 
     void AddStreakFreeze(StreakFreeze freeze);
+
+    /// <summary>El mejor puesto del miembro en un mes cerrado del ranking; nulo si nunca quedó clasificado.</summary>
+    Task<int?> GetBestRankingPositionAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>¿Ya se cerró ese mes del ranking en el gym? (Hay resultados guardados.)</summary>
+    Task<bool> IsRankingMonthClosedAsync(Guid gymId, DateOnly month, CancellationToken cancellationToken = default);
+
+    void AddRankingResult(RankingMonthResult result);
 }

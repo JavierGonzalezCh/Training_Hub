@@ -43,4 +43,28 @@ public enum AchievementConditionType
     /// de repeticiones con peso, solo de rutinas asignadas (L3). Label: <c>lifted_volume</c>.
     /// </summary>
     LiftedVolume,
+
+    /// <summary>Días con entrada antes de las 8:00 (hora del gym). Label: <c>early_visits</c>.</summary>
+    EarlyVisits,
+
+    /// <summary>Días con entrada desde las 20:00 (hora del gym). Label: <c>late_visits</c>.</summary>
+    LateVisits,
+
+    /// <summary>Fines de semana distintos con entrada el sábado o el domingo. Label: <c>weekends</c>.</summary>
+    Weekends,
+
+    /// <summary>Días en que registró todos los ejercicios de un día de su rutina. Label: <c>complete_sessions</c>.</summary>
+    CompleteSessions,
+
+    /// <summary>Clases distintas a las que asistió (Spinning, Yoga...). Label: <c>distinct_classes</c>.</summary>
+    DistinctClasses,
+
+    /// <summary>Cuántos de los tres levantamientos (sentadilla, press de banca, peso muerto) registró. Label: <c>power_lifts</c>.</summary>
+    PowerLifts,
+
+    /// <summary>
+    /// Terminar un mes cerrado del ranking en el puesto <c>ConditionValue</c> o mejor (50, 10, 3, 1). Label:
+    /// <c>monthly_ranking_top</c>.
+    /// </summary>
+    MonthlyRankingTop,
 }

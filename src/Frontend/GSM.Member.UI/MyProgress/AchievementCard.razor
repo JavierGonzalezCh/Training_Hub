@@ -2,9 +2,23 @@
    en los manuales, el motivo. *@
 <MudPaper Class="@($"pa-4 text-center gsm-achievement{(Item.Unlocked ? "" : " gsm-achievement--locked")}")" Elevation="0"
           data-testid="@($"achievement-{Item.AchievementId}")">
-    <MudIcon Icon="@(Item.Unlocked ? Icons.Material.Filled.EmojiEvents : Icons.Material.Filled.Lock)"
-             Size="Size.Large" Class="mb-2"
-             Style="@($"color:{(Item.Unlocked ? "var(--gsm-red)" : "var(--gsm-muted)")}")" />
+    @if (!string.IsNullOrWhiteSpace(Item.IconUrl))
+    {
+        @* La medalla: a color si está ganada; en gris con candado si falta. *@
+        <span class="gsm-medal @(Item.Unlocked ? "is-unlocked" : "is-locked")" data-testid="achievement-medal">
+            <img src="@Item.IconUrl" alt="" loading="lazy" />
+            @if (!Item.Unlocked)
+            {
+                <span class="gsm-medal__lock" aria-hidden="true"><MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" /></span>
+            }
+        </span>
+    }
+    else
+    {
+        <MudIcon Icon="@(Item.Unlocked ? Icons.Material.Filled.EmojiEvents : Icons.Material.Filled.Lock)"
+                 Size="Size.Large" Class="mb-2"
+                 Style="@($"color:{(Item.Unlocked ? "var(--gsm-red)" : "var(--gsm-muted)")}")" />
+    }
     <MudText Typo="Typo.body1" Style="@(Item.Unlocked ? null : "color:var(--gsm-silver)")">@Item.Name</MudText>
     @if (Item.Unlocked)
     {
@@ -19,7 +33,7 @@
     else
     {
         <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block">
-            @AchievementConditionLabels.Label(Item.ConditionType) · @Item.Progress/@Item.ConditionValue
+            @AchievementConditionLabels.Label(Item.ConditionType) · @AchievementConditionLabels.Progress(Item.ConditionType, Item.Progress, Item.ConditionValue)
         </MudText>
     }
     @if (!string.IsNullOrWhiteSpace(Item.RewardDescription))
@@ -28,7 +42,7 @@
             @RewardLine
         </MudText>
     }
-    @if (!Item.Unlocked && !Item.IsManual && Item.ConditionValue > 0)
+    @if (!Item.Unlocked && !Item.IsManual && Item.ConditionValue > 0 && Item.ConditionType != "MonthlyRankingTop")
     {
         <div class="gsm-achievement-progress"
              role="progressbar"

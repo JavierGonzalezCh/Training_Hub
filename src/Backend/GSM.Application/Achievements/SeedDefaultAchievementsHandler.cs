@@ -20,7 +20,7 @@ public sealed class SeedDefaultAchievementsHandler(
         foreach (var seed in AchievementTemplates.For(domainEvent.Type).Where(s => !existing.Contains(s.Name)))
         {
             achievements.Add(Achievement.Create(
-                domainEvent.GymId, seed.Name, seed.Description, null, seed.Type, seed.Value));
+                domainEvent.GymId, seed.Name, seed.Description, seed.IconUrl, seed.Type, seed.Value));
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -121,6 +121,21 @@ public sealed class RetroactiveAchievementGrant(
         }
 
         var eligible = new List<Guid>();
+        if (GSM.Domain.Achievements.AchievementExtraMetrics.Uses(achievement.ConditionType))
+        {
+            foreach (var memberId in candidates)
+            {
+                var extra = await AchievementMetrics.ComputeExtraAsync(
+                    memberId, [achievement.ConditionType], attendance, routines, classes, achievements, cancellationToken);
+                if (achievement.IsMetBy(0, 0, 0, 0, extra: extra))
+                {
+                    eligible.Add(memberId);
+                }
+            }
+
+            return eligible;
+        }
+
         foreach (var memberId in candidates)
         {
             var met = achievement.ConditionType switch

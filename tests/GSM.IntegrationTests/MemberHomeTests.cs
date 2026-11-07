@@ -336,6 +336,8 @@ public sealed class MemberHomeTests(ApiFactory factory) : IClassFixture<ApiFacto
     {
         public Task<int> GetAttendedCountAsync(Guid memberId, CancellationToken cancellationToken = default) => throw Boom();
 
+        public Task<int> GetDistinctAttendedClassCountAsync(Guid memberId, CancellationToken cancellationToken = default) => throw Boom();
+
         public Task<IReadOnlyList<UpcomingBookingView>> GetUpcomingBookingsAsync(Guid memberId, int limit, CancellationToken cancellationToken = default)
             => throw Boom();
 

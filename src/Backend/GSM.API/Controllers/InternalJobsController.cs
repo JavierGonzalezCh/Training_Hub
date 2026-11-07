@@ -38,6 +38,7 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
         [FromServices] PurgeNotificationsHandler purge,
         [FromServices] RunMonthlyMetricsHandler monthlyMetrics,
         [FromServices] RunSubscriptionNoticesHandler subscriptionNotices,
+        [FromServices] GSM.Application.Achievements.CloseRankingMonthHandler rankingClose,
         [FromServices] RunWaitlistJobHandler waitlistJob,
         [FromServices] RunAnonymizationJobHandler anonymizationJob,
         [FromServices] LoggedJobRunner runner,
@@ -77,6 +78,12 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
             "subscription_notices",
             () => subscriptionNotices.HandleAsync(cancellationToken),
             published => (published, 0));
+
+        // AC1: cierre del mes anterior del ranking y logros de ranking (idempotente por gym y mes).
+        await runner.RunAsync(
+            "ranking_close",
+            () => rankingClose.HandleAsync(cancellationToken),
+            r => (r.Results, 0));
 
         // Foto mensual del SaaS: solo hace algo en la primera ejecucion de cada mes (idempotente por mes).
         await runner.RunAsync(

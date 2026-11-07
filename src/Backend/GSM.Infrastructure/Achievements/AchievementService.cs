@@ -47,10 +47,12 @@ public sealed class AchievementService(
             needReferrals: pending.Any(a => a.ConditionType == AchievementConditionType.Referrals),
             needLifting: pending.Any(a => a.ConditionType is AchievementConditionType.PersonalRecords or AchievementConditionType.LiftedVolume),
             cancellationToken);
+        var extra = await AchievementMetrics.ComputeExtraAsync(
+            memberId, pending.Select(a => a.ConditionType).ToHashSet(), attendance, routines, classes, achievements, cancellationToken);
         var now = clock.UtcNow;
 
         var newlyUnlocked = new List<(MemberAchievement Row, Achievement Achievement)>();
-        foreach (var achievement in pending.Where(a => a.IsMetBy(visits, streak, sessions, classAttendance, tenure, referrals, records, volume)))
+        foreach (var achievement in pending.Where(a => a.IsMetBy(visits, streak, sessions, classAttendance, tenure, referrals, records, volume, extra)))
         {
             var row = MemberAchievement.Unlock(
                 achievement.GymId, memberId, achievement.Id, now, achievement.RewardDescription, achievement.RewardValidDays);

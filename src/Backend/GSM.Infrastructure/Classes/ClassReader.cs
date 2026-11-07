@@ -44,6 +44,11 @@ public sealed class ClassReader(
         => Bookings.CountAsync(
             b => b.MemberId == memberId && b.Status == ClassBookingStatus.Attended, cancellationToken);
 
+    public Task<int> GetDistinctAttendedClassCountAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => (from b in Bookings.Where(b => b.MemberId == memberId && b.Status == ClassBookingStatus.Attended)
+            join s in dbContext.Set<ClassSession>() on b.SessionId equals s.Id
+            select s.ClassId).Distinct().CountAsync(cancellationToken);
+
     public async Task<IReadOnlyList<UpcomingBookingView>> GetUpcomingBookingsAsync(
         Guid memberId, int limit, CancellationToken cancellationToken = default)
     {

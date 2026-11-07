@@ -57,6 +57,43 @@ internal static class AchievementMetrics
             lifting.PersonalRecords, ToWholeKg(lifting.LiftedVolumeKg));
     }
 
+    /// <summary>
+    /// Métricas de hábitos, disciplina, variedad, fuerza y ranking: solo se consulta lo que pide algún logro de
+    /// <paramref name="types"/>.
+    /// </summary>
+    public static async Task<GSM.Domain.Achievements.AchievementExtraMetrics> ComputeExtraAsync(
+        Guid memberId,
+        IReadOnlyCollection<GSM.Domain.Achievements.AchievementConditionType> types,
+        IAttendanceReader attendance,
+        IRoutineReader routines,
+        IClassReader classes,
+        GSM.Application.Achievements.Abstractions.IAchievementRepository achievements,
+        CancellationToken cancellationToken)
+    {
+        bool Needs(params GSM.Domain.Achievements.AchievementConditionType[] wanted) => wanted.Any(types.Contains);
+
+        var habits = Needs(GSM.Domain.Achievements.AchievementConditionType.EarlyVisits,
+                GSM.Domain.Achievements.AchievementConditionType.LateVisits,
+                GSM.Domain.Achievements.AchievementConditionType.Weekends)
+            ? await attendance.GetVisitHabitsAsync(memberId, cancellationToken)
+            : new VisitHabits(0, 0, 0);
+        var complete = Needs(GSM.Domain.Achievements.AchievementConditionType.CompleteSessions)
+            ? await routines.GetCompleteSessionCountAsync(memberId, onlyAssigned: true, cancellationToken)
+            : 0;
+        var distinctClasses = Needs(GSM.Domain.Achievements.AchievementConditionType.DistinctClasses)
+            ? await classes.GetDistinctAttendedClassCountAsync(memberId, cancellationToken)
+            : 0;
+        var powerLifts = Needs(GSM.Domain.Achievements.AchievementConditionType.PowerLifts)
+            ? await routines.GetPowerLiftCountAsync(memberId, onlyAssigned: true, cancellationToken)
+            : 0;
+        var bestPosition = Needs(GSM.Domain.Achievements.AchievementConditionType.MonthlyRankingTop)
+            ? await achievements.GetBestRankingPositionAsync(memberId, cancellationToken)
+            : null;
+
+        return new GSM.Domain.Achievements.AchievementExtraMetrics(
+            habits.EarlyDays, habits.LateDays, habits.Weekends, complete, distinctClasses, powerLifts, bestPosition);
+    }
+
     /// <summary>Referidos de este miembro que ya tienen su primera membresía pagada (spec §3.3).</summary>
     public static async Task<int> CountReferralsAsync(
         Guid memberId, IMemberReader members, IMembershipReader memberships, CancellationToken cancellationToken)

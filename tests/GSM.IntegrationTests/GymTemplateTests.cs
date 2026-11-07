@@ -93,38 +93,50 @@ public sealed class GymTemplateTests(ApiFactory factory) : IClassFixture<ApiFact
     {
         static HashSet<string> Names(GymType t) => AchievementTemplates.For(t).Select(s => s.Name).ToHashSet();
 
+        // Gym: asistencia (6), rachas (5), disciplina (5), fuerza (6), horarios (5), ranking (4), antigüedad y referidos.
         var gym = Names(GymType.Gym);
-        Assert.Equal(8, gym.Count);
-        Assert.Contains("Primera visita", gym);
-        Assert.Contains("Primer récord", gym);
-        Assert.DoesNotContain("10 clases", gym);
+        Assert.Equal(33, gym.Count);
+        Assert.Contains("Primeros Pasos", gym);
+        Assert.Contains("Club de la Fuerza", gym);
+        Assert.Contains("Madrugador I", gym);
+        Assert.Contains("Número Uno", gym);
+        Assert.DoesNotContain("Curioso", gym);
 
         var box = Names(GymType.Box);
-        Assert.Contains("10 clases", box);
-        Assert.Contains("50 clases", box);
-        Assert.Contains("Volumen: 10.000 kg", box);
-        Assert.Contains("Primer récord", box);
+        Assert.Contains("Curioso", box);
+        Assert.Contains("Polifacético", box);
+        Assert.Contains("Hércules", box);
 
         var studio = Names(GymType.Studio);
-        Assert.Contains("10 clases", studio);
-        Assert.DoesNotContain("Primer récord", studio);
-        Assert.DoesNotContain("Volumen: 10.000 kg", studio);
+        Assert.Contains("Master de Estudio", studio);
+        Assert.DoesNotContain("Rompiendo Barreras I", studio);
+        Assert.DoesNotContain("Enfocado", studio);
 
+        // El entrenador personal no tiene puerta: sin visitas, horarios ni ranking.
         var trainer = Names(GymType.PersonalTrainer);
-        Assert.DoesNotContain("Primera visita", trainer);
-        Assert.DoesNotContain("10 visitas", trainer);
-        Assert.DoesNotContain("50 visitas", trainer);
-        Assert.Contains("10 sesiones de rutina", trainer);
-        Assert.Contains("50 sesiones de rutina", trainer);
-        Assert.Contains("Volumen: 10.000 kg", trainer);
-        Assert.Contains("Racha de 7 días", trainer);
-        Assert.Contains("Primer récord", trainer);
+        Assert.DoesNotContain("Primeros Pasos", trainer);
+        Assert.DoesNotContain("Madrugador I", trainer);
+        Assert.DoesNotContain("En el Tablero", trainer);
+        Assert.Contains("Perfeccionista", trainer);
+        Assert.Contains("Tonelaje I", trainer);
+        Assert.Contains("Fuego Inicial", trainer);
 
         var academy = Names(GymType.Academy);
-        Assert.Contains("50 clases", academy);
-        Assert.DoesNotContain("Primer récord", academy);
+        Assert.Contains("Compañero de Fila", academy);
+        Assert.DoesNotContain("Club de la Fuerza", academy);
 
         Assert.Equal(gym, Names(GymType.Other));
+    }
+
+    [Fact]
+    public void Every_catalog_achievement_with_a_medal_points_to_a_file_that_exists()
+    {
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../src/Frontend/GSM.UI.Shared/wwwroot/achievements"));
+        var seeds = Enum.GetValues<GymType>().SelectMany(AchievementTemplates.For).Where(s => s.Icon is not null).DistinctBy(s => s.Name).ToList();
+
+        Assert.NotEmpty(seeds);
+        Assert.All(seeds, s => Assert.True(File.Exists(Path.Combine(root, s.Icon + ".webp")), $"Falta la medalla de {s.Name}"));
+        Assert.All(seeds, s => Assert.StartsWith(AchievementTemplates.IconBase, s.IconUrl));
     }
 
     [Theory]

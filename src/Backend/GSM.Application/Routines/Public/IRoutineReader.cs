@@ -45,6 +45,18 @@ public interface IRoutineReader
     /// Récords personales batidos y kilos levantados (L3), solo en ejercicios de repeticiones con peso.
     /// <paramref name="onlyAssigned"/> excluye los registros de rutinas creadas por el propio miembro.
     /// </summary>
+    /// <summary>
+    /// Días en que el miembro registró <b>todos</b> los ejercicios de un día de su rutina (los vigentes ese día).
+    /// Con <paramref name="onlyAssigned"/>, solo rutinas asignadas por el gym.
+    /// </summary>
+    Task<int> GetCompleteSessionCountAsync(Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cuántos de los tres levantamientos (sentadilla, press de banca, peso muerto) tiene registrados con peso, contando
+    /// el ejercicio que de verdad se hizo. Con <paramref name="onlyAssigned"/>, solo rutinas asignadas.
+    /// </summary>
+    Task<int> GetPowerLiftCountAsync(Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default);
+
     Task<LiftingStats> GetLiftingStatsAsync(
         Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default);
 

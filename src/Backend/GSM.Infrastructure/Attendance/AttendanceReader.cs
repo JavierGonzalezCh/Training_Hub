@@ -28,6 +28,25 @@ public sealed class AttendanceReader(
     public Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default)
         => ProgressAttendances.Where(a => a.MemberId == memberId).Select(a => a.AttendanceDate).Distinct().CountAsync(cancellationToken);
 
+    public async Task<VisitHabits> GetVisitHabitsAsync(Guid memberId, CancellationToken cancellationToken = default)
+    {
+        var rows = await ProgressAttendances
+            .Where(a => a.MemberId == memberId)
+            .Select(a => new { a.AttendanceDate, a.CheckedInAt })
+            .ToListAsync(cancellationToken);
+
+        var local = rows.Select(r => (r.AttendanceDate, Hour: clock.ToBusinessLocal(r.CheckedInAt).Hour)).ToList();
+        var early = local.Where(r => r.Hour < VisitHabits.EarlyBeforeHour).Select(r => r.AttendanceDate).Distinct().Count();
+        var late = local.Where(r => r.Hour >= VisitHabits.LateFromHour).Select(r => r.AttendanceDate).Distinct().Count();
+        var weekends = local
+            .Select(r => r.AttendanceDate)
+            .Where(d => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            .Select(d => d.AddDays(d.DayOfWeek == DayOfWeek.Sunday ? -1 : 0))
+            .Distinct()
+            .Count();
+        return new VisitHabits(early, late, weekends);
+    }
+
     public async Task<IReadOnlyDictionary<Guid, int>> GetVisitCountsAsync(
         IReadOnlyCollection<Guid> memberIds, CancellationToken cancellationToken = default)
     {

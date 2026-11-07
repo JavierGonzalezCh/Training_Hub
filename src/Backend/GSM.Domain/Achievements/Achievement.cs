@@ -85,8 +85,16 @@ public sealed class Achievement : BaseEntity, ITenantEntity
     /// <summary>¿El progreso del miembro alcanza la condición?</summary>
     public bool IsMetBy(
         int visitCount, int currentStreak, int routineSessions, int classAttendance,
-        int tenureMonths = 0, int referrals = 0, int personalRecords = 0, int liftedVolumeKg = 0) => ConditionType switch
+        int tenureMonths = 0, int referrals = 0, int personalRecords = 0, int liftedVolumeKg = 0,
+        AchievementExtraMetrics? extra = null) => ConditionType switch
     {
+        AchievementConditionType.EarlyVisits => (extra?.EarlyVisits ?? 0) >= ConditionValue,
+        AchievementConditionType.LateVisits => (extra?.LateVisits ?? 0) >= ConditionValue,
+        AchievementConditionType.Weekends => (extra?.Weekends ?? 0) >= ConditionValue,
+        AchievementConditionType.CompleteSessions => (extra?.CompleteSessions ?? 0) >= ConditionValue,
+        AchievementConditionType.DistinctClasses => (extra?.DistinctClasses ?? 0) >= ConditionValue,
+        AchievementConditionType.PowerLifts => (extra?.PowerLifts ?? 0) >= ConditionValue,
+        AchievementConditionType.MonthlyRankingTop => extra?.BestMonthlyPosition is { } best && best <= ConditionValue,
         AchievementConditionType.Visits => visitCount >= ConditionValue,
         AchievementConditionType.Streak => currentStreak >= ConditionValue,
         AchievementConditionType.RoutineSessions => routineSessions >= ConditionValue,
@@ -100,8 +108,17 @@ public sealed class Achievement : BaseEntity, ITenantEntity
 
     public int ProgressOf(
         int visitCount, int currentStreak, int routineSessions, int classAttendance,
-        int tenureMonths = 0, int referrals = 0, int personalRecords = 0, int liftedVolumeKg = 0) => ConditionType switch
+        int tenureMonths = 0, int referrals = 0, int personalRecords = 0, int liftedVolumeKg = 0,
+        AchievementExtraMetrics? extra = null) => ConditionType switch
     {
+        AchievementConditionType.EarlyVisits => Math.Min(extra?.EarlyVisits ?? 0, ConditionValue),
+        AchievementConditionType.LateVisits => Math.Min(extra?.LateVisits ?? 0, ConditionValue),
+        AchievementConditionType.Weekends => Math.Min(extra?.Weekends ?? 0, ConditionValue),
+        AchievementConditionType.CompleteSessions => Math.Min(extra?.CompleteSessions ?? 0, ConditionValue),
+        AchievementConditionType.DistinctClasses => Math.Min(extra?.DistinctClasses ?? 0, ConditionValue),
+        AchievementConditionType.PowerLifts => Math.Min(extra?.PowerLifts ?? 0, ConditionValue),
+        // Un puesto no avanza de a poco: o ya lo logró (meta completa) o no.
+        AchievementConditionType.MonthlyRankingTop => extra?.BestMonthlyPosition is { } best && best <= ConditionValue ? ConditionValue : 0,
         AchievementConditionType.Visits => Math.Min(visitCount, ConditionValue),
         AchievementConditionType.Streak => Math.Min(currentStreak, ConditionValue),
         AchievementConditionType.RoutineSessions => Math.Min(routineSessions, ConditionValue),

@@ -35,7 +35,7 @@ namespace GSM.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes", "tenure_months", "referrals", "manual", "personal_records", "lifted_volume" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "achievements", "condition_type", new[] { "visits", "streak", "routine_sessions", "classes", "tenure_months", "referrals", "manual", "personal_records", "lifted_volume", "early_visits", "late_visits", "weekends", "complete_sessions", "distinct_classes", "power_lifts", "monthly_ranking_top" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "attendance_method", new[] { "qr", "manual", "document", "routine" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_mode", new[] { "rotating", "static" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership", "gym_closed", "membership_frozen", "pass_exhausted", "member_inactive", "already_checked_in" });
@@ -86,6 +86,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "difficulty", new[] { "beginner", "intermediate", "advanced" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "exercise_type", new[] { "strength", "cardio", "mobility", "stretching", "plyometrics" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "traps", "obliques", "adductors", "abductors" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "power_lift", new[] { "squat", "bench", "deadlift" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "routine_day_override_reason", new[] { "swap", "reorganize", "shift" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "schedule_mode", new[] { "rotating", "weekly" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "tracking_type", new[] { "reps_weight", "reps", "time", "distance", "time_distance", "weight_distance" });
@@ -252,6 +253,54 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_member_achievements_member_id_achievement_id");
 
                     b.ToTable("member_achievements", "achievements");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Achievements.RankingMonthResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("integer")
+                        .HasColumnName("days");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateOnly>("Month")
+                        .HasColumnType("date")
+                        .HasColumnName("month");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ranking_month_results");
+
+                    b.HasIndex("MemberId")
+                        .HasDatabaseName("ix_ranking_month_results_member_id");
+
+                    b.HasIndex("GymId", "Month", "MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ranking_month_results_gym_id_month_member_id");
+
+                    b.ToTable("ranking_month_results", "achievements");
                 });
 
             modelBuilder.Entity("GSM.Domain.Achievements.RankingParticipant", b =>
@@ -3965,6 +4014,10 @@ namespace GSM.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
                         .HasColumnName("name");
+
+                    b.Property<PowerLift?>("PowerLift")
+                        .HasColumnType("routines.power_lift")
+                        .HasColumnName("power_lift");
 
                     b.Property<Muscle>("PrimaryMuscle")
                         .HasColumnType("routines.muscle")

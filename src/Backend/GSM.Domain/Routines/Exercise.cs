@@ -44,6 +44,11 @@ public sealed class Exercise : BaseEntity
     /// <summary>Se hace por lado: las repeticiones planeadas y registradas son por lado.</summary>
     public bool IsUnilateral { get; private set; }
 
+    /// <summary>Sentadilla, press de banca o peso muerto: cuenta para el logro «Club de la Fuerza». Nulo = ninguno.</summary>
+    public PowerLift? PowerLift { get; private set; }
+
+    public void MarkPowerLift(PowerLift? lift) => PowerLift = lift;
+
     public Difficulty Difficulty { get; private set; } = Difficulty.Intermediate;
 
     public bool IsActive { get; private set; } = true;

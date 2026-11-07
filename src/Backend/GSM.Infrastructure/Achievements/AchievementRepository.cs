@@ -100,6 +100,17 @@ public sealed class AchievementRepository(GsmDbContext dbContext) : IAchievement
 
     private DbSet<StreakFreeze> StreakFreezes => dbContext.Set<StreakFreeze>();
 
+    public async Task<int?> GetBestRankingPositionAsync(Guid memberId, CancellationToken cancellationToken = default)
+        => await dbContext.Set<RankingMonthResult>()
+            .Where(r => r.MemberId == memberId)
+            .MinAsync(r => (int?)r.Position, cancellationToken);
+
+    public Task<bool> IsRankingMonthClosedAsync(Guid gymId, DateOnly month, CancellationToken cancellationToken = default)
+        => dbContext.Set<RankingMonthResult>().IgnoreQueryFilters()
+            .AnyAsync(r => r.GymId == gymId && r.Month == month, cancellationToken);
+
+    public void AddRankingResult(RankingMonthResult result) => dbContext.Set<RankingMonthResult>().Add(result);
+
     public async Task<IReadOnlyList<StreakFreeze>> ListStreakFreezesAsync(
         Guid memberId, CancellationToken cancellationToken = default)
         => await StreakFreezes

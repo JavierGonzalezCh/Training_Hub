@@ -18,7 +18,8 @@ public sealed class AchievementReader(
     IRoutineReader routines,
     IClassReader classes,
     IMemberReader members,
-    IMembershipReader memberships) : IAchievementReader
+    IMembershipReader memberships,
+    GSM.Application.Achievements.Abstractions.IAchievementRepository achievementRepository) : IAchievementReader
 {
     public Task<bool> HasAchievementsAsync(Guid gymId, CancellationToken cancellationToken = default)
         => dbContext.Set<Achievement>().IgnoreQueryFilters().AnyAsync(a => a.GymId == gymId, cancellationToken);
@@ -60,6 +61,9 @@ public sealed class AchievementReader(
             needReferrals: achievements.Any(a => a.ConditionType == AchievementConditionType.Referrals),
             needLifting: achievements.Any(a => a.ConditionType is AchievementConditionType.PersonalRecords or AchievementConditionType.LiftedVolume),
             cancellationToken);
+        var extra = await AchievementMetrics.ComputeExtraAsync(
+            memberId, achievements.Where(a => !unlocked.ContainsKey(a.Id)).Select(a => a.ConditionType).ToHashSet(),
+            attendance, routines, classes, achievementRepository, cancellationToken);
 
         return achievements
             .Select(a => new MemberAchievementView(
@@ -69,7 +73,7 @@ public sealed class AchievementReader(
                 // Un logro ganado se muestra cumplido: la métrica viva (p. ej. la racha de hoy) puede haber bajado después.
                 a.IsManual ? (unlocked.ContainsKey(a.Id) ? 1 : 0)
                     : unlocked.ContainsKey(a.Id) ? a.ConditionValue
-                    : a.ProgressOf(visits, streak, sessions, classAttendance, tenure, referrals, records, volume),
+                    : a.ProgressOf(visits, streak, sessions, classAttendance, tenure, referrals, records, volume, extra),
                 a.IsManual,
                 unlocked.TryGetValue(a.Id, out var reasonRow) ? reasonRow.GrantReason : null,
                 // Ganado: el premio prometido al ganarlo. Sin ganar: el que ofrece el logro hoy.

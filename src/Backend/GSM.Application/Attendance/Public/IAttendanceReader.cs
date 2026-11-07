@@ -10,6 +10,13 @@ public interface IAttendanceReader
     Task<int> GetVisitCountAsync(Guid memberId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Hábitos de entrada para los logros de horario (hora del gym): días con entrada antes de las 8:00, días con
+    /// entrada desde las 20:00 y fines de semana distintos con entrada el sábado o el domingo. Cuentan las mismas
+    /// entradas que las visitas (sin anuladas ni fuera del radio).
+    /// </summary>
+    Task<VisitHabits> GetVisitHabitsAsync(Guid memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Días con entrada de cada miembro pedido, en una sola consulta (logros retroactivos, L1). Cuenta días, no
     /// entradas, y no cuenta las anuladas. Quien no tiene entradas no aparece.
     /// </summary>
@@ -127,3 +134,13 @@ public sealed record MemberDaysInRange(Guid MemberId, int Days, DateOnly LastDay
 
 /// <summary>Un día con entrada que no contó. <c>Outside</c>: estaba fuera del radio; si no, no compartió su ubicación.</summary>
 public sealed record UncountedEntryDay(DateOnly Date, bool Outside);
+
+/// <summary>Ver <see cref="IAttendanceReader.GetVisitHabitsAsync"/>.</summary>
+public sealed record VisitHabits(int EarlyDays, int LateDays, int Weekends)
+{
+    /// <summary>Antes de esta hora local es madrugar.</summary>
+    public const int EarlyBeforeHour = 8;
+
+    /// <summary>Desde esta hora local es de noche.</summary>
+    public const int LateFromHour = 20;
+}

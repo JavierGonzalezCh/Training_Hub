@@ -131,6 +131,57 @@ public sealed class RoutineReader(GsmDbContext dbContext, IClock clock) : IRouti
         return await logs.Select(l => l.PerformedOn).Distinct().CountAsync(cancellationToken);
     }
 
+    public async Task<int> GetCompleteSessionCountAsync(
+        Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default)
+    {
+        var logs = await (from log in dbContext.Set<RoutineExerciseLog>()
+                          where log.MemberId == memberId
+                          join ex in dbContext.Set<RoutineExercise>() on log.RoutineExerciseId equals ex.Id
+                          join day in dbContext.Set<RoutineDay>() on ex.RoutineDayId equals day.Id
+                          join routine in dbContext.Set<Routine>() on day.RoutineId equals routine.Id
+                          where !onlyAssigned || !routine.SelfAssigned
+                          select new { log.PerformedOn, log.RoutineExerciseId, ex.RoutineDayId })
+            .ToListAsync(cancellationToken);
+        if (logs.Count == 0)
+        {
+            return 0;
+        }
+
+        var dayIds = logs.Select(l => l.RoutineDayId).Distinct().ToList();
+        var lines = await dbContext.Set<RoutineExercise>()
+            .Where(e => dayIds.Contains(e.RoutineDayId))
+            .Select(e => new { e.Id, e.RoutineDayId, e.RetiredOn, e.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        return CompleteSessionCalculator.Count(
+            logs.Select(l => new LoggedLine(l.PerformedOn, l.RoutineExerciseId)).ToList(),
+            lines.Select(l => new DayLine(
+                l.Id, l.RoutineDayId, DateOnly.FromDateTime(clock.ToBusinessLocal(l.CreatedAt)), l.RetiredOn)).ToList());
+    }
+
+    public async Task<int> GetPowerLiftCountAsync(
+        Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default)
+    {
+        // Las series son una colección JSON propia: proyectarla exige no rastrear.
+        var rows = await (from log in dbContext.Set<RoutineExerciseLog>().AsNoTracking()
+                          where log.MemberId == memberId
+                          join ex in dbContext.Set<RoutineExercise>() on log.RoutineExerciseId equals ex.Id
+                          join day in dbContext.Set<RoutineDay>() on ex.RoutineDayId equals day.Id
+                          join routine in dbContext.Set<Routine>() on day.RoutineId equals routine.Id
+                          where !onlyAssigned || !routine.SelfAssigned
+                          join exercise in dbContext.Set<Exercise>() on log.ExerciseId equals exercise.Id
+                          where exercise.PowerLift != null
+                          select new { exercise.PowerLift, log.Sets })
+            .ToListAsync(cancellationToken);
+
+        // Una marca: al menos una serie efectiva con peso.
+        return rows
+            .Where(r => r.Sets.Any(s => s.SetType != SetType.Warmup && s.WeightKg is > 0))
+            .Select(r => r.PowerLift)
+            .Distinct()
+            .Count();
+    }
+
     public async Task<LiftingStats> GetLiftingStatsAsync(
         Guid memberId, bool onlyAssigned, CancellationToken cancellationToken = default)
     {

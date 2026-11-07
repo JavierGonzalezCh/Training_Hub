@@ -14,6 +14,9 @@ public interface IClassReader
     /// <summary>Nº de sesiones de clase a las que el miembro asistió (métrica del logro <c>classes</c>).</summary>
     Task<int> GetAttendedCountAsync(Guid memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>Clases distintas (Spinning, Yoga...) a las que el miembro asistió al menos una vez.</summary>
+    Task<int> GetDistinctAttendedClassCountAsync(Guid memberId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<UpcomingBookingView>> GetUpcomingBookingsAsync(
         Guid memberId, int limit, CancellationToken cancellationToken = default);
 
