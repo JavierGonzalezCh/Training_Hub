@@ -359,7 +359,11 @@ public sealed class VoidCheckInTests(ApiFactory factory) : IClassFixture<ApiFact
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var gym = Gym.Create("Void Http Gym", $"voidh-{suffix}");
-        var today = scope.ServiceProvider.GetRequiredService<IClock>().Today;
+        // El host HTTP corre con el reloj real: la membresía se siembra con la fecha real, no con la que otro test de esta
+        // clase haya dejado fijada (si no, desde que pasa esa fecha la membresía sale vencida y la entrada da 422).
+        var clock = scope.ServiceProvider.GetRequiredService<MutableClock>();
+        clock.Unpin();
+        var today = clock.Today;
         var member = Member.Create(gym.Id, "Ana", "Prueba", $"doc-{suffix}", today.AddDays(-100));
         var plan = MembershipPlan.Create(gym.Id, "Mensual", null, 50000m, 30);
         db.AddRange(gym, GymFeatureFlags.Default(gym.Id), member, plan,
