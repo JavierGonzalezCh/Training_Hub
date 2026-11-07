@@ -91,6 +91,25 @@ public sealed class MissedSessionTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
+    public async Task Body_status_and_weekly_volume_read_the_logged_sets()
+    {
+        var (w, routine) = await SeedPlanAsync();
+        var chest = DayNamed(routine, "Pecho");
+        await LogAsync(w, chest.Exercises[0].Id, Day(0));
+
+        using var scope = AsMember(w, Day(0));
+        var status = await scope.ServiceProvider.GetRequiredService<GetMyBodyStatusHandler>().HandleAsync(default);
+        var weeks = await scope.ServiceProvider.GetRequiredService<GetMyWeeklyVolumeHandler>().HandleAsync(4, default);
+
+        Assert.Equal(0, status.DaysSinceLastWorkout);
+        Assert.Contains(status.Muscles, m => m.RecoveryPercent == 0 && m.LastTrainedOn == Day(0));
+        Assert.Equal(4, weeks.Count);
+        Assert.Equal(Day(0), weeks[^1].WeekStart);
+        Assert.Equal(1, weeks[^1].Sessions);
+        Assert.Equal(200m, weeks[^1].VolumeKg);
+    }
+
+    [Fact]
     public async Task The_week_planner_refuses_weeks_too_far_away()
     {
         var (w, _) = await SeedPlanAsync();

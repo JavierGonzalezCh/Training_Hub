@@ -81,7 +81,11 @@ public sealed record RoutineExerciseResponse(
     string TrackingType = "RepsWeight",
     bool IsUnilateral = false,
     string MuscleGroup = "FullBody",
-    ExerciseEquipmentInfo? Equipment = null);
+    ExerciseEquipmentInfo? Equipment = null,
+    string? PrimaryMuscle = null,
+    IReadOnlyList<string>? SecondaryMuscles = null,
+    string? ImageUrl = null,
+    string? VideoUrl = null);
 
 public sealed record RoutineDayResponse(
     Guid Id,

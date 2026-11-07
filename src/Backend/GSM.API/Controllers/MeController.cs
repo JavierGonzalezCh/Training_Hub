@@ -151,6 +151,29 @@ public sealed class MeController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(date, cancellationToken));
 
+    /// <summary>
+    /// «Tu cuerpo hoy»: recuperación estimada de cada músculo según los registros (0–100), días desde el último entreno
+    /// y cuántos músculos están listos. 403 si <c>show_routines = false</c>.
+    /// </summary>
+    [HttpGet("body")]
+    [EndpointName("GetMyBodyStatus")]
+    [ProducesResponseType<MyBodyStatusResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<MyBodyStatusResponse>> BodyStatus(
+        [FromServices] GetMyBodyStatusHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>Volumen de las últimas <c>weeks</c> semanas (8 por defecto, máximo 26), de la más antigua a la actual. 403 si <c>show_routines = false</c>.</summary>
+    [HttpGet("progress/weekly")]
+    [EndpointName("GetMyWeeklyVolume")]
+    [ProducesResponseType<IReadOnlyList<WeeklyVolumeItem>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<WeeklyVolumeItem>>> WeeklyVolume(
+        [FromQuery] int? weeks,
+        [FromServices] GetMyWeeklyVolumeHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(weeks, cancellationToken));
+
     [HttpGet("routines/history")]
     [ProducesResponseType<IReadOnlyList<RoutineHistoryItem>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

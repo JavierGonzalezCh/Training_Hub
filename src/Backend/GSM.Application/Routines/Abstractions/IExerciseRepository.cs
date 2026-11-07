@@ -22,7 +22,10 @@ public sealed record ExerciseFilter(
 /// <summary>Lo mínimo de un ejercicio que necesitan las respuestas de las rutinas.</summary>
 public sealed record ExerciseSummary(
     string Name, Muscle PrimaryMuscle, TrackingType TrackingType, bool IsUnilateral,
-    IReadOnlyList<EquipmentType>? Equipment = null);
+    IReadOnlyList<EquipmentType>? Equipment = null,
+    IReadOnlyList<Muscle>? SecondaryMuscles = null,
+    string? ImageUrl = null,
+    string? VideoUrl = null);
 
 /// <summary>
 /// Acceso a <see cref="Exercise"/>. **Toda** consulta aplica el filtro híbrido

@@ -14294,6 +14294,129 @@
         }
       }
     },
+    "/api/me/body": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "operationId": "GetMyBodyStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBodyStatusResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBodyStatusResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBodyStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/progress/weekly": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "operationId": "GetMyWeeklyVolume",
+        "parameters": [
+          {
+            "name": "weeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeeklyVolumeItem"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeeklyVolumeItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeeklyVolumeItem"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me/routines/history": {
       "get": {
         "tags": [
@@ -33519,6 +33642,67 @@
       "MuscleGroup": {
         "type": "integer"
       },
+      "MuscleRecoveryItem": {
+        "required": [
+          "muscle",
+          "recoveryPercent",
+          "lastTrainedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "muscle": {
+            "type": "string"
+          },
+          "recoveryPercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastTrainedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "MyBodyStatusResponse": {
+        "required": [
+          "daysSinceLastWorkout",
+          "readyCount",
+          "muscles"
+        ],
+        "type": "object",
+        "properties": {
+          "daysSinceLastWorkout": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "readyCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "muscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleRecoveryItem"
+            }
+          }
+        }
+      },
       "MyBookingStatusResponse": {
         "required": [
           "blockedUntil",
@@ -38280,6 +38464,33 @@
                 "$ref": "#/components/schemas/ExerciseEquipmentInfo"
               }
             ]
+          },
+          "primaryMuscle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondaryMuscles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "videoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -42293,6 +42504,45 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "WeeklyVolumeItem": {
+        "required": [
+          "weekStart",
+          "volumeKg",
+          "sets",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "volumeKg": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "sets": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sessions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

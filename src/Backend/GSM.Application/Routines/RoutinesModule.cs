@@ -14,6 +14,7 @@ public static class RoutinesModuleRegistration
         services.AddScoped<ExerciseEquipmentResolver>();
         services.AddScoped<ExerciseAlternativesResolver>();
         services.AddScoped<MemberProgressService>();
+        services.AddScoped<MemberBodyService>();
         services.AddScoped<GSM.Application.Routines.Adherence.MemberAdherenceService>();
         services.AddScoped<GSM.Application.Routines.MissedSession.MissedSessionService>();
         services.AddScoped<GSM.Application.Routines.Public.IRoutineTodayReader, RoutineTodayReader>();

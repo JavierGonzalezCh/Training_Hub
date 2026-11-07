@@ -128,12 +128,13 @@ public sealed class ExerciseRepository(GsmDbContext dbContext, ICurrentUserServi
 
         var rows = await VisibleToCurrentGym()
             .Where(e => exerciseIds.Contains(e.Id))
-            .Select(e => new { e.Id, e.Name, e.PrimaryMuscle, e.TrackingType, e.IsUnilateral, e.Equipment })
+            .Select(e => new { e.Id, e.Name, e.PrimaryMuscle, e.TrackingType, e.IsUnilateral, e.Equipment, e.SecondaryMuscles, e.ImageUrl, e.VideoUrl })
             .ToListAsync(cancellationToken);
 
         return rows.ToDictionary(
             r => r.Id,
-            r => new ExerciseSummary(r.Name, r.PrimaryMuscle, r.TrackingType, r.IsUnilateral, r.Equipment));
+            r => new ExerciseSummary(
+                r.Name, r.PrimaryMuscle, r.TrackingType, r.IsUnilateral, r.Equipment, r.SecondaryMuscles, r.ImageUrl, r.VideoUrl));
     }
 
     public async Task<IReadOnlySet<Guid>> GetHiddenIdsAsync(

@@ -70,7 +70,11 @@ public static class RoutineMapper
             (info?.TrackingType ?? TrackingType.RepsWeight).ToString(),
             info?.IsUnilateral ?? false,
             (info is null ? MuscleGroup.FullBody : MuscleGroups.Of(info.PrimaryMuscle)).ToString(),
-            equipment is not null && equipment.TryGetValue(exercise.ExerciseId, out var machines) ? machines : null);
+            equipment is not null && equipment.TryGetValue(exercise.ExerciseId, out var machines) ? machines : null,
+            info?.PrimaryMuscle.ToString(),
+            info?.SecondaryMuscles?.Select(m => m.ToString()).ToList(),
+            info?.ImageUrl,
+            info?.VideoUrl);
     }
 
     public static SetTargetResponse ToSetTargetResponse(SetTarget t)
