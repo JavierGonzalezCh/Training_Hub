@@ -43,11 +43,13 @@
         {
             <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Color="Color.Inherit" OnClick="SwitchGymAsync" aria-label="Cambiar de gimnasio" />
         }
-        @* Un solo menú de cuenta: cinco iconos sueltos dejaban el nombre del gym en "GIMNAS…" en el celular. *@
+        <CheckinButton />
+        @* Todo lo de la cuenta vive aquí: perfil, membresía, autorizaciones, avisos y contraseña. *@
         <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AriaLabel="Mi cuenta"
                  AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" data-testid="member-account-menu">
             <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/app/perfil">Mi perfil</MudMenuItem>
-            <MudMenuItem Icon="@Icons.Material.Filled.Storefront" Href="/app/gimnasio">Mi gimnasio</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.CardMembership" Href="/app/membresia">Mi membresía</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Outlined.Gavel" Href="/app/autorizaciones">Autorizaciones</MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Filled.NotificationsActive" Href="/app/avisos">Preferencias de avisos</MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Filled.Lock" Href="/app/cuenta/contrasena">Cambiar contraseña</MudMenuItem>
             <MudDivider />
@@ -66,11 +68,9 @@
                         <MudIcon Icon="@item.Icon" Size="Size.Small" /><span>@item.Title</span>
                     </NavLink>
                 }
-                @if (!_loading && GymCtx.FeatureFlags?.ShowCommunity == true)
+                @if (!_loading)
                 {
-                    <NavLink class="gsm-nav-link" href="/app/novedades">
-                        <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Small" /><span>Novedades</span>
-                    </NavLink>
+                    <GymTabLink LinkClass="gsm-nav-link" LabelClass="" Community="@(GymCtx.FeatureFlags?.ShowCommunity == true)" />
                 }
             </nav>
         </MudDrawer>
@@ -100,26 +100,17 @@
        texto suelto y no navegaban. *@
     @if (Viewport.IsNarrow)
     {
-    <nav class="gsm-tabbar" aria-label="Navegación principal">
-        <NavLink href="/app" Match="NavLinkMatch.All">
-            <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />
-            <span class="gsm-tabbar-label">Inicio</span>
-        </NavLink>
-        <NavLink href="/app/logros">
-            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Small" />
-            <span class="gsm-tabbar-label">Progreso</span>
-        </NavLink>
-        <NavLink href="/app/rutina">
-            <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" />
-            <span class="gsm-tabbar-label">Rutina</span>
-        </NavLink>
-        <NavLink href="/app/clases">
-            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" />
-            <span class="gsm-tabbar-label">Clases</span>
-        </NavLink>
-        @if (!_loading && GymCtx.FeatureFlags?.ShowCommunity == true)
+    <nav class="gsm-tabbar" aria-label="Navegación principal" data-testid="member-tabbar">
+        @foreach (var item in Destinations)
         {
-            <NewsTabLink />
+            <NavLink href="@item.Href" Match="@(item.MatchAll ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                <MudIcon Icon="@item.Icon" Size="Size.Small" />
+                <span class="gsm-tabbar-label">@item.Title</span>
+            </NavLink>
+        }
+        @if (!_loading)
+        {
+            <GymTabLink Community="@(GymCtx.FeatureFlags?.ShowCommunity == true)" />
         }
     </nav>
     }
@@ -134,15 +125,22 @@
 
     private sealed record Destination(string Href, string Title, string Icon, bool MatchAll = false);
 
-    private static readonly Destination[] Destinations =
-    [
-        new("/app", "Inicio", Icons.Material.Filled.Home, true),
-        new("/app/logros", "Mi progreso", Icons.Material.Filled.EmojiEvents),
-        new("/app/rutina", "Rutina", Icons.Material.Filled.FitnessCenter),
-        new("/app/progreso", "Mis récords", Icons.Material.Filled.TrendingUp),
-        new("/app/clases", "Clases", Icons.Material.Filled.CalendarMonth),
-        new("/app/ranking", "Ranking", Icons.Material.Filled.Leaderboard),
-    ];
+    // Cuatro destinos, iguales en el celular y en escritorio: Hoy, Entrenar, Progreso y Gym (GymTabLink, que reúne
+    // Mi gimnasio, Clases y Novedades). Entrenar no aparece si el gym no tiene rutinas.
+    private IEnumerable<Destination> Destinations
+    {
+        get
+        {
+            yield return new("/app", "Hoy", Icons.Material.Filled.Home, true);
+            if (GymCtx.FeatureFlags?.ShowRoutines != false)
+            {
+                yield return new("/app/rutina", "Entrenar", Icons.Material.Filled.FitnessCenter);
+            }
+
+            yield return new("/app/progreso", "Progreso", Icons.Material.Filled.TrendingUp);
+        }
+    }
+
     private IReadOnlyList<GymAccessOption> _accesses = [];
 
     protected override async Task OnInitializedAsync()

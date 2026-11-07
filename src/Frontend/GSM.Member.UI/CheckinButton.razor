@@ -1,0 +1,45 @@
+@* Acceso fijo a «Registrar entrada» en el encabezado de toda la app del miembro: es lo primero que hace al llegar al
+   torno. Solo existe si el gym registra la entrada con el QR. Con lector (app nativa) abre la cámara y va directo al
+   registro; en el navegador explica que se escanea con la cámara del teléfono (el QR lleva a /app/checkin). *@
+@inject GymContext GymCtx
+@inject IQrScanner Scanner
+@inject NavigationManager Navigation
+@inject IDialogService Dialogs
+@implements IDisposable
+
+@if (GymCtx.FeatureFlags?.CheckinQr == true)
+{
+    <button type="button" class="gsm-m-qr" @onclick="OpenAsync" aria-label="Registrar entrada con el QR" data-testid="header-checkin">
+        <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Size="Size.Small" />
+        <span class="gsm-m-qr__label">Entrar</span>
+    </button>
+}
+
+@code {
+    // Los datos del gym llegan después del primer pintado (y cambian al cambiar de gym): sin parámetros, el padre no
+    // vuelve a pintar este botón, así que escucha el contexto.
+    protected override void OnInitialized() => GymCtx.Changed += OnGymChanged;
+
+    private void OnGymChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => GymCtx.Changed -= OnGymChanged;
+
+    private async Task OpenAsync()
+    {
+        if (Scanner.IsSupported)
+        {
+            var code = GymCodeLink.ExtractCode(await Scanner.ScanAsync());
+            if (code is not null)
+            {
+                Navigation.NavigateTo(GymCodeLink.PathFor(code));
+            }
+
+            return;
+        }
+
+        await Dialogs.ShowMessageBox(
+            "Registrar entrada",
+            "Abre la cámara de tu celular y apunta al QR de la entrada del gimnasio. Se abre la app y tu entrada queda registrada.",
+            yesText: "Entendido");
+    }
+}

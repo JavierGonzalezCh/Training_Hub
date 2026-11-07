@@ -6,68 +6,100 @@ using GSM.Member.UI.Auth;
 using GSM.Member.UI.Pages;
 using GSM.UI.Shared.Auth;
 using GSM.UI.Shared.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
 using MudBlazor.Services;
 using static GSM.Web.Tests.CommercialStatusUiTests;
 
 namespace GSM.Web.Tests;
 
-/// <summary>AP6 — <c>/app</c> en pantalla grande: dos columnas en Inicio y la entrada se registra desde el celular.</summary>
+/// <summary>
+/// La entrada con el QR vive en el encabezado de toda la app (<see cref="CheckinButton"/>), no en Hoy; Hoy tiene dos
+/// columnas en escritorio.
+/// </summary>
 public class MemberDesktopUiTests : TestContext
 {
-    private sealed class CameraScanner : IQrScanner
+    private sealed class CameraScanner(string? code) : IQrScanner
     {
         public bool IsSupported => true;
+
+        public Task<string?> ScanAsync(CancellationToken cancellationToken = default) => Task.FromResult(code);
+    }
+
+    private sealed class NoScanner : IQrScanner
+    {
+        public bool IsSupported => false;
 
         public Task<string?> ScanAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
     }
 
-    private IRenderedComponent<Home> RenderHome(bool narrow)
+    private void Register(IQrScanner scanner, bool checkinQr = true, bool narrow = true)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
         Services.AddScoped<ViewportState>();
 
-        var attendance = DispatchProxy.Create<IMemberAttendanceClient, FakeClient>();
-        ((FakeClient)(object)attendance).Handlers["AttendanceGET2Async"] = _ => new PagedResultOfAttendanceListItem();
         var consents = DispatchProxy.Create<IMeConsentsClient, FakeClient>();
         ((FakeClient)(object)consents).Handlers["ListMyConsentsAsync"] = _ => new List<MemberConsentStatus>();
         Services.AddSingleton(DispatchProxy.Create<IMeClient, FakeClient>());
-        Services.AddSingleton(attendance);
         Services.AddSingleton(consents);
-        Services.AddSingleton<IQrScanner>(new CameraScanner());
+        Services.AddSingleton(scanner);
 
         var gym = new GymContext();
-        gym.Set(new MeResponse { FeatureFlags = new MeFeatureFlags { ShowRoutines = false, CheckinQr = true } }, false);
+        gym.Set(new MeResponse { FeatureFlags = new MeFeatureFlags { ShowRoutines = false, CheckinQr = checkinQr } }, false);
         Services.AddSingleton(gym);
 
         var context = new MemberContext();
         context.Set(new MemberDetail { Id = Guid.NewGuid(), FirstName = "Ana", LastName = "Prueba", Status = "Active" });
         Services.AddSingleton(context);
 
-        // Pedir un servicio cierra el registro: el viewport se fija justo antes de renderizar.
         Services.GetRequiredService<ViewportState>().Pin(narrow);
-        return RenderComponent<Home>();
     }
 
     [Fact]
-    public void Desktop_home_has_two_columns_and_points_the_checkin_to_the_phone()
+    public void Desktop_home_has_two_columns_and_no_scan_card()
     {
-        var cut = RenderHome(narrow: false);
+        Register(new NoScanner(), narrow: false);
+
+        var cut = RenderComponent<Home>();
 
         Assert.NotNull(cut.Find(".gsm-m-home .gsm-m-home__main"));
         Assert.NotNull(cut.Find(".gsm-m-home .gsm-m-home__side"));
-        Assert.Contains("Registra tu entrada desde tu celular o en recepción", cut.Find("#checkin-desktop-hint").TextContent);
-        Assert.Empty(cut.FindAll(".gsm-m-checkin button"));
+        Assert.Empty(cut.FindAll(".gsm-m-checkin"));
     }
 
     [Fact]
-    public void Phone_home_keeps_the_scanner_button()
+    public void The_header_button_scans_and_goes_straight_to_the_checkin()
     {
-        var cut = RenderHome(narrow: true);
+        Register(new CameraScanner("https://app.traininghub.co/app/checkin?t=ABC123"));
 
-        Assert.Empty(cut.FindAll("#checkin-desktop-hint"));
-        Assert.Contains("Escanea el QR", cut.Find(".gsm-m-checkin").TextContent);
-        Assert.NotEmpty(cut.FindAll(".gsm-m-checkin button"));
+        var cut = RenderComponent<CheckinButton>();
+        cut.Find("[data-testid='header-checkin']").Click();
+
+        var nav = Services.GetRequiredService<NavigationManager>();
+        cut.WaitForAssertion(() => Assert.Contains("/app/checkin?t=ABC123", nav.Uri));
+    }
+
+    [Fact]
+    public void Without_a_camera_the_header_button_explains_how_to_scan()
+    {
+        Register(new NoScanner());
+        var provider = RenderComponent<MudDialogProvider>();
+
+        var cut = RenderComponent<CheckinButton>();
+        cut.Find("[data-testid='header-checkin']").Click();
+
+        provider.WaitForAssertion(() => Assert.Contains("apunta al QR de la entrada", provider.Markup));
+    }
+
+    [Fact]
+    public void The_header_button_is_not_there_when_the_gym_does_not_use_the_qr()
+    {
+        Register(new NoScanner(), checkinQr: false);
+
+        var cut = RenderComponent<CheckinButton>();
+
+        Assert.Empty(cut.FindAll("[data-testid='header-checkin']"));
     }
 }

@@ -14214,6 +14214,86 @@
         }
       }
     },
+    "/api/me/routines/week": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "operationId": "GetMyRoutineWeek",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyRoutineWeekResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyRoutineWeekResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyRoutineWeekResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me/routines/history": {
       "get": {
         "tags": [
@@ -34028,6 +34108,29 @@
           }
         }
       },
+      "MyRoutineWeekResponse": {
+        "required": [
+          "weekStart",
+          "hasRoutine",
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "hasRoutine": {
+            "type": "boolean"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineWeekDayView"
+            }
+          }
+        }
+      },
       "NotificationItem": {
         "required": [
           "id",
@@ -38565,6 +38668,61 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "RoutineWeekDayView": {
+        "required": [
+          "date",
+          "dayOfWeek",
+          "isRest",
+          "dayId",
+          "dayName",
+          "plannedDayName",
+          "done",
+          "isToday"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "dayOfWeek": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isRest": {
+            "type": "boolean"
+          },
+          "dayId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "dayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "plannedDayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "isToday": {
+            "type": "boolean"
           }
         }
       },

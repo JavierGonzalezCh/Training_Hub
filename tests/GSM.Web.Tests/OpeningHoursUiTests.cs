@@ -272,6 +272,7 @@ public class OpeningHoursUiTests : TestContext
             ],
         };
         Services.AddSingleton(me);
+        Services.AddSingleton<GSM.UI.Shared.Auth.GymContext>();
 
         var cut = RenderComponent<MyGym>();
 

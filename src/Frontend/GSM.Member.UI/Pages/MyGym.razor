@@ -2,9 +2,10 @@
 @layout MemberLayout
 @attribute [Authorize(Roles = GsmRoles.Member)]
 @inject IMeClient Me
+@inject GymContext GymCtx
 @inject ISnackbar Snackbar
 
-<PageTitle>Mi gimnasio — TrainingHub GO</PageTitle>
+<PageTitle>Gym — TrainingHub GO</PageTitle>
 
 <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">Mi gimnasio</MudText>
 
@@ -33,6 +34,55 @@ else
         }
         <MudText HtmlTag="h2" Typo="Typo.h6" id="gym-name">@_gym.Name</MudText>
     </MudPaper>
+
+    @* Pestaña Gym: lo del gym en un solo lugar. Primero cómo está ahora, después clases y novedades, y al final los
+       datos de siempre (dirección, contacto, redes y horario). *@
+    <div class="mb-3">
+        @if (_home?.Gym is { } gymNow)
+        {
+            <div class="mb-3"><GymOpenBadge Status="@gymNow.OpenStatus" /></div>
+            @if (GymCtx.FeatureFlags?.ShowFrontDesk != false)
+            {
+                <MemberOccupancyCard Resolved="true" Level="@gymNow.OccupancyLevel" />
+            }
+        }
+    </div>
+
+    @if (GymCtx.FeatureFlags?.ShowClasses != false)
+    {
+        <a class="gsm-m-card" href="/app/clases" id="gym-classes">
+            <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" /></span>
+            <div class="gsm-m-card__body">
+                <span class="gsm-m-card__kicker">Clases</span>
+                @if (_home?.NextClass is { } next)
+                {
+                    <h2 class="gsm-m-card__title">@next.ClassName · @next.StartTime.ToString("HH:mm")</h2>
+                    <p class="gsm-m-card__text">Reservada para el @GsmFormat.Day(next.SessionDate). Ver el horario y reservar.</p>
+                }
+                else
+                {
+                    <h2 class="gsm-m-card__title">Horario de clases</h2>
+                    <p class="gsm-m-card__text">Mira las clases de la semana y reserva tu cupo.</p>
+                }
+            </div>
+            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
+        </a>
+    }
+
+    @if (GymCtx.FeatureFlags?.ShowCommunity == true)
+    {
+        <a class="gsm-m-card" href="/app/novedades" id="gym-news">
+            <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Campaign" /></span>
+            <div class="gsm-m-card__body">
+                <span class="gsm-m-card__kicker">@(_home?.News?.Featured is { Pinned: true } ? "Novedades · Fijado" : "Novedades")</span>
+                <h2 class="gsm-m-card__title">@(_home?.News?.Featured?.Title ?? "Lo que publica tu gimnasio")</h2>
+                <p class="gsm-m-card__text" id="gym-news-unread">
+                    @(_home?.News is not { } news || news.UnreadAnnouncements == 0 ? "Estás al día." : news.UnreadAnnouncements == 1 ? "1 sin leer" : $"{news.UnreadAnnouncements} sin leer")
+                </p>
+            </div>
+            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
+        </a>
+    }
 
     @if (!string.IsNullOrWhiteSpace(_gym.Address) || !string.IsNullOrWhiteSpace(_gym.City))
     {
@@ -115,12 +165,12 @@ else
         </MudPaper>
     }
 
-    @* La ocupación en vivo (A5) se suma aquí cuando exista. *@
 }
 
 @code {
     private MemberGymResponse? _gym;
     private MemberGymHoursResponse? _hours;
+    private MemberHomeResponse? _home;
     private bool _loading = true;
 
     private bool HasSocial => _gym is not null
@@ -158,6 +208,16 @@ else
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+
+        try
+        {
+            // El gym ahora, la próxima clase y las novedades salen del mismo resumen del inicio.
+            _home = await Me.GetMyHomeAsync();
+        }
+        catch (GsmApiException)
+        {
+            // Sin el resumen se muestran los datos del gym igual.
         }
         finally
         {

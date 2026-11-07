@@ -13,9 +13,9 @@ using static GSM.Web.Tests.CommercialStatusUiTests;
 namespace GSM.Web.Tests;
 
 /// <summary>
-/// D2 — el inicio del miembro: una sola llamada (<c>GetMyHomeAsync</c>), los ocho bloques en el orden de
-/// <c>GSM-dashboards.md</c> §2 (una columna en el celular; 1-3-5 a la izquierda y 2-4-6-7-8 a la derecha en
-/// escritorio) y un bloque nulo simplemente no se pinta. Escritos contra el cliente tal como queda tras regenerarlo.
+/// Hoy, el inicio del miembro: una sola llamada (<c>GetMyHomeAsync</c>); en el celular una columna (saludo, aviso de la
+/// membresía, pendientes, entrada, entrenamiento, clase, gym ahora y progreso); en escritorio saludo, aviso, entrada y
+/// entrenamiento a la izquierda y el resto a la derecha. Un bloque nulo no se pinta. El QR y las novedades no están aquí.
 /// </summary>
 public class MemberHomeUiTests : TestContext
 {
@@ -83,7 +83,7 @@ public class MemberHomeUiTests : TestContext
         },
     };
 
-    private IRenderedComponent<Home> RenderHome(MemberHomeResponse? home, bool narrow)
+    private IRenderedComponent<Home> RenderHome(MemberHomeResponse? home, bool narrow, bool withPlan = false)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
@@ -109,7 +109,13 @@ public class MemberHomeUiTests : TestContext
         Services.AddSingleton(gym);
 
         var context = new MemberContext();
-        context.Set(new MemberDetail { Id = Guid.NewGuid(), FirstName = "Ana", LastName = "Prueba", Status = "Active" });
+        context.Set(new MemberDetail
+        {
+            Id = Guid.NewGuid(), FirstName = "Ana", LastName = "Prueba", Status = "Active",
+            CurrentMembership = withPlan
+                ? new MemberCurrentMembership { PlanName = "Mensual", StartDate = new DateOnly(2026, 6, 1), EndDate = new DateOnly(2026, 6, 30) }
+                : null,
+        });
         Services.AddSingleton(context);
 
         // Pedir un servicio cierra el registro: el viewport se fija justo antes de renderizar.
@@ -122,7 +128,7 @@ public class MemberHomeUiTests : TestContext
     {
         var cut = RenderHome(FullHome(), narrow: true);
 
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-news")));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
         Assert.Single(_me.Calls, c => c.Method == "GetMyHomeAsync");
         Assert.DoesNotContain(_me.Calls, c => c.Method is "HoursAsync" or "GetMyOccupancyAsync" or "RoutinesGETAsync");
     }
@@ -131,14 +137,15 @@ public class MemberHomeUiTests : TestContext
     public void On_the_phone_the_blocks_come_in_a_single_column_in_the_spec_order()
     {
         var cut = RenderHome(FullHome(), narrow: true);
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-news")));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
 
         Assert.Empty(cut.FindAll(".gsm-m-home__side"));
+        Assert.Empty(cut.FindAll("#home-news"));
         var markup = cut.Markup;
         var order = new[]
         {
-            "gsm-m-hero", "gym-open-badge", "checkin-done", "home-offer", "home-training",
-            "home-next-class", "home-progress", "home-news",
+            "gsm-m-hero", "home-notice", "home-offer", "checkin-done", "home-training",
+            "home-next-class", "gym-open-badge", "home-progress",
         };
         var positions = order.Select(marker => markup.IndexOf(marker, StringComparison.Ordinal)).ToArray();
         Assert.All(positions, p => Assert.True(p >= 0));
@@ -149,26 +156,26 @@ public class MemberHomeUiTests : TestContext
     public void On_desktop_the_left_column_holds_status_entry_and_training_and_the_right_the_rest()
     {
         var cut = RenderHome(FullHome(), narrow: false);
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-news")));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
 
         var main = cut.Find(".gsm-m-home__main");
         var side = cut.Find(".gsm-m-home__side");
 
         Assert.NotEmpty(main.QuerySelectorAll(".gsm-m-hero"));
+        Assert.NotEmpty(main.QuerySelectorAll("#home-notice"));
         Assert.NotEmpty(main.QuerySelectorAll("#checkin-done"));
         Assert.NotEmpty(main.QuerySelectorAll("#home-training"));
-        Assert.Empty(main.QuerySelectorAll("#home-next-class, #home-progress, #home-news, #gym-open-badge"));
+        Assert.Empty(main.QuerySelectorAll("#home-next-class, #home-progress, #gym-open-badge"));
 
         Assert.NotEmpty(side.QuerySelectorAll("#gym-open-badge"));
         Assert.NotEmpty(side.QuerySelectorAll("[data-testid='home-offer']"));
         Assert.NotEmpty(side.QuerySelectorAll("#home-next-class"));
         Assert.NotEmpty(side.QuerySelectorAll("#home-progress"));
-        Assert.NotEmpty(side.QuerySelectorAll("#home-news"));
         Assert.Empty(side.QuerySelectorAll("#home-training, .gsm-m-hero"));
     }
 
     [Fact]
-    public void The_hero_shows_the_commercial_status_and_the_expiry_notice_linking_to_my_membership()
+    public void The_hero_shows_the_commercial_status_and_the_expiry_notice_is_an_actionable_renew_card()
     {
         var cut = RenderHome(FullHome(), narrow: true);
 
@@ -177,25 +184,37 @@ public class MemberHomeUiTests : TestContext
             Assert.Contains("POR VENCER", cut.Find(".gsm-m-hero__top").TextContent);
             var notice = cut.Find("#home-notice");
             Assert.Contains("Tu plan vence en 4 días", notice.TextContent);
+            Assert.Contains("Renovar", notice.TextContent);
             Assert.Equal("/app/membresia", notice.GetAttribute("href"));
         });
     }
 
     [Fact]
-    public void Without_a_notice_the_hero_still_links_to_my_membership()
+    public void Without_a_notice_and_with_a_current_plan_the_membership_takes_no_space()
     {
         var home = FullHome();
         home.Status.Access.Notice = null;
         home.Status.Access.Commercial = "current";
 
-        var cut = RenderHome(home, narrow: true);
+        var cut = RenderHome(home, narrow: true, withPlan: true);
 
-        cut.WaitForAssertion(() => Assert.Equal("/app/membresia", cut.Find("#home-membership-link").GetAttribute("href")));
-        Assert.Empty(cut.FindAll("#home-notice"));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-training")));
+        Assert.Empty(cut.FindAll("#home-notice, #home-no-plan"));
     }
 
     [Fact]
-    public void Having_entered_today_replaces_the_scan_card_with_the_time()
+    public void Without_a_plan_the_card_points_to_my_membership()
+    {
+        var home = FullHome();
+        home.Status.Access.Notice = null;
+
+        var cut = RenderHome(home, narrow: true);
+
+        cut.WaitForAssertion(() => Assert.Equal("/app/membresia", cut.Find("#home-no-plan").GetAttribute("href")));
+    }
+
+    [Fact]
+    public void Having_entered_today_shows_the_time()
     {
         var cut = RenderHome(FullHome(), narrow: true);
 
@@ -205,19 +224,18 @@ public class MemberHomeUiTests : TestContext
             Assert.Contains("Entraste hoy a las", done);
             Assert.Contains("06:12", done);
         });
-        Assert.Empty(cut.FindAll(".gsm-m-checkin"));
     }
 
     [Fact]
-    public void Without_an_entry_today_the_scan_card_stays()
+    public void Without_an_entry_today_there_is_no_scan_card_because_the_qr_is_in_the_header()
     {
         var home = FullHome();
         home.Entry = new HomeEntryBlock { CheckedInToday = false };
 
         var cut = RenderHome(home, narrow: true);
 
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll(".gsm-m-checkin")));
-        Assert.Empty(cut.FindAll("#checkin-done"));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-training")));
+        Assert.Empty(cut.FindAll(".gsm-m-checkin, #checkin-done"));
     }
 
     [Fact]
@@ -290,7 +308,7 @@ public class MemberHomeUiTests : TestContext
     }
 
     [Fact]
-    public void Progress_opens_my_progress_and_shows_the_ranking_position_when_participating()
+    public void Progress_opens_the_progress_tab_and_shows_the_ranking_position_when_participating()
     {
         var cut = RenderHome(FullHome(), narrow: true);
 
@@ -298,9 +316,9 @@ public class MemberHomeUiTests : TestContext
         {
             var progress = cut.Find("#home-progress");
             Assert.Contains("9", progress.TextContent);
-            Assert.Contains("Mi progreso", progress.TextContent);
+            Assert.Contains("Racha de 9 días", progress.TextContent);
             Assert.Contains("puesto 3", cut.Find("#home-ranking").TextContent);
-            Assert.All(progress.QuerySelectorAll("a"), a => Assert.Equal("/app/logros", a.GetAttribute("href")));
+            Assert.Equal("/app/progreso", progress.GetAttribute("href"));
         });
     }
 
@@ -317,17 +335,35 @@ public class MemberHomeUiTests : TestContext
     }
 
     [Fact]
-    public void News_shows_the_pinned_announcement_and_how_many_are_unread()
+    public void The_training_card_carries_the_main_action_start_training()
     {
         var cut = RenderHome(FullHome(), narrow: true);
 
         cut.WaitForAssertion(() =>
         {
-            var news = cut.Find("#home-news");
+            var start = cut.Find("[data-testid='home-start']");
+            Assert.Contains("Empezar a entrenar", start.TextContent);
+            Assert.Equal("/app/rutina", start.GetAttribute("href"));
+        });
+    }
+
+    [Fact]
+    public void The_gym_tab_shows_the_pinned_news_with_unread_and_the_booked_class()
+    {
+        var cut = RenderHome(FullHome(), narrow: true);
+        _me.Handlers["GymGET2Async"] = _ => new MemberGymResponse { Name = "Forja", PrimaryColor = "#B50016", SecondaryColor = "#000000" };
+        _me.Handlers["HoursAsync"] = _ => new MemberGymHoursResponse { Status = new GymOpenStatusDto() };
+
+        var gym = RenderComponent<MyGym>();
+
+        gym.WaitForAssertion(() =>
+        {
+            var news = gym.Find("#gym-news");
             Assert.Contains("Cierre por festivo", news.TextContent);
             Assert.Contains("Fijado", news.TextContent);
-            Assert.Contains("2 sin leer", cut.Find("#home-news-unread").TextContent);
+            Assert.Contains("2 sin leer", gym.Find("#gym-news-unread").TextContent);
             Assert.Equal("/app/novedades", news.GetAttribute("href"));
+            Assert.Contains("Yoga", gym.Find("#gym-classes").TextContent);
         });
     }
 

@@ -9,14 +9,16 @@
 @inject IExercisesClient ExercisesApi
 @inject ISnackbar Snackbar
 
-<PageTitle>Mi rutina — TrainingHub GO</PageTitle>
+<PageTitle>Entrenar — TrainingHub GO</PageTitle>
 
-<div class="d-flex align-center justify-space-between mb-4">
-    <MudText Typo="Typo.h5" HtmlTag="h1">Mi rutina</MudText>
+@* Entrenar: el planificador de la semana (navegable), lo que toca hoy con su lista completa de ejercicios para ver
+   el volumen de un vistazo, y en cada ejercicio el registro de series y el cambio por una alternativa. *@
+<div class="d-flex align-center justify-space-between mb-3">
+    <MudText Typo="Typo.h5" HtmlTag="h1">Entrenar</MudText>
     @if (GymCtx.FeatureFlags?.ShowRoutines != false)
     {
         <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.TrendingUp"
-                   Href="/app/progreso" data-testid="progress-link">Mis récords</MudButton>
+                   Href="/app/progreso?tab=fuerza" data-testid="progress-link">Tus récords</MudButton>
     }
 </div>
 
@@ -53,7 +55,7 @@ else if (_response?.Routine is null)
 }
 else
 {
-    <WeekAdherenceCard />
+    <RoutineWeekPlanner @ref="_planner" SelectedDayId="_selectedDayId" TodayDayId="TodayDayId" OnPick="SelectDay" />
 
     <MudText HtmlTag="h2" Typo="Typo.h6" Class="mb-1">@_response.Routine.Name</MudText>
     @if (_response.Routine is { SelfAssigned: false, ReviewOn: { } reviewOn })
@@ -61,15 +63,6 @@ else
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2" data-testid="routine-review-on">
             Tu rutina se revisa el @GsmFormat.Day(reviewOn)
         </MudText>
-    }
-    @if (_response.Routine.ScheduleMode == "weekly")
-    {
-        <ul class="gsm-routine-week" aria-label="Tu semana de entrenamiento">
-            @foreach (var weekday in _response.Routine.Days.Where(d => d.DayOfWeek is not null).OrderBy(d => d.DayOfWeek))
-            {
-                <li><strong>@RoutineLabels.IsoWeekdayLabel(weekday.DayOfWeek!.Value)</strong> · @weekday.Name@(GroupsSuffix(weekday.MuscleGroups))</li>
-            }
-        </ul>
     }
     @if (_response.MissedSession is { } missedSession)
     {
@@ -126,6 +119,22 @@ else
             </div>
         }
 
+        @if (shown.Count > 0 && GymCtx.FeatureFlags?.RoutineEntry != true)
+        {
+            var totalSets = shown.Sum(e => Math.Max(1, e.SetTargets.Count));
+            var doneCount = shown.Count(e => StateOf(e).Done);
+            <div class="gsm-m-startbar" data-testid="start-bar">
+                <span class="gsm-m-startbar__summary">@shown.Count ejercicios · @totalSets series@(doneCount > 0 ? $" · {doneCount} hechos" : "")</span>
+                @if (doneCount < shown.Count)
+                {
+                    <button type="button" class="gsm-m-cta" data-testid="start-day" @onclick="() => StartNext(shown)">
+                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" />
+                        <span>@(doneCount == 0 ? $"Empezar {shownDay?.Name ?? today.DayName}" : "Siguiente ejercicio")</span>
+                    </button>
+                }
+            </div>
+        }
+
         @if (shown.Count > 0)
         {
             var groupLabels = SetPlan.GroupLabels(shown);
@@ -138,6 +147,7 @@ else
                 var outcomes = OutcomesOf(exercise, state);
                 var inGroup = groupLabels.TryGetValue(exercise.Id, out var groupLabel);
                 <section class="gsm-m-ex @(state.Done ? "is-done" : null) @(inGroup ? "gsm-m-ex--grouped" : null)" data-testid="@($"ex-{exercise.Id}")">
+                    <div class="gsm-m-ex__row">
                     <button type="button" class="gsm-m-ex__head" aria-expanded="@(state.Open ? "true" : "false")"
                             @onclick="() => state.Open = !state.Open">
                         <span class="gsm-m-ex__check" aria-hidden="true">
@@ -163,6 +173,10 @@ else
                         </span>
                         <MudIcon Icon="@(state.Open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" />
                     </button>
+                    <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" Class="gsm-m-ex__swap"
+                                   aria-label="@($"Cambiar {exercise.ExerciseName} por otro ejercicio hoy")" aria-pressed="@(state.Picking ? "true" : "false")"
+                                   data-testid="@($"swap-{exercise.Id}")" OnClick="() => OpenSwap(state)" />
+                    </div>
 
                     @if (state.Open)
                     {
@@ -302,6 +316,26 @@ else
         => RoutineLabels.MuscleGroupsSummary(groups) is { } summary ? $" ({summary})" : string.Empty;
 
     private MyRoutineResponse? _response;
+    private RoutineWeekPlanner? _planner;
+
+    // El día del plan que toca hoy (null en descanso): el planificador lo trata como "hoy".
+    private Guid? TodayDayId => _response?.Today is { IsRest: false } todayView ? DayOf(todayView)?.Id : null;
+
+    // Abre el primer ejercicio sin registrar (y cierra los demás) para empezar o seguir.
+    private void StartNext(IEnumerable<RoutineExerciseResponse> exercises)
+    {
+        var next = exercises.FirstOrDefault(e => !StateOf(e).Done);
+        foreach (var e in exercises)
+        {
+            StateOf(e).Open = ReferenceEquals(e, next);
+        }
+    }
+
+    private static void OpenSwap(ExerciseState state)
+    {
+        state.Open = true;
+        state.Picking = !state.Picking;
+    }
     private readonly Dictionary<Guid, ExerciseState> _states = [];
 
     private sealed class SetRow
@@ -372,6 +406,11 @@ else
         if (response.Today is { } todayView)
         {
             await LoadTodayAsync(todayView);
+        }
+
+        if (_planner is not null)
+        {
+            await _planner.RefreshAsync();
         }
     }
 
@@ -571,6 +610,10 @@ else
             state.Done = true;
             state.Open = false;
             Snackbar.Add("Ejercicio registrado.", Severity.Success);
+            if (_planner is not null)
+            {
+                await _planner.RefreshAsync();
+            }
         }
         catch (GsmApiException ex)
         {

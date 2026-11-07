@@ -53,6 +53,50 @@ public sealed class MissedSessionTests(ApiFactory factory) : IClassFixture<ApiFa
         return await scope.ServiceProvider.GetRequiredService<GetMyAdherenceHandler>().HandleAsync(default);
     }
 
+    private async Task<GSM.Application.Routines.MyRoutineWeekResponse> WeekAsync(World w, DateOnly today, DateOnly? date)
+    {
+        using var scope = AsMember(w, today);
+        return await scope.ServiceProvider.GetRequiredService<GetMyRoutineWeekHandler>().HandleAsync(date, default);
+    }
+
+    [Fact]
+    public async Task The_week_planner_shows_each_day_marks_what_was_done_and_follows_the_swap()
+    {
+        var (w, routine) = await SeedPlanAsync();
+        var chest = DayNamed(routine, "Pecho");
+        await RecoverAsync(w, Day(1), chest.Id, reorganize: false);
+        await LogAsync(w, chest.Exercises[0].Id, Day(1));
+
+        // Pedida con el miércoles: la semana empieza el lunes.
+        var week = await WeekAsync(w, Day(1), Day(2));
+
+        Assert.Equal(Day(0), week.WeekStart);
+        Assert.True(week.HasRoutine);
+        Assert.Equal(7, week.Days.Count);
+        Assert.Equal("Pecho", week.Days[0].DayName);
+        Assert.False(week.Days[0].Done);
+        Assert.Equal("Pecho", week.Days[1].DayName);
+        Assert.Equal("Pierna", week.Days[1].PlannedDayName);
+        Assert.True(week.Days[1].Done);
+        Assert.True(week.Days[1].IsToday);
+        Assert.True(week.Days[3].IsRest);
+        Assert.Null(week.Days[3].DayId);
+        Assert.Equal("Hombro", week.Days[4].DayName);
+
+        // La semana siguiente vuelve al plan.
+        var next = await WeekAsync(w, Day(1), Day(9));
+        Assert.Equal(Day(7), next.WeekStart);
+        Assert.Equal("Pierna", next.Days[1].DayName);
+        Assert.Null(next.Days[1].PlannedDayName);
+    }
+
+    [Fact]
+    public async Task The_week_planner_refuses_weeks_too_far_away()
+    {
+        var (w, _) = await SeedPlanAsync();
+        await Assert.ThrowsAsync<ValidationDomainException>(() => WeekAsync(w, Day(0), Day(0).AddDays(7 * 30)));
+    }
+
     [Fact]
     public async Task Missing_monday_is_offered_on_tuesday_and_swapping_makes_tuesday_count_with_chest()
     {

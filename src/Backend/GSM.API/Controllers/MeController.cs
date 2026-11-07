@@ -136,6 +136,21 @@ public sealed class MeController : ControllerBase
         return CreatedAtAction(nameof(Routines), routine);
     }
 
+    /// <summary>
+    /// Planificador: qué toca cada día de la semana (lunes a domingo) que contiene <c>date</c> (hoy si no viene), con
+    /// los cambios del miembro y si ya lo hizo. 403 si <c>show_routines = false</c>; 422 a más de 26 semanas de hoy.
+    /// </summary>
+    [HttpGet("routines/week")]
+    [EndpointName("GetMyRoutineWeek")]
+    [ProducesResponseType<MyRoutineWeekResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<MyRoutineWeekResponse>> RoutineWeek(
+        [FromQuery] DateOnly? date,
+        [FromServices] GetMyRoutineWeekHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(date, cancellationToken));
+
     [HttpGet("routines/history")]
     [ProducesResponseType<IReadOnlyList<RoutineHistoryItem>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

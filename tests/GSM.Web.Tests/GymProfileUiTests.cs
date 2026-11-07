@@ -158,6 +158,7 @@ public class GymProfileUiTests : TestContext
             InstagramUrl = "https://instagram.com/ironperfil",
         };
         Services.AddSingleton(me);
+        Services.AddSingleton<GymContext>();
 
         var cut = RenderComponent<MyGym>();
 
@@ -185,6 +186,7 @@ public class GymProfileUiTests : TestContext
             SecondaryColor = "#0AAFCA",
         };
         Services.AddSingleton(me);
+        Services.AddSingleton<GymContext>();
 
         var cut = RenderComponent<MyGym>();
 

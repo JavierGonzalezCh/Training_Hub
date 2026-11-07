@@ -4210,3 +4210,232 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
   background: color-mix(in srgb, var(--mud-palette-primary) 18%, transparent);
   font-weight: 600;
 }
+
+/* ============================================================================================
+   App del miembro, reordenada: Hoy · Entrenar · Progreso · Gym
+   ============================================================================================ */
+
+/* Texto secundario más claro en la app del miembro: el #9A948F del panel se leía apagado en el celular. */
+.gsm-m-shell {
+    --gsm-text-2: #B8B2AD;
+    --gsm-silver: #B8B2AD;
+    --mud-palette-text-secondary: #B8B2AD;
+    --mud-palette-secondary: #B8B2AD;
+}
+
+/* Registrar la entrada con el QR: fijo en el encabezado de toda la app. */
+.gsm-m-qr {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 36px;
+    margin: 0 0.25rem;
+    padding: 0 0.8rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+    font-family: var(--gsm-font-mono);
+    font-size: var(--gsm-fs-micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.gsm-m-qr:hover { filter: brightness(1.12); }
+.gsm-m-qr:focus-visible { outline: 2px solid var(--gsm-ring); outline-offset: 2px; }
+
+/* Aviso accionable (membresía por vencer, sin plan): la tarjeta entera lleva a Mi membresía. */
+.gsm-m-alert {
+    border-color: var(--gsm-warn);
+    background: rgba(224, 161, 6, 0.10);
+}
+
+.gsm-m-alert .gsm-m-card__icon {
+    background: rgba(224, 161, 6, 0.18);
+    color: var(--gsm-warn);
+}
+
+.gsm-m-alert__cta {
+    flex: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    background: var(--gsm-warn);
+    color: var(--gsm-bg);
+    font-family: var(--gsm-font-mono);
+    font-size: var(--gsm-fs-micro);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* La acción principal de la app: «Empezar a entrenar». */
+.gsm-m-today {
+    border-color: var(--gsm-border-strong);
+    border-top: 3px solid var(--gsm-accent);
+}
+
+.gsm-m-today .gsm-m-card__body { gap: 0.25rem; }
+
+.gsm-m-today__title {
+    font-family: var(--gsm-font-display);
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+}
+
+.gsm-m-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    min-height: 52px;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 0;
+    border-radius: 12px;
+    background: var(--gsm-accent);
+    color: var(--gsm-on-accent);
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.gsm-m-cta:hover { filter: brightness(1.12); }
+.gsm-m-cta:focus-visible { outline: 2px solid var(--gsm-ring); outline-offset: 2px; }
+
+/* Entrenar: resumen del día y botón para empezar o seguir. */
+.gsm-m-startbar {
+    margin-bottom: 1rem;
+}
+
+.gsm-m-startbar__summary {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--gsm-text-2);
+}
+
+/* Cada ejercicio: la cabecera abre el registro; el ícono de la derecha lo cambia por una alternativa. */
+.gsm-m-ex__row {
+    display: flex;
+    align-items: center;
+}
+
+.gsm-m-ex__row .gsm-m-ex__head { flex: 1; min-width: 0; }
+.gsm-m-ex__swap { margin-right: 0.5rem; color: var(--gsm-text-2); }
+
+/* Entrenar: planificador de la semana. */
+.gsm-m-planner {
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    background: var(--gsm-surface);
+    border: 1px solid var(--gsm-border);
+    border-radius: 12px;
+}
+
+.gsm-m-planner__nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.gsm-m-planner__label {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+}
+
+.gsm-m-planner__title { font-weight: 600; }
+.gsm-m-planner__sub { font-size: 0.85rem; color: var(--gsm-text-2); }
+
+.gsm-m-planner__back {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--gsm-accent-text);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.gsm-m-planner__days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.gsm-m-planner__day {
+    display: grid;
+    justify-items: center;
+    gap: 0.1rem;
+    width: 100%;
+    padding: 0.45rem 0;
+    border: 1px solid var(--gsm-border);
+    border-radius: 10px;
+    background: var(--gsm-surface-2);
+    color: var(--gsm-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.gsm-m-planner__day:disabled { cursor: default; }
+.gsm-m-planner__day.is-rest { background: transparent; border-style: dotted; color: var(--gsm-text-2); }
+.gsm-m-planner__day.is-today { border-color: var(--gsm-accent); }
+.gsm-m-planner__day.is-selected { background: var(--gsm-accent); border-color: var(--gsm-accent); color: var(--gsm-on-accent); }
+.gsm-m-planner__day.is-done:not(.is-selected) .gsm-m-planner__mark { color: var(--gsm-ok); }
+.gsm-m-planner__day:focus-visible { outline: 2px solid var(--gsm-ring); outline-offset: 2px; }
+
+.gsm-m-planner__dow {
+    font-family: var(--gsm-font-mono);
+    font-size: var(--gsm-fs-micro);
+    letter-spacing: 0.06em;
+}
+
+.gsm-m-planner__num { font-weight: 600; }
+
+.gsm-m-planner__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 18px;
+}
+
+.gsm-m-planner__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.8;
+}
+
+.gsm-m-planner__list {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+}
+
+.gsm-m-planner__list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.gsm-m-planner__list li.is-rest { color: var(--gsm-text-2); }
+
+/* Progreso → Constancia: las letras de los días se leen sobre el calendario. */
+.gsm-m-shell .gsm-streak-cal__dow {
+    color: var(--gsm-text);
+    font-family: var(--gsm-font-mono);
+    font-weight: 600;
+}

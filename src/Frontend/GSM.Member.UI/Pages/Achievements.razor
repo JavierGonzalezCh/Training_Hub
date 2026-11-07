@@ -1,19 +1,21 @@
+@page "/app/progreso"
 @page "/app/logros"
 @layout MemberLayout
 @attribute [Authorize(Roles = GsmRoles.Member)]
 @using GSM.Member.UI.MyProgress
+@using GSM.UI.Shared.Routines
+@inject IMeClient Me
 @inject GymContext GymCtx
 
-@* "Mi progreso" (L7, Achievements v2 §8): una sola pantalla con tres pestañas, Racha, Logros y Ranking (si el gym lo
-   tiene encendido). Conserva la ruta /app/logros —la pestaña "Logros" de la barra inferior apunta ahí— y acepta
-   ?tab=racha|logros|ranking. El progreso por ejercicio (récords y gráficas) no está aquí: vive en /app/progreso, junto
-   a la rutina. *@
+@* Progreso (pestaña de la barra): una sola pantalla con Constancia (racha y calendario), Fuerza (récords y gráficas
+   por ejercicio, si el gym tiene rutinas), Logros y Ranking (si el gym lo tiene encendido). /app/progreso es la ruta
+   de la barra; /app/logros se conserva porque la usan los avisos. Acepta ?tab=racha|fuerza|logros|ranking. *@
 
-<PageTitle>Mi progreso — TrainingHub GO</PageTitle>
+<PageTitle>Progreso — TrainingHub GO</PageTitle>
 
-<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-3">Mi progreso</MudText>
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-3">Tu progreso</MudText>
 
-<div class="gsm-streak-tabs" role="tablist" aria-label="Secciones de Mi progreso">
+<div class="gsm-streak-tabs" role="tablist" aria-label="Secciones de tu progreso">
     @foreach (var tab in Tabs)
     {
         var current = tab.Key;
@@ -34,6 +36,15 @@
     {
         <RankingPanel />
     }
+    else if (_active == "fuerza")
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Cómo has avanzado en cada ejercicio y tus récords. Cuentan los ejercicios que anotaste con peso, repeticiones, tiempo o distancia; el calentamiento no.
+        </MudText>
+        <ProgressPanel LoadSummaries="@(() => Me.GetMyProgressAsync())"
+                       LoadDetail="@(id => Me.GetMyExerciseProgressAsync(id))"
+                       EmptyText="Cuando anotes tus series en Entrenar, aquí verás tu evolución y tus récords." />
+    }
     else
     {
         <AchievementsPanel />
@@ -41,7 +52,7 @@
 </div>
 
 @code {
-    /// <summary>Pestaña inicial: <c>racha</c> (por defecto), <c>logros</c> o <c>ranking</c>.</summary>
+    /// <summary>Pestaña inicial: <c>racha</c> (Constancia, por defecto), <c>fuerza</c>, <c>logros</c> o <c>ranking</c>.</summary>
     [Parameter, SupplyParameterFromQuery(Name = "tab")]
     public string? Tab { get; set; }
 
@@ -53,7 +64,13 @@
     {
         get
         {
-            var tabs = new List<(string, string)> { ("racha", "Racha"), ("logros", "Logros") };
+            var tabs = new List<(string, string)> { ("racha", "Constancia") };
+            if (GymCtx.FeatureFlags?.ShowRoutines != false)
+            {
+                tabs.Add(("fuerza", "Fuerza"));
+            }
+
+            tabs.Add(("logros", "Logros"));
             if (RankingOn)
             {
                 tabs.Add(("ranking", "Ranking"));

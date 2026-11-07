@@ -1,0 +1,91 @@
+@* Pestaña "Gym" de la navegación del miembro (barra inferior y menú lateral): reúne Mi gimnasio, Clases y Novedades,
+   así que queda activa en cualquiera de las tres. Si el gym tiene las comunicaciones activas lleva el indicador de
+   novedades sin leer, que se consulta al entrar y cada 60 s (el temporizador se libera al salir). *@
+@implements IAsyncDisposable
+@inject NewsUnreadState Unread
+@inject NavigationManager Navigation
+
+<a href="/app/gimnasio" class="@CssClass" aria-label="@Label" aria-current="@(IsActive ? "page" : null)" data-testid="tab-gym">
+    <span class="gsm-tabbar-icon">
+        <MudIcon Icon="@Icons.Material.Filled.Storefront" Size="Size.Small" />
+        @if (Community && Unread.Total > 0)
+        {
+            <span class="gsm-tabbar-badge" aria-hidden="true">@(Unread.Total > 9 ? "9+" : Unread.Total.ToString())</span>
+        }
+    </span>
+    <span class="@LabelClass">Gym</span>
+</a>
+
+@code {
+    /// <summary>Clase del enlace (<c>gsm-nav-link</c> en el menú lateral); se le suma <c>active</c>.</summary>
+    [Parameter] public string? LinkClass { get; set; }
+
+    /// <summary>Clase del rótulo (<c>gsm-tabbar-label</c> en la barra inferior).</summary>
+    [Parameter] public string LabelClass { get; set; } = "gsm-tabbar-label";
+
+    /// <summary>El gym tiene las comunicaciones activas: hay novedades que contar.</summary>
+    [Parameter] public bool Community { get; set; }
+
+    /// <summary>Rutas que pertenecen a la pestaña.</summary>
+    public static readonly string[] Paths = ["app/gimnasio", "app/clases", "app/novedades"];
+
+    private PeriodicTimer? _timer;
+    private Task? _loop;
+
+    private bool IsActive
+    {
+        get
+        {
+            var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].TrimEnd('/');
+            return Paths.Any(p => path.Equals(p, StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private string CssClass => string.Join(' ', new[] { LinkClass, IsActive ? "active" : null }.Where(c => c is not null));
+
+    private string Label => Community && Unread.Total > 0 ? $"Gym, {Unread.Total} novedades sin leer" : "Gym";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        if (!Community)
+        {
+            return;
+        }
+
+        Unread.Changed += OnChanged;
+        await Unread.RefreshAsync();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
+        _loop = PollAsync(_timer);
+    }
+
+    private async Task PollAsync(PeriodicTimer timer)
+    {
+        try
+        {
+            while (await timer.WaitForNextTickAsync())
+            {
+                await Unread.RefreshAsync();
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        Unread.Changed -= OnChanged;
+        _timer?.Dispose();
+        if (_loop is not null)
+        {
+            await _loop;
+        }
+    }
+}

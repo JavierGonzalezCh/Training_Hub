@@ -1,0 +1,145 @@
+@using GSM.UI.Shared.Routines
+@inject IMeClient Me
+
+@* Entrenar → planificador: la semana de lunes a domingo con lo que toca cada día (con los cambios de la sesión
+   perdida), lo ya hecho y hoy marcado. Se navega entre semanas (hasta 26 hacia atrás o adelante). Tocar un día de
+   entrenamiento lo abre abajo para hacerlo hoy (SP1); hoy vuelve a la rutina del día. Si la lectura falla no se
+   muestra: no es motivo para romper la rutina. *@
+@if (_week is { HasRoutine: true } week)
+{
+    var training = week.Days.Where(d => !d.IsRest).ToList();
+    <section class="gsm-m-planner" aria-label="Tu semana de entrenamiento" data-testid="week-planner">
+        <div class="gsm-m-planner__nav">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" OnClick="() => MoveAsync(-7)"
+                           Disabled="@(_loading || _offset <= -MaxWeeks)" aria-label="Semana anterior" data-testid="planner-prev" />
+            <div class="gsm-m-planner__label">
+                <span class="gsm-m-planner__title" data-testid="planner-label">@WeekLabel(week)</span>
+                @if (_offset == 0 && training.Count > 0)
+                {
+                    <span class="gsm-m-planner__sub" data-testid="planner-done">@AdherenceLabels.DaysOf(training.Count(d => d.Done), training.Count)</span>
+                }
+                else if (_offset != 0)
+                {
+                    <button type="button" class="gsm-m-planner__back" @onclick="() => MoveAsync(-_offset)" data-testid="planner-today">Volver a esta semana</button>
+                }
+            </div>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" OnClick="() => MoveAsync(7)"
+                           Disabled="@(_loading || _offset >= MaxWeeks)" aria-label="Semana siguiente" data-testid="planner-next" />
+        </div>
+        <ol class="gsm-m-planner__days">
+            @foreach (var day in week.Days)
+            {
+                var pickable = _offset == 0 && !day.IsRest && day.DayId is not null;
+                var selected = pickable && (day.IsToday ? SelectedDayId is null : SelectedDayId == day.DayId && !IsTodayDay(day.DayId));
+                <li>
+                    <button type="button"
+                            class="gsm-m-planner__day @(day.IsRest ? "is-rest" : null) @(day.Done ? "is-done" : null) @(day.IsToday ? "is-today" : null) @(selected ? "is-selected" : null)"
+                            disabled="@(!pickable)"
+                            aria-pressed="@(pickable ? (selected ? "true" : "false") : null)"
+                            aria-label="@AriaFor(day)"
+                            data-testid="@($"planner-day-{day.Date:yyyy-MM-dd}")"
+                            @onclick="() => PickAsync(day)">
+                        <span class="gsm-m-planner__dow">@Dow[day.DayOfWeek - 1]</span>
+                        <span class="gsm-m-planner__num">@day.Date.Day</span>
+                        <span class="gsm-m-planner__mark" aria-hidden="true">
+                            @if (day.Done)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" />
+                            }
+                            else if (!day.IsRest)
+                            {
+                                <span class="gsm-m-planner__dot"></span>
+                            }
+                        </span>
+                    </button>
+                </li>
+            }
+        </ol>
+        @if (_offset != 0)
+        {
+            <ul class="gsm-m-planner__list" data-testid="planner-list">
+                @foreach (var day in week.Days)
+                {
+                    <li class="@(day.IsRest ? "is-rest" : null)">
+                        <span>@GsmFormat.DayShort(day.Date)</span>
+                        <span>@(day.IsRest ? "Descanso" : day.DayName)@(day.Done ? " · hecho" : "")</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    private const int MaxWeeks = 26 * 7;
+    private static readonly string[] Dow = ["L", "M", "X", "J", "V", "S", "D"];
+
+    /// <summary>El día del plan que se está mostrando abajo; <c>null</c> = el de hoy.</summary>
+    [Parameter] public Guid? SelectedDayId { get; set; }
+
+    /// <summary>El día que toca hoy (para saber cuándo un día elegido es en realidad el de hoy).</summary>
+    [Parameter] public Guid? TodayDayId { get; set; }
+
+    /// <summary>Elegir un día de esta semana: su id, o <c>null</c> para volver al de hoy.</summary>
+    [Parameter] public EventCallback<Guid?> OnPick { get; set; }
+
+    private MyRoutineWeekResponse? _week;
+    private int _offset;
+    private bool _loading;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    /// <summary>Vuelve a leer la semana que se está viendo (después de registrar un ejercicio o recuperar una sesión).</summary>
+    public Task RefreshAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var date = GsmFormat.Today().AddDays(_offset);
+            _week = await Me.GetMyRoutineWeekAsync(_offset == 0 ? null : date);
+        }
+        catch (GsmApiException)
+        {
+            _week = _offset == 0 ? null : _week;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task MoveAsync(int days)
+    {
+        _offset = Math.Clamp(_offset + days, -MaxWeeks, MaxWeeks);
+        await LoadAsync();
+    }
+
+    private bool IsTodayDay(Guid? dayId) => dayId is not null && dayId == TodayDayId;
+
+    private Task PickAsync(RoutineWeekDayView day)
+        => OnPick.InvokeAsync(day.IsToday || IsTodayDay(day.DayId) ? null : day.DayId);
+
+    private static string WeekLabel(MyRoutineWeekResponse week)
+    {
+        var start = week.WeekStart;
+        var end = start.AddDays(6);
+        var today = GsmFormat.Today();
+        var monday = today.AddDays(1 - (((int)today.DayOfWeek + 6) % 7 + 1));
+        var prefix = start == monday ? "Esta semana" : start == monday.AddDays(7) ? "Próxima semana" : start == monday.AddDays(-7) ? "Semana pasada" : null;
+        var range = $"{start.Day} {MonthShort(start)} – {end.Day} {MonthShort(end)}";
+        return prefix is null ? range : $"{prefix} · {range}";
+    }
+
+    private static string MonthShort(DateOnly date)
+        => date.ToString("MMM", new System.Globalization.CultureInfo("es-CO")).TrimEnd('.');
+
+    private static string AriaFor(RoutineWeekDayView day)
+    {
+        var what = day.IsRest ? "descanso" : day.DayName ?? "entrenamiento";
+        var done = day.Done ? ", hecho" : "";
+        var today = day.IsToday ? ", hoy" : "";
+        return $"{GsmFormat.DayShort(day.Date)}: {what}{done}{today}";
+    }
+}
