@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # Configuración local de un carril de trabajo (scripts/new-lane.ps1)
 .env.lane
+
+# Planes de prueba con cuentas reales: no se versionan.
+docs/plan-pruebas-*.html
