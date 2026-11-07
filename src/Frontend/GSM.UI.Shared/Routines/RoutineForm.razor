@@ -163,7 +163,10 @@
                                 {
                                     <MudNumericField T="int?" @bind-Value="set.DistanceM" Label="Distancia (m)" Style="width:7rem" Margin="Margin.Dense" />
                                 }
-                                <MudNumericField T="int?" @bind-Value="set.Rir" Label="RIR" Min="0" Max="10" Style="width:4.5rem" Margin="Margin.Dense" />
+                                @if (ShowRir)
+                                {
+                                    <MudNumericField T="int?" @bind-Value="set.Rir" Label="RIR" Min="0" Max="10" Style="width:4.5rem" Margin="Margin.Dense" />
+                                }
                                 <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Disabled="exercise.Sets.Count <= 1"
                                                aria-label="@($"Quitar la serie {number + 1}")" OnClick="@(() => exercise.Sets.RemoveAt(number))" />
                             </div>
@@ -192,6 +195,9 @@
 </MudButton>
 
 @code {
+    /// <summary>Campo RIR por serie: lo usa el entrenador en el panel; la app del miembro no lo muestra.</summary>
+    [Parameter] public bool ShowRir { get; set; } = true;
+
     [Parameter, EditorRequired]
     public RoutineDraft Draft { get; set; } = default!;
 

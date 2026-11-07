@@ -23,17 +23,9 @@
     @SessionView(sessionToday)
     return;
 }
-<div class="d-flex align-center justify-space-between mb-3">
-    <MudText Typo="Typo.h5" HtmlTag="h1">Entrenar</MudText>
-    @if (GymCtx.FeatureFlags?.ShowRoutines != false)
-    {
-        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.TrendingUp"
-                   Href="/app/progreso?tab=fuerza" data-testid="progress-link">Tus récords</MudButton>
-    }
-</div>
-
 @if (GymCtx.FeatureFlags?.ShowRoutines == false)
 {
+    <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-3">Entrenar</MudText>
     <MudAlert Severity="Severity.Normal">Las rutinas no están activadas en este gimnasio.</MudAlert>
 }
 else if (_loading)
@@ -42,6 +34,7 @@ else if (_loading)
 }
 else if (_response?.Routine is null)
 {
+    <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-3">Entrenar</MudText>
     <div class="gsm-empty">
         <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Large" Class="gsm-empty-icon" />
         <div class="gsm-empty-title">Todavía no tienes una rutina</div>
@@ -65,13 +58,41 @@ else if (_response?.Routine is null)
 }
 else
 {
-    <MudText HtmlTag="h2" Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-1">@_response.Routine.Name</MudText>
-    @if (_response.Routine is { SelfAssigned: false, ReviewOn: { } reviewOn })
-    {
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2" data-testid="routine-review-on">
-            Tu rutina se revisa el @GsmFormat.Day(reviewOn)
-        </MudText>
-    }
+    var heroDay = ShownDay();
+    var heroToday = _response.Today;
+    var heroExercises = heroDay?.Exercises ?? (heroToday is { IsRest: false } ? heroToday.Exercises : []);
+    var heroName = heroDay?.Name ?? heroToday?.DayName ?? _response.Routine.Name;
+    var heroSets = heroExercises.Sum(e => Math.Max(1, e.SetTargets.Count));
+    var heroFirst = heroExercises.FirstOrDefault();
+    @* Encabezado: la foto del día y lo importante de la rutina. *@
+    <section class="gsm-m-dayhero" data-testid="day-hero"
+             style="background-image:url('@(heroFirst is null ? PlaceholderMedia.Gym : PlaceholderMedia.Exercise(heroFirst.ImageUrl, heroFirst.PrimaryMuscle, 900))')">
+        <div class="gsm-m-dayhero__top">
+            <span class="gsm-m-chip-glass">@_response.Routine.Name</span>
+            <a class="gsm-m-chip-glass" href="/app/progreso?tab=fuerza" data-testid="progress-link">
+                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" /> Tus récords
+            </a>
+        </div>
+        <div class="gsm-m-dayhero__body">
+            <span class="gsm-m-card__kicker">
+                @(heroDay is not null ? "Día elegido" : heroToday is null ? "Tu rutina" : $"Hoy{(_response.Routine.ScheduleMode == "weekly" ? $" · {RoutineLabels.IsoWeekdayLabel(heroToday.DayOfWeek)}" : "")}")
+            </span>
+            <h1 class="gsm-m-dayhero__title">@(heroDay is null && heroToday is { IsRest: true } ? "Descanso" : heroName)</h1>
+            @if (heroExercises.Count > 0)
+            {
+                <div class="gsm-m-dayhero__chips">
+                    <span class="gsm-m-chip-glass">@heroExercises.Count ejercicios</span>
+                    <span class="gsm-m-chip-glass">@heroSets series</span>
+                    <span class="gsm-m-chip-glass">~@(Math.Max(10, (int)Math.Round(heroSets * 2.5 / 5) * 5)) min</span>
+                </div>
+            }
+            @if (_response.Routine is { SelfAssigned: false, ReviewOn: { } reviewOn })
+            {
+                <span class="gsm-m-dayhero__meta" data-testid="routine-review-on">Tu rutina se revisa el @GsmFormat.Day(reviewOn)</span>
+            }
+        </div>
+    </section>
+
     @if (_response.MissedSession is { } missedSession)
     {
         <MissedSessionCard @key="missedSession.MissedOn" Missed="missedSession" TodayName="@(_response.Today?.DayName ?? "la de hoy")"
@@ -85,37 +106,40 @@ else
                 Hoy haces <strong>@today.DayName</strong> en lugar de @plannedName: cuenta como la rutina de hoy.
             </MudAlert>
         }
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-            Hoy: @(_response.Routine.ScheduleMode == "weekly" ? $"{RoutineLabels.IsoWeekdayLabel(today.DayOfWeek)} · " : "")@today.DayName @(today.IsRest && today.DayName != "Descanso" ? "· descanso" : "")
-        </MudText>
-        @if (!today.IsRest && RoutineLabels.MuscleGroupsSummary(today.MuscleGroups) is { } todayGroups)
-        {
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block" data-testid="today-groups">Hoy trabajas: @todayGroups</MudText>
-        }
-
-        var trainingDays = TrainingDays();
-        @if (trainingDays.Count > 0)
-        {
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">@(today.IsRest ? "Hoy descansas. ¿Quieres hacer otra rutina?" : "¿Hoy haces otra rutina?")</MudText>
-            <MudChipSet T="Guid?" SelectedValue="_selectedDayId" SelectedValueChanged="SelectDay" SelectionMode="SelectionMode.SingleSelection"
-                        CheckMark="false" Class="mb-3" data-testid="day-picker">
-                @if (!today.IsRest)
-                {
-                    <MudChip T="Guid?" Value="@((Guid?)null)" Variant="Variant.Outlined" Color="Color.Primary" data-testid="day-today">Hoy · @today.DayName</MudChip>
-                }
-                @foreach (var day in trainingDays)
-                {
-                    <MudChip T="Guid?" Value="@((Guid?)day.Id)" Variant="Variant.Outlined" Color="Color.Primary" data-testid="@($"day-{day.Id}")">@DayLabel(day)</MudChip>
-                }
-            </MudChipSet>
-        }
 
         var shownDay = ShownDay();
         @if (shownDay is not null)
         {
-            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" data-testid="other-day-notice">
-                Estás haciendo <strong>@shownDay.Name</strong>. Se guarda con la fecha de hoy, pero no cuenta como la rutina de hoy en tu cumplimiento. Si no estás seguro, pregúntale a tu entrenador.
-            </MudAlert>
+            @* Eligió en Plan un día que no es el de hoy: se le recuerda cuál le toca y puede volver a él. *@
+            <section class="gsm-m-card gsm-m-alert gsm-m-otherday" data-testid="other-day-notice">
+                <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" /></span>
+                <div class="gsm-m-card__body">
+                    @if (today.IsRest)
+                    {
+                        <h2 class="gsm-m-card__title">Hoy es tu día de descanso</h2>
+                        <p class="gsm-m-card__text">Vas a hacer <strong>@shownDay.Name</strong>. Se guarda con la fecha de hoy, pero no cuenta en tu cumplimiento.</p>
+                    }
+                    else
+                    {
+                        <h2 class="gsm-m-card__title">Hoy es tu día de @today.DayName</h2>
+                        <p class="gsm-m-card__text">¿Empiezas con <strong>@shownDay.Name</strong> o cambias a la de tu día? Si haces otra, no cuenta como la de hoy en tu cumplimiento.</p>
+                        <div class="gsm-m-otherday__actions">
+                            <button type="button" class="gsm-m-chip" data-testid="back-to-today" @onclick="BackToToday">Cambiar a @today.DayName</button>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+        else if (today.IsRest)
+        {
+            <section class="gsm-m-card" data-testid="rest-today">
+                <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.SelfImprovement" /></span>
+                <div class="gsm-m-card__body">
+                    <h2 class="gsm-m-card__title">Hoy descansas</h2>
+                    <p class="gsm-m-card__text">Recupérate. Si igual quieres entrenar, elige un día de tu plan.</p>
+                </div>
+                <a class="gsm-m-chip" href="/app/plan" data-testid="pick-plan-day">Elegir un día</a>
+            </section>
         }
 
         var shown = shownDay?.Exercises ?? (today.IsRest ? [] : today.Exercises);
@@ -147,7 +171,10 @@ else
             var totalSets = shown.Sum(e => Math.Max(1, e.SetTargets.Count));
             var doneCount = shown.Count(e => StateOf(e).Done);
             <div class="gsm-m-startbar" data-testid="start-bar">
-                <span class="gsm-m-startbar__summary">@shown.Count ejercicios · @totalSets series@(doneCount > 0 ? $" · {doneCount} hechos" : "")</span>
+                @if (doneCount > 0)
+                {
+                    <span class="gsm-m-startbar__summary">@doneCount de @shown.Count ejercicios hechos</span>
+                }
                 <button type="button" class="gsm-m-cta" data-testid="start-day" @onclick="() => StartSessionAsync(shown, shownDay?.Name ?? today.DayName)">
                     <BarbellIcon Width="34" />
                     <span>@(doneCount == 0 ? $"Empezar {shownDay?.Name ?? today.DayName}" : doneCount < shown.Count ? "Continuar el entrenamiento" : "Ver el resumen")</span>
@@ -183,7 +210,7 @@ else
                                 <span class="gsm-m-ex__target" data-testid="@($"replaced-{exercise.Id}")">Hoy en lugar de @exercise.ExerciseName</span>
                             }
                             <span class="gsm-m-ex__target">
-                                Meta: @SetPlan.Summary(targets, exercise.IsUnilateral == true)@(exercise.RestSeconds is { } rest ? (inGroup ? $" · descanso por vuelta {rest} s" : $" · descanso {rest} s") : "")
+                                Meta: @SetPlan.Summary(targets, exercise.IsUnilateral == true, withRir: false)@(exercise.RestSeconds is { } rest ? (inGroup ? $" · descanso por vuelta {rest} s" : $" · descanso {rest} s") : "")
                             </span>
                             @if (EquipmentNotice.Warning(exercise.Equipment) is { } headWarning)
                             {
@@ -279,7 +306,7 @@ else
                                     <div class="gsm-m-setrow__head">
                                         <span class="gsm-m-set__num">@(index + 1)</span>
                                         <span class="gsm-m-setrow__plan">
-                                            @(target is null ? "Serie extra" : $"{(target.SetType == "normal" ? "" : SetPlan.SetTypeLabel(target.SetType) + ": ")}{SetPlan.Describe(target, exercise.IsUnilateral == true)}")
+                                            @(target is null ? "Serie extra" : $"{(target.SetType == "normal" ? "" : SetPlan.SetTypeLabel(target.SetType) + ": ")}{SetPlan.Describe(target, exercise.IsUnilateral == true, withRir: false)}")
                                         </span>
                                         @if (state.Done)
                                         {
@@ -314,9 +341,6 @@ else
                                                              Min="0" Max="1000000" HideSpinButtons="true" Immediate="true"
                                                              aria-label="@($"Distancia de la serie {index + 1}, en metros")" />
                                         }
-                                        <MudNumericField T="int?" @bind-Value="row.Rir" Label="RIR" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                         Min="0" Max="10" HideSpinButtons="true" Immediate="true"
-                                                         aria-label="@($"Repeticiones en reserva de la serie {index + 1}")" />
                                     </div>
                                 </div>
                             }
@@ -445,6 +469,13 @@ else
             : day.Name;
 
     private void SelectDay(Guid? dayId) => _selectedDayId = dayId;
+
+    // Deja el día elegido en Plan y vuelve al que toca hoy (también quita ?dia= de la dirección).
+    private void BackToToday()
+    {
+        _selectedDayId = null;
+        Navigation.NavigateTo("/app/rutina", replace: true);
+    }
 
     private void SelectDay(Guid dayId) => _selectedDayId = dayId;
 
@@ -1102,7 +1133,7 @@ else
                         <span class="gsm-m-session__sub">Hoy en lugar de @exercise.ExerciseName</span>
                     }
                     <span class="gsm-m-session__sub">
-                        Meta: @SetPlan.Summary(targets, exercise.IsUnilateral == true)@(last.Weight is not null || last.Reps is not null ? $" · la vez pasada {(last.Weight is { } lw ? $"{lw:0.#} kg" : "")}{(last.Weight is not null && last.Reps is not null ? " × " : "")}{last.Reps}" : "")
+                        Meta: @SetPlan.Summary(targets, exercise.IsUnilateral == true, withRir: false)@(last.Weight is not null || last.Reps is not null ? $" · la vez pasada {(last.Weight is { } lw ? $"{lw:0.#} kg" : "")}{(last.Weight is not null && last.Reps is not null ? " × " : "")}{last.Reps}" : "")
                     </span>
                 </div>
                 <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" aria-label="Cambiar por otro ejercicio hoy" aria-pressed="@(state.Picking ? "true" : "false")"

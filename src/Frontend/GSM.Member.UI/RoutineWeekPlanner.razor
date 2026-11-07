@@ -39,7 +39,7 @@
                             aria-label="@AriaFor(day)"
                             data-testid="@($"planner-day-{day.Date:yyyy-MM-dd}")"
                             @onclick="() => PickAsync(day)">
-                        <span class="gsm-m-planner__dow">@Dow[day.DayOfWeek - 1]</span>
+                        <span class="gsm-m-planner__dow">@(day.IsToday ? "Hoy" : Dow[day.DayOfWeek - 1])</span>
                         <span class="gsm-m-planner__num">@day.Date.Day</span>
                         <span class="gsm-m-planner__mark" aria-hidden="true">
                             @if (day.Done)

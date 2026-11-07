@@ -222,6 +222,19 @@ public class TrainingSessionUiTests : TestContext
     }
 
     [Fact]
+    public void The_member_app_hides_the_rir_and_groups_sets_that_only_differ_in_it()
+    {
+        var targets = new[]
+        {
+            new SetTargetResponse { Number = 1, SetType = "normal", RepsMin = 8, RepsMax = 8, WeightKg = 80, Rir = 2 },
+            new SetTargetResponse { Number = 2, SetType = "normal", RepsMin = 8, RepsMax = 8, WeightKg = 80, Rir = 1 },
+        };
+
+        Assert.Equal("2 × 8 · 80 kg", GSM.UI.Shared.Routines.SetPlan.Summary(targets, withRir: false));
+        Assert.Contains("RIR 2", GSM.UI.Shared.Routines.SetPlan.Summary(targets));
+    }
+
+    [Fact]
     public void Muscle_names_are_joined_in_spanish()
         => Assert.Equal("cuádriceps, glúteos y lumbar", MuscleLabels.Join(["Quadriceps", "Glutes", "Lower_back"]));
 }

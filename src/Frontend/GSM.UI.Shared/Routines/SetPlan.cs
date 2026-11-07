@@ -75,7 +75,8 @@ public static class SetPlan
     /// Objetivo de una serie en una línea: "8–12 · 40 kg · RIR 2". En un ejercicio unilateral las repeticiones
     /// son por lado ("10 por lado").
     /// </summary>
-    public static string Describe(SetTargetResponse target, bool unilateral = false)
+    /// <param name="withRir">La app del miembro no muestra el RIR (medida subjetiva); el panel sí.</param>
+    public static string Describe(SetTargetResponse target, bool unilateral = false, bool withRir = true)
     {
         var parts = new List<string>();
         var reps = RepsText(target);
@@ -99,7 +100,7 @@ public static class SetPlan
             parts.Add(DistanceText(meters));
         }
 
-        if (target.Rir is { } rir)
+        if (withRir && target.Rir is { } rir)
         {
             parts.Add($"RIR {rir}");
         }
@@ -111,12 +112,12 @@ public static class SetPlan
     /// Resumen de las series de una línea, agrupando las consecutivas idénticas:
     /// "Calentamiento 1 × 12 · 20 kg; 3 × 8–12 · 40 kg · RIR 2".
     /// </summary>
-    public static string Summary(IEnumerable<SetTargetResponse>? targets, bool unilateral = false)
+    public static string Summary(IEnumerable<SetTargetResponse>? targets, bool unilateral = false, bool withRir = true)
     {
         var runs = new List<(SetTargetResponse First, int Count)>();
         foreach (var t in (targets ?? []).OrderBy(t => t.Number))
         {
-            if (runs.Count > 0 && Same(runs[^1].First, t))
+            if (runs.Count > 0 && Same(runs[^1].First, t, withRir))
             {
                 runs[^1] = (runs[^1].First, runs[^1].Count + 1);
             }
@@ -128,7 +129,7 @@ public static class SetPlan
 
         return string.Join("; ", runs.Select(r =>
         {
-            var text = Describe(r.First, unilateral);
+            var text = Describe(r.First, unilateral, withRir);
             var prefix = IsNormal(r.First) ? string.Empty : SetTypeLabel(r.First.SetType) + " ";
             return text.Length == 0 ? $"{prefix}{r.Count} × serie" : $"{prefix}{r.Count} × {text}";
         }));
@@ -136,9 +137,10 @@ public static class SetPlan
 
     private static bool IsNormal(SetTargetResponse t) => string.Equals(t.SetType, "normal", StringComparison.OrdinalIgnoreCase);
 
-    private static bool Same(SetTargetResponse a, SetTargetResponse b)
+    // Sin RIR a la vista, dos series que solo difieren en el RIR se agrupan.
+    private static bool Same(SetTargetResponse a, SetTargetResponse b, bool withRir = true)
         => a.SetType == b.SetType && a.RepsMin == b.RepsMin && a.RepsMax == b.RepsMax && a.WeightKg == b.WeightKg
-           && a.DurationSeconds == b.DurationSeconds && a.DistanceM == b.DistanceM && a.Rir == b.Rir;
+           && a.DurationSeconds == b.DurationSeconds && a.DistanceM == b.DistanceM && (!withRir || a.Rir == b.Rir);
 
     /// <summary>
     /// Compara una serie hecha con su objetivo. Cada medida con objetivo se juzga por separado (repeticiones contra el

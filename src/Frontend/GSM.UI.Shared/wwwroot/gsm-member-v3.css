@@ -195,3 +195,19 @@
 .gsm-m-bars span { flex: 1; border-radius: 8px 8px 4px 4px; background: rgba(255, 255, 255, 0.14); }
 .gsm-m-bars span.is-on { background: var(--gsm-m-hot); }
 .gsm-m-bars__labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--gsm-text-2); margin-top: 4px; }
+
+/* Entrenar: encabezado con la foto del día. */
+.gsm-m-dayhero { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 240px; margin: 0 0 1rem; padding: 0.9rem; border-radius: 26px; overflow: hidden; background: #2a1214 center / cover; border: 1px solid var(--gsm-m-glass-border); }
+.gsm-m-dayhero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.1) 35%, rgba(0, 0, 0, 0.88)); }
+.gsm-m-dayhero > * { position: relative; z-index: 1; }
+.gsm-m-dayhero__top { display: flex; justify-content: space-between; gap: 0.5rem; }
+.gsm-m-dayhero__body { display: grid; gap: 0.35rem; margin-top: 4rem; }
+.gsm-m-dayhero__title { margin: 0; font-family: var(--gsm-font-display); font-weight: 400; font-size: 2.1rem; line-height: 1.05; text-transform: uppercase; }
+.gsm-m-dayhero__chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.gsm-m-dayhero__meta { font-size: 0.82rem; color: #ddd6d0; }
+.gsm-m-chip-glass { display: inline-flex; align-items: center; gap: 4px; padding: 0.3rem 0.75rem; border-radius: 999px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.16); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: #fff; font-size: 0.8rem; text-decoration: none; }
+.gsm-m-otherday__actions { margin-top: 0.6rem; }
+.gsm-m-otherday .gsm-m-chip { border-color: var(--gsm-warn); }
+
+/* Plan: el día de hoy. */
+.gsm-m-daycard__go { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 0.55rem 0.9rem; border-radius: 14px; background: var(--gsm-m-hot); color: #fff; font-weight: 600; font-size: 0.9rem; }

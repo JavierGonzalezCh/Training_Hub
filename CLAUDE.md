@@ -21,7 +21,7 @@ Este archivo es el resumen que debes tener presente siempre. Antes de generar en
 
 ## Estado actual
 
-Todos los módulos están construidos en la rama `v2`: Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements, Routines, Classes, SuperAdmin, Comunicaciones, Equipment y Notifications, más Logs y los dashboards. Suite: **1311 tests de integración (Postgres real) + 802 bUnit**. La rama `v2` aún no se une a `main`.
+Todos los módulos están construidos en la rama `v2`: Identity, Gyms, Members, Memberships, Payments, Attendance, Achievements, Routines, Classes, SuperAdmin, Comunicaciones, Equipment y Notifications, más Logs y los dashboards. Suite: **1311 tests de integración (Postgres real) + 805 bUnit**. La rama `v2` aún no se une a `main`.
 
 Falta, y está en `docs/V2-PENDIENTES.md`: **despliegue** (servidor propio con Dokploy, no Railway), cuentas externas (Cloudflare R2, Resend, Firebase: sin ellas las subidas de archivo fallan, los correos van al log y no hay push), y **verificar `GSM.Mobile` en un Android real** (compila para Android, nunca se ha ejecutado en un dispositivo; iOS necesita host macOS). `docs/V1-RECORRIDO.md` lista lo que falta recorrer en el navegador.
 

@@ -25,7 +25,7 @@ else
         <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
     }
 
-    <RoutineForm Draft="_draft" />
+    <RoutineForm Draft="_draft" ShowRir="false" />
 
     <div>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">

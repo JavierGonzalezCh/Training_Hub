@@ -52,19 +52,27 @@ else
     </div>
 
     <ul class="gsm-m-daylist" aria-label="Los días de tu rutina">
-        @foreach (var day in TrainingDays(routine))
+        @* El día de hoy va primero y abre el entrenamiento de hoy; los demás, en el orden de la rutina. *@
+        @foreach (var day in TrainingDays(routine).OrderBy(d => d.Id == TodayDayId ? 0 : 1))
         {
             var primary = day.Exercises.Select(e => e.PrimaryMuscle).Where(m => m is not null).Select(m => m!).ToList();
             var isToday = day.Id == TodayDayId;
             <li>
-                <a class="gsm-m-card gsm-m-daycard @(isToday ? "is-today" : null)" href="@($"/app/rutina?dia={day.Id}")" data-testid="@($"plan-day-{day.Id}")">
+                <a class="gsm-m-card gsm-m-daycard @(isToday ? "is-today" : null)" href="@(isToday ? "/app/rutina" : $"/app/rutina?dia={day.Id}")" data-testid="@($"plan-day-{day.Id}")">
                     <span class="gsm-m-daycard__photo" style="background-image:url('@PlaceholderMedia.Exercise(day.Exercises.FirstOrDefault()?.ImageUrl, primary.FirstOrDefault(), 200)')" aria-hidden="true"></span>
                     <div class="gsm-m-card__body">
                         <span class="gsm-m-card__kicker">@(isToday ? "Hoy" : routine.ScheduleMode == "weekly" && day.DayOfWeek is { } wd ? RoutineLabels.IsoWeekdayLabel(wd) : $"Día {day.Position}")</span>
                         <h3 class="gsm-m-card__title">@day.Name</h3>
                         <p class="gsm-m-card__text">@day.Exercises.Count ejercicios · @day.Exercises.Sum(e => Math.Max(1, e.SetTargets.Count)) series@(primary.Count > 0 ? $" · {MuscleLabels.Join(primary.Take(3))}" : "")</p>
                     </div>
-                    <MuscleMap Primary="primary" Compact="true" Label="@($"Músculos de {day.Name}")" />
+                    @if (isToday)
+                    {
+                        <span class="gsm-m-daycard__go" data-testid="plan-train-today"><BarbellIcon Width="22" /> Entrenar</span>
+                    }
+                    else
+                    {
+                        <MuscleMap Primary="primary" Compact="true" Label="@($"Músculos de {day.Name}")" />
+                    }
                 </a>
             </li>
         }

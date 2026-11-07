@@ -12,7 +12,10 @@ using MudBlazor.Services;
 
 namespace GSM.Web.Tests;
 
-/// <summary>SP1: el miembro puede ver y hacer cualquier día de su plan; se registra con la fecha de hoy.</summary>
+/// <summary>
+/// SP1: el miembro puede hacer cualquier día de su plan (lo elige en Plan, que abre Entrenar con <c>?dia=</c>); se
+/// registra con la fecha de hoy y se le recuerda cuál le toca, con la opción de volver a él.
+/// </summary>
 public class RoutineOtherDayUiTests : TestContext
 {
     private static readonly Guid ChestDay = Guid.Parse("00000000-0000-0000-0000-0000000000d1");
@@ -82,7 +85,7 @@ public class RoutineOtherDayUiTests : TestContext
 
     private FakeApi _api = null!;
 
-    private IRenderedComponent<Routine> Render(bool todayIsRest = false, string history = "[]")
+    private IRenderedComponent<Routine> Render(bool todayIsRest = false, string history = "[]", Guid? day = null)
     {
         _api = new FakeApi(todayIsRest, history);
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -96,35 +99,38 @@ public class RoutineOtherDayUiTests : TestContext
         auth.SetAuthorized("valentina");
         auth.SetRoles("member");
         RenderComponent<MudPopoverProvider>();
+        if (day is { } dayId)
+        {
+            var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+            nav.NavigateTo($"/app/rutina?dia={dayId}");
+        }
+
         var cut = RenderComponent<Routine>();
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='day-picker']")));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='day-hero']")));
         return cut;
     }
 
     [Fact]
-    public void A_training_day_shows_today_and_offers_the_other_days_of_the_plan()
+    public void A_training_day_opens_today_without_a_day_picker()
     {
         var cut = Render();
 
-        Assert.Contains("Hoy · Pierna", cut.Find("[data-testid='day-today']").TextContent);
-        Assert.Contains("Pecho", cut.Find($"[data-testid='day-{ChestDay}']").TextContent);
-        Assert.Empty(cut.FindAll($"[data-testid='day-{LegDay}']")); // el de hoy no se repite
+        Assert.Contains("Pierna", cut.Find("[data-testid='day-hero']").TextContent);
+        Assert.Empty(cut.FindAll("[data-testid='day-picker']"));
         Assert.NotEmpty(cut.FindAll($"[data-testid='ex-{LegLine}']"));
         Assert.Empty(cut.FindAll("[data-testid='other-day-notice']"));
     }
 
     [Fact]
-    public void Choosing_another_day_shows_its_exercises_and_logs_them_today()
+    public void A_day_chosen_in_plan_shows_its_exercises_reminds_todays_day_and_logs_today()
     {
-        var cut = Render();
-
-        cut.Find($"[data-testid='day-{ChestDay}']").Click();
+        var cut = Render(day: ChestDay);
 
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll($"[data-testid='ex-{ChestLine}']")));
         Assert.Empty(cut.FindAll($"[data-testid='ex-{LegLine}']"));
         var notice = cut.Find("[data-testid='other-day-notice']").TextContent;
+        Assert.Contains("Hoy es tu día de Pierna", notice);
         Assert.Contains("Pecho", notice);
-        Assert.Contains("pregúntale a tu entrenador", notice);
 
         cut.Find(".gsm-m-ex__head").Click();
         cut.Find(".gsm-m-setrow input").Input("40");
@@ -135,17 +141,35 @@ public class RoutineOtherDayUiTests : TestContext
     }
 
     [Fact]
-    public void On_a_rest_day_the_member_can_pick_any_training_day()
+    public void Changing_to_todays_day_drops_the_chosen_one()
     {
-        var cut = Render(todayIsRest: true);
+        var cut = Render(day: ChestDay);
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='back-to-today']")));
 
-        Assert.Contains("Hoy descansas", cut.Markup);
-        Assert.Empty(cut.FindAll("[data-testid='day-today']"));
-        Assert.Empty(cut.FindAll(".gsm-m-ex"));
-
-        cut.Find($"[data-testid='day-{LegDay}']").Click();
+        cut.Find("[data-testid='back-to-today']").Click();
 
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll($"[data-testid='ex-{LegLine}']")));
+        Assert.Empty(cut.FindAll("[data-testid='other-day-notice']"));
+        Assert.EndsWith("/app/rutina", Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().Uri);
+    }
+
+    [Fact]
+    public void On_a_rest_day_the_member_is_sent_to_plan_and_a_chosen_day_can_be_done()
+    {
+        var rest = Render(todayIsRest: true);
+
+        Assert.Contains("Hoy descansas", rest.Markup);
+        Assert.Empty(rest.FindAll(".gsm-m-ex"));
+        Assert.Equal("/app/plan", rest.Find("[data-testid='pick-plan-day']").GetAttribute("href"));
+    }
+
+    [Fact]
+    public void On_a_rest_day_a_day_chosen_in_plan_shows_its_exercises()
+    {
+        var cut = Render(todayIsRest: true, day: LegDay);
+
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll($"[data-testid='ex-{LegLine}']")));
+        Assert.Contains("descanso", cut.Find("[data-testid='other-day-notice']").TextContent);
     }
 
     [Fact]
