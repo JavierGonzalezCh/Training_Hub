@@ -1,9 +1,10 @@
-@page "/app/perfil"
+﻿@page "/app/perfil"
 @layout MemberLayout
 @attribute [Authorize(Roles = GsmRoles.Member)]
 @inject IMeProfileClient ProfileApi
 @inject MemberBootstrapService Bootstrap
 @inject ISnackbar Snackbar
+@using GSM.UI.Shared.Uploads
 
 @* "Mi perfil" (Members v2, M5). Contacto, emergencia, salud y foto se guardan al instante; nombres, documento y
    fecha de nacimiento los cambia el staff; el correo y la contraseña pasan por /app/cuenta/contrasena. La salud
@@ -228,9 +229,7 @@ else
         _uploading = true;
         try
         {
-            // 5 MB de tope: solo para no mandar archivos absurdos a la API.
-            await using var stream = e.File.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            Apply(await ProfileApi.UploadMyPhotoAsync(new FileParameter(stream, e.File.Name, e.File.ContentType)));
+            Apply(await ProfileApi.UploadMyPhotoAsync(await PhotoUpload.PrepareAsync(e.File)));
             await Bootstrap.LoadAsync();
             Snackbar.Add("Foto actualizada.", Severity.Success);
         }
@@ -242,6 +241,10 @@ else
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        catch (IOException)
+        {
+            Snackbar.Add("No se pudo leer la foto. Prueba con otra o con una más liviana (máximo 5 MB).", Severity.Warning);
         }
         finally
         {

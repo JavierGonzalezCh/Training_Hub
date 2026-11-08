@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = GsmPolicies.RequireStaff)]
 @using GSM.Panel.UI.Pages.Payments
 @using GSM.UI.Shared.Routines
+@using GSM.UI.Shared.Uploads
 @inject IMembersClient Members
 @inject IMemberAttendanceClient MemberAttendance
 @inject IMemberPaymentsClient MemberPayments
@@ -832,9 +833,7 @@ else if (_member is not null)
         _uploadingPhoto = true;
         try
         {
-            // 5 MB de tope: solo para no mandar archivos absurdos a la API.
-            await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            _member = await Members.PhotoAsync(Id, new FileParameter(stream, file.Name, file.ContentType));
+            _member = await Members.PhotoAsync(Id, await PhotoUpload.PrepareAsync(file));
             Snackbar.Add("Foto actualizada.", Severity.Success);
         }
         catch (GsmApiException ex) when (ex.StatusCode == 500)
@@ -845,6 +844,10 @@ else if (_member is not null)
         catch (GsmApiException ex)
         {
             Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        catch (IOException)
+        {
+            Snackbar.Add("No se pudo leer la foto. Prueba con otra o con una más liviana (máximo 5 MB).", Severity.Warning);
         }
         finally
         {

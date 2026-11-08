@@ -1,4 +1,5 @@
-@using GSM.UI.Shared.Routines
+﻿@using GSM.UI.Shared.Routines
+@using GSM.UI.Shared.Uploads
 @inject IMemberEquipmentClient EquipmentApi
 @inject ISnackbar Snackbar
 
@@ -105,8 +106,7 @@
     {
         try
         {
-            await using var stream = _photo!.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            await EquipmentApi.UploadMyEquipmentIssuePhotoAsync(issueId, new FileParameter(stream, _photo.Name, _photo.ContentType));
+            await EquipmentApi.UploadMyEquipmentIssuePhotoAsync(issueId, await PhotoUpload.PrepareAsync(_photo!));
         }
         catch (Exception ex) when (ex is GsmApiException or IOException)
         {
