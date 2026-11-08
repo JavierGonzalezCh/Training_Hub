@@ -488,3 +488,9 @@ $RECYCLE.BIN/
 
 # Planes de prueba con cuentas reales: no se versionan.
 docs/plan-pruebas-*.html
+
+# Documentación: solo local, nunca en el repositorio.
+docs/
+
+# Scripts que apuntan a producción: solo locales.
+scripts/seed-gym-prueba.ps1
