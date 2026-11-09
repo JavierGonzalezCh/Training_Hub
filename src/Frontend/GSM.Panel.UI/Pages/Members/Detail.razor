@@ -31,7 +31,8 @@ else if (_member is not null)
 {
     <div class="d-flex flex-wrap align-start mb-6" style="gap:1.5rem">
         <div class="d-flex flex-column align-center" style="gap:0.35rem">
-            <MudAvatar Size="Size.Large" Style="width:72px;height:72px">
+            <MudAvatar Size="Size.Large" Style="width:72px;height:72px;cursor:pointer" @onclick="OpenQuickViewAsync" role="button" tabindex="0"
+                       aria-label="Ver la información básica del miembro" data-testid="member-photo-open">
                 @if (!string.IsNullOrEmpty(_member.PhotoUrl))
                 {
                     <MudImage Src="@_member.PhotoUrl" />
@@ -51,7 +52,7 @@ else if (_member is not null)
         </div>
         <div style="flex:1; min-width:220px">
             <div class="d-flex align-center flex-wrap" style="gap:0.75rem">
-                <MudText Typo="Typo.h4" HtmlTag="h1">@_member.FirstName @_member.LastName</MudText>
+                <MudText Typo="Typo.h4" HtmlTag="h1" Style="cursor:pointer" @onclick="OpenQuickViewAsync" data-testid="member-name-open">@_member.FirstName @_member.LastName</MudText>
                 @if (_member.IsAnonymized == true)
                 {
                     <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small" Class="gsm-mono" data-testid="anonymized-chip">ANONIMIZADO</MudChip>
@@ -608,6 +609,14 @@ else if (_member is not null)
             Snackbar.Add("Miembro actualizado.", Severity.Success);
             await LoadAsync();
         }
+    }
+
+    // Foto o nombre: el modal con lo más importante del miembro (foto a la izquierda, datos a la derecha).
+    private async Task OpenQuickViewAsync()
+    {
+        var parameters = new DialogParameters<MemberQuickViewDialog> { { x => x.MemberId, Id } };
+        await Dialogs.ShowAsync<MemberQuickViewDialog>("Información del miembro", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
     }
 
     private async Task AssignMembershipAsync()

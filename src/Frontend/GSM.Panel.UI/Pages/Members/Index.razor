@@ -74,8 +74,7 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Miembro">
-            <MudLink OnClick="@(() => QuickViewAsync(context.Id))" Underline="Underline.None" Class="gsm-clickable-identity"
-                     data-testid="@($"quick-view-{context.Id}")">
+            <MudLink Href="@($"/members/{context.Id}")" Underline="Underline.None">
                 <span class="gsm-identity">
                     <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials($"{context.FirstName} {context.LastName}")</span>
                     <span>@context.FirstName @context.LastName</span>
@@ -249,12 +248,6 @@
             Snackbar.Add("Miembro creado.", Severity.Success);
             await _table.RefreshAsync();
         }
-    }
-
-    private async Task QuickViewAsync(Guid id)
-    {
-        var parameters = new DialogParameters<MemberQuickViewDialog> { { x => x.MemberId, id } };
-        await Dialogs.ShowAsync<MemberQuickViewDialog>("Miembro", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
     }
 
     private async Task ChargeAsync(MemberListItem item)

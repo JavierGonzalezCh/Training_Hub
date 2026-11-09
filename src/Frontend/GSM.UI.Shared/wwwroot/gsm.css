@@ -4676,3 +4676,39 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
         transition: none;
     }
 }
+
+/* Vista rápida del miembro: foto a la izquierda, información a la derecha (en pantallas angostas, una sobre otra). */
+.gsm-quick-view {
+    display: grid;
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.gsm-quick-view__photo img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.gsm-quick-view__initials {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    font-size: 4rem;
+    border-radius: 12px;
+}
+
+@media (max-width: 599px) {
+    .gsm-quick-view {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .gsm-quick-view__photo img,
+    .gsm-quick-view__initials {
+        max-width: 12rem;
+        margin: 0 auto;
+    }
+}
