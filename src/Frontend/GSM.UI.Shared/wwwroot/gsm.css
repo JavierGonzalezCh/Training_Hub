@@ -4719,3 +4719,38 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 .gsm-panel__title {
     color: #FFFFFF !important;
 }
+
+/* Indicadores: flex que envuelve. Las tarjetas de una fila miden lo mismo y la última fila se estira para rellenar el
+   ancho (sin huecos), aunque alguna tarjeta venga dentro de un contenedor propio. */
+.gsm-kpi-grid,
+.gsm-kpi-grid--compact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.gsm-kpi-grid > * {
+    flex: 1 1 13rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    grid-column: auto;
+}
+
+.gsm-kpi-grid > * > .gsm-kpi,
+.gsm-kpi-grid > .gsm-kpi {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 152px;
+}
+
+@media (max-width: 559px) {
+    .gsm-kpi-grid--compact {
+        gap: .5rem;
+    }
+
+    .gsm-kpi-grid--compact > * {
+        flex: 1 1 calc(50% - .25rem);
+    }
+}
