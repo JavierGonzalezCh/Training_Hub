@@ -1,0 +1,28 @@
+@* Ícono de información con un tooltip que se abre al pasar el mouse, al enfocar con teclado y al tocar (celular).
+   El mismo texto va en aria-label para lectores de pantalla. Los detalles y advertencias de una opción van aquí en vez
+   de un párrafo largo debajo. *@
+<MudTooltip Text="@Text" Placement="Placement" Arrow="true" Delay="0" Duration="150">
+    <button type="button" class="gsm-infotip @Class" aria-label="@(Warning ? "Aviso: " + Text : Text)" data-testid="@TestId"
+            @onclick:stopPropagation="true">
+        <MudIcon Icon="@(Warning ? Icons.Material.Outlined.WarningAmber : Icons.Material.Outlined.Info)"
+                 Color="@(Warning ? Color.Warning : Color.Default)" Size="Size.Small" />
+    </button>
+</MudTooltip>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    /// <summary>Ícono de alerta en lugar del de información: para advertencias.</summary>
+    [Parameter]
+    public bool Warning { get; set; }
+
+    [Parameter]
+    public Placement Placement { get; set; } = Placement.Top;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public string? TestId { get; set; } = "info-tip";
+}

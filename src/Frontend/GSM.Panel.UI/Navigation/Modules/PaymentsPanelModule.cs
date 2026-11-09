@@ -1,3 +1,4 @@
+using GSM.Client;
 using MudBlazor;
 
 namespace GSM.Panel.UI.Navigation.Modules;
@@ -11,4 +12,8 @@ public sealed class PaymentsPanelModule : IPanelModule
     [
         new("Pagos y caja", Icons.Material.Outlined.Payments, "/payments", PanelSections.Business, 30),
     ];
+
+    public IEnumerable<PanelSettingsSection> SettingsSections =>
+        [new("Pagos", 29, typeof(Pages.Settings.PaymentSettingsTab), Roles: GsmRoles.Owner, Group: PanelSettingsGroups.Memberships,
+            Description: "Si llevas el efectivo por turnos de caja.", TracksUnsavedChanges: true)];
 }

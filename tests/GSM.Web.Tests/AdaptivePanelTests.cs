@@ -125,7 +125,7 @@ public class AdaptivePanelTests : TestContext
 
         Assert.Equal(
             [
-                "Datos del gym", "Horario", "Módulos", "Suscripción", "Membresías", "Check-in", "Autorizaciones", "Privacidad",
+                "Datos del gym", "Horario", "Módulos", "Suscripción", "Membresías", "Pagos", "Check-in", "Autorizaciones", "Privacidad",
                 "Mensajes a los miembros", "Reservas de clases", "Horario sin avisos", "Rutinas", "Máquinas", "Personal y permisos",
                 "Kioscos", "Logros y premios", "Máquinas y fallas", "Ajuste editable",
             ],
@@ -147,7 +147,7 @@ public class AdaptivePanelTests : TestContext
         Assert.Equal(["Datos del gym", "Horario", "Módulos", "Suscripción"], Titles(groups, "Tu gimnasio"));
         Assert.Equal(["Personal y permisos"], Titles(groups, "Personal"));
         Assert.Equal(["Check-in", "Kioscos"], Titles(groups, "Entrada al gym"));
-        Assert.Equal(["Membresías", "Autorizaciones", "Privacidad"], Titles(groups, "Membresías y miembros"));
+        Assert.Equal(["Membresías", "Pagos", "Autorizaciones", "Privacidad"], Titles(groups, "Membresías y miembros"));
         Assert.Equal(["Reservas de clases", "Rutinas", "Máquinas", "Logros y premios"], Titles(groups, "Entrenamiento"));
         Assert.Equal(["Mensajes a los miembros", "Horario sin avisos"], Titles(groups, "Comunicaciones"));
         // Una sección sin grupo cae en "Otros", al final.

@@ -109,6 +109,11 @@
                 <WhatsAppButton MemberId="context.Id" State="StateOf(context.Id)" AutoLoad="false" Compact="true"
                                 Kind="@WhatsAppLabels.KindForStatus(context.CommercialStatus)" />
             }
+            @if (context.Status != "Inactive")
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary" OnClick="@(() => ChargeAsync(context))"
+                           aria-label="@($"Cobrar a {context.FirstName} {context.LastName}")" data-testid="@($"charge-{context.Id}")">Cobrar</MudButton>
+            }
             <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))"
                            aria-label="@($"Editar a {context.FirstName} {context.LastName}")" />
         </MudTd>
@@ -239,6 +244,17 @@
         if (result is { Canceled: false })
         {
             Snackbar.Add("Miembro creado.", Severity.Success);
+            await _table.RefreshAsync();
+        }
+    }
+
+    private async Task ChargeAsync(MemberListItem item)
+    {
+        var parameters = new DialogParameters<RecordPaymentDialog> { { x => x.MemberId, item.Id } };
+        var dialog = await Dialogs.ShowAsync<RecordPaymentDialog>("Cobrar", parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado.", Severity.Success);
             await _table.RefreshAsync();
         }
     }

@@ -29,6 +29,10 @@ public class CashDrawerUiTests : TestContext
         _paymentsFake = (FakeClient)(object)_payments;
         Services.AddSingleton(_cash);
         Services.AddSingleton(_payments);
+        var settings = DispatchProxy.Create<IPaymentSettingsClient, FakeClient>();
+        ((FakeClient)(object)settings).Handlers["PaymentSettingsGETAsync"] = _ => new PaymentSettingsResponse { UseCashDrawer = true };
+        Services.AddSingleton(settings);
+        Services.AddScoped<CashDrawerState>();
         var auth = this.AddTestAuthorization();
         auth.SetAuthorized("ana");
         auth.SetRoles("staff");

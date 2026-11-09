@@ -1,0 +1,82 @@
+@implements IDisposable
+@inject IServiceProvider Services
+@inject ISnackbar Snackbar
+
+@* P2: dentro de un diálogo que cobra, si el método es Efectivo y la caja está cerrada (y el negocio la usa), se puede abrir sin
+   salir del diálogo. El cobro sigue donde estaba. *@
+@if (Visible && Drawer is not null)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" data-testid="cash-open-inline">
+        <div class="d-flex align-center flex-wrap" style="gap:.5rem">
+            <span><strong>La caja está cerrada</strong></span>
+            <InfoTip Text="Para cobrar en efectivo se abre la caja del turno con el efectivo que tienes al empezar." TestId="cash-open-inline-tip" />
+        </div>
+        <div class="d-flex align-end flex-wrap mt-2" style="gap:.75rem">
+            <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_base"
+                             Label="Base en efectivo" Min="0" Style="max-width:14rem" data-testid="cash-open-inline-base" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenAsync" Disabled="_busy"
+                       data-testid="cash-open-inline-button">@(_busy ? "Abriendo..." : "Abrir caja")</MudButton>
+        </div>
+        @if (_error is not null)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Error" Class="mt-1" data-testid="cash-open-inline-error">@_error</MudText>
+        }
+    </MudAlert>
+}
+
+@code {
+    /// <summary>El método de pago elegido es Efectivo.</summary>
+    [Parameter]
+    public bool IsCash { get; set; }
+
+    private decimal _base;
+    private bool _busy;
+    private string? _error;
+
+    // El estado compartido lo registra el panel; sin él (una pantalla suelta) el bloque no se muestra.
+    private CashDrawerState? Drawer { get; set; }
+
+    private bool Visible => IsCash && Drawer is { UseCashDrawer: true, IsOpen: false };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Drawer = Services.GetService(typeof(CashDrawerState)) as CashDrawerState;
+        if (Drawer is null)
+        {
+            return;
+        }
+
+        Drawer.Changed += OnChanged;
+        await Drawer.EnsureLoadedAsync();
+        _base = Drawer.SuggestedBase;
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task OpenAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Drawer!.OpenAsync(_base);
+            Snackbar.Add("Caja abierta.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (Drawer is not null)
+        {
+            Drawer.Changed -= OnChanged;
+        }
+    }
+}

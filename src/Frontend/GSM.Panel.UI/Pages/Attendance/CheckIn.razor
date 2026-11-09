@@ -195,7 +195,8 @@
                 }
                 @if (_result.MembershipExpired)
                 {
-                    <div class="mt-3">
+                    <div class="mt-3 d-flex flex-wrap align-center" style="gap:.5rem">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChargeResultAsync" data-testid="charge-expired">Cobrar</MudButton>
                         <WhatsAppButton MemberId="_result.MemberId" Kind="Expired" />
                     </div>
                 }
@@ -452,6 +453,22 @@
         finally
         {
             _submitting = false;
+        }
+    }
+
+    // P1: el miembro entró con el plan vencido: recepción cobra desde aquí, con el miembro ya elegido.
+    private async Task ChargeResultAsync()
+    {
+        if (_result is null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<RecordPaymentDialog> { { x => x.MemberId, _result.MemberId } };
+        var dialog = await Dialogs.ShowAsync<RecordPaymentDialog>("Cobrar", parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado.", Severity.Success);
         }
     }
 }

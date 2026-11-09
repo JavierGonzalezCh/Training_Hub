@@ -4439,3 +4439,37 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     font-family: var(--gsm-font-mono);
     font-weight: 600;
 }
+
+/* InfoTip: botón sin marco con el ícono de información; hereda el color del texto y se ve al enfocar. */
+.gsm-infotip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    margin-inline-start: 4px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    opacity: .75;
+    cursor: help;
+    vertical-align: middle;
+}
+
+.gsm-infotip:hover,
+.gsm-infotip:focus-visible {
+    opacity: 1;
+}
+
+.gsm-infotip:focus-visible {
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: 1px;
+}
+
+/* P1: método de pago con botones grandes (Efectivo, Nequi, Tarjeta, Transferencia y «Otros»). */
+.gsm-method-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}

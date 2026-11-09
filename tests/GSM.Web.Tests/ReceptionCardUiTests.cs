@@ -165,6 +165,10 @@ public class ReceptionCardUiTests : TestContext
         ((FakeClient)(object)whatsApp).Handlers["StatesAsync"] = _ => new List<WhatsAppMemberStateResponse>();
         Services.AddSingleton(whatsApp);
         Services.AddSingleton(CommercialStatusUiTests.Fake<GSM.Client.Generated.ICashShiftsClient>().Client); // P3-4: recepción muestra la barra de caja
+        var paymentSettings = DispatchProxy.Create<IPaymentSettingsClient, FakeClient>();
+        ((FakeClient)(object)paymentSettings).Handlers["PaymentSettingsGETAsync"] = _ => new PaymentSettingsResponse { UseCashDrawer = true };
+        Services.AddSingleton(paymentSettings);
+        Services.AddScoped<GSM.Panel.UI.Pages.Payments.CashDrawerState>();
 
         this.AddTestAuthorization().SetAuthorized("staff");
         RenderComponent<MudPopoverProvider>();

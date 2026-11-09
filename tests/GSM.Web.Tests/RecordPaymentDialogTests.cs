@@ -17,7 +17,7 @@ public class RecordPaymentDialogTests : TestContext
     }
 
     [Fact]
-    public async Task Charge_dialog_offers_the_eight_methods_in_spec_order()
+    public async Task Charge_dialog_offers_four_methods_as_buttons_and_the_rest_under_Otros()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
@@ -30,12 +30,11 @@ public class RecordPaymentDialogTests : TestContext
         var dialogs = Services.GetRequiredService<IDialogService>();
         await provider.InvokeAsync(() => dialogs.ShowAsync<RecordPaymentDialog>("Cobro"));
 
-        // El selector con id propio es el de método (el autocompletar de miembro también lleva la clase mud-select).
-        provider.Find("div.mud-select[id^=select] .mud-input-control").MouseDown();
+        var buttons = provider.FindAll("[data-testid='payment-methods'] button.mud-button-root").Select(b => b.TextContent.Trim()).ToList();
+        Assert.Equal(["Efectivo", "Nequi", "Tarjeta", "Transferencia bancaria"], buttons);
 
-        var labels = popover.FindAll(".mud-list-item").Select(i => i.TextContent.Trim()).ToList();
-        Assert.Equal(
-            ["Efectivo", "Tarjeta", "Nequi", "Daviplata", "Bre-B", "Transferencia bancaria", "Consignación", "Otro"],
-            labels);
+        provider.Find("div.mud-select[id^=select] .mud-input-control").MouseDown();
+        var others = popover.FindAll(".mud-list-item").Select(i => i.TextContent.Trim()).ToList();
+        Assert.Equal(["Daviplata", "Bre-B", "Consignación", "Otro"], others);
     }
 }

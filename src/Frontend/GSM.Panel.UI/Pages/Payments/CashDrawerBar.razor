@@ -1,16 +1,19 @@
-@inject ICashShiftsClient CashShifts
+@inject IServiceProvider Services
+@implements IDisposable
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 @* Barra de la caja del turno (Payments v2 §4.4): quién la tiene abierta, desde cuándo y cuánto efectivo se espera.
    La ve todo el staff; abrir, mover y cerrar son acciones de quien tiene la caja (el servidor decide quién puede). *@
+@if (Drawer is { UseCashDrawer: true })
+{
 <MudPaper Class="pa-3 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)" data-testid="cash-drawer-bar">
     @if (_loading)
     {
         <GsmLoader />
     }
-    else if (_shift is null)
+    else if (Drawer.Shift is not { } shift)
     {
         <div class="d-flex align-center flex-wrap" style="gap:1rem">
             <MudIcon Icon="@Icons.Material.Outlined.Lock" Color="Color.Secondary" />
@@ -28,10 +31,10 @@
             <MudIcon Icon="@Icons.Material.Outlined.LockOpen" Color="Color.Success" />
             <div style="flex:1 1 16rem">
                 <MudText Typo="Typo.body1" data-testid="cash-drawer-open">
-                    Caja abierta por @(_shift.OpenedByName ?? "alguien del equipo") desde @GsmFormat.Instant(_shift.OpenedAt)
-                    · efectivo esperado <span class="gsm-mono">@GsmFormat.Money((decimal)(_shift.ExpectedCash ?? 0))</span>
+                    Caja abierta por @(shift.OpenedByName ?? "alguien del equipo") desde @GsmFormat.Instant(shift.OpenedAt)
+                    · efectivo esperado <span class="gsm-mono">@GsmFormat.Money((decimal)(shift.ExpectedCash ?? 0))</span>
                 </MudText>
-                @if (_shift.IsStale)
+                @if (shift.IsStale)
                 {
                     <MudText Typo="Typo.body2" Color="Color.Warning" data-testid="cash-drawer-stale">
                         Lleva abierta más de 16 horas: ciérrala con tu conteo antes de abrir la tuya.
@@ -43,39 +46,46 @@
         </div>
     }
 </MudPaper>
+}
 
 @code {
-    private CashShiftResponse? _shift;
-    private double _suggestedBase;
     private bool _loading = true;
+
+    // El estado compartido lo registra el panel; sin él (una pantalla suelta) la barra no se muestra.
+    private CashDrawerState? Drawer { get; set; }
 
     /// <summary>Se avisa cuando la caja cambia (abrir, movimiento, cerrar) para que la página refresque su lista.</summary>
     [Parameter]
     public EventCallback OnChanged { get; set; }
 
-    protected override Task OnInitializedAsync() => LoadAsync();
-
-    public async Task LoadAsync()
+    protected override async Task OnInitializedAsync()
     {
-        try
+        Drawer = Services.GetService(typeof(CashDrawerState)) as CashDrawerState;
+        if (Drawer is null)
         {
-            var status = await CashShifts.CurrentAsync();
-            _shift = status?.Shift;
-            _suggestedBase = status?.SuggestedOpeningCash ?? 0;
+            return;
         }
-        catch (GsmApiException ex)
+
+        Drawer.Changed += OnStateChanged;
+        await Drawer.EnsureLoadedAsync();
+        _loading = false;
+    }
+
+    public Task LoadAsync() => Drawer?.RefreshAsync() ?? Task.CompletedTask;
+
+    private void OnStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Drawer is not null)
         {
-            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
-        }
-        finally
-        {
-            _loading = false;
+            Drawer.Changed -= OnStateChanged;
         }
     }
 
     private async Task OpenAsync()
     {
-        var parameters = new DialogParameters<OpenCashDialog> { { x => x.SuggestedBase, (decimal)_suggestedBase } };
+        var parameters = new DialogParameters<OpenCashDialog> { { x => x.SuggestedBase, Drawer!.SuggestedBase } };
         var dialog = await Dialogs.ShowAsync<OpenCashDialog>("Abrir caja", parameters);
         if (await dialog.Result is { Canceled: false })
         {
@@ -96,12 +106,12 @@
 
     private async Task CloseAsync()
     {
-        if (_shift is null)
+        if (Drawer?.Shift is not { } shift)
         {
             return;
         }
 
-        var parameters = new DialogParameters<CloseCashDialog> { { x => x.Shift, _shift } };
+        var parameters = new DialogParameters<CloseCashDialog> { { x => x.Shift, shift } };
         var dialog = await Dialogs.ShowAsync<CloseCashDialog>("Cerrar caja", parameters);
         var result = await dialog.Result;
         if (result is { Canceled: false, Data: Guid shiftId })
@@ -114,7 +124,7 @@
 
     private async Task ChangedAsync()
     {
-        await LoadAsync();
+        await Drawer!.RefreshAsync();
         await OnChanged.InvokeAsync();
     }
 }

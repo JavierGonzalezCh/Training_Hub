@@ -1,7 +1,11 @@
+@using GSM.Panel.UI.Pages.Members
 @inject IPaymentsClient Payments
 @inject IMembersClient Members
 @inject IMemberMembershipsClient MemberMemberships
+@inject IDialogService Dialogs
 
+@* Cobrar en dos toques (P1): con el miembro elegido, el diálogo toma solo la membresía con saldo pendiente, el monto y el
+   concepto; el método se elige con botones grandes y el resto (concepto, notas) queda plegado en «Más detalles». *@
 <MudDialog>
     <DialogContent>
         @if (_error is not null)
@@ -12,33 +16,71 @@
             <MudAutocomplete OpenOnFocus="false" T="MemberListItem" Label="Miembro (opcional)" Value="_member" ValueChanged="OnMemberChangedAsync"
                               SearchFunc="SearchMembersAsync" ToStringFunc="@(m => m is null ? string.Empty : $"{m.FirstName} {m.LastName} · {m.DocumentNumber}")"
                               Clearable="true" Class="mb-3" Placeholder="Buscar por nombre o documento" />
-            @if (_memberships.Count > 0)
+
+            @if (_member is not null && _membershipsLoaded)
             {
-                <MudSelect T="Guid?" Value="_membershipId" ValueChanged="OnMembershipChanged" Label="Membresía que cubre (opcional)"
-                           Clearable="true" Class="mb-3">
-                    @foreach (var membership in _memberships)
+                @if (_pending.Count > 1)
+                {
+                    <MudSelect T="Guid?" Value="_membershipId" ValueChanged="OnMembershipChanged" Label="Membresía que se cobra" Class="mb-3"
+                               data-testid="pending-membership">
+                        @foreach (var membership in _pending)
+                        {
+                            <MudSelectItem T="Guid?" Value="membership.Id">
+                                @membership.PlanName · @GsmFormat.DayRange(membership.StartDate, membership.EndDate) · debe @GsmFormat.Money((decimal)(membership.AmountDue ?? 0))
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else if (_pending.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" data-testid="no-pending-membership">
+                        <div class="d-flex align-center flex-wrap" style="gap:.75rem">
+                            <span>No tiene una membresía con saldo pendiente.</span>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="AssignMembershipAsync"
+                                       data-testid="assign-membership-instead">Asignar membresía</MudButton>
+                            <span class="mud-typography-caption">o registra un pago libre aquí abajo.</span>
+                        </div>
+                    </MudAlert>
+                }
+            }
+
+            <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_model.Amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3" />
+
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Método de pago</MudText>
+            <div class="gsm-method-buttons mb-3" role="group" aria-label="Método de pago" data-testid="payment-methods">
+                @foreach (var (value, label) in MainMethods)
+                {
+                    var selected = _model.Method == value;
+                    <MudButton Variant="@(selected ? Variant.Filled : Variant.Outlined)" Color="@(selected ? Color.Primary : Color.Default)"
+                               Size="Size.Large" OnClick="@(() => _model.Method = value)" data-testid="@($"method-{value}")"
+                               aria-pressed="@(selected ? "true" : "false")">@label</MudButton>
+                }
+                <MudSelect T="int" Value="@(IsOther(_model.Method) ? _model.Method : -1)" ValueChanged="@(v => _model.Method = v)" Label="Otros" Dense="true"
+                           Style="max-width:12rem" data-testid="method-other">
+                    @foreach (var (value, label) in OtherMethods)
                     {
-                        <MudSelectItem T="Guid?" Value="membership.Id">
-                            @membership.PlanName · @GsmFormat.DayRange(membership.StartDate, membership.EndDate)
-                        </MudSelectItem>
+                        <MudSelectItem Value="value">@label</MudSelectItem>
                     }
                 </MudSelect>
+            </div>
+
+            <CashOpenInline IsCash="_model.Method == 0" />
+
+            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => _showDetails = !_showDetails)" data-testid="toggle-details"
+                       EndIcon="@(DetailsOpen ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Class="mb-2">
+                Más detalles
+            </MudButton>
+            @if (DetailsOpen)
+            {
+                <MudTextField T="string" @bind-Value="_model.Concept" Label="Concepto" Required="@(_member is null)" Class="mb-3" data-testid="concept" />
+                <MudTextField T="string" @bind-Value="_model.Notes" Label="Notas" Lines="2" />
             }
-            <MudNumericField T="decimal" Culture="GsmFormat.Colombia" Format="@GsmFormat.MoneyFieldFormat" @bind-Value="_model.Amount" Label="Monto (COP)" Required="true" Min="1" Class="mb-3" />
-            <MudSelect T="int" @bind-Value="_model.Method" Label="Método" Required="true" Class="mb-3">
-                @foreach (var (value, label) in PaymentMethodLabels.All)
-                {
-                    <MudSelectItem Value="value">@label</MudSelectItem>
-                }
-            </MudSelect>
-            <MudTextField T="string" @bind-Value="_model.Concept" Label="Concepto" Required="true" Class="mb-3" />
-            <MudTextField T="string" @bind-Value="_model.Notes" Label="Notas" Lines="2" />
         </MudForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting">
-            @(_submitting ? "Guardando..." : "Registrar")
+        <MudButton OnClick="CancelAsync">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_submitting" data-testid="submit-payment">
+            @(_submitting ? "Guardando..." : "Cobrar")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -47,17 +89,30 @@
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    /// <summary>Preselecciona el miembro cuando el pago se registra desde su ficha.</summary>
+    /// <summary>Preselecciona el miembro cuando el cobro se abre desde su ficha, su fila o un vencimiento.</summary>
     [Parameter]
     public Guid? MemberId { get; set; }
+
+    // Efectivo, Nequi, Tarjeta y Transferencia a la vista; el resto en «Otros» (valores de PaymentMethodLabels).
+    private static readonly int[] MainValues = [0, 2, 1, 5];
+    private static IEnumerable<(int Value, string Label)> MainMethods
+        => MainValues.Select(v => PaymentMethodLabels.All.First(m => m.Value == v));
+    private static IEnumerable<(int Value, string Label)> OtherMethods
+        => PaymentMethodLabels.All.Where(m => !MainValues.Contains(m.Value));
+    private static bool IsOther(int method) => !MainValues.Contains(method);
 
     private readonly FormModel _model = new();
     private MudForm _form = null!;
     private MemberListItem? _member;
-    private List<MembershipResponse> _memberships = [];
+    private List<MembershipResponse> _pending = [];
     private Guid? _membershipId;
+    private bool _membershipsLoaded;
+    private bool _showDetails;
     private bool _submitting;
     private string? _error;
+
+    // Sin miembro el concepto es obligatorio, así que el bloque va abierto.
+    private bool DetailsOpen => _showDetails || _member is null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -92,11 +147,12 @@
         await LoadMembershipsAsync();
     }
 
-    // Las más recientes primero: lo normal es cobrar la que se acaba de asignar o la vigente.
+    // Las membresías con saldo pendiente, la más antigua primero (P1): lo normal es cobrar la que se debe desde hace más.
     private async Task LoadMembershipsAsync()
     {
         _membershipId = null;
-        _memberships = [];
+        _pending = [];
+        _membershipsLoaded = false;
         if (_member is null)
         {
             return;
@@ -105,19 +161,29 @@
         try
         {
             var memberships = await MemberMemberships.MembershipsAllAsync(_member.Id);
-            _memberships = memberships.OrderByDescending(m => m.StartDate).Take(5).ToList();
+            _pending = memberships
+                .Where(m => (m.AmountDue ?? 0) > 0 && m.Status != "Cancelled" && m.Status != "cancelled")
+                .OrderBy(m => m.StartDate)
+                .ToList();
         }
         catch (GsmApiException)
         {
             // Sin la lista se puede cobrar igual, solo que sin enlazar la membresía.
+        }
+
+        _membershipsLoaded = true;
+        if (_pending.Count > 0)
+        {
+            OnMembershipChanged(_pending[0].Id);
         }
     }
 
     private void OnMembershipChanged(Guid? membershipId)
     {
         _membershipId = membershipId;
-        if (_memberships.FirstOrDefault(m => m.Id == membershipId) is { } membership && string.IsNullOrWhiteSpace(_model.Concept))
+        if (_pending.FirstOrDefault(m => m.Id == membershipId) is { } membership)
         {
+            _model.Amount = (decimal)(membership.AmountDue ?? 0);
             _model.Concept = $"Membresía {membership.PlanName} ({GsmFormat.DayRange(membership.StartDate, membership.EndDate)})";
         }
     }
@@ -133,11 +199,41 @@
         return result.Items;
     }
 
+    private async Task AssignMembershipAsync()
+    {
+        if (_member is null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<AssignMembershipDialog> { { x => x.MemberId, _member.Id } };
+        var dialog = await Dialogs.ShowAsync<AssignMembershipDialog>("Asignar membresía", parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
     private async Task SubmitAsync()
     {
         _error = null;
+
+        // Con un miembro y sin concepto escrito, el cobro lleva uno automático.
+        var concept = _model.Concept;
+        if (string.IsNullOrWhiteSpace(concept) && _member is not null)
+        {
+            concept = $"Pago de {_member.FirstName} {_member.LastName}";
+        }
+
+        if (string.IsNullOrWhiteSpace(concept))
+        {
+            _showDetails = true;
+            _error = "Escribe el concepto del pago.";
+            return;
+        }
+
         await _form.Validate();
-        if (!_form.IsValid)
+        if (!_form.IsValid || _model.Amount <= 0)
         {
             return;
         }
@@ -149,7 +245,7 @@
             {
                 Amount = (double)_model.Amount,
                 Method = _model.Method,
-                Concept = _model.Concept,
+                Concept = concept,
                 Notes = _model.Notes,
                 MemberId = _member?.Id,
                 MembershipId = _member is null ? null : _membershipId,
@@ -167,7 +263,22 @@
         }
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    // F1: antes de cerrar con datos sin guardar se pide confirmación.
+    private async Task CancelAsync()
+    {
+        var dirty = _model.Amount > 0 && _membershipId is null || !string.IsNullOrWhiteSpace(_model.Notes);
+        if (dirty)
+        {
+            var discard = await Dialogs.ShowMessageBox(
+                "¿Descartar el cobro?", "Tienes datos sin guardar.", yesText: "Descartar", cancelText: "Seguir cobrando");
+            if (discard != true)
+            {
+                return;
+            }
+        }
+
+        MudDialog.Cancel();
+    }
 
     private sealed class FormModel
     {

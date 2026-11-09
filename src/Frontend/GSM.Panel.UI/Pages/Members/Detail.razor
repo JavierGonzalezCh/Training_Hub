@@ -83,7 +83,7 @@ else if (_member is not null)
             @if (_member.Status == "Active")
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
-                    Registrar pago
+                    Cobrar
                 </MudButton>
             }
             else
@@ -92,7 +92,7 @@ else if (_member is not null)
                     Reactivar
                 </MudButton>
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
-                    Registrar pago
+                    Cobrar
                 </MudButton>
             }
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CardMembership" OnClick="AssignMembershipAsync">

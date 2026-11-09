@@ -1,0 +1,72 @@
+@using GSM.Panel.UI.Pages.Payments
+@* Sección «Pagos» de la configuración (P2): si el negocio lleva el efectivo por turnos de caja. Viven en
+   payments.payment_settings. Solo Owner. *@
+@inject IPaymentSettingsClient PaymentSettings
+@inject CashDrawerState Drawer
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <GsmLoader Class="mt-4" />
+}
+else
+{
+    <div class="gsm-payment-settings">
+        <div class="d-flex align-center mb-4">
+            <MudSwitch T="bool" @bind-Value="_useCashDrawer" Color="Color.Primary" Label="Usar caja para el efectivo"
+                       data-testid="use-cash-drawer" />
+            <InfoTip Text="Lleva el control del efectivo por turno: con qué base abres, qué entra y sale, y el arqueo al cerrar. Apágalo si no manejas efectivo en caja." />
+        </div>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving" id="payment-settings-save">
+            @(_saving ? "Guardando..." : "Guardar cambios")
+        </MudButton>
+    </div>
+}
+
+@code {
+    /// <summary>La página de la sección en /settings, para avisar que ya no hay cambios sin guardar. Nulo en el onboarding.</summary>
+    [CascadingParameter]
+    public GSM.Panel.UI.Navigation.SettingsSectionState? SectionState { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _useCashDrawer = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _useCashDrawer = (await PaymentSettings.PaymentSettingsGETAsync()).UseCashDrawer;
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var saved = await PaymentSettings.PaymentSettingsPUTAsync(new UpdatePaymentSettingsRequest { UseCashDrawer = _useCashDrawer });
+            _useCashDrawer = saved.UseCashDrawer;
+            await Drawer.RefreshAsync();
+            Snackbar.Add("Ajustes de pagos guardados.", Severity.Success);
+            SectionState?.MarkSaved();
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

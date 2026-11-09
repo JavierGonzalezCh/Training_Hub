@@ -77,6 +77,7 @@ public static class PanelServiceCollectionExtensions
 
         services.AddSingleton<PanelRegistry>();
         services.AddScoped<GSM.Panel.UI.Onboarding.OnboardingGate>();
+        services.AddScoped<GSM.Panel.UI.Pages.Payments.CashDrawerState>();
         return services;
     }
 }

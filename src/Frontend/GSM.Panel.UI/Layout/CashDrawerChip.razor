@@ -1,0 +1,53 @@
+@using GSM.Panel.UI.Pages.Payments
+@implements IDisposable
+@inject IServiceProvider Services
+
+@* P2: estado de la caja del turno en la barra superior. Lleva a Pagos. Oculto si el negocio no usa caja. *@
+<AuthorizeView Policy="@GsmPolicies.RequireStaff">
+    <Authorized>
+        @if (_ready && Drawer is { UseCashDrawer: true })
+        {
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Href="/payments" Class="gsm-topbar__cash ml-2"
+                     Color="@(Drawer.IsOpen ? Color.Success : Color.Default)"
+                     Icon="@(Drawer.IsOpen ? Icons.Material.Outlined.LockOpen : Icons.Material.Outlined.Lock)"
+                     data-testid="cash-drawer-chip">
+                @(Drawer.IsOpen ? "Caja abierta" : "Caja cerrada")
+            </MudChip>
+            <InfoTip Text="Estado de la caja del turno. Ábrela para cobrar en efectivo." TestId="cash-drawer-chip-tip" />
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool _ready;
+    private CashDrawerState? Drawer { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Drawer = Services.GetService(typeof(CashDrawerState)) as CashDrawerState;
+        if (Drawer is null)
+        {
+            return;
+        }
+
+        Drawer.Changed += OnChanged;
+        try
+        {
+            await Drawer.EnsureLoadedAsync();
+        }
+        finally
+        {
+            _ready = true;
+        }
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Drawer is not null)
+        {
+            Drawer.Changed -= OnChanged;
+        }
+    }
+}
