@@ -11,9 +11,9 @@ namespace GSM.UI.Shared.Theming;
 public static class GsmTheme
 {
     // Forja (identidad v4.0). Se conservan como constantes públicas porque hay código que las usa.
-    public const string Base = "#0F0E0D";
-    public const string Panel = "#171615";
-    public const string Border = "#2A2826";
+    public const string Base = "#161616";
+    public const string Panel = "#1F1F1F";
+    public const string Border = "#2F2F2F";
     public const string Muted = "#5A5753";
     public const string Silver = "#9A948F";
     public const string Cloud = "#EEEBE6";
@@ -67,7 +67,7 @@ public static class GsmTheme
             Dark = Base,
             Black = Base,
             Background = Base,
-            BackgroundGray = "#141312",
+            BackgroundGray = "#1A1A1A",
             Surface = Panel,
             AppbarBackground = Base,
             AppbarText = Cloud,
@@ -82,11 +82,11 @@ public static class GsmTheme
             Divider = Border,
             DividerLight = Border,
             LinesDefault = Border,
-            LinesInputs = "#3A3734",
+            LinesInputs = "#3E3E3E",
             TableLines = Border,
-            TableStriped = "#1B1A18",
-            TableHover = "#1F1D1B",
-            OverlayDark = "rgba(15, 14, 13, 0.85)",
+            TableStriped = "#222222",
+            TableHover = "#262626",
+            OverlayDark = "rgba(22, 22, 22, 0.85)",
         },
         Typography = Typography(Barlow, JetBrains),
         LayoutProperties = Layout("2px"),

@@ -12,11 +12,11 @@
 :root,
 :root[data-gsm-theme="forja"] {
     color-scheme: dark;
-    --gsm-bg: #0F0E0D;
-    --gsm-surface: #171615;
-    --gsm-surface-2: #1F1D1B;
-    --gsm-border: #2A2826;
-    --gsm-border-strong: #3A3734;
+    --gsm-bg: #161616;
+    --gsm-surface: #1F1F1F;
+    --gsm-surface-2: #272727;
+    --gsm-border: #2F2F2F;
+    --gsm-border-strong: #3E3E3E;
     --gsm-text: #EEEBE6;
     --gsm-text-2: #9A948F;
     --gsm-text-3: #5A5753;
@@ -4472,4 +4472,77 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     flex-wrap: wrap;
     align-items: center;
     gap: .5rem;
+}
+
+/* ---------- Estilo visual (D1, D2, F4, F5) ---------------------------------------------------------- */
+
+/* D1: las tarjetas se despegan del fondo carbón con un borde superior sutil y una sombra suave. */
+:root {
+    --gsm-card-edge: rgba(255, 255, 255, 0.06);
+    --gsm-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.gsm-panel,
+.gsm-kpi,
+.gsm-card,
+.mud-card {
+    border-top-color: var(--gsm-card-edge);
+    box-shadow: var(--gsm-card-shadow);
+}
+
+/* D2 / F4: las tarjetas de una misma fila ocupan el alto de la fila. */
+.gsm-card,
+.mud-grid > .mud-grid-item > .mud-paper,
+.mud-grid > .mud-grid-item > .mud-card,
+.mud-grid > .mud-grid-item > .gsm-panel,
+.mud-grid > .mud-grid-item > .gsm-kpi,
+.gsm-kpi-grid > .gsm-kpi,
+.gsm-dash-grid > .gsm-panel {
+    height: 100%;
+}
+
+.gsm-card,
+.mud-grid > .mud-grid-item > .mud-paper,
+.mud-grid > .mud-grid-item > .mud-card {
+    display: flex;
+    flex-direction: column;
+}
+
+/* La rejilla de indicadores no deja huecos: la última tarjeta de una fila incompleta se estira. */
+.gsm-kpi-grid > .gsm-kpi:last-child:nth-child(4n + 1) { grid-column: span 4; }
+.gsm-kpi-grid > .gsm-kpi:last-child:nth-child(4n + 2) { grid-column: span 3; }
+.gsm-kpi-grid > .gsm-kpi:last-child:nth-child(4n + 3) { grid-column: span 2; }
+
+@media (max-width: 999px) {
+    .gsm-kpi-grid > .gsm-kpi:last-child:nth-child(4n + 1),
+    .gsm-kpi-grid > .gsm-kpi:last-child:nth-child(4n + 2),
+    .gsm-kpi-grid > .gsm-kpi:last-child:nth-child(4n + 3) { grid-column: auto; }
+
+    .gsm-kpi-grid > .gsm-kpi:last-child:nth-child(odd) { grid-column: span 2; }
+}
+
+@media (max-width: 559px) {
+    .gsm-kpi-grid > .gsm-kpi:last-child:nth-child(odd) { grid-column: auto; }
+    .gsm-kpi-grid--compact > .gsm-kpi:last-child:nth-child(odd) { grid-column: span 2; }
+}
+
+/* F5: la pestaña seleccionada se lee: texto claro y subrayado grueso; las demás, más tenues. */
+.mud-tabs .mud-tab {
+    color: var(--gsm-text-2);
+    opacity: 1;
+}
+
+.mud-tabs .mud-tab.mud-tab-active {
+    color: var(--gsm-text) !important;
+    font-weight: 700;
+}
+
+.mud-tabs .mud-tab-slider.mud-tab-slider-horizontal {
+    height: 4px;
+    background-color: var(--gsm-accent);
+}
+
+.mud-tabs.mud-tabs-rounded .mud-tabs-tabbar,
+.mud-tabs .mud-tabs-tabbar {
+    background: var(--gsm-surface-2);
 }

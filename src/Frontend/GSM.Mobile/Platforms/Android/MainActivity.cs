@@ -24,7 +24,7 @@ public class MainActivity : MauiAppCompatActivity
     // quede entre ambas, y la barra de estado usa iconos claros sobre el fondo oscuro.
     private void FitInsideSystemBars()
     {
-        var background = Android.Graphics.Color.ParseColor("#0F0E0D");
+        var background = Android.Graphics.Color.ParseColor("#161616");
         Window?.SetBackgroundDrawable(new Android.Graphics.Drawables.ColorDrawable(background));
 
         var root = FindViewById(Android.Resource.Id.Content);

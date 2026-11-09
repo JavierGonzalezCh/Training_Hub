@@ -238,3 +238,23 @@
 /* Bloqueada: la medalla oscurecida en relieve; se intuye el dibujo y el color se revela al ganarla. */
 .gsm-medal.is-locked img { filter: grayscale(1) brightness(0.32) contrast(1.6); }
 .gsm-medal__lock { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gsm-bg); border: 1px solid var(--gsm-m-glass-border); color: var(--gsm-text-2); }
+
+/* D1: la app del miembro sobre carbón; el vidrio se conserva, con un borde superior más claro para dar relieve. */
+.gsm-m-shell .gsm-m-card {
+    border-top-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+/* O5: el color secundario del gym pinta los acentos secundarios (barras de constancia, cifras de progreso y chips). Sin
+   color secundario se usa el rojo de siempre. El principal no cambia. */
+.gsm-m-shell {
+    --gsm-m-secondary: var(--gsm-brand-2, var(--gsm-m-hot));
+    --gsm-m-secondary-text: var(--gsm-brand-2, var(--gsm-m-hot-text));
+}
+
+.gsm-m-shell .gsm-m-bars span.is-on { background: var(--gsm-m-secondary); }
+.gsm-m-shell .gsm-m-stat__value { color: var(--gsm-m-secondary-text); }
+.gsm-m-shell .gsm-m-chip.is-active,
+.gsm-m-shell .gsm-m-chip[aria-pressed="true"] { border-color: var(--gsm-m-secondary); }
+.gsm-m-shell .mud-button-outlined.mud-button-outlined-secondary,
+.gsm-m-shell .mud-button-outlined.mud-button-outlined-tertiary { border-color: var(--gsm-m-secondary); }

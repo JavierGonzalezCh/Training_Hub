@@ -17,9 +17,12 @@ public static partial class GymBrand
     /// <summary>Reglas <c>:root</c> con los tokens de marca del gym, o vacío si no hay un color válido.</summary>
     public static string Css(MeGym? gym)
     {
+        // O5: el color secundario viaja aunque el principal no sea válido; la app del miembro lo usa en sus acentos secundarios.
+        var secondary = TryParse(gym?.SecondaryColor, out var r2, out var g2, out var b2) ? $"--gsm-brand-2:{Hex(r2, g2, b2)};" : string.Empty;
+
         if (!TryParse(gym?.PrimaryColor, out var r, out var g, out var b))
         {
-            return string.Empty;
+            return secondary.Length == 0 ? string.Empty : $":root,:root[data-gsm-theme=\"forja\"]{{{secondary}}}";
         }
 
         var accent = Hex(r, g, b);
@@ -33,10 +36,7 @@ public static partial class GymBrand
         var css = $"--gsm-accent:{accent};--gsm-accent-text:{accentText};--gsm-on-accent:{onAccent};"
             + $"--gsm-accent-soft:rgba({r},{g},{b},0.16);--gsm-grid-line:rgba({r},{g},{b},0.07);--gsm-ring:{accentText};";
 
-        if (TryParse(gym?.SecondaryColor, out var r2, out var g2, out var b2))
-        {
-            css += $"--gsm-brand-2:{Hex(r2, g2, b2)};";
-        }
+        css += secondary;
 
         return $":root,:root[data-gsm-theme=\"forja\"]{{{css}}}";
     }
