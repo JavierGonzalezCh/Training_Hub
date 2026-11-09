@@ -52,8 +52,4 @@ public static class EquipmentNotice
         OutOfService => "fuera de servicio",
         _ => "disponible",
     };
-
-    /// <summary>Línea de ubicación: "Zona de pierna", o <c>null</c> si la máquina no tiene zona.</summary>
-    public static string? Location(EquipmentMachineInfo? machine)
-        => string.IsNullOrWhiteSpace(machine?.Zone) ? null : machine!.Zone;
 }

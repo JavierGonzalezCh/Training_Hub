@@ -385,7 +385,7 @@ public class EquipmentLinksUiTests : TestContext
 
         var equipment = cut.Find($"[data-testid='equipment-{LineId}']");
         Assert.Contains("Prensa 45°", equipment.QuerySelector("[data-testid='equipment-name']")!.TextContent);
-        Assert.Contains("Zona de pierna", equipment.QuerySelector("[data-testid='equipment-zone']")!.TextContent);
+        Assert.Null(equipment.QuerySelector("[data-testid='equipment-zone']"));   // la zona ya no se muestra
         Assert.Contains("Asiento en el hueco 4", equipment.QuerySelector("[data-testid='equipment-instructions']")!.TextContent);
         Assert.Equal("https://img.test/prensa.jpg", equipment.QuerySelector("img.gsm-m-equip__photo")!.GetAttribute("src"));
         Assert.NotNull(equipment.QuerySelector("[data-testid='equipment-warning']"));

@@ -115,18 +115,15 @@ public class EquipmentUiTests : TestContext
     }
 
     [Fact]
-    public void Inventory_filters_send_type_zone_and_status()
+    public void Inventory_filters_send_type_and_status()
     {
         var cut = RenderComponent<EquipmentPage>();
 
         cut.Find("select[data-testid='filter-type']").Change("15");      // máquina de cardio
         Assert.Contains(_api.Requests, r => r.Path.Contains("type=15"));
 
-        cut.Find("select[data-testid='filter-zone']").Change("Cardio");
-        Assert.Contains(_api.Requests, r => r.Path.Contains("zone=Cardio") && r.Path.Contains("type=15"));
-
         cut.Find("select[data-testid='filter-status']").Change("1");     // en mantenimiento
-        Assert.Contains(_api.Requests, r => r.Path.Contains("status=1") && r.Path.Contains("zone=Cardio"));
+        Assert.Contains(_api.Requests, r => r.Path.Contains("status=1") && r.Path.Contains("type=15"));
     }
 
     private async Task<IRenderedComponent<MudDialogProvider>> OpenCatalogAsync()
@@ -148,7 +145,6 @@ public class EquipmentUiTests : TestContext
 
         provider.Find($"[data-testid='toggle-{BikeId}']").Change(true);
         provider.Find($"[data-testid='qty-{BikeId}']").Change("3");
-        provider.Find($"[data-testid='zone-{BikeId}']").Change("Cardio");
         provider.Find($"[data-testid='toggle-{DumbbellId}']").Change(true);
         provider.Find($"[data-testid='qty-{DumbbellId}']").Change("20");
 
@@ -163,7 +159,7 @@ public class EquipmentUiTests : TestContext
 
         var bike = items.Single(i => i.GetProperty("modelId").GetGuid() == BikeId);
         Assert.Equal(3, bike.GetProperty("quantity").GetInt32());
-        Assert.Equal("Cardio", bike.GetProperty("zone").GetString());
+        Assert.Equal(JsonValueKind.Null, bike.GetProperty("zone").ValueKind);
 
         var dumbbells = items.Single(i => i.GetProperty("modelId").GetGuid() == DumbbellId);
         Assert.Equal(20, dumbbells.GetProperty("quantity").GetInt32());

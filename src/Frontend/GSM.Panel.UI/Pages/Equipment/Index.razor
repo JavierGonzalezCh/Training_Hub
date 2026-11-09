@@ -23,7 +23,7 @@
 </PageHeader>
 
 <div class="d-flex flex-wrap align-end mb-4" style="gap:1rem">
-    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Label="Buscar equipo" Placeholder="Nombre o zona"
+    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChangedAsync" Label="Buscar equipo" Placeholder="Nombre, marca o modelo"
                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
                   DebounceInterval="400" Style="max-width:260px" />
     <label class="gsm-native-field">
@@ -33,16 +33,6 @@
             @foreach (var (value, label) in RoutineLabels.Equipment)
             {
                 <option value="@value" selected="@(_type == value.ToString())">@label</option>
-            }
-        </select>
-    </label>
-    <label class="gsm-native-field">
-        <span>Zona</span>
-        <select data-testid="filter-zone" @onchange="OnZoneChangedAsync">
-            <option value="@FilterValues.All" selected="@FilterValues.IsAll(_zone)">Todas</option>
-            @foreach (var zone in _zones)
-            {
-                <option value="@zone" selected="@(_zone == zone)">@zone</option>
             }
         </select>
     </label>
@@ -91,7 +81,6 @@ else
             <MudTh></MudTh>
             <MudTh>Nombre</MudTh>
             <MudTh>Tipo</MudTh>
-            <MudTh>Zona</MudTh>
             <MudTh>Cantidad</MudTh>
             <MudTh>Estado</MudTh>
             <MudTh></MudTh>
@@ -102,14 +91,7 @@ else
                     var image = context.PhotoUrl ?? context.ModelImageUrl;
                 }
                 <MudAvatar Size="Size.Medium" Variant="Variant.Outlined">
-                    @if (!string.IsNullOrEmpty(image))
-                    {
-                        <MudImage Src="@image" Alt="@context.Name" ObjectFit="ObjectFit.Cover" />
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@EquipmentDisplay.TypeIcon(context.Type)" />
-                    }
+                    <MudImage Src="@(string.IsNullOrEmpty(image) ? EquipmentPlaceholder.DataUri(context.Type) : image)" Alt="@context.Name" ObjectFit="ObjectFit.Cover" />
                 </MudAvatar>
             </MudTd>
             <MudTd DataLabel="Nombre">
@@ -128,7 +110,6 @@ else
                 }
             </MudTd>
             <MudTd DataLabel="Tipo">@EquipmentDisplay.TypeLabel(context.Type)</MudTd>
-            <MudTd DataLabel="Zona">@(context.Zone ?? "—")</MudTd>
             <MudTd DataLabel="Cantidad" Class="gsm-mono">@context.Quantity</MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Color="@EquipmentDisplay.StatusColor(context.Status)" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono">
@@ -162,16 +143,14 @@ else
 
 @code {
     private List<EquipmentItemResponse> _items = [];
-    private List<string> _zones = [];
     private bool _loading = true;
     private string _search = string.Empty;
     private string _type = FilterValues.All;
-    private string _zone = FilterValues.All;
     private string _status = FilterValues.All;
     private bool _includeInactive;
 
     private bool _hasFilters =>
-        !string.IsNullOrWhiteSpace(_search) || !FilterValues.IsAll(_type) || !FilterValues.IsAll(_zone)
+        !string.IsNullOrWhiteSpace(_search) || !FilterValues.IsAll(_type)
         || !FilterValues.IsAll(_status);
 
     protected override Task OnInitializedAsync() => LoadAsync();
@@ -185,12 +164,11 @@ else
         {
             var result = await Equipment.ListEquipmentAsync(
                 ToFilter(_type),
-                FilterValues.IsAll(_zone) ? null : _zone,
+                null,
                 ToFilter(_status),
                 string.IsNullOrWhiteSpace(_search) ? null : _search,
                 _includeInactive);
             _items = result.ToList();
-            _zones = (await Equipment.ListEquipmentZonesAsync()).ToList();
         }
         catch (GsmApiException ex)
         {
@@ -211,12 +189,6 @@ else
     private async Task OnTypeChangedAsync(ChangeEventArgs e)
     {
         _type = e.Value?.ToString() ?? FilterValues.All;
-        await LoadAsync();
-    }
-
-    private async Task OnZoneChangedAsync(ChangeEventArgs e)
-    {
-        _zone = e.Value?.ToString() ?? FilterValues.All;
         await LoadAsync();
     }
 

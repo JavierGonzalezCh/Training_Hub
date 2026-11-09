@@ -23,19 +23,12 @@ else
             @{
                 var image = _item.PhotoUrl ?? _item.ModelImageUrl;
             }
-            @if (!string.IsNullOrEmpty(image))
-            {
-                <MudImage Src="@image" Alt="@_item.Name" ObjectFit="ObjectFit.Cover" />
-            }
-            else
-            {
-                <MudIcon Icon="@EquipmentDisplay.TypeIcon(_item.Type)" />
-            }
+            <MudImage Src="@(string.IsNullOrEmpty(image) ? EquipmentPlaceholder.DataUri(_item.Type) : image)" Alt="@_item.Name" ObjectFit="ObjectFit.Cover" />
         </MudAvatar>
         <div>
             <MudText Typo="Typo.h4" HtmlTag="h1">@_item.Name</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                @EquipmentDisplay.TypeLabel(_item.Type) · @(_item.Zone ?? "sin zona")
+                @EquipmentDisplay.TypeLabel(_item.Type)
                 @if (_item.Quantity > 1)
                 {
                     <span> · @_item.Quantity unidades</span>

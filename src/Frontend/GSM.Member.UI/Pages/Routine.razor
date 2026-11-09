@@ -256,14 +256,10 @@ else
                                             }
                                             else
                                             {
-                                                <span class="gsm-m-equip__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Filled.FitnessCenter" /></span>
+                                                <img class="gsm-m-equip__photo" src="@EquipmentPlaceholder.DataUri(machine.Type)" alt="" loading="lazy" />
                                             }
                                             <div class="gsm-m-equip__text">
                                                 <strong data-testid="equipment-name">@machine.Name</strong>
-                                                @if (EquipmentNotice.Location(machine) is { } zone)
-                                                {
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block" data-testid="equipment-zone">@zone</MudText>
-                                                }
                                                 @if (machine.Instructions is { Length: > 0 } instructions)
                                                 {
                                                     <p data-testid="equipment-instructions">@instructions</p>

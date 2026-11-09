@@ -25,17 +25,6 @@
                             }
                         </select>
                     </label>
-                    <label class="gsm-native-field">
-                        <span>Zona</span>
-                        <input type="text" list="equipment-zones" maxlength="60" value="@_model.Zone" data-testid="equipment-zone"
-                               @onchange="@(e => _model.Zone = e.Value?.ToString())" />
-                        <datalist id="equipment-zones">
-                            @foreach (var zone in _zones)
-                            {
-                                <option value="@zone"></option>
-                            }
-                        </datalist>
-                    </label>
                     <label class="gsm-native-field" style="max-width:110px">
                         <span>Cantidad</span>
                         <input type="number" min="1" max="1000" value="@_model.Quantity" data-testid="equipment-quantity"
@@ -75,8 +64,8 @@
     public Guid? EquipmentId { get; set; }
 
     private readonly FormModel _model = new();
-    private List<string> _zones = [];
     private MudForm _form = null!;
+    private string? _zone;
     private bool _loading;
     private bool _submitting;
     private string? _error;
@@ -86,14 +75,12 @@
         _loading = true;
         try
         {
-            _zones = (await Equipment.ListEquipmentZonesAsync()).ToList();
-
             if (EquipmentId is { } id)
             {
                 var item = await Equipment.GetEquipmentAsync(id);
                 _model.Name = item.Name;
                 _model.Type = EquipmentDisplay.TypeValue(item.Type);
-                _model.Zone = item.Zone;
+                _zone = item.Zone;   // se conserva tal cual: la zona ya no se edita en pantalla
                 _model.Brand = item.Brand;
                 _model.Model = item.Model;
                 _model.Instructions = item.Instructions;
@@ -130,7 +117,7 @@
             {
                 Name = _model.Name,
                 Type = _model.Type,
-                Zone = Clean(_model.Zone),
+                Zone = Clean(_zone),
                 Brand = Clean(_model.Brand),
                 Model = Clean(_model.Model),
                 Instructions = Clean(_model.Instructions),
@@ -168,7 +155,6 @@
     {
         public string Name { get; set; } = string.Empty;
         public int Type { get; set; } = 3;   // máquina
-        public string? Zone { get; set; }
         public string? Brand { get; set; }
         public string? Model { get; set; }
         public string? Instructions { get; set; }

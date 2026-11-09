@@ -37,10 +37,6 @@ else
         <RowTemplate>
             <MudTd DataLabel="Máquina">
                 <MudLink Href="@($"/equipment/issues/{context.Id}")" data-testid="open-issue">@context.ItemName</MudLink>
-                @if (!string.IsNullOrEmpty(context.ItemZone))
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ItemZone</MudText>
-                }
             </MudTd>
             <MudTd DataLabel="Motivo">
                 @EquipmentIssueLabels.Reason(context.Reason)

@@ -52,10 +52,6 @@
                             <input type="checkbox" data-testid="@($"link-{item.Id}")" checked="@_selected.Contains(item.Id)"
                                    @onchange="@(e => Toggle(item.Id, e.Value is true))" />
                             <span>@item.Name</span>
-                            @if (!string.IsNullOrWhiteSpace(item.Zone))
-                            {
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@item.Zone</MudText>
-                            }
                             @if (item.Status != EquipmentNotice.Available)
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@EquipmentDisplay.StatusColor(item.Status)">
