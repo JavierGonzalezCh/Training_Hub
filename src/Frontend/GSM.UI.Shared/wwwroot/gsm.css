@@ -4712,3 +4712,10 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
         margin: 0 auto;
     }
 }
+
+/* Títulos de las tarjetas (Identificación, Contacto…): en blanco para que resalten sobre el fondo. */
+.mud-paper .mud-typography-overline,
+.mud-card .mud-typography-overline,
+.gsm-panel__title {
+    color: #FFFFFF !important;
+}
