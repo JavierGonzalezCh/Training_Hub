@@ -165,25 +165,31 @@ public class RecommendedConfigUiTests : TestContext
     }
 
     [Fact]
-    public void The_dialog_lists_the_differences_with_today_and_recommended_values_and_nothing_is_marked()
+    public void The_dialog_lists_the_recommendation_as_switches_all_on()
     {
         var (provider, _, _, _, _) = OpenDialog();
 
-        provider.WaitForAssertion(() => Assert.NotEmpty(provider.FindAll("[data-testid='recommended-table']")));
+        provider.WaitForAssertion(() => Assert.NotEmpty(provider.FindAll("[data-testid='recommended-list']")));
         Assert.Contains("Rutinas", provider.Markup);
         Assert.Contains("Días de gracia", provider.Markup);
         Assert.Contains("Cartel impreso", provider.Markup);
-        Assert.True(provider.Find("[data-testid='recommended-apply']").HasAttribute("disabled"));
+        Assert.False(provider.Find("[data-testid='recommended-apply']").HasAttribute("disabled"));
     }
 
     [Fact]
     public void Applying_saves_only_the_marked_options_through_their_own_module_endpoints()
     {
         var (provider, gym, attendance, memberships, routines) = OpenDialog();
-        provider.WaitForAssertion(() => Assert.NotEmpty(provider.FindAll("[data-testid='recommended-table']")));
+        provider.WaitForAssertion(() => Assert.NotEmpty(provider.FindAll("[data-testid='recommended-list']")));
 
-        provider.Find("[data-testid='recommended-modules.ShowRoutines']").Change(true);
-        provider.Find("[data-testid='recommended-memberships.GraceDays']").Change(true);
+        foreach (var other in provider.FindAll("[data-testid^='recommended-'][data-testid*='.']:not([data-testid^='recommended-tip'])")
+                     .Select(e => e.GetAttribute("data-testid")!)
+                     .Where(t => t is not "recommended-modules.ShowRoutines" and not "recommended-memberships.GraceDays")
+                     .ToList())
+        {
+            provider.Find($"[data-testid='{other}']").Change(false);
+        }
+
         provider.Find("[data-testid='recommended-apply']").Click();
 
         provider.WaitForAssertion(() =>
@@ -207,9 +213,8 @@ public class RecommendedConfigUiTests : TestContext
     public void Mark_all_selects_every_difference_and_apply_saves_each_module()
     {
         var (provider, gym, attendance, memberships, _) = OpenDialog();
-        provider.WaitForAssertion(() => Assert.NotEmpty(provider.FindAll("[data-testid='recommended-table']")));
+        provider.WaitForAssertion(() => Assert.NotEmpty(provider.FindAll("[data-testid='recommended-list']")));
 
-        provider.Find("[data-testid='recommended-select-all']").Click();
         provider.Find("[data-testid='recommended-apply']").Click();
 
         provider.WaitForAssertion(() =>

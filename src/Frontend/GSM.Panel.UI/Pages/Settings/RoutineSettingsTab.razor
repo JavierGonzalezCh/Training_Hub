@@ -14,9 +14,11 @@ else
         <MudSwitch T="bool" @bind-Value="_showRoutines" Color="Color.Primary" data-testid="show-routines"
                    Label="Rutinas en la app del miembro" Class="mb-1" />
         <p class="gsm-choice__hint mb-4">Cada miembro ve su rutina asignada y registra lo que entrena por ejercicio.</p>
-        <MudSwitch T="bool" @bind-Value="_membersCanCreate" Color="Color.Primary" data-testid="members-can-create-routines"
-                   Label="Los miembros pueden crear su propia rutina" Class="mb-1" />
-        <p class="gsm-choice__hint mb-4">Sin esperar a que el staff se la arme.</p>
+        <div class="d-flex align-center mb-4">
+            <MudSwitch T="bool" @bind-Value="_membersCanCreate" Color="Color.Primary" data-testid="members-can-create-routines"
+                       Label="Los miembros pueden crear sus rutinas" />
+            <InfoTip TestId="tip-members-create" Text="Cada miembro puede armar su propia rutina desde la app, sin esperar a que el staff se la arme." />
+        </div>
 
         <MudNumericField T="int" @bind-Value="_reviewWeeks" Label="Revisar la rutina cada (semanas)" Min="1" Max="52"
                          HelperText="Al asignar una rutina, y cada vez que se marca como revisada, se fija la próxima revisión a estas semanas. Es un recordatorio para el entrenador: la rutina sigue activa aunque la fecha pase. Cambiarlo no mueve las fechas ya fijadas."

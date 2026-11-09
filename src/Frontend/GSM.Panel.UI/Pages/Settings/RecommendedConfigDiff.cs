@@ -40,6 +40,7 @@ public sealed class RecommendedConfigDiff(
         Flag(nameof(flags.ShowCommunity), "Comunidad", flags.ShowCommunity, rec.ShowCommunity);
         Flag(nameof(flags.CheckinQr), "Check-in con QR", flags.CheckinQr, rec.CheckinQr);
         Flag(nameof(flags.MembersCanReportEquipment), "Reporte de fallas de máquinas", flags.MembersCanReportEquipment, rec.MembersCanReportEquipment);
+        Flag(nameof(flags.MembersCanCreateRoutines), "Los miembros pueden crear sus rutinas", flags.MembersCanCreateRoutines, rec.MembersCanCreateRoutines);
         Flag(nameof(flags.ShowRanking), "Ranking de constancia", flags.ShowRanking, rec.ShowRanking);
         Flag(nameof(flags.ShowFrontDesk), "Recepción, kiosco y aforo", flags.ShowFrontDesk != false, rec.ShowFrontDesk != false);
 
@@ -115,6 +116,8 @@ public sealed class RecommendedConfigDiff(
         request.CheckinQr = Pick(nameof(flags.CheckinQr), flags.CheckinQr, rec.CheckinQr);
         request.MembersCanReportEquipment = Pick(
             nameof(flags.MembersCanReportEquipment), flags.MembersCanReportEquipment, rec.MembersCanReportEquipment);
+        request.MembersCanCreateRoutines = Pick(
+            nameof(flags.MembersCanCreateRoutines), flags.MembersCanCreateRoutines, rec.MembersCanCreateRoutines);
         request.ShowRanking = Pick(nameof(flags.ShowRanking), flags.ShowRanking, rec.ShowRanking);
         request.ShowFrontDesk = Pick(nameof(flags.ShowFrontDesk), flags.ShowFrontDesk != false, rec.ShowFrontDesk != false);
         return request;

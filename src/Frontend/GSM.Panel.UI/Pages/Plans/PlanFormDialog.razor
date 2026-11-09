@@ -56,11 +56,17 @@
                 }
                 <MudGrid Spacing="2" Class="mt-1">
                     <MudItem xs="6">
-                        <MudNumericField T="int" @bind-Value="_model.MaxFreezeDays" Label="Máx. días de congelamiento" Min="0" Max="365" id="plan-max-freeze"
-                                         HelperText="0 = no se congela. Por defecto 30." />
+                        <div class="d-flex align-center">
+                            <MudNumericField T="int" @bind-Value="_model.MaxFreezeDays" Label="Máx. días de congelamiento" Min="0" Max="365" id="plan-max-freeze" />
+                            <InfoTip TestId="tip-max-freeze"
+                                     Text="Días en total que se puede pausar la membresía durante su vigencia, sumando todas las pausas. 0 = este plan no se congela." />
+                        </div>
                     </MudItem>
                     <MudItem xs="6">
-                        <MudNumericField T="int" @bind-Value="_model.MinFreezeDays" Label="Mínimo por congelamiento (días)" Min="1" Max="365" id="plan-min-freeze" />
+                        <div class="d-flex align-center">
+                            <MudNumericField T="int" @bind-Value="_model.MinFreezeDays" Label="Mínimo por congelamiento (días)" Min="1" Max="365" id="plan-min-freeze" />
+                            <InfoTip TestId="tip-min-freeze" Text="Lo mínimo que puede durar cada pausa. Evita congelar días sueltos." />
+                        </div>
                     </MudItem>
                 </MudGrid>
                 @if (!IsPass)

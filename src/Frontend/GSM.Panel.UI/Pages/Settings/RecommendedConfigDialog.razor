@@ -26,33 +26,19 @@
         else
         {
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                Esto es lo que difiere entre tu configuración y la recomendada para <strong>@GymTypeLabels.Label(_type)</strong>.
-                Marca lo que quieras cambiar; lo demás se queda como está.
+                Lo recomendado para <strong>@GymTypeLabels.Label(_type)</strong>. Deja encendido lo que quieras aplicar.
             </MudText>
-            <div class="mb-2">
-                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SelectAll" data-testid="recommended-select-all">Marcar todo</MudButton>
-                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SelectNone">Desmarcar todo</MudButton>
+            <div data-testid="recommended-list">
+                @foreach (var choice in _choices)
+                {
+                    <div class="d-flex align-center mb-1">
+                        <MudSwitch T="bool" Value="_selected.Contains(choice.Key)" ValueChanged="@(v => Toggle(choice.Key, v))"
+                                   Color="Color.Primary" Label="@($"{choice.Label}: {choice.Recommended}")"
+                                   data-testid="@($"recommended-{choice.Key}")" />
+                        <InfoTip Text="@($"Si lo apagas, se queda como está hoy ({choice.Current}).")" TestId="@($"recommended-tip-{choice.Key}")" />
+                    </div>
+                }
             </div>
-            <MudSimpleTable Dense="true" Elevation="0" data-testid="recommended-table">
-                <thead>
-                    <tr><th></th><th>Opción</th><th>Hoy</th><th>Recomendado</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var choice in _choices)
-                    {
-                        <tr>
-                            <td>
-                                <MudCheckBox T="bool" Value="_selected.Contains(choice.Key)"
-                                             ValueChanged="@(v => Toggle(choice.Key, v))"
-                                             data-testid="@($"recommended-{choice.Key}")" aria-label="@($"Cambiar {choice.Label}")" />
-                            </td>
-                            <td>@choice.Label</td>
-                            <td>@choice.Current</td>
-                            <td><strong>@choice.Recommended</strong></td>
-                        </tr>
-                    }
-                </tbody>
-            </MudSimpleTable>
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
                 Los logros ya sembrados no se tocan: los administras en Logros.
             </MudText>
@@ -64,7 +50,7 @@
         {
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ApplyAsync"
                        Disabled="@(_busy || _selected.Count == 0)" data-testid="recommended-apply">
-                @(_busy ? "Aplicando..." : $"Aplicar lo marcado ({_selected.Count})")
+                @(_busy ? "Guardando..." : "Guardar")
             </MudButton>
         }
     </DialogActions>
@@ -95,6 +81,11 @@
                 await RoutineSettings.GetRoutineSettingsAsync(),
                 recommended);
             _choices = _diff.Differences();
+            // O3: ya vienen puestos según la recomendación; apagar uno lo deja como está.
+            foreach (var choice in _choices)
+            {
+                _selected.Add(choice.Key);
+            }
         }
         catch (GsmApiException ex)
         {

@@ -25,6 +25,13 @@
 }
 else
 {
+    @* O1/O2: barra de progreso con «Paso n de N» y pasos numerados. *@
+    <div class="mb-3" data-testid="onboarding-progress">
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-1">Paso @(_current + 1) de @_state.Steps.Count</MudText>
+        <MudProgressLinear Color="Color.Primary" Value="@(100.0 * (_current + 1) / _state.Steps.Count)" Size="Size.Small"
+                           aria-label="@($"Paso {_current + 1} de {_state.Steps.Count}")" />
+    </div>
+
     <ol class="gsm-onboarding-steps" data-testid="onboarding-steps">
         @for (var i = 0; i < _state.Steps.Count; i++)
         {
@@ -59,6 +66,7 @@ else
     }
 
     <section class="gsm-panel pa-4 mb-4" aria-live="polite">
+        <MudIcon Icon="@StepIcon(CurrentKey)" Size="Size.Large" Color="Color.Primary" Class="mb-2" data-testid="onboarding-icon" />
         <MudText Typo="Typo.h6" Class="mb-1">@Title(CurrentKey)</MudText>
         <MudText Color="Color.Secondary" Class="mb-3">@Help(CurrentKey)</MudText>
 
@@ -102,6 +110,9 @@ else
                     configuran desde <strong>Configuración</strong> cuando termines. Aparecerán en la lista «Para completar»
                     del dashboard.
                 </MudText>
+                <MudButton Variant="Variant.Outlined" Class="mt-3" OnClick="OpenRecommendedAsync" data-testid="onboarding-recommended">
+                    Ver la configuración recomendada
+                </MudButton>
                 break;
 
             case OnboardingKeys.Team:
@@ -170,6 +181,11 @@ else
         var next = _state.Steps.Select((s, i) => (s, i)).FirstOrDefault(x => x.s.Required && !x.s.Done);
         _current = next.s is null ? 0 : next.i;
     }
+
+    // O3: la configuración recomendada para el tipo de negocio, como lista de interruptores.
+    private async Task OpenRecommendedAsync()
+        => await Dialogs.ShowAsync<GSM.Panel.UI.Pages.Settings.RecommendedConfigDialog>(
+            "Configuración recomendada", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
 
     // C3: «Trabajo solo» resuelve el paso de equipo sin invitar a nadie.
     private async Task WorkAloneAsync()
@@ -263,6 +279,18 @@ else
             await RefreshAsync();
         }
     }
+
+    private static string StepIcon(string key) => key switch
+    {
+        OnboardingKeys.Gym => Icons.Material.Outlined.Storefront,
+        OnboardingKeys.Location => Icons.Material.Outlined.Place,
+        OnboardingKeys.Hours => Icons.Material.Outlined.Schedule,
+        OnboardingKeys.Equipment => Icons.Material.Outlined.FitnessCenter,
+        OnboardingKeys.Plans => Icons.Material.Outlined.CardMembership,
+        OnboardingKeys.Entry => Icons.Material.Outlined.QrCode2,
+        OnboardingKeys.Team => Icons.Material.Outlined.Groups,
+        _ => Icons.Material.Outlined.Info,
+    };
 
     private string Title(string key) => key switch
     {
