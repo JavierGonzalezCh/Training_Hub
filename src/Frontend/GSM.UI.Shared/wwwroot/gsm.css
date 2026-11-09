@@ -4738,9 +4738,17 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     grid-column: auto;
 }
 
-.gsm-kpi-grid > * > .gsm-kpi,
-.gsm-kpi-grid > .gsm-kpi {
+.gsm-kpi-grid > * > .gsm-kpi {
     flex: 1 1 auto;
+    height: auto;
+    min-height: 152px;
+}
+
+/* Las tarjetas que son hijas directas de la rejilla comparten la misma base que los envoltorios (13rem); con "auto"
+   se encogían al ancho de su contenido. */
+.gsm-kpi-grid > .gsm-kpi {
+    flex: 1 1 13rem;
+    min-width: 0;
     height: auto;
     min-height: 152px;
 }
