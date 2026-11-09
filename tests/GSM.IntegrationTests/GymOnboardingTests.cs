@@ -71,10 +71,46 @@ public sealed class GymOnboardingTests(ApiFactory factory) : IClassFixture<ApiFa
         Assert.NotNull(done.CompletedAt);
         Assert.False(done.WasSkipped);
 
-        // Lo opcional queda en la lista "Para completar".
+        // Lo opcional queda en la lista "Para completar". C3: emparejar el kiosco solo aparece con la entrada con documento.
         Assert.Equal(
-            [GetOnboardingHandler.StepEntry, GetOnboardingHandler.StepTeam, GetOnboardingHandler.TodoMembers],
+            [GetOnboardingHandler.StepTeam, GetOnboardingHandler.TodoMembers],
             done.ToComplete.Select(t => t.Key).ToArray());
+    }
+
+    [Fact]
+    public async Task Pairing_the_kiosk_is_pending_only_when_the_document_entry_is_on()
+    {
+        var gymId = await SeedGymAsync();
+        Assert.DoesNotContain(GetOnboardingHandler.StepEntry, (await GetAsync(gymId)).ToComplete.Select(t => t.Key));
+
+        using (var scope = System())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+            var settings = GSM.Domain.Attendance.CheckinSettings.Default(gymId);
+            settings.Update(GSM.Domain.Attendance.CheckinMode.Rotating, byDocument: true);
+            db.Add(settings);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Contains(GetOnboardingHandler.StepEntry, (await GetAsync(gymId)).ToComplete.Select(t => t.Key));
+    }
+
+    [Fact]
+    public async Task Working_alone_resolves_the_team_step_and_removes_its_pending_item()
+    {
+        var gymId = await SeedGymAsync();
+        Assert.Contains(GetOnboardingHandler.StepTeam, (await GetAsync(gymId)).ToComplete.Select(t => t.Key));
+
+        OnboardingResponse after;
+        using (var scope = Owner(gymId))
+        {
+            after = await scope.ServiceProvider.GetRequiredService<SkipOnboardingTeamHandler>().HandleAsync(default);
+        }
+
+        Assert.DoesNotContain(GetOnboardingHandler.StepTeam, after.ToComplete.Select(t => t.Key));
+        Assert.True(after.Steps.Single(st => st.Key == GetOnboardingHandler.StepTeam).Done);
+        // Persistido: una lectura posterior sigue sin el pendiente.
+        Assert.DoesNotContain(GetOnboardingHandler.StepTeam, (await GetAsync(gymId)).ToComplete.Select(t => t.Key));
     }
 
     [Fact]

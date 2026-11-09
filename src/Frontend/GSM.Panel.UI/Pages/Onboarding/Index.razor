@@ -109,6 +109,9 @@ else
                     Invita a tu staff y a otros propietarios, con sus permisos, desde <strong>Configuración → Staff</strong>
                     cuando termines. Aparecerá en la lista «Para completar» del dashboard.
                 </MudText>
+                <MudButton Variant="Variant.Outlined" Class="mt-3" OnClick="WorkAloneAsync" Disabled="_busy" data-testid="onboarding-work-alone">
+                    Trabajo solo
+                </MudButton>
                 break;
         }
     </section>
@@ -166,6 +169,25 @@ else
 
         var next = _state.Steps.Select((s, i) => (s, i)).FirstOrDefault(x => x.s.Required && !x.s.Done);
         _current = next.s is null ? 0 : next.i;
+    }
+
+    // C3: «Trabajo solo» resuelve el paso de equipo sin invitar a nadie.
+    private async Task WorkAloneAsync()
+    {
+        _busy = true;
+        try
+        {
+            _state = await GymApi.SkipOnboardingTeamAsync();
+            Snackbar.Add("Listo: puedes invitar a tu equipo cuando quieras desde Configuración → Staff.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task RefreshAsync()

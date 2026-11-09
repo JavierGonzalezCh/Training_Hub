@@ -45,7 +45,7 @@ public class RoutineEntryRiskUiTests : TestContext
     }
 
     private (IRenderedComponent<CheckinTab> Tab, IRenderedComponent<MudDialogProvider> Dialogs, FakeClient Fake) RenderCheckinTab(
-        bool remote = false, bool byDocument = true)
+        out PaymentPermissionsUiTests.FakeClient gymFake, bool remote = false, bool byDocument = true, bool checkinQr = true)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
@@ -67,15 +67,15 @@ public class RoutineEntryRiskUiTests : TestContext
         };
         Services.AddSingleton(attendance);
 
-        // QR apagado y logros encendidos: el documento es el único registro en la puerta.
         var gym = new GymContext();
-        gym.Set(new MeResponse { FeatureFlags = new MeFeatureFlags { CheckinQr = false, ShowGamification = true } }, false);
+        gym.Set(new MeResponse { FeatureFlags = new MeFeatureFlags { CheckinQr = checkinQr, ShowGamification = true } }, false);
         Services.AddSingleton(gym);
+        gymFake = CheckinTabServices.AddFor(this, checkinQr);
 
         var dialogs = RenderComponent<MudDialogProvider>();
         RenderComponent<MudPopoverProvider>();
         var tab = RenderComponent<CheckinTab>();
-        tab.WaitForAssertion(() => Assert.Contains("Tipo de QR en la entrada", tab.Markup));
+        tab.WaitForAssertion(() => Assert.Contains("Registro de entrada", tab.Markup));
         return (tab, dialogs, fake);
     }
 
@@ -86,39 +86,9 @@ public class RoutineEntryRiskUiTests : TestContext
     }
 
     [Fact]
-    public void Turning_off_the_last_door_registration_asks_first_and_going_back_saves_nothing()
-    {
-        var (tab, dialogs, fake) = RenderCheckinTab();
-
-        TurnDocumentOffAndSave(tab);
-
-        dialogs.WaitForAssertion(() => Assert.Contains("desde su casa", dialogs.Markup));
-        dialogs.FindAll("button").First(b => b.TextContent.Contains("Volver")).Click();
-
-        Assert.DoesNotContain(fake.Calls, c => c.Method == "SettingsPUTAsync");
-    }
-
-    [Fact]
-    public void Confirming_the_warning_saves_the_change()
-    {
-        var (tab, dialogs, fake) = RenderCheckinTab();
-
-        TurnDocumentOffAndSave(tab);
-
-        dialogs.WaitForAssertion(() => Assert.Contains(RoutineEntryRisk.Title, dialogs.Markup));
-        dialogs.FindAll("button").First(b => b.TextContent.Contains("Guardar así")).Click();
-
-        tab.WaitForAssertion(() =>
-        {
-            var put = Assert.Single(fake.Calls, c => c.Method == "SettingsPUTAsync");
-            Assert.False(Assert.IsType<UpdateCheckinSettingsRequest>(put.Args[0]).ByDocument);
-        });
-    }
-
-    [Fact]
     public void The_remote_training_option_is_sent_when_saving()
     {
-        var (tab, _, fake) = RenderCheckinTab(remote: false);
+        var (tab, _, fake) = RenderCheckinTab(out _, remote: false);
 
         tab.Find("[data-testid='checkin-remote-training']").Change(true);
         tab.FindAll("button").First(b => b.TextContent.Contains("Guardar")).Click();
@@ -132,13 +102,43 @@ public class RoutineEntryRiskUiTests : TestContext
     }
 
     [Fact]
-    public void With_remote_training_on_turning_the_document_off_does_not_warn()
+    public void Choosing_no_door_registration_turns_the_gym_qr_and_the_document_entry_off()
     {
-        var (tab, dialogs, fake) = RenderCheckinTab(remote: true);
+        var (tab, _, fake) = RenderCheckinTab(out var gymFake, byDocument: true, checkinQr: true);
 
-        TurnDocumentOffAndSave(tab);
+        tab.Find("input[name='checkin-mode'][value='NoDoor']").Change("NoDoor");
+        Assert.Empty(tab.FindAll("[data-testid='checkin-by-document']"));
+        tab.FindAll("button").First(b => b.TextContent.Contains("Guardar")).Click();
 
-        tab.WaitForAssertion(() => Assert.Single(fake.Calls, c => c.Method == "SettingsPUTAsync"));
-        Assert.DoesNotContain(RoutineEntryRisk.Title, dialogs.Markup);
+        tab.WaitForAssertion(() =>
+        {
+            var flags = Assert.IsType<UpdateFeatureFlagsRequest>(Assert.Single(gymFake.Calls, c => c.Method == "FeatureFlagsPUTAsync").Args[0]);
+            Assert.False(flags.CheckinQr);
+            var put = Assert.IsType<UpdateCheckinSettingsRequest>(Assert.Single(fake.Calls, c => c.Method == "SettingsPUTAsync").Args[0]);
+            Assert.False(put.ByDocument);
+        });
+    }
+
+    [Fact]
+    public void A_gym_without_the_qr_opens_with_no_door_registration_selected()
+    {
+        var (tab, _, _) = RenderCheckinTab(out _, byDocument: false, checkinQr: false);
+
+        Assert.Contains("is-selected", tab.Find("input[name='checkin-mode'][value='NoDoor']").ParentElement!.ClassName);
+        Assert.Empty(tab.FindAll("[data-testid='checkin-by-document']"));
+        Assert.Contains("El día cuenta cuando el miembro registra su primer ejercicio.", tab.Markup);
+    }
+
+    [Fact]
+    public void Picking_the_qr_back_turns_it_on_without_touching_the_document_entry_value()
+    {
+        var (tab, _, _) = RenderCheckinTab(out var gymFake, byDocument: false, checkinQr: false);
+
+        tab.Find("input[name='checkin-mode'][value='Rotating']").Change("Rotating");
+        tab.FindAll("button").First(b => b.TextContent.Contains("Guardar")).Click();
+
+        tab.WaitForAssertion(() =>
+            Assert.True(Assert.IsType<UpdateFeatureFlagsRequest>(
+                Assert.Single(gymFake.Calls, c => c.Method == "FeatureFlagsPUTAsync").Args[0]).CheckinQr));
     }
 }

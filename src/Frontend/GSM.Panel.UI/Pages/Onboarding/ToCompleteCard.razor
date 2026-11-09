@@ -16,6 +16,11 @@
                 {
                     <li data-testid="@($"to-complete-{item.Key}")">
                         <a href="@item.Href">@item.Label</a>
+                        @if (item.Key == OnboardingKeys.Team)
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="ml-2" OnClick="WorkAloneAsync"
+                                       data-testid="to-complete-work-alone">Trabajo solo</MudButton>
+                        }
                     </li>
                 }
             </ul>
@@ -25,6 +30,19 @@
 
 @code {
     private List<(string Key, string Label, string Href)> _items = [];
+
+    // C3: el dueño que trabaja solo quita el pendiente de invitar staff.
+    private async Task WorkAloneAsync()
+    {
+        try
+        {
+            _items = ItemsFor(await Gym.SkipOnboardingTeamAsync()).ToList();
+        }
+        catch (GsmApiException)
+        {
+            // Si falla, el pendiente se queda y puede reintentar.
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

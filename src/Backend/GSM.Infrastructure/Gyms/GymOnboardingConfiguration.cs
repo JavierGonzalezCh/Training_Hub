@@ -10,6 +10,7 @@ public sealed class GymOnboardingConfiguration : IEntityTypeConfiguration<GymOnb
     {
         builder.ToTable("gym_onboarding", "gyms");
 
+        builder.Property(o => o.TeamSkipped).HasColumnName("team_skipped").HasDefaultValue(false);
         builder.Property(o => o.SkipReason).HasMaxLength(GymOnboarding.MaxSkipReasonLength);
         builder.HasIndex(o => o.GymId).IsUnique();
 

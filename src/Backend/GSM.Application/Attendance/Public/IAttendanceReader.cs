@@ -88,6 +88,9 @@ public interface IAttendanceReader
     /// </summary>
     Task<bool> IsRemoteTrainingAsync(Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>¿La entrada con documento en el kiosco está encendida? Sin fila de ajustes, no.</summary>
+    Task<bool> IsDocumentEntryEnabledAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// ¿El día cuenta al registrar el primer ejercicio y no al tocar un botón? Solo con <see cref="IsRoutineEntryAsync"/>
     /// y el ajuste <c>first_log</c> (T4).

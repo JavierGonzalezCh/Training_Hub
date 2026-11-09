@@ -12915,6 +12915,36 @@
         }
       }
     },
+    "/api/gym/onboarding/skip-team": {
+      "post": {
+        "tags": [
+          "Gym"
+        ],
+        "operationId": "SkipOnboardingTeam",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gym/feature-flags": {
       "get": {
         "tags": [

@@ -116,6 +116,15 @@ public sealed class GymController : ControllerBase
         [FromServices] GetOnboardingHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
 
+    /// <summary>«Trabajo solo»: resuelve el paso de equipo del onboarding sin invitar a nadie. Solo el Owner.</summary>
+    [HttpPost("onboarding/skip-team")]
+    [EndpointName("SkipOnboardingTeam")]
+    [Authorize(Policy = AuthPolicies.RequireOwner)]
+    [ProducesResponseType<OnboardingResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<OnboardingResponse>> SkipOnboardingTeam(
+        [FromServices] SkipOnboardingTeamHandler handler, CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(cancellationToken));
+
     [HttpGet("feature-flags")]
     [ProducesResponseType<GymFeatureFlagsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<GymFeatureFlagsResponse>> GetFeatureFlags(

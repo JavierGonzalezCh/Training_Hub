@@ -174,6 +174,9 @@ public sealed class AttendanceReader(
         => dbContext.Set<GSM.Domain.Attendance.CheckinSettings>().IgnoreQueryFilters()
             .AnyAsync(s => s.GymId == gymId, cancellationToken);
 
+    public async Task<bool> IsDocumentEntryEnabledAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => await checkinSettings.GetAsync(gymId, cancellationToken) is { ByDocument: true };
+
     public async Task<bool> IsRemoteTrainingAsync(Guid gymId, CancellationToken cancellationToken = default)
         => await checkinSettings.GetAsync(gymId, cancellationToken) is { RemoteTraining: true };
 

@@ -1,4 +1,4 @@
-﻿using AngleSharp.Dom;
+using AngleSharp.Dom;
 using Bunit;
 using GSM.Client.Generated;
 using GSM.Panel.UI.Pages.Members;
@@ -232,11 +232,12 @@ public class MembershipPricingUiTests : TestContext
         ((CommercialStatusUiTests.FakeClient)(object)attendance).Handlers["SettingsGETAsync"] = _ => new CheckinSettingsResponse { Mode = "Rotating" };
         Services.AddSingleton(attendance);
         Services.AddSingleton<GSM.UI.Shared.Auth.GymContext>();
+        CheckinTabServices.AddFor(this, checkinQr: true);
 
         RenderComponent<MudPopoverProvider>();
         var tab = RenderComponent<CheckinTab>();
 
-        tab.WaitForAssertion(() => Assert.Contains("Tipo de QR en la entrada", tab.Markup));
+        tab.WaitForAssertion(() => Assert.Contains("Registro de entrada", tab.Markup));
         Assert.Empty(tab.FindAll("#enrollment-fee"));
         Assert.DoesNotContain("Días de gracia", tab.Markup);
         Assert.DoesNotContain("Matrícula", tab.Markup);
@@ -254,6 +255,7 @@ public class MembershipPricingUiTests : TestContext
         fake.Handlers["GetStaticCodeAsync"] = _ => new KioskCodeResponse { Mode = "Static", Code = "s1.fixedcode" };
         Services.AddSingleton(attendance);
         Services.AddSingleton<GSM.UI.Shared.Auth.GymContext>();
+        CheckinTabServices.AddFor(this, checkinQr: true);
 
         var provider = RenderComponent<MudDialogProvider>();
         RenderComponent<MudPopoverProvider>();
@@ -277,11 +279,12 @@ public class MembershipPricingUiTests : TestContext
         ((CommercialStatusUiTests.FakeClient)(object)attendance).Handlers["SettingsGETAsync"] = _ => new CheckinSettingsResponse { Mode = "Rotating" };
         Services.AddSingleton(attendance);
         Services.AddSingleton<GSM.UI.Shared.Auth.GymContext>();
+        CheckinTabServices.AddFor(this, checkinQr: true);
 
         RenderComponent<MudPopoverProvider>();
         var tab = RenderComponent<CheckinTab>();
 
-        tab.WaitForAssertion(() => Assert.Contains("Tipo de QR en la entrada", tab.Markup));
+        tab.WaitForAssertion(() => Assert.Contains("Registro de entrada", tab.Markup));
         Assert.Empty(tab.FindAll("[data-testid='show-qr-poster']"));
     }
 

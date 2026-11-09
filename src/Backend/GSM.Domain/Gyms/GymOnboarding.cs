@@ -32,6 +32,9 @@ public sealed class GymOnboarding : BaseEntity, ITenantEntity
 
     public string? SkipReason { get; private set; }
 
+    /// <summary>El Owner dijo «Trabajo solo»: el paso de equipo queda resuelto y el pendiente de invitar staff desaparece.</summary>
+    public bool TeamSkipped { get; private set; }
+
     public bool IsDone => CompletedAt is not null;
 
     public bool WasSkipped => SkippedBy is not null;
@@ -45,6 +48,8 @@ public sealed class GymOnboarding : BaseEntity, ITenantEntity
 
         return new GymOnboarding { GymId = gymId };
     }
+
+    public void MarkTeamSkipped() => TeamSkipped = true;
 
     /// <summary>Marca los pasos obligatorios como cumplidos. Idempotente: no cambia la fecha si ya estaba.</summary>
     public void Complete(DateTimeOffset now) => CompletedAt ??= now;

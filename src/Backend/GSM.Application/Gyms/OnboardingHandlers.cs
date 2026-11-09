@@ -1,4 +1,4 @@
-using GSM.Application.Common.Abstractions;
+﻿using GSM.Application.Common.Abstractions;
 using GSM.Application.Equipment.Public;
 using GSM.Application.Gyms.Abstractions;
 using GSM.Application.Gyms.Contracts;
@@ -91,8 +91,9 @@ public sealed class GetOnboardingHandler(
             machines.Count > 0,
             planCount > 0,
             team.PairedKiosks > 0,
-            team.ActiveStaff > 0 || owners.Count > 1,
+            team.ActiveStaff > 0 || owners.Count > 1 || (onboarding?.TeamSkipped ?? false),
         };
+        var documentEntry = await attendance.IsDocumentEntryEnabledAsync(gymId, cancellationToken);
 
         var requiredMet = done.Where((_, i) => required[i]).All(d => d);
         if (requiredMet && (onboarding is null || !onboarding.IsDone))
@@ -114,7 +115,8 @@ public sealed class GetOnboardingHandler(
         var next = isComplete ? null : steps.FirstOrDefault(s => s.Required && !s.Done)?.Key;
 
         var toComplete = new List<OnboardingTodoResponse>();
-        if (!done[5])
+        // C3: emparejar el kiosco solo importa si la entrada con documento está encendida.
+        if (!done[5] && documentEntry)
         {
             toComplete.Add(new OnboardingTodoResponse(StepEntry));
         }
@@ -172,6 +174,38 @@ public sealed class SkipOnboardingHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Onboarding del gym {GymId} omitido por {ActorId}", gymId, actorId);
+        return await reader.HandleAsync(gymId, cancellationToken);
+    }
+}
+
+/// <summary>
+/// «Trabajo solo» (C3): el Owner resuelve el paso de equipo sin invitar a nadie. Se guarda en <c>gym_onboarding</c>;
+/// invitar staff sigue disponible en Ajustes → Staff.
+/// </summary>
+public sealed class SkipOnboardingTeamHandler(
+    ICurrentUserService currentUser,
+    IGymRepository gyms,
+    IUnitOfWork unitOfWork,
+    GetOnboardingHandler reader,
+    ILogger<SkipOnboardingTeamHandler> logger)
+{
+    public async Task<OnboardingResponse> HandleAsync(CancellationToken cancellationToken)
+    {
+        var gymId = currentUser.RequireGymId();
+        _ = await gyms.GetByIdAsync(gymId, cancellationToken)
+            ?? throw new NotFoundException("El gym no existe.");
+
+        var onboarding = await gyms.GetOnboardingAsync(gymId, cancellationToken);
+        if (onboarding is null)
+        {
+            onboarding = GymOnboarding.Start(gymId);
+            gyms.Add(onboarding);
+        }
+
+        onboarding.MarkTeamSkipped();
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Onboarding del gym {GymId}: el Owner trabaja solo", gymId);
         return await reader.HandleAsync(gymId, cancellationToken);
     }
 }

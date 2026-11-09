@@ -1,6 +1,8 @@
 ﻿@* Pestaña "Check-in" de la configuración: tipo de QR del gym, documento en el kiosco, permanencia asumida y cartel impreso.
    La gracia, "por vencer" y la matrícula están en la sección Membresías. Solo Owner. Ver docs/GSM-modulo-attendance.md. *@
 @inject IAttendanceClient Attendance
+@inject IGymClient Gym
+@inject SessionService Session
 @inject GymContext GymCtx
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -12,42 +14,52 @@
 else
 {
     <div class="gsm-checkin-settings">
-        <fieldset class="gsm-choice-group">
-            <legend class="gsm-choice-group__legend">Tipo de QR en la entrada</legend>
-            <label class="gsm-choice @(_mode == Rotating ? "is-selected" : null)">
-                <input type="radio" name="checkin-mode" value="@Rotating" checked="@(_mode == Rotating)"
-                       @onchange="@(() => _mode = Rotating)" />
+        <fieldset class="gsm-choice-group" data-testid="checkin-entry">
+            <legend class="gsm-choice-group__legend">Registro de entrada</legend>
+            <label class="gsm-choice @(_entry == Rotating ? "is-selected" : null)">
+                <input type="radio" name="checkin-mode" value="@Rotating" checked="@(_entry == Rotating)"
+                       @onchange="@(() => _entry = Rotating)" />
                 <span class="gsm-choice__body">
                     <span class="gsm-choice__title">Pantalla en la entrada</span>
-                    <span class="gsm-choice__hint">El código cambia cada 30 s. Una captura no sirve para entrar desde casa.</span>
+                    <span class="gsm-choice__hint">El código cambia cada 30 segundos.
+                        <InfoTip Text="Una foto o captura del código no sirve para entrar desde otro lugar." TestId="tip-rotating" /></span>
                 </span>
             </label>
-            <label class="gsm-choice @(_mode == Static ? "is-selected" : null)">
-                <input type="radio" name="checkin-mode" value="@Static" checked="@(_mode == Static)"
-                       @onchange="@(() => _mode = Static)" />
+            <label class="gsm-choice @(_entry == Static ? "is-selected" : null)">
+                <input type="radio" name="checkin-mode" value="@Static" checked="@(_entry == Static)"
+                       @onchange="@(() => _entry = Static)" />
                 <span class="gsm-choice__body">
                     <span class="gsm-choice__title">Cartel impreso</span>
-                    <span class="gsm-choice__hint">Código fijo que se imprime una vez. Puedes regenerarlo si se filtra. Si el gimnasio tiene coordenadas en Configuración, se pide la ubicación del teléfono: quien no la comparta o esté fuera del radio entra, pero esa entrada no suma a su racha ni a sus logros.</span>
+                    <span class="gsm-choice__hint">Cartel fijo que se imprime una vez. Puedes regenerarlo cuando quieras.
+                        <InfoTip Text="Si tienes la ubicación del gym en Configuración, se pide la del teléfono; una entrada fuera del radio se registra, pero no suma a la racha ni a los logros." Warning="true" TestId="tip-static" /></span>
+                </span>
+            </label>
+            <label class="gsm-choice @(_entry == NoDoor ? "is-selected" : null)">
+                <input type="radio" name="checkin-mode" value="@NoDoor" checked="@(_entry == NoDoor)"
+                       @onchange="@(() => _entry = NoDoor)" />
+                <span class="gsm-choice__body">
+                    <span class="gsm-choice__title">Sin registro en la puerta</span>
+                    <span class="gsm-choice__hint">El día cuenta cuando el miembro registra su primer ejercicio.</span>
                 </span>
             </label>
         </fieldset>
 
-        <MudSwitch T="bool" @bind-Value="_byDocument" Color="Color.Primary" data-testid="checkin-by-document"
-                   Label="Entrada con documento en el kiosco" Class="mb-1" />
-        <p class="gsm-choice__hint mb-4">
-            El miembro digita su documento en el teclado del kiosco y entra con las mismas reglas que el QR.
-            Riesgo: alguien puede digitar el número de otra persona; por eso el kiosco muestra el nombre de pila y la foto,
-            y solo vale una entrada por día. Apagada por defecto.
-        </p>
+        @if (_entry != NoDoor)
+        {
+            <div class="d-flex align-center mb-4">
+                <MudSwitch T="bool" @bind-Value="_byDocument" Color="Color.Primary" data-testid="checkin-by-document"
+                           Label="Entrada con documento en el kiosco" />
+                <InfoTip Text="El miembro digita su documento en el kiosco y entra con las mismas reglas que el QR. Alguien puede digitar el número de otra persona; por eso el kiosco muestra el nombre de pila y la foto, y solo vale una entrada por día."
+                         Warning="true" TestId="tip-document" />
+            </div>
+        }
 
-        <MudSwitch T="bool" @bind-Value="_remote" Color="Color.Primary" data-testid="checkin-remote-training"
-                   Label="Mis miembros entrenan fuera de mi sede" Class="mb-1" />
-        <p class="gsm-choice__hint mb-4" data-testid="checkin-remote-hint">
-            Para entrenadores personales o entrenamiento en línea. Con esto encendido: el horario de apertura no frena el
-            conteo del día por entrenamiento, no se avisa del riesgo de marcar desde casa (es lo esperado) y el aforo y las
-            horas pico no cuentan esas entradas. La membresía se exige igual, y el QR, el documento y la recepción siguen
-            respetando el horario. Apagado por defecto.
-        </p>
+        <div class="d-flex align-center mb-4">
+            <MudSwitch T="bool" @bind-Value="_remote" Color="Color.Primary" data-testid="checkin-remote-training"
+                       Label="Mis miembros entrenan fuera de mi sede" />
+            <InfoTip Text="Para entrenadores personales o entrenamiento en línea: el horario de apertura no frena el conteo del día, no se avisa del riesgo de marcar desde casa y el aforo y las horas pico no cuentan esas entradas. La membresía se exige igual."
+                     TestId="checkin-remote-hint" />
+        </div>
 
         <MudNumericField T="int" @bind-Value="_stayMinutes" Label="Permanencia asumida (minutos)" Min="15" Max="480"
                          HelperText="Para saber cuánta gente hay en el gimnasio se asume que cada persona se queda este tiempo tras entrar, porque no se registra la salida. Es una estimación; se compara con el aforo del gimnasio."
@@ -82,12 +94,16 @@ else
 
     private const string Rotating = "Rotating";
     private const string Static = "Static";
+    private const string NoDoor = "NoDoor";
 
     private bool _loading = true;
     private bool _saving;
     private bool _regenerating;
     private string _mode = Rotating;
     private string _savedMode = Rotating;
+    // Lo que se ve elegido: uno de los dos QR o «Sin registro en la puerta» (QR del gym apagado).
+    private string _entry = Rotating;
+    private bool _savedQr = true;
     private bool _byDocument;
     private bool _savedByDocument;
     private bool _remote;
@@ -101,6 +117,8 @@ else
         {
             var settings = await Attendance.SettingsGETAsync();
             _mode = _savedMode = settings.Mode;
+            _savedQr = GymCtx.FeatureFlags?.CheckinQr ?? true;
+            _entry = _savedQr ? _mode : NoDoor;
             _byDocument = _savedByDocument = settings.ByDocument;
             _stayMinutes = settings.AssumedStayMinutes;
             _remote = _savedRemote = settings.RemoteTraining == true;
@@ -117,29 +135,32 @@ else
 
     private async Task SaveAsync()
     {
-        // A8: apagar el documento con el QR apagado deja al gym sin registro en la puerta.
-        if (GymCtx.FeatureFlags is { } flags)
-        {
-            var before = new RoutineEntryRisk.State(
-                flags.CheckinQr, _savedByDocument, flags.ShowGamification, flags.ShowProgress, _savedRemote);
-            var after = before with { ByDocument = _byDocument, RemoteTraining = _remote };
-            if (RoutineEntryRisk.ShouldWarn(before, after) && !await RoutineEntryRisk.ConfirmAsync(Dialogs))
-            {
-                return;
-            }
-        }
-
         _saving = true;
         try
         {
+            var qr = _entry != NoDoor;
+
+            // C1: «Sin registro en la puerta» apaga el QR del gym y la entrada con documento; los dos se guardan por sus
+            // endpoints de siempre.
+            if (qr != _savedQr)
+            {
+                var flags = await Gym.FeatureFlagsGETAsync();
+                var request = FeatureFlagsRequests.From(flags);
+                request.CheckinQr = qr;
+                await Gym.FeatureFlagsPUTAsync(request);
+                await Session.BootstrapAsync();
+                _savedQr = qr;
+            }
+
             var saved = await Attendance.SettingsPUTAsync(new UpdateCheckinSettingsRequest
             {
-                Mode = _mode,
-                ByDocument = _byDocument,
+                Mode = qr ? _entry : _savedMode,
+                ByDocument = qr && _byDocument,
                 AssumedStayMinutes = _stayMinutes,
                 RemoteTraining = _remote,
             });
             _mode = _savedMode = saved.Mode;
+            _entry = qr ? _mode : NoDoor;
             _byDocument = _savedByDocument = saved.ByDocument;
             _stayMinutes = saved.AssumedStayMinutes;
             _remote = _savedRemote = saved.RemoteTraining == true;
