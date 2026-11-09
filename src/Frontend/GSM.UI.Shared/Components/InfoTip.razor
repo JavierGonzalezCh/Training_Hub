@@ -1,15 +1,25 @@
-@* Ícono de información con un tooltip que se abre al pasar el mouse, al enfocar con teclado y al tocar (celular).
-   El mismo texto va en aria-label para lectores de pantalla. Los detalles y advertencias de una opción van aquí en vez
-   de un párrafo largo debajo. *@
-<MudTooltip Text="@Text" Placement="Placement" Arrow="true" Delay="0" Duration="150">
-    <button type="button" class="gsm-infotip @Class" aria-label="@(Warning ? "Aviso: " + Text : Text)" data-testid="@TestId"
-            @onclick:stopPropagation="true">
+@* Ícono de información: al hacer clic muestra el detalle y se queda abierto hasta que se hace clic en otro lado (o se
+   vuelve a pulsar el ícono o Escape). Sirve igual con mouse, teclado y celular. El mismo texto va en aria-label para
+   lectores de pantalla. Los detalles y advertencias de una opción van aquí en vez de un párrafo largo debajo. *@
+<span class="gsm-infotip-wrap">
+    <button type="button" class="gsm-infotip @Class" aria-label="@(Warning ? "Aviso: " + Text : Text)" aria-expanded="@_open.ToString().ToLowerInvariant()"
+            data-testid="@TestId" @onclick="Toggle" @onclick:stopPropagation="true" @onkeydown="OnKeyDown">
         <MudIcon Icon="@(Warning ? Icons.Material.Outlined.WarningAmber : Icons.Material.Outlined.Info)"
                  Color="@(Warning ? Color.Warning : Color.Default)" Size="Size.Small" />
     </button>
-</MudTooltip>
+    @if (_open)
+    {
+        <MudOverlay @bind-Visible="_open" AutoClose="true" LockScroll="false" ZIndex="1190" />
+        <MudPopover Open="true" AnchorOrigin="Origin.TopCenter" TransformOrigin="Origin.BottomCenter" Paper="true" Elevation="8"
+                    Class="gsm-infotip-pop" data-testid="infotip-content">
+            <div role="note" class="pa-3">@Text</div>
+        </MudPopover>
+    }
+</span>
 
 @code {
+    private bool _open;
+
     [Parameter, EditorRequired]
     public string Text { get; set; } = "";
 
@@ -17,6 +27,7 @@
     [Parameter]
     public bool Warning { get; set; }
 
+    /// <summary>Se conserva por compatibilidad; el detalle se abre sobre el ícono.</summary>
     [Parameter]
     public Placement Placement { get; set; } = Placement.Top;
 
@@ -25,4 +36,14 @@
 
     [Parameter]
     public string? TestId { get; set; } = "info-tip";
+
+    private void Toggle() => _open = !_open;
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            _open = false;
+        }
+    }
 }

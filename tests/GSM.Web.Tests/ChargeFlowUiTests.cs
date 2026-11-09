@@ -88,6 +88,24 @@ public class ChargeFlowUiTests : TestContext
     }
 
     [Fact]
+    public void The_info_tip_opens_on_click_and_stays_open_until_clicked_again()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+
+        RenderComponent<MudBlazor.MudPopoverProvider>();
+        var cut = RenderComponent<InfoTip>(p => p.Add(c => c.Text, "Detalle."));
+        var button = cut.Find("button.gsm-infotip");
+        Assert.Equal("false", button.GetAttribute("aria-expanded"));
+
+        button.Click();
+        Assert.Equal("true", cut.Find("button.gsm-infotip").GetAttribute("aria-expanded"));
+
+        cut.Find("button.gsm-infotip").KeyDown(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = "Escape" });
+        Assert.Equal("false", cut.Find("button.gsm-infotip").GetAttribute("aria-expanded"));
+    }
+
+    [Fact]
     public void A_warning_info_tip_says_so_in_its_label()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

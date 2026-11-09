@@ -4762,3 +4762,7 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
         flex: 1 1 calc(50% - .25rem);
     }
 }
+
+/* InfoTip: el detalle se abre con clic y se cierra al hacer clic fuera. */
+.gsm-infotip-wrap { position: relative; display: inline-flex; }
+.gsm-infotip-pop { max-width: 18rem; z-index: 1200 !important; font-size: .85rem; line-height: 1.4; }
