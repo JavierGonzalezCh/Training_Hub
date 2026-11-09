@@ -20,14 +20,19 @@ public static class GymTypeLabels
         (5, "Other", "Otro", "Lo que no encaje en los demás."),
     ];
 
-    public static string Label(string? type)
-        => All.FirstOrDefault(t => t.Name.Equals(type, StringComparison.OrdinalIgnoreCase)).Label ?? type ?? "Gimnasio";
+    /// <summary>
+    /// E2: el tipo puede llegar como <c>PersonalTrainer</c> (nombre del enum de C#) o como <c>personal_trainer</c> (valor de Postgres):
+    /// se comparan sin guiones bajos ni mayúsculas.
+    /// </summary>
+    private static bool Matches(string name, string? type)
+        => string.Equals(name, (type ?? string.Empty).Replace("_", string.Empty).Replace("-", string.Empty), StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>El valor entero del tipo a partir de su nombre; <c>0</c> (gimnasio) si no se reconoce.</summary>
+    public static string Label(string? type)
+        => All.FirstOrDefault(t => Matches(t.Name, type)).Label ?? type ?? "Gimnasio";
+
+    /// <summary>El valor entero del tipo a partir de su nombre (en cualquiera de los dos formatos); <c>0</c> (gimnasio) si no se reconoce.</summary>
     public static int ValueOf(string? name)
-        => All.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase)).Name is null
-            ? 0
-            : All.First(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase)).Value;
+        => All.FirstOrDefault(t => Matches(t.Name, name)).Name is null ? 0 : All.First(t => Matches(t.Name, name)).Value;
 
     public static string Hint(int value) => All.FirstOrDefault(t => t.Value == value).Hint ?? string.Empty;
 }
