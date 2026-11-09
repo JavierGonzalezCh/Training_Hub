@@ -15,6 +15,7 @@
 @inject IJSRuntime JS
 @inject ViewportState Viewport
 @inject ISnackbar Snackbar
+@inject IDialogService Dialogs
 
 <PageTitle>Dashboard — TrainingHub OS</PageTitle>
 
@@ -103,14 +104,14 @@ else if (_dashboard is { } dashboard)
     private const int PeakWindowDays = 30;
 
     /// <summary>
-    /// Orden de las secciones. En escritorio, el del documento. En celular (de pie en el gym): lo que pide atención
-    /// primero, luego los indicadores, lo de hoy, los miembros del entrenador y los vencimientos; la afluencia por hora
-    /// y la lista «Para completar» quedan al final (Dashboards §1).
+    /// Orden de las secciones. Los vencimientos (C7) van justo después de los indicadores, en escritorio y en celular.
+    /// En celular (de pie en el gym): lo que pide atención primero, luego los indicadores y los vencimientos, lo de hoy y
+    /// los miembros del entrenador; la afluencia por hora y la lista «Para completar» quedan al final (Dashboards §1).
     /// </summary>
     public static IReadOnlyList<string> SectionOrder(bool narrow)
         => narrow
-            ? new[] { SectionAttention, SectionIndicators, SectionToday, SectionMyMembers, SectionExpiring, SectionPeakHours, SectionToComplete }
-            : new[] { SectionToComplete, SectionIndicators, SectionAttention, SectionToday, SectionPeakHours, SectionExpiring, SectionMyMembers };
+            ? new[] { SectionAttention, SectionIndicators, SectionExpiring, SectionToday, SectionMyMembers, SectionPeakHours, SectionToComplete }
+            : new[] { SectionToComplete, SectionIndicators, SectionExpiring, SectionAttention, SectionToday, SectionPeakHours, SectionMyMembers };
 
     private readonly DateOnly _today = GsmFormat.Today();
     private readonly int _currentHour = GsmFormat.CurrentHour();
@@ -579,24 +580,41 @@ else if (_dashboard is { } dashboard)
         }
     </section>;
 
+    // C7: tres grupos con su número (por vencer, en gracia, vencidos de los últimos 30 días); cada fila se puede cobrar o
+    // avisar por WhatsApp.
     private RenderFragment ExpiringSection(ExpiringBlock expiring) => @<section class="gsm-panel" aria-labelledby="expiring-title" data-testid="dash-expiring">
         <header class="gsm-panel__header">
-            <h2 id="expiring-title" class="gsm-panel__title">Por vencer y en gracia</h2>
+            <h2 id="expiring-title" class="gsm-panel__title">Vencimientos</h2>
             <a class="gsm-panel__link" href="/memberships/expiring">Ver todas</a>
         </header>
+        @{
+            var groups = new[]
+            {
+                (Key: "expiring", Title: "Por vencer", Count: expiring.ExpiringCount),
+                (Key: "grace", Title: "En gracia", Count: expiring.GraceCount),
+                (Key: "expired", Title: "Vencidos (últimos 30 días)", Count: expiring.RecentlyExpiredCount),
+            };
+        }
         @if (expiring.Items.Count == 0)
         {
             <EmptyState Icon="@Icons.Material.Outlined.EventAvailable">Nada vence en los próximos @expiring.ExpiringDays días.</EmptyState>
         }
-        else
+        @foreach (var group in groups)
         {
-            <MudTable Items="expiring.Items" Hover="true" Dense="true" Elevation="0" Class="gsm-table">
+            var rows = expiring.Items.Where(i => ExpiringStatus(i) == group.Key).ToList();
+            if (rows.Count == 0)
+            {
+                continue;
+            }
+
+            <h3 class="gsm-panel__subtitle" data-testid="@($"expiring-group-{group.Key}")">@group.Title <span class="gsm-mono">(@Math.Max(group.Count, rows.Count))</span></h3>
+            <MudTable Items="rows" Hover="true" Dense="true" Elevation="0" Class="gsm-table">
                 <HeaderContent>
                     <MudTh>Miembro</MudTh>
                     <MudTh>Plan</MudTh>
                     <MudTh>Vence</MudTh>
                     <MudTh Style="text-align:right">Días</MudTh>
-                    <MudTh>WhatsApp</MudTh>
+                    <MudTh>Acciones</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Miembro">
@@ -611,10 +629,12 @@ else if (_dashboard is { } dashboard)
                     <MudTd DataLabel="Vence">@GsmFormat.Day(context.EndDate)</MudTd>
                     <MudTd DataLabel="Días" Style="text-align:right">
                         <span class="gsm-days @(context.DaysLeft <= 3 ? "is-urgent" : null)">
-                            @(context.DaysLeft switch { < 0 => "En gracia", 0 => "Hoy", 1 => "Mañana", var n => $"En {n} días" })
+                            @(context.DaysLeft switch { < 0 => ExpiringStatus(context) == "grace" ? "En gracia" : $"Hace {-context.DaysLeft} días", 0 => "Hoy", 1 => "Mañana", var n => $"En {n} días" })
                         </span>
                     </MudTd>
-                    <MudTd DataLabel="WhatsApp">
+                    <MudTd DataLabel="Acciones">
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary" OnClick="@(() => ChargeAsync(context.MemberId))"
+                                   data-testid="@($"charge-{context.MemberId}")">Cobrar</MudButton>
                         <WhatsAppButton MemberId="context.MemberId" State="@_whatsApp.GetValueOrDefault(context.MemberId)"
                                         AutoLoad="false" Compact="true"
                                         Kind="@(context.DaysLeft < 0 ? "Expired" : "ExpiringSoon")" />
@@ -623,6 +643,20 @@ else if (_dashboard is { } dashboard)
             </MudTable>
         }
     </section>;
+
+    private static string ExpiringStatus(ExpiringMemberRow row)
+        => row.Status is { Length: > 0 } status ? status : row.DaysLeft < 0 ? "grace" : "expiring";
+
+    private async Task ChargeAsync(Guid memberId)
+    {
+        var parameters = new DialogParameters<RecordPaymentDialog> { { x => x.MemberId, memberId } };
+        var dialog = await Dialogs.ShowAsync<RecordPaymentDialog>("Cobrar", parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado.", Severity.Success);
+            await ReloadAsync();
+        }
+    }
 
     private void OnGymChanged() => InvokeAsync(StateHasChanged);
 

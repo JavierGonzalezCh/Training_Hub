@@ -1,0 +1,81 @@
+@* S2: si el onboarding del gym no está completo, un aviso arriba de la ficha dice en qué paso va, con el contacto del owner y
+   «Omitir onboarding». El detalle por paso sigue más abajo (OnboardingCard). *@
+@inject IAdminGymsClient AdminGyms
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+@if (_state is { IsComplete: false } state)
+{
+    var required = state.Steps.Where(s => s.Required).ToList();
+    <MudAlert Severity="Severity.Warning" Class="mb-6" data-testid="admin-onboarding-notice">
+        <div class="d-flex align-center flex-wrap" style="gap:.75rem">
+            <div style="flex:1 1 18rem">
+                <strong>Onboarding pendiente</strong>: paso siguiente <span data-testid="admin-onboarding-notice-step">@OnboardingCard.StepLabel(state.NextStep)</span>
+                · <span data-testid="admin-onboarding-notice-progress">@required.Count(s => s.Done) de @required.Count</span>
+                <div class="mud-typography-body2">
+                    Contacto del owner: @(Email ?? "sin correo") · @(Phone ?? "sin teléfono")
+                </div>
+            </div>
+            @if (WhatsAppUrl is { } url)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Href="@url" Target="_blank" StartIcon="@Icons.Material.Outlined.Chat"
+                           data-testid="admin-onboarding-notice-whatsapp">WhatsApp</MudButton>
+            }
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="SkipAsync"
+                       data-testid="admin-onboarding-notice-skip">Omitir onboarding</MudButton>
+        </div>
+    </MudAlert>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid GymId { get; set; }
+
+    [Parameter]
+    public string? Email { get; set; }
+
+    [Parameter]
+    public string? Phone { get; set; }
+
+    private OnboardingResponse? _state;
+
+    // Celular colombiano de 10 dígitos que empieza por 3 (o ya con +57): enlace de WhatsApp. Otro formato, sin botón.
+    private string? WhatsAppUrl
+    {
+        get
+        {
+            var digits = new string((Phone ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (digits.Length == 12 && digits.StartsWith("57", StringComparison.Ordinal))
+            {
+                digits = digits[2..];
+            }
+
+            return digits.Length == 10 && digits[0] == '3' ? $"https://wa.me/57{digits}" : null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _state = await AdminGyms.AdminGymOnboardingAsync(GymId);
+        }
+        catch (GsmApiException)
+        {
+            _state = null;
+        }
+    }
+
+    private async Task SkipAsync()
+    {
+        var parameters = new DialogParameters<SkipOnboardingDialog> { { x => x.GymId, GymId } };
+        var dialog = await Dialogs.ShowAsync<SkipOnboardingDialog>("Omitir onboarding", parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add("Onboarding omitido. Queda registrado en la auditoría.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+}

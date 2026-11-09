@@ -35,7 +35,12 @@ public sealed class DashboardTests(ApiFactory factory) : IClassFixture<ApiFactor
         Assert.Equal(50_000m, dash.Finances.RevenueLastMonth);  // 50k en mayo (del 1 al 15)
         Assert.Equal(1, dash.Expiring!.ExpiredCount);            // una venció hace días
         Assert.Equal(1, dash.Expiring.ExpiringCount);            // una vence en 3 días
-        Assert.Single(dash.Expiring.Items);
+        // C7: la vencida hace 5 días (fuera de la gracia de 3) sale en el grupo de vencidos, no en el de gracia.
+        Assert.Equal(2, dash.Expiring.Items.Count);
+        Assert.Single(dash.Expiring.Items, i => i.Status == "expiring");
+        Assert.Single(dash.Expiring.Items, i => i.Status == "expired" && i.DaysLeft == -5);
+        Assert.Equal(0, dash.Expiring.GraceCount);
+        Assert.Equal(1, dash.Expiring.RecentlyExpiredCount);
     }
 
     private async Task<(Guid GymId, Guid StaffId)> SeedAsync(DateOnly today)

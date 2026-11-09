@@ -43,6 +43,7 @@ public sealed class GetDashboardHandler(
 
     private const int ListLimit = 8;
     private const int ExpiringLimit = 10;
+    private const int ExpiredWindowDays = 30;
 
     public async Task<DashboardResponse> HandleAsync(CancellationToken cancellationToken)
     {
@@ -285,23 +286,43 @@ public sealed class GetDashboardHandler(
             .Select(c => new ExpiringMembershipView(c.MembershipId, c.MemberId, c.PlanName, c.EndDate, c.DaysLeft))
             .ToList();
 
-        var shown = expiring.Concat(inGrace)
-            .OrderBy(e => e.DaysLeft)
-            .Take(ExpiringLimit)
+        // C7: los vencidos que ya no entran (fuera de la gracia) de los últimos 30 días, para cobrarles.
+        var graceIds = inGrace.Select(g => g.MemberId).ToHashSet();
+        var recent = (await memberships.GetRecentlyEndedAsync(gymId, ExpiredWindowDays, cancellationToken))
+            .Where(r => !graceIds.Contains(r.MemberId))
+            .ToList();
+        var recentStatuses = recent.Count == 0
+            ? new Dictionary<Guid, CommercialStatus>()
+            : (await memberships.GetCommercialStatusesAsync(recent.Select(c => c.MemberId).Distinct().ToList(), cancellationToken))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+        var expired = recent
+            .Where(r => recentStatuses.GetValueOrDefault(r.MemberId) == CommercialStatus.Expired)
+            .GroupBy(r => r.MemberId)
+            .Select(g => g.First())
+            .Select(c => new ExpiringMembershipView(c.MembershipId, c.MemberId, c.PlanName, c.EndDate, c.DaysLeft))
             .ToList();
 
-        var names = await members.GetFullNamesAsync(shown.Select(e => e.MemberId).Distinct().ToList(), cancellationToken);
-        var rows = shown
-            .Select(e => new ExpiringMemberRow(
-                e.MembershipId, e.MemberId, names.GetValueOrDefault(e.MemberId, "(miembro no encontrado)"),
-                e.PlanName, e.EndDate, e.DaysLeft))
+        var shownExpiring = expiring.OrderBy(e => e.DaysLeft).Take(ExpiringLimit).ToList();
+        var shownGrace = inGrace.OrderBy(e => e.DaysLeft).Take(ExpiringLimit).ToList();
+        var shownExpired = expired.OrderByDescending(e => e.DaysLeft).Take(ExpiringLimit).ToList();
+
+        var names = await members.GetFullNamesAsync(
+            shownExpiring.Concat(shownGrace).Concat(shownExpired).Select(e => e.MemberId).Distinct().ToList(), cancellationToken);
+        ExpiringMemberRow Row(ExpiringMembershipView e, string status) => new(
+            e.MembershipId, e.MemberId, names.GetValueOrDefault(e.MemberId, "(miembro no encontrado)"),
+            e.PlanName, e.EndDate, e.DaysLeft, status);
+        var rows = shownExpiring.Select(e => Row(e, "expiring"))
+            .Concat(shownGrace.Select(e => Row(e, "grace")))
+            .Concat(shownExpired.Select(e => Row(e, "expired")))
             .ToList();
 
         return new ExpiringBlock(
             expiring.Count,
             await memberships.GetExpiredCountAsync(gymId, cancellationToken),
             settings.ExpiringDays,
-            rows);
+            rows,
+            inGrace.Count,
+            expired.Count);
     }
 
     // --- Mis miembros (Trainer) ---

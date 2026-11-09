@@ -32,6 +32,13 @@ public interface IMembershipReader
     Task<IReadOnlyList<ChargeableMembershipView>> GetChargeableAsync(
         Guid gymId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Membresías Active que terminaron en los últimos <paramref name="withinDays"/> días (de ayer hacia atrás), con
+    /// <c>DaysLeft</c> negativo. Incluye las que aún están en gracia: quien llama cruza con el estado comercial del miembro.
+    /// </summary>
+    Task<IReadOnlyList<ReminderMembershipView>> GetRecentlyEndedAsync(
+        Guid gymId, int withinDays, CancellationToken cancellationToken = default);
+
     /// <summary>Membresías Active cuyo <c>end_date</c> ya pasó (vencidas, no renovadas).</summary>
     Task<int> GetExpiredCountAsync(Guid gymId, CancellationToken cancellationToken = default);
 

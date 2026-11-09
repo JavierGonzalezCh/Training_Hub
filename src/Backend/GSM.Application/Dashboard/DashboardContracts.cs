@@ -114,19 +114,25 @@ public sealed record CommercialStatusCounts(
 /// </summary>
 /// <param name="ExpiringCount">Membresías que vencen dentro de <c>ExpiringDays</c>.</param>
 /// <param name="ExpiredCount">Membresías vencidas y no renovadas.</param>
+/// <param name="GraceCount">Miembros vencidos que aún están dentro de la gracia.</param>
+/// <param name="RecentlyExpiredCount">Miembros vencidos (fuera de la gracia) que terminaron en los últimos 30 días.</param>
 public sealed record ExpiringBlock(
     int ExpiringCount,
     int ExpiredCount,
     int ExpiringDays,
-    IReadOnlyList<ExpiringMemberRow> Items);
+    IReadOnlyList<ExpiringMemberRow> Items,
+    int GraceCount,
+    int RecentlyExpiredCount);
 
+/// <param name="Status"><c>expiring</c> (por vencer), <c>grace</c> (venció y aún entra) o <c>expired</c> (venció hace poco y ya no entra).</param>
 public sealed record ExpiringMemberRow(
     Guid MembershipId,
     Guid MemberId,
     string MemberName,
     string PlanName,
     DateOnly EndDate,
-    int DaysLeft);
+    int DaysLeft,
+    string Status);
 
 /// <summary>Para el entrenador (<c>Trainer</c>): lo suyo de hoy y sus miembros.</summary>
 /// <param name="MembersWithoutRoutine">Cuántos de sus miembros activos no tienen rutina activa.</param>

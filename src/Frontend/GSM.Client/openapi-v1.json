@@ -29685,7 +29685,9 @@
           "expiringCount",
           "expiredCount",
           "expiringDays",
-          "items"
+          "items",
+          "graceCount",
+          "recentlyExpiredCount"
         ],
         "type": "object",
         "properties": {
@@ -29718,6 +29720,22 @@
             "items": {
               "$ref": "#/components/schemas/ExpiringMemberRow"
             }
+          },
+          "graceCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "recentlyExpiredCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -29728,7 +29746,8 @@
           "memberName",
           "planName",
           "endDate",
-          "daysLeft"
+          "daysLeft",
+          "status"
         ],
         "type": "object",
         "properties": {
@@ -29757,6 +29776,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "status": {
+            "type": "string"
           }
         }
       },

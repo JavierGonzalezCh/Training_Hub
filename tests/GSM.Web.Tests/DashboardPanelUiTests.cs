@@ -174,10 +174,10 @@ public class DashboardPanelUiTests : TestContext
     public void Section_order_puts_attention_first_on_a_phone_and_the_hourly_chart_and_todo_last()
     {
         Assert.Equal(
-            new[] { "attention", "indicators", "today", "my-members", "expiring", "peak-hours", "to-complete" },
+            new[] { "attention", "indicators", "expiring", "today", "my-members", "peak-hours", "to-complete" },
             Home.SectionOrder(narrow: true));
         Assert.Equal(
-            new[] { "to-complete", "indicators", "attention", "today", "peak-hours", "expiring", "my-members" },
+            new[] { "to-complete", "indicators", "expiring", "attention", "today", "peak-hours", "my-members" },
             Home.SectionOrder(narrow: false));
     }
 
@@ -187,7 +187,7 @@ public class DashboardPanelUiTests : TestContext
         var cut = RenderHome(Full(), narrow: true);
 
         cut.WaitForAssertion(() => Assert.True(Position(cut, "dash-attention") >= 0));
-        var order = new[] { "dash-attention", "dash-indicators", "dash-today", "dash-my-members", "dash-expiring", "dash-peak-hours" };
+        var order = new[] { "dash-attention", "dash-indicators", "dash-expiring", "dash-today", "dash-my-members", "dash-peak-hours" };
         var positions = order.Select(id => Position(cut, id)).ToArray();
         Assert.All(positions, p => Assert.True(p >= 0));
         Assert.Equal(positions.OrderBy(p => p), positions);
@@ -199,10 +199,37 @@ public class DashboardPanelUiTests : TestContext
         var cut = RenderHome(Full(), narrow: false);
 
         cut.WaitForAssertion(() => Assert.True(Position(cut, "dash-attention") >= 0));
-        var order = new[] { "dash-indicators", "dash-attention", "dash-today", "dash-peak-hours", "dash-expiring", "dash-my-members" };
+        var order = new[] { "dash-indicators", "dash-expiring", "dash-attention", "dash-today", "dash-peak-hours", "dash-my-members" };
         var positions = order.Select(id => Position(cut, id)).ToArray();
         Assert.All(positions, p => Assert.True(p >= 0));
         Assert.Equal(positions.OrderBy(p => p), positions);
+    }
+
+    // ---------- vencimientos (C7) ----------
+
+    [Fact]
+    public void Expirations_are_grouped_as_expiring_in_grace_and_expired_with_a_charge_button()
+    {
+        var dashboard = Full();
+        dashboard.Expiring = new ExpiringBlock
+        {
+            ExpiringCount = 1, ExpiredCount = 3, ExpiringDays = 7, GraceCount = 1, RecentlyExpiredCount = 1,
+            Items = new List<ExpiringMemberRow>
+            {
+                new() { MembershipId = Guid.NewGuid(), MemberId = Guid.NewGuid(), MemberName = "Beto Pronto", PlanName = "Mensual", EndDate = new DateOnly(2026, 6, 17), DaysLeft = 2, Status = "expiring" },
+                new() { MembershipId = Guid.NewGuid(), MemberId = Guid.NewGuid(), MemberName = "Ana Gracia", PlanName = "Mensual", EndDate = new DateOnly(2026, 6, 13), DaysLeft = -2, Status = "grace" },
+                new() { MembershipId = Guid.NewGuid(), MemberId = Guid.NewGuid(), MemberName = "Carla Vencida", PlanName = "Mensual", EndDate = new DateOnly(2026, 6, 1), DaysLeft = -14, Status = "expired" },
+            },
+        };
+
+        var cut = RenderHome(dashboard);
+
+        cut.WaitForAssertion(() => Assert.True(Position(cut, "dash-expiring") >= 0));
+        Assert.Contains("Por vencer", cut.Find("[data-testid='expiring-group-expiring']").TextContent);
+        Assert.Contains("En gracia", cut.Find("[data-testid='expiring-group-grace']").TextContent);
+        Assert.Contains("Vencidos", cut.Find("[data-testid='expiring-group-expired']").TextContent);
+        Assert.Equal(3, cut.FindAll("[data-testid='dash-expiring'] button[data-testid^='charge-']").Count);
+        Assert.Contains("Hace 14 días", cut.Markup);
     }
 
     // ---------- bloques que no viajan ----------

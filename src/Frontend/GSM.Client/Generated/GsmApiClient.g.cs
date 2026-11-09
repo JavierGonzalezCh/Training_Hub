@@ -49067,6 +49067,12 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("items")]
         public System.Collections.Generic.ICollection<ExpiringMemberRow> Items { get; set; } = new System.Collections.ObjectModel.Collection<ExpiringMemberRow>();
 
+        [System.Text.Json.Serialization.JsonPropertyName("graceCount")]
+        public int GraceCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recentlyExpiredCount")]
+        public int RecentlyExpiredCount { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -49099,6 +49105,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("daysLeft")]
         public int DaysLeft { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string Status { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
