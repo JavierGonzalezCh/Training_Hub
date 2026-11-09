@@ -1,4 +1,6 @@
 @inject IMembersClient Members
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <DialogContent>
@@ -38,6 +40,8 @@
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudDatePicker Label="Fecha de nacimiento" Required="@(MemberId is null)"
+                                       Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy"
+                                       OpenTo="OpenTo.Year" Placeholder="dd/mm/aaaa" data-testid="birth-date"
                                        RequiredError="La fecha de nacimiento es obligatoria."
                                        Date="_model.BirthDate" DateChanged="OnBirthDateChanged"
                                        MaxDate="@DateTime.Today.AddDays(-1)"
@@ -56,9 +60,8 @@
                 <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-1">Contacto</MudText>
                 <MudGrid>
                     <MudItem xs="12" sm="6">
-                        <MudTextField T="string" @bind-Value="_model.Phone" Label="Teléfono"
-                                      HelperText="10 dígitos de Colombia o formato internacional (+57…)"
-                                      Error="@_phoneHasError" ErrorText="@_phoneError" />
+                        <PhoneField @bind-Value="_model.Phone" Label="Teléfono" TestId="member-phone"
+                                    Error="@_phoneHasError" ErrorText="@_phoneError" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField T="string" @bind-Value="_model.Email" Label="Email" InputType="InputType.Email"
@@ -81,8 +84,8 @@
                         <MudTextField T="string" @bind-Value="_model.EmergencyContactRelationship" Label="Parentesco" />
                     </MudItem>
                     <MudItem xs="12" sm="4">
-                        <MudTextField T="string" @bind-Value="_model.EmergencyContactPhone" Label="Teléfono"
-                                      Error="@_emergencyPhoneHasError" ErrorText="@_emergencyPhoneError" />
+                        <PhoneField @bind-Value="_model.EmergencyContactPhone" Label="Teléfono" TestId="emergency-phone"
+                                    Error="@_emergencyPhoneHasError" ErrorText="@_emergencyPhoneError" />
                     </MudItem>
                 </MudGrid>
 
@@ -114,11 +117,29 @@
                                           RequiredError="El documento del acudiente es obligatorio." />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField T="string" @bind-Value="_model.GuardianPhone" Label="Teléfono del acudiente" Required="true"
-                                          RequiredError="El teléfono del acudiente es obligatorio."
-                                          Error="@_guardianPhoneHasError" ErrorText="@_guardianPhoneError" />
+                            <PhoneField @bind-Value="_model.GuardianPhone" Label="Teléfono del acudiente" Required="true" TestId="guardian-phone"
+                                        RequiredError="El teléfono del acudiente es obligatorio."
+                                        Error="@_guardianPhoneHasError" ErrorText="@_guardianPhoneError" />
                         </MudItem>
                     </MudGrid>
+                }
+
+                @if (MemberId is null && _canEnterHealth)
+                {
+                    <MudExpansionPanels Class="mt-4" Elevation="0" data-testid="health-optional">
+                        <MudExpansionPanel Text="Salud (opcional)">
+                            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                                Son datos sensibles y solo se guardan si el miembro ya aceptó la autorización de tratamiento de datos.
+                                Si todavía no la tiene, regístrala en su ficha y completa la salud después.
+                            </MudAlert>
+                            <MudTextField T="string" @bind-Value="_health.MedicalConditions" Label="Condiciones médicas" Lines="2" MaxLength="1000"
+                                          Immediate="true" Class="mb-2" data-testid="health-conditions" />
+                            <MudTextField T="string" @bind-Value="_health.Medications" Label="Medicamentos" Lines="2" MaxLength="1000"
+                                          Immediate="true" Class="mb-2" />
+                            <MudTextField T="string" @bind-Value="_health.TrainingRestrictions" Label="Restricciones de entrenamiento" Lines="2" MaxLength="1000"
+                                          Immediate="true" Class="mb-2" />
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
                 }
 
                 <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-1">Relación con el gimnasio</MudText>
@@ -152,6 +173,7 @@
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudDatePicker Label="Fecha de ingreso" @bind-Date="_model.JoinedAt"
+                                       Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="dd/mm/aaaa"
                                        MaxDate="@DateTime.Today"
                                        HelperText="@(MemberId is null ? "Vacía = hoy. Cámbiala si migras miembros antiguos." : null)" />
                     </MudItem>
@@ -176,6 +198,8 @@
     public Guid? MemberId { get; set; }
 
     private readonly MemberFormModel _model = new();
+    private readonly HealthDraft _health = new();
+    private bool _canEnterHealth;
     private MudForm _form = null!;
     private MemberListItem? _referrer;
     private bool _loading;
@@ -187,6 +211,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _canEnterHealth = (await AuthState.GetAuthenticationStateAsync()).User.HasPermission(GsmPermissions.ViewMemberHealth);
+
         if (MemberId is not { } id)
         {
             return;
@@ -280,6 +306,43 @@
     private bool _referrerHasError => _fieldErrors.ContainsKey("referredByMemberId");
     private string? _referrerError => FieldError("referredByMemberId");
 
+    // M3: si se llenó algo de salud se guarda junto con el alta. Sin la autorización del miembro el servidor lo rechaza: el
+    // miembro ya está creado, así que solo se avisa para que complete la salud desde su ficha.
+    private async Task SaveHealthAsync(Guid memberId)
+    {
+        if (!_health.HasData)
+        {
+            return;
+        }
+
+        try
+        {
+            await Members.UpdateMemberHealthAsync(memberId, new UpdateMemberHealthRequest
+            {
+                MedicalConditions = _health.MedicalConditions,
+                Medications = _health.Medications,
+                TrainingRestrictions = _health.TrainingRestrictions,
+            });
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(
+                $"El miembro se creó, pero sus datos de salud no se guardaron: {ApiError.FromException(ex).DisplayMessage} Complétalos en su ficha, pestaña Salud.",
+                Severity.Warning);
+        }
+    }
+
+    private sealed class HealthDraft
+    {
+        public string? MedicalConditions { get; set; }
+        public string? Medications { get; set; }
+        public string? TrainingRestrictions { get; set; }
+
+        public bool HasData => !string.IsNullOrWhiteSpace(MedicalConditions)
+            || !string.IsNullOrWhiteSpace(Medications)
+            || !string.IsNullOrWhiteSpace(TrainingRestrictions);
+    }
+
     private async Task SubmitAsync()
     {
         _error = null;
@@ -293,6 +356,21 @@
         if (MemberId is null && _model.BirthDate is null)
         {
             _fieldErrors["birthDate"] = ["La fecha de nacimiento es obligatoria."];
+            _error = "Revisa los campos marcados.";
+            return;
+        }
+
+        // M2: formato del celular según su indicativo (+57: 10 dígitos que empiezan por 3; otros: 6 a 14 dígitos).
+        foreach (var (field, value) in new[] { ("phone", _model.Phone), ("emergencyContactPhone", _model.EmergencyContactPhone), ("guardianPhone", _model.GuardianPhone) })
+        {
+            if (GSM.UI.Shared.Components.PhoneField.Validate(value) is { } phoneError)
+            {
+                _fieldErrors[field] = [phoneError];
+            }
+        }
+
+        if (_fieldErrors.Count > 0)
+        {
             _error = "Revisa los campos marcados.";
             return;
         }
@@ -314,7 +392,8 @@
             }
             else
             {
-                await Members.MembersPOSTAsync(_model.ToCreateRequest());
+                var created = await Members.MembersPOSTAsync(_model.ToCreateRequest());
+                await SaveHealthAsync(created.Id);
             }
 
             MudDialog.Close(DialogResult.Ok(true));

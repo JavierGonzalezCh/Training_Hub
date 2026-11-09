@@ -1,5 +1,6 @@
 using System.Reflection;
 using Bunit;
+using Bunit.TestDoubles;
 using GSM.Client.Generated;
 using GSM.Panel.UI.Pages.Members;
 using GSM.UI.Shared.Formatting;
@@ -49,6 +50,7 @@ public class MemberProfileUiTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        this.AddTestAuthorization().SetAuthorized("ana");
         var client = DispatchProxy.Create<IMembersClient, MembersStub>();
         var stub = (MembersStub)(object)client;
         stub.Detail = detail;

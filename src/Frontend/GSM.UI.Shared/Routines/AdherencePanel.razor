@@ -16,18 +16,28 @@ else if (_data is null || !_data.HasRoutine || _weeks.All(w => w.PlannedDays == 
 else
 {
     <div class="gsm-adh" data-testid="adherence-panel">
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2" data-testid="adherence-caption">
+            Días entrenados de los que le tocaban según su rutina.
+        </MudText>
         <ol class="gsm-adh-bars" aria-label="Cumplimiento de las últimas semanas">
             @foreach (var week in _weeks)
             {
                 var height = week.PlannedDays == 0 ? 0 : Math.Max(6, week.DoneDays * 100 / week.PlannedDays);
+                var band = IsOngoing(week) ? "current" : AdherenceLabels.Band(week.CompliancePercent);
                 <li class="gsm-adh-bar" data-testid="adherence-week">
-                    <span class="gsm-adh-bar__fill @(AdherenceLabels.IsBehind(week.CompliancePercent) ? "is-behind" : "")" style="height:@(height)%"
+                    <span class="gsm-adh-bar__fill is-@band" data-band="@band" style="height:@(height)%"
                           title="@AdherenceLabels.DaysOf(week.DoneDays, week.PlannedDays)"></span>
                     <span class="gsm-adh-bar__label">@GsmFormat.DayShort(week.WeekStart)</span>
                     <span class="gsm-adh-bar__value gsm-mono">@(week.PlannedDays == 0 ? "—" : $"{week.DoneDays}/{week.PlannedDays}")</span>
                 </li>
             }
         </ol>
+        <ul class="gsm-adh-legend" aria-label="Qué significa cada color" data-testid="adherence-legend">
+            <li><i class="is-low"></i> menos de 50 %</li>
+            <li><i class="is-mid"></i> 50 a 79 %</li>
+            <li><i class="is-high"></i> 80 % o más</li>
+            <li><i class="is-current"></i> semana en curso</li>
+        </ul>
 
         @if (_current is { } current)
         {
@@ -44,9 +54,9 @@ else
             </MudText>
             @if (current.SelfAssigned)
             {
-                <MudText Typo="Typo.caption" Color="Color.Secondary" data-testid="adherence-self">
-                    Incluye una rutina que armó el propio miembro.
-                </MudText>
+                <span data-testid="adherence-self">
+                    <InfoTip Text="Incluye una rutina que armó el propio miembro." TestId="adherence-self-tip" />
+                </span>
             }
             @if (current.Days is { Count: > 0 } days)
             {
@@ -78,6 +88,9 @@ else
 
     [Parameter] public string EmptyText { get; set; } = "Todavía no hay semanas con días de entrenamiento planeados.";
 
+    // La semana en curso queda en gris hasta que termine: todavía no se puede juzgar.
+    private static bool IsOngoing(AdherenceWeekItem week) => week.WeekStart.AddDays(6) >= GsmFormat.Today();
+
     private bool _loading = true;
     private string? _error;
     private MemberAdherence? _data;
@@ -89,7 +102,8 @@ else
         try
         {
             _data = await Load();
-            _weeks = _data?.Weeks.ToList() ?? [];
+            // F6: las semanas anteriores al inicio de la rutina no se muestran.
+            _weeks = _data?.Weeks.SkipWhile(w => w.PlannedDays == 0).ToList() ?? [];
             _current = _weeks.LastOrDefault();
         }
         catch (GsmApiException ex)

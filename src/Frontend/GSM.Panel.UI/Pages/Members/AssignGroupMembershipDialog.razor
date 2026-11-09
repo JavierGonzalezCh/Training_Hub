@@ -63,7 +63,7 @@
                     @if (_preview is { } preview)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" role="status" id="group-preview">
-                            <strong>Empieza el @GsmFormat.DayShort(preview.StartDate) · vence el @GsmFormat.DayShort(preview.EndDate)</strong>
+                            <strong>Empieza el @GsmFormat.DayShort(preview.StartDate, preview.EndDate) · vence el @GsmFormat.DayShort(preview.EndDate, preview.StartDate)</strong>
                             <div>El titular manda: las fechas del grupo salen de su historial, y todos los beneficiarios entran con esas mismas fechas.</div>
                         </MudAlert>
                         @if (preview.StartDateChanged && preview.Kind != "new")

@@ -46,7 +46,7 @@
                 {
                     <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" role="status" id="plan-change-preview">
                         <div>
-                            <strong>La nueva empieza el @GsmFormat.DayShort(preview.StartDate) · vence el @GsmFormat.DayShort(preview.EndDate)</strong>
+                            <strong>La nueva empieza el @GsmFormat.DayShort(preview.StartDate, preview.EndDate) · vence el @GsmFormat.DayShort(preview.EndDate, preview.StartDate)</strong>
                         </div>
                         <div id="credit-summary">@CreditText(preview)</div>
                         <div>Pagado por el plan actual: @GsmFormat.Money((decimal)preview.CreditBase)</div>

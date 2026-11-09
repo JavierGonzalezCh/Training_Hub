@@ -1,0 +1,155 @@
+@* M2: celular con selector de indicativo (Colombia +57 por defecto). El valor que sale es E.164 (+573001234567) o vacío.
+   Validación: +57 exige 10 dígitos que empiezan por 3; otro indicativo, de 6 a 14 dígitos. *@
+<div class="gsm-phone-field @Class" data-testid="@TestId">
+    <MudSelect T="string" Value="_code" ValueChanged="OnCodeChangedAsync" Label="País" Dense="true" Style="max-width:9rem"
+               Variant="Variant.Outlined" Margin="Margin.Dense" data-testid="phone-code" Disabled="Disabled">
+        @foreach (var country in Countries)
+        {
+            <MudSelectItem Value="@country.Code">@country.Label</MudSelectItem>
+        }
+    </MudSelect>
+    <MudTextField T="string" Value="_digits" ValueChanged="OnDigitsChangedAsync" Label="@Label" Immediate="true" Variant="Variant.Outlined"
+                  Margin="Margin.Dense" InputMode="InputMode.tel" Required="Required" RequiredError="@RequiredError" Disabled="Disabled"
+                  HelperText="@HelperText" Error="@(Error || _localError is not null)" ErrorText="@(_localError ?? ErrorText)"
+                  autocomplete="tel-national" data-testid="phone-number" Style="flex:1 1 10rem" />
+</div>
+
+@code {
+    public const string DefaultCode = "+57";
+
+    /// <summary>Indicativo y rótulo. «Otro» deja escribir el número completo con su +.</summary>
+    public static readonly (string Code, string Label)[] Countries =
+    [
+        ("+57", "🇨🇴 +57"), ("+1", "🇺🇸 +1"), ("+52", "🇲🇽 +52"), ("+58", "🇻🇪 +58"), ("+593", "🇪🇨 +593"),
+        ("+51", "🇵🇪 +51"), ("+56", "🇨🇱 +56"), ("+54", "🇦🇷 +54"), ("+55", "🇧🇷 +55"), ("+507", "🇵🇦 +507"),
+        ("+34", "🇪🇸 +34"), (OtherCode, "Otro"),
+    ];
+
+    private const string OtherCode = "+";
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Celular";
+
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public string RequiredError { get; set; } = "El celular es obligatorio.";
+
+    [Parameter]
+    public bool Error { get; set; }
+
+    [Parameter]
+    public string? ErrorText { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public string? TestId { get; set; } = "phone-field";
+
+    private string _code = DefaultCode;
+    private string _digits = string.Empty;
+    private string? _localError;
+    private string? _lastValue;
+
+    protected override void OnParametersSet()
+    {
+        // Solo se reparte el valor de fuera cuando cambió desde fuera (no el que acabamos de emitir).
+        if (Value == _lastValue && _lastValue is not null)
+        {
+            return;
+        }
+
+        _lastValue = Value;
+        (_code, _digits) = Split(Value);
+        _localError = null;
+    }
+
+    /// <summary>Parte un valor E.164 en (indicativo conocido, resto). Un indicativo desconocido cae en «Otro» con el número completo.</summary>
+    public static (string Code, string Digits) Split(string? value)
+    {
+        var v = (value ?? string.Empty).Trim();
+        if (v.Length == 0)
+        {
+            return (DefaultCode, string.Empty);
+        }
+
+        if (!v.StartsWith('+'))
+        {
+            return (DefaultCode, new string(v.Where(char.IsDigit).ToArray()));
+        }
+
+        foreach (var (code, _) in Countries.Where(c => c.Code != OtherCode).OrderByDescending(c => c.Code.Length))
+        {
+            if (v.StartsWith(code, StringComparison.Ordinal))
+            {
+                return (code, v[code.Length..]);
+            }
+        }
+
+        return (OtherCode, v);
+    }
+
+    /// <summary>Une indicativo y dígitos en E.164; vacío si no hay dígitos.</summary>
+    public static string? Join(string code, string digits)
+    {
+        var clean = new string((digits ?? string.Empty).Where(c => char.IsDigit(c) || c == '+').ToArray());
+        if (clean.Length == 0)
+        {
+            return null;
+        }
+
+        return code == OtherCode ? (clean.StartsWith('+') ? clean : "+" + clean) : code + clean.TrimStart('+');
+    }
+
+    /// <summary>Mensaje de error del número, o <c>null</c> si es válido o está vacío (la obligatoriedad la decide quien usa el campo).</summary>
+    public static string? Validate(string? e164)
+    {
+        if (string.IsNullOrWhiteSpace(e164))
+        {
+            return null;
+        }
+
+        var (code, rest) = Split(e164);
+        var digits = new string(rest.Where(char.IsDigit).ToArray());
+        if (code == "+57")
+        {
+            return digits.Length == 10 && digits[0] == '3' ? null : "Un celular de Colombia tiene 10 dígitos y empieza por 3.";
+        }
+
+        return digits.Length is >= 6 and <= 14 ? null : "El número debe tener entre 6 y 14 dígitos.";
+    }
+
+    private Task OnCodeChangedAsync(string code)
+    {
+        _code = code;
+        return EmitAsync();
+    }
+
+    private Task OnDigitsChangedAsync(string digits)
+    {
+        _digits = digits ?? string.Empty;
+        return EmitAsync();
+    }
+
+    private async Task EmitAsync()
+    {
+        var value = Join(_code, _digits);
+        _lastValue = value ?? string.Empty;
+        _localError = Validate(value);
+        await ValueChanged.InvokeAsync(value);
+    }
+}

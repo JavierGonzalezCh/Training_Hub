@@ -26,9 +26,19 @@ public static class GsmFormat
     public static string Day(DateOnly day)
         => day.ToString("d MMM yyyy", Colombia);
 
-    /// <summary>Día sin año, p. ej. <c>8 oct</c>. Para los letreros y la vista previa de la renovación.</summary>
+    /// <summary>
+    /// Día sin año, p. ej. <c>8 oct</c>, para los letreros y la vista previa de la renovación. F2: si el día no es del año
+    /// actual, lleva el año (<c>8 nov 2027</c>) para que no se confunda con el próximo mes del año en curso.
+    /// </summary>
     public static string DayShort(DateOnly day)
-        => day.ToString("d MMM", Colombia);
+        => day.Year == Today().Year ? day.ToString("d MMM", Colombia) : Day(day);
+
+    /// <summary>
+    /// Como <see cref="DayShort(DateOnly)"/> para un extremo de un rango (<paramref name="other"/> es el otro): si el rango cruza
+    /// de año, los dos llevan el año («Empieza el 8 nov 2026 · vence el 7 nov 2027»).
+    /// </summary>
+    public static string DayShort(DateOnly day, DateOnly other)
+        => day.Year == Today().Year && other.Year == day.Year ? day.ToString("d MMM", Colombia) : Day(day);
 
     /// <summary>
     /// Día corto con día de la semana, p. ej. <c>lun 14 sept</c>. Para listas acotadas a una

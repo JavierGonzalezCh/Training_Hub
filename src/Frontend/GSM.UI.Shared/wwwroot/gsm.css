@@ -4133,6 +4133,38 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 
 .gsm-adh-bar__fill.is-behind { background: var(--gsm-warn); }
 
+/* F6: color por porcentaje (rojo < 50 %, amarillo 50–79 %, verde ≥ 80 %); la semana en curso, en gris. */
+.gsm-adh-bar__fill.is-low { background: var(--gsm-danger); }
+.gsm-adh-bar__fill.is-mid { background: var(--gsm-warn); }
+.gsm-adh-bar__fill.is-high { background: var(--gsm-ok); }
+.gsm-adh-bar__fill.is-current,
+.gsm-adh-bar__fill.is-none { background: var(--gsm-text-3); }
+
+.gsm-adh-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    margin: .5rem 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--gsm-text-2);
+    font-size: 0.75rem;
+}
+
+.gsm-adh-legend i {
+    display: inline-block;
+    width: .7rem;
+    height: .7rem;
+    margin-inline-end: .25rem;
+    border-radius: 2px;
+    vertical-align: -1px;
+}
+
+.gsm-adh-legend i.is-low { background: var(--gsm-danger); }
+.gsm-adh-legend i.is-mid { background: var(--gsm-warn); }
+.gsm-adh-legend i.is-high { background: var(--gsm-ok); }
+.gsm-adh-legend i.is-current { background: var(--gsm-text-3); }
+
 .gsm-adh-bar__label,
 .gsm-adh-bar__value {
     position: absolute;
@@ -4545,4 +4577,12 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 .mud-tabs.mud-tabs-rounded .mud-tabs-tabbar,
 .mud-tabs .mud-tabs-tabbar {
     background: var(--gsm-surface-2);
+}
+
+/* M2: indicativo + número en una fila; en pantallas angostas el número baja. */
+.gsm-phone-field {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: flex-start;
 }

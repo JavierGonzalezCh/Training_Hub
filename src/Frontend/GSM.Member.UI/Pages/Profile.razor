@@ -79,8 +79,7 @@ else
 
     <section class="gsm-m-card gsm-profile__contact" style="display:block">
         <h2 class="gsm-m-card__title">Contacto y emergencia</h2>
-        <MudTextField T="string" @bind-Value="_form.Phone" Label="Celular" Immediate="true" Class="mb-2 gsm-profile__phone"
-                      HelperText="Con o sin +57, por ejemplo 3001234567" />
+        <PhoneField @bind-Value="_form.Phone" Label="Celular" Class="mb-2 gsm-profile__phone" TestId="profile-phone" />
         <MudTextField T="string" @bind-Value="_form.Address" Label="Dirección" Immediate="true" Class="mb-2" />
         <MudTextField T="string" @bind-Value="_form.City" Label="Ciudad" Immediate="true" Class="mb-2" />
         <MudSelect T="string" @bind-Value="_form.Goal" Label="Objetivo" Clearable="true" Class="mb-2 gsm-profile__goal">
@@ -92,7 +91,7 @@ else
         <MudText Typo="Typo.subtitle2" Class="mt-2">Contacto de emergencia</MudText>
         <MudTextField T="string" @bind-Value="_form.EmergencyContactName" Label="Nombre" Immediate="true" Class="mb-2 gsm-profile__emergency-name" />
         <MudTextField T="string" @bind-Value="_form.EmergencyContactRelationship" Label="Parentesco" Immediate="true" Class="mb-2" />
-        <MudTextField T="string" @bind-Value="_form.EmergencyContactPhone" Label="Celular de emergencia" Immediate="true" Class="mb-2" />
+        <PhoneField @bind-Value="_form.EmergencyContactPhone" Label="Celular de emergencia" Class="mb-2" TestId="profile-emergency-phone" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_saving" OnClick="SaveContactAsync" Class="gsm-profile__save-contact">
             @(_saving ? "Guardando..." : "Guardar")
         </MudButton>

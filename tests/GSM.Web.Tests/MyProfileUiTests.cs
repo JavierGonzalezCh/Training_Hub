@@ -109,7 +109,8 @@ public class MyProfileUiTests : TestContext
 
         Assert.Contains("Ana Prueba", cut.Find(".gsm-profile__name").TextContent);
         Assert.Contains("ana@test.local", cut.Find(".gsm-profile__email").TextContent);
-        Assert.Equal("+573001112233", cut.Find(".gsm-profile__phone input").GetAttribute("value"));
+        // M2: el selector muestra el indicativo (+57) y el campo el resto del número.
+        Assert.Equal("3001112233", cut.Find(".gsm-profile__phone input[data-testid='phone-number']").GetAttribute("value"));
         // La identidad no tiene campos: solo texto.
         Assert.DoesNotContain(cut.FindAll("input"), i => i.GetAttribute("value") == "123");
     }
@@ -120,11 +121,11 @@ public class MyProfileUiTests : TestContext
         var stub = Register();
 
         var cut = RenderComponent<Profile>();
-        cut.Find(".gsm-profile__phone input").Input("3009998877");
+        cut.Find(".gsm-profile__phone input[data-testid='phone-number']").Input("3009998877");
         cut.Find(".gsm-profile__save-contact").Click();
 
         var sent = Assert.Single(stub.Updates);
-        Assert.Equal("3009998877", sent.Phone);
+        Assert.Equal("+573009998877", sent.Phone);
         Assert.Null(sent.Health);
     }
 

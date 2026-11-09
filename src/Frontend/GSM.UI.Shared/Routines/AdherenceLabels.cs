@@ -25,4 +25,16 @@ public static class AdherenceLabels
     public static string Percent(int? percent) => percent is { } p ? $"{p} %" : "—";
 
     public static bool IsBehind(int? percent) => percent is { } p && p < BehindThresholdPercent;
+
+    /// <summary>
+    /// F6: franja de color de una semana cerrada: <c>low</c> (rojo, menos de 50 %), <c>mid</c> (amarillo, 50–79 %) y
+    /// <c>high</c> (verde, 80 % o más). Sin porcentaje, <c>none</c>.
+    /// </summary>
+    public static string Band(int? percent) => percent switch
+    {
+        null => "none",
+        < BehindThresholdPercent => "low",
+        < 80 => "mid",
+        _ => "high",
+    };
 }
