@@ -1,0 +1,61 @@
+@inject IMembersClient Members
+
+@* Vista rápida del miembro: foto grande y datos básicos. «Ver ficha» abre la ficha completa. *@
+<MudDialog>
+    <DialogContent>
+        @if (_member is null)
+        {
+            <GsmLoader Small="true" />
+        }
+        else
+        {
+            <div class="d-flex flex-column align-center text-center" data-testid="member-quick-view">
+                @if (!string.IsNullOrWhiteSpace(_member.PhotoUrl))
+                {
+                    <img src="@_member.PhotoUrl" alt="@($"Foto de {_member.FirstName} {_member.LastName}")"
+                         style="width:14rem;height:14rem;object-fit:cover;border-radius:8px" data-testid="member-quick-photo" />
+                }
+                else
+                {
+                    <span class="gsm-avatar" style="width:9rem;height:9rem;font-size:3rem" aria-hidden="true">@GsmFormat.Initials($"{_member.FirstName} {_member.LastName}")</span>
+                }
+                <MudText Typo="Typo.h5" Class="mt-3">@_member.FirstName @_member.LastName</MudText>
+                <MudText Typo="Typo.body2" Class="gsm-mono" Color="Color.Secondary">@MemberLabels.DocumentShort(_member.DocumentType) @_member.DocumentNumber</MudText>
+                <div class="mt-2"><CommercialStatusChip Status="@_member.CommercialStatus" /></div>
+            </div>
+            <MudSimpleTable Dense="true" Elevation="0" Class="mt-3">
+                <tbody>
+                    <tr><td>Teléfono</td><td>@(_member.Phone ?? "—")</td></tr>
+                    <tr><td>Email</td><td>@(_member.Email ?? "—")</td></tr>
+                    <tr><td>Ingresó</td><td>@GsmFormat.Day(_member.JoinedAt)</td></tr>
+                </tbody>
+            </MudSimpleTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Cerrar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Href="@($"/members/{MemberId}")" data-testid="member-quick-open">Ver ficha</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Guid MemberId { get; set; }
+
+    private MemberDetail? _member;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _member = await Members.MembersGET2Async(MemberId);
+        }
+        catch (GsmApiException)
+        {
+            MudDialog.Cancel();
+        }
+    }
+}

@@ -82,7 +82,7 @@ public class AdaptivePanelTests : TestContext
 
         var cut = RenderComponent<NavMenu>();
 
-        Assert.Equal(["Operación", "Negocio", "Entrenamiento", "Gestión"], cut.FindAll(".gsm-nav__label").Select(l => l.TextContent.Trim()));
+        Assert.Equal(["Operación", "Administrativo", "Entrenamiento", "Gestión"], cut.FindAll(".gsm-nav__label").Select(l => l.TextContent.Trim()));
         Assert.Equal(
             [
                 "Dashboard|/", "Recepción|/attendance/checkin", "Asistencia|/attendance",

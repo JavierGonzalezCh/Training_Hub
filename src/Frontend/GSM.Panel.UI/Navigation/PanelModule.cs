@@ -6,7 +6,7 @@ namespace GSM.Panel.UI.Navigation;
 public static class PanelSections
 {
     public const string Operation = "Operación";
-    public const string Business = "Negocio";
+    public const string Business = "Administrativo";
     public const string Training = "Entrenamiento";
     public const string Management = "Gestión";
 

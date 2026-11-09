@@ -20,7 +20,7 @@ public class MemberFormStageSevenTests : TestContext
     [InlineData("", "+57", "")]
     [InlineData(null, "+57", "")]
     [InlineData("3001234567", "+57", "3001234567")]
-    [InlineData("+998901234567", "+", "+998901234567")]
+    [InlineData("+999901234567", "+", "+999901234567")]
     public void A_stored_phone_is_split_into_country_code_and_number(string? stored, string code, string digits)
         => Assert.Equal((code, digits), PhoneField.Split(stored));
 

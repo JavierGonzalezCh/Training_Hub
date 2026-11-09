@@ -74,7 +74,8 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Miembro">
-            <MudLink Href="@($"/members/{context.Id}")" Underline="Underline.None">
+            <MudLink OnClick="@(() => QuickViewAsync(context.Id))" Underline="Underline.None" Class="gsm-clickable-identity"
+                     data-testid="@($"quick-view-{context.Id}")">
                 <span class="gsm-identity">
                     <span class="gsm-avatar gsm-avatar--sm" aria-hidden="true">@GsmFormat.Initials($"{context.FirstName} {context.LastName}")</span>
                     <span>@context.FirstName @context.LastName</span>
@@ -104,6 +105,7 @@
         </MudTd>
         <MudTd DataLabel="Ingresó">@GsmFormat.Day(context.JoinedAt)</MudTd>
         <MudTd>
+          <div class="gsm-actions-cell">
             @if (context.Status != "Inactive")
             {
                 <WhatsAppButton MemberId="context.Id" State="StateOf(context.Id)" AutoLoad="false" Compact="true"
@@ -116,6 +118,7 @@
             }
             <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="@(() => OpenEditAsync(context))"
                            aria-label="@($"Editar a {context.FirstName} {context.LastName}")" />
+          </div>
         </MudTd>
     </RowTemplate>
 </ServerTable>
@@ -246,6 +249,12 @@
             Snackbar.Add("Miembro creado.", Severity.Success);
             await _table.RefreshAsync();
         }
+    }
+
+    private async Task QuickViewAsync(Guid id)
+    {
+        var parameters = new DialogParameters<MemberQuickViewDialog> { { x => x.MemberId, id } };
+        await Dialogs.ShowAsync<MemberQuickViewDialog>("Miembro", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
     }
 
     private async Task ChargeAsync(MemberListItem item)
