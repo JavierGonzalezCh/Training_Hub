@@ -16,6 +16,12 @@ public interface IRefreshTokenService
     /// <summary>Dueño y acceso del token si está vigente (no expirado, no revocado); si no, <c>null</c>.</summary>
     Task<RefreshTokenOwner?> ResolveActiveAsync(string plaintextToken, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Por qué un refresh token no sirve, para el registro de seguridad: <c>invalid</c> (no existe), <c>revoked</c> o
+    /// <c>expired</c>. Nunca devuelve el token.
+    /// </summary>
+    Task<string> DescribeInactiveAsync(string plaintextToken, CancellationToken cancellationToken = default);
+
     /// <summary>Revoca el token. Idempotente: un token inexistente o ya revocado no es error.</summary>
     Task RevokeAsync(string plaintextToken, CancellationToken cancellationToken = default);
 

@@ -40,7 +40,6 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_mode", new[] { "rotating", "static" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "checkin_rejection_reason", new[] { "membership_expired", "no_membership", "gym_closed", "membership_frozen", "pass_exhausted", "member_inactive", "already_checked_in" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "location_check", new[] { "inside", "outside", "denied" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attendance", "training_entry_trigger", new[] { "start", "first_log" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_booking_status", new[] { "booked", "cancelled", "attended", "no_show" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "class_session_status", new[] { "scheduled", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "classes", "day_of_week", new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" });
@@ -573,12 +572,6 @@ namespace GSM.Infrastructure.Migrations
                     b.Property<int>("StaticCodeVersion")
                         .HasColumnType("integer")
                         .HasColumnName("static_code_version");
-
-                    b.Property<TrainingEntryTrigger>("TrainingEntryTrigger")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("attendance.training_entry_trigger")
-                        .HasDefaultValue(TrainingEntryTrigger.Start)
-                        .HasColumnName("training_entry_trigger");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -3885,6 +3878,41 @@ namespace GSM.Infrastructure.Migrations
                         .HasDatabaseName("ix_payments_gym_id_paid_at");
 
                     b.ToTable("payments", "payments");
+                });
+
+            modelBuilder.Entity("GSM.Domain.Payments.PaymentSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GymId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<bool>("UseCashDrawer")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("use_cash_drawer");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_settings");
+
+                    b.HasIndex("GymId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_settings_gym_id");
+
+                    b.ToTable("payment_settings", "payments");
                 });
 
             modelBuilder.Entity("GSM.Domain.Payments.VoidRequest", b =>

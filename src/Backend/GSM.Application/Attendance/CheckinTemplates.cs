@@ -7,8 +7,7 @@ namespace GSM.Application.Attendance;
 public sealed record CheckinTemplate(
     CheckinMode Mode,
     int AssumedStayMinutes,
-    bool RemoteTraining = false,
-    TrainingEntryTrigger TrainingEntryTrigger = TrainingEntryTrigger.Start);
+    bool RemoteTraining = false);
 
 public static class CheckinTemplates
 {
@@ -24,7 +23,7 @@ public static class CheckinTemplates
         // Sin puerta ni sede: entrena donde esté y el día cuenta con el primer ejercicio registrado.
         GymType.PersonalTrainer => new(
             CheckinMode.Rotating, CheckinSettings.DefaultAssumedStayMinutes,
-            RemoteTraining: true, TrainingEntryTrigger: TrainingEntryTrigger.FirstLog),
+            RemoteTraining: true),
         _ => new(CheckinMode.Rotating, CheckinSettings.DefaultAssumedStayMinutes),
     };
 }

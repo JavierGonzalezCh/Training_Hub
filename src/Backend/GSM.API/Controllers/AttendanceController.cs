@@ -31,23 +31,6 @@ public sealed class AttendanceController : ControllerBase
     }
 
     /// <summary>
-    /// A8: el miembro cuenta su día al iniciar el entrenamiento. Solo en un gym sin registro de entrada en la puerta
-    /// (QR y documento apagados; si no, 403). Idempotente por día: la primera vez crea la entrada (201), después
-    /// devuelve la misma (200). Fuera de la gracia, 409 con el motivo, como el QR.
-    /// </summary>
-    [HttpPost("routine-start")]
-    [Authorize]
-    [EndpointName("StartTrainingCheckin")]
-    [ProducesResponseType<CheckInResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType<CheckInResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<CheckInResponse>> StartTrainingCheckin(
-        [FromServices] CheckInHandler handler, CancellationToken cancellationToken)
-    {
-        var (response, created) = await handler.HandleRoutineStartAsync(cancellationToken);
-        return created ? StatusCode(StatusCodes.Status201Created, response) : Ok(response);
-    }
-
-    /// <summary>
     /// ¿Debe la app pedir la ubicación del teléfono antes de registrar la entrada? Solo con el QR fijo y si el gym
     /// tiene coordenadas (A6). Lo consulta la app del miembro antes de llamar a `checkin`.
     /// </summary>

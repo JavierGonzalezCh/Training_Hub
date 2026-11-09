@@ -23,3 +23,10 @@ internal enum LegacyEmailStatus
     Sent,
     Failed,
 }
+
+// C4: el disparador del conteo del día sin registro en la puerta se eliminó; las migraciones históricas lo nombran.
+internal enum TrainingEntryTrigger
+{
+    Start,
+    FirstLog,
+}

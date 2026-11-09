@@ -15,6 +15,11 @@ public interface IPaymentRepository
 {
     void Add(Payment payment);
 
+    /// <summary>Ajustes de pagos del gym actual; <c>null</c> si nadie los ha tocado (valen los de por defecto).</summary>
+    Task<PaymentSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);
+
+    void Add(PaymentSettings settings);
+
     Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
 
     Task<bool> IsReversedAsync(Guid paymentId, CancellationToken cancellationToken = default);

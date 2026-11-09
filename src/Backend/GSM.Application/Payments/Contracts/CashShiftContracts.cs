@@ -1,5 +1,10 @@
 namespace GSM.Application.Payments.Contracts;
 
+/// <summary>Si el negocio lleva el efectivo por turnos de caja. Apagado: sin turnos ni barra de caja.</summary>
+public sealed record PaymentSettingsResponse(bool UseCashDrawer);
+
+public sealed record UpdatePaymentSettingsRequest(bool UseCashDrawer);
+
 public sealed record OpenCashShiftRequest(decimal OpeningCash);
 
 public sealed record CloseCashShiftRequest(decimal CountedCash, string? Notes);

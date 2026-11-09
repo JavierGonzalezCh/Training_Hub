@@ -24,6 +24,11 @@ else
 {
 <MudText HtmlTag="h2" Typo="Typo.h6" Class="mb-6">Iniciar sesión</MudText>
 
+@if (Expired == "1")
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" data-testid="session-ended">Tu sesión terminó. Vuelve a entrar.</MudAlert>
+}
+
 @if (_error is not null)
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
@@ -57,6 +62,10 @@ else
     // Ruta local a la que volver tras entrar (p. ej. el enlace del QR del gym). Cualquier otra cosa se ignora.
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
+
+    // E5: la sesión terminó (la renovación falló); el watcher del router trae aquí con este marcador.
+    [SupplyParameterFromQuery(Name = "expired")]
+    public string? Expired { get; set; }
 
     // Los enlaces de invitación para quien ya tiene cuenta llegan con el email precargado.
     [SupplyParameterFromQuery(Name = "email")]

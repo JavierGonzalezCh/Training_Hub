@@ -36,7 +36,6 @@ public sealed class CheckInHandler(
     ICheckinAttemptRepository attempts,
     IMemberEntryRuleRepository entryRules,
     ICheckinCodeSigner signer,
-    IAttendanceReader attendanceReader,
     IUnitOfWork unitOfWork,
     IDomainEventPublisher events,
     ILogger<CheckInHandler> logger)
@@ -61,39 +60,6 @@ public sealed class CheckInHandler(
         var (response, _) = await RunAsync(
             new CheckInRequest(member.Id, null), member, EntryChannel.Document, cancellationToken);
         return response;
-    }
-
-    /// <summary>
-    /// A8: en un gym sin registro de entrada en la puerta (QR y documento apagados), el miembro cuenta su día al
-    /// iniciar el entrenamiento. Las mismas reglas que el QR (gym abierto, miembro activo, veredicto de Memberships,
-    /// rechazo con intento), sin código. Es idempotente por día: si ya hay una entrada hoy, por cualquier vía,
-    /// devuelve esa (200) y no crea otra, así iniciar la rutina dos veces no suma dos visitas.
-    /// </summary>
-    public async Task<(CheckInResponse Response, bool Created)> HandleRoutineStartAsync(CancellationToken cancellationToken)
-    {
-        if (currentUser.Role != UserRole.Member)
-        {
-            throw new ForbiddenDomainException("Solo los miembros registran su entrenamiento.");
-        }
-
-        var gymId = currentUser.RequireGymId();
-        if (!await attendanceReader.IsRoutineEntryAsync(gymId, cancellationToken))
-        {
-            throw new ForbiddenDomainException(
-                "Tu gimnasio registra la entrada en la puerta: escanea el QR o pasa por recepción.");
-        }
-
-        // T4: con «cuenta al registrar el primer ejercicio» tocar un botón no basta; el día lo cuenta el registro.
-        if (await attendanceReader.IsFirstLogEntryAsync(gymId, cancellationToken))
-        {
-            throw new ForbiddenDomainException(
-                "Tu día cuenta en cuanto registres tu primer ejercicio. Anota un ejercicio de tu rutina.");
-        }
-
-        var userId = currentUser.UserId ?? throw new UnauthorizedDomainException("Sin usuario en el contexto.");
-        var member = await members.ResolveByUserIdAsync(userId, cancellationToken)
-            ?? throw new ForbiddenDomainException("Tu cuenta no está vinculada a un miembro.");
-        return await RunAsync(new CheckInRequest(member.Id, null), member, EntryChannel.Routine, cancellationToken);
     }
 
     /// <summary>
@@ -209,8 +175,10 @@ public sealed class CheckInHandler(
         // Memberships decide quién entra (estado, gracia y letrero): Attendance ya no calcula la gracia.
         var access = await memberships.GetAccessStatusAsync(member.Id, cancellationToken);
 
+        // C5: por entrenamiento el día cuenta aunque la membresía esté vencida; solo lo impide un miembro inactivo
+        // (ya rechazado arriba). El aviso de renovación lo muestra la app del miembro.
         string? authorizationReason = null;
-        if (access.Kind == AccessKind.Blocked)
+        if (access.Kind == AccessKind.Blocked && channel != EntryChannel.Routine)
         {
             if (isMember)
             {

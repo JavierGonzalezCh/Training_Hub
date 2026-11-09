@@ -66,7 +66,7 @@
             }
             @if (!Draft.IsWeekly)
             {
-                <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Descanso" Color="Color.Primary" />
+                <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Marcar como día de descanso" Color="Color.Primary" data-testid="@($"day-rest-{index}")" />
             }
             <MudSpacer />
             <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => MoveDay(index, -1))"
@@ -139,13 +139,6 @@
                             var number = setIndex;
                             <div class="d-flex align-center flex-wrap mb-1" style="gap:0.5rem" data-testid="@($"set-{index}-{lineIndex}-{number}")">
                                 <MudText Typo="Typo.caption" Class="gsm-mono" Style="width:3.5rem">Serie @(number + 1)</MudText>
-                                <label class="gsm-native-field"><select aria-label="@($"Tipo de la serie {number + 1}")" data-testid="@($"set-type-{index}-{lineIndex}-{number}")"
-                                        @onchange="@(e => set.SetType = e.Value?.ToString() ?? "normal")">
-                                    @foreach (var (value, label) in SetPlan.SetTypes)
-                                    {
-                                        <option value="@value" selected="@(set.SetType == value)">@label</option>
-                                    }
-                                </select></label>
                                 @if (fields.Reps && !set.IsFailure)
                                 {
                                     <MudNumericField T="int?" @bind-Value="set.RepsMin" Label="Reps mín." Style="width:6rem" Margin="Margin.Dense" />

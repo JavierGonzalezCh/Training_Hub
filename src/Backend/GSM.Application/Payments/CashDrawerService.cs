@@ -19,6 +19,13 @@ public sealed class CashDrawerService(
     IPaymentRepository payments,
     IIdentityReader identity)
 {
+    /// <summary>
+    /// ¿El negocio lleva el efectivo por turnos de caja? Sin fila de ajustes sí. Apagado: el efectivo se registra sin
+    /// turno y no mueve ninguna caja.
+    /// </summary>
+    public async Task<bool> UseCashDrawerAsync(CancellationToken cancellationToken)
+        => (await payments.GetSettingsAsync(currentUser.RequireGymId(), cancellationToken))?.UseCashDrawer ?? true;
+
     /// <summary>Una caja abierta hace más de estas horas está "olvidada" (§4.1).</summary>
     public const int StaleAfterHours = 16;
 
@@ -66,7 +73,7 @@ public sealed class CashDrawerService(
     {
         var open = await shifts.GetOpenAsync(cancellationToken);
 
-        if (!original.Method.GoesToCashDrawer())
+        if (!original.Method.GoesToCashDrawer() || !await UseCashDrawerAsync(cancellationToken))
         {
             return (open?.Id, false);
         }
@@ -94,7 +101,8 @@ public sealed class CashDrawerService(
     /// <summary>¿Anular este pago exige decidir si el dinero se devuelve ahora? (efectivo de un turno ya cerrado).</summary>
     public async Task<bool> RequiresRefundDecisionAsync(Payment original, CancellationToken cancellationToken)
     {
-        if (!original.Method.GoesToCashDrawer() || original.ReversesPaymentId is not null)
+        if (!original.Method.GoesToCashDrawer() || original.ReversesPaymentId is not null
+            || !await UseCashDrawerAsync(cancellationToken))
         {
             return false;
         }

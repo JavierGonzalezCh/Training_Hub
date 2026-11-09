@@ -171,4 +171,5 @@ public static class SecurityEventTypes
     public const string KioskPairingFailed = "kiosk_pairing_failed";
     public const string DocumentEntryLocked = "document_entry_locked";
     public const string CodeAttemptsExceeded = "code_attempts_exceeded";
+    public const string RefreshFailed = "refresh_failed";
 }

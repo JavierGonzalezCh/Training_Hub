@@ -161,12 +161,11 @@ else
         @if (shown.Count > 0 && GymCtx.FeatureFlags?.RoutineEntry == true)
         {
             <div class="mb-4">
-                <TrainingEntryCard Title="¿Empiezas a entrenar?" ButtonText="Iniciar rutina" CountedAt="_countedAt"
-                                   FirstLog="GymCtx.FeatureFlags?.RoutineEntryFirstLog == true" ShowFirstLogHint="true" />
+                <TrainingEntryCard CountedAt="_countedAt" />
             </div>
         }
 
-        @if (shown.Count > 0 && GymCtx.FeatureFlags?.RoutineEntry != true)
+        @if (shown.Count > 0)
         {
             var totalSets = shown.Sum(e => Math.Max(1, e.SetTargets.Count));
             var doneCount = shown.Count(e => StateOf(e).Done);
@@ -306,7 +305,7 @@ else
                                     <div class="gsm-m-setrow__head">
                                         <span class="gsm-m-set__num">@(index + 1)</span>
                                         <span class="gsm-m-setrow__plan">
-                                            @(target is null ? "Serie extra" : $"{(target.SetType == "normal" ? "" : SetPlan.SetTypeLabel(target.SetType) + ": ")}{SetPlan.Describe(target, exercise.IsUnilateral == true, withRir: false)}")
+                                            @(target is null ? "Serie extra" : SetPlan.Describe(target, exercise.IsUnilateral == true, withRir: false))
                                         </span>
                                         @if (state.Done)
                                         {
@@ -1042,6 +1041,11 @@ else
     private RenderFragment SessionView(TodayView today) => __builder =>
     {
         var session = _session!;
+        if (GymCtx.FeatureFlags?.RoutineEntry == true)
+        {
+            <MembershipLapsedNotice />
+        }
+
         if (session.Summary)
         {
             var exercises = session.Exercises;
@@ -1200,7 +1204,7 @@ else
                                                  aria-label="@($"Distancia de la serie {index + 1}, en metros")" />
                             }
                         </div>
-                        <span class="gsm-m-set__plan">@(target is null ? "Extra" : target.SetType is "normal" or null ? "" : SetPlan.SetTypeLabel(target.SetType))</span>
+                        <span class="gsm-m-set__plan">@(target is null ? "Extra" : "")</span>
                     </li>
                 }
             </ol>

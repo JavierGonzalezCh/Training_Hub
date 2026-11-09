@@ -73,6 +73,11 @@ public sealed class RoutineDay : BaseEntity, ITenantEntity
             throw new ValidationDomainException("Un día de descanso no admite ejercicios.");
         }
 
+        if (!draft.IsRest && draft.Exercises.Count == 0)
+        {
+            throw new ValidationDomainException("Cada día de la rutina necesita al menos un ejercicio o ser un día de descanso.");
+        }
+
         EnsureGroupsAreContiguous(draft.Exercises);
 
         var current = _exercises.Where(e => e.RetiredOn is null).ToDictionary(e => e.Id);

@@ -191,15 +191,15 @@ public sealed class AttendanceReader(
             return new RoutineEntryMode(false, false);
         }
 
-        // Ajustes perezosos: sin fila la entrada con documento está apagada y el conteo es al iniciar.
+        // Ajustes perezosos: sin fila la entrada con documento está apagada.
         var settings = await checkinSettings.GetAsync(gymId, cancellationToken);
         if (settings is { ByDocument: true })
         {
             return new RoutineEntryMode(false, false);
         }
 
-        return new RoutineEntryMode(
-            true, settings is { TrainingEntryTrigger: GSM.Domain.Attendance.TrainingEntryTrigger.FirstLog });
+        // C4: sin registro en la puerta el día cuenta siempre al registrar el primer ejercicio.
+        return new RoutineEntryMode(true, true);
     }
 
     public async Task<OccupancyView> GetOccupancyAsync(Guid gymId, CancellationToken cancellationToken = default)

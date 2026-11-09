@@ -31,14 +31,14 @@ public class RecommendedConfigUiTests : TestContext
             ShowRoutines = false, ShowClasses = true, ShowProgress = true, ShowGamification = true, ShowCommunity = true,
             CheckinQr = true, MembersCanCreateRoutines = false, MembersCanReportEquipment = false, ShowRanking = true, ShowFrontDesk = true,
         },
-        Checkin = new RecommendedCheckin { Mode = "Static", AssumedStayMinutes = 60, RemoteTraining = false, TrainingEntryTrigger = "Start" },
+        Checkin = new RecommendedCheckin { Mode = "Static", AssumedStayMinutes = 60, RemoteTraining = false },
         Memberships = new RecommendedMemberships { GraceDays = 0, ExpiringDays = 7, EnrollmentFee = 0 },
         Routines = new RecommendedRoutines { ReviewWeeks = 6 },
     };
 
     private static CheckinSettingsResponse CurrentCheckin() => new()
     {
-        Mode = "Rotating", ByDocument = false, AssumedStayMinutes = 120, RemoteTraining = false, TrainingEntryTrigger = "Start",
+        Mode = "Rotating", ByDocument = false, AssumedStayMinutes = 120, RemoteTraining = false,
     };
 
     private static RecommendedConfigDiff Diff(RecommendedConfiguration? recommended = null)
@@ -68,7 +68,7 @@ public class RecommendedConfigUiTests : TestContext
     {
         var same = new RecommendedConfigDiff(
             StudioTemplate().Modules,
-            new CheckinSettingsResponse { Mode = "Static", AssumedStayMinutes = 60, RemoteTraining = false, TrainingEntryTrigger = "Start" },
+            new CheckinSettingsResponse { Mode = "Static", AssumedStayMinutes = 60, RemoteTraining = false },
             new MembershipSettingsResponse { GraceDays = 0, ExpiringDays = 7, EnrollmentFee = 0 },
             new RoutineSettingsResponse { ReviewWeeks = 6 },
             StudioTemplate());
@@ -101,7 +101,7 @@ public class RecommendedConfigUiTests : TestContext
     {
         var current = new CheckinSettingsResponse
         {
-            Mode = "Rotating", ByDocument = true, AssumedStayMinutes = 120, RemoteTraining = true, TrainingEntryTrigger = "FirstLog",
+            Mode = "Rotating", ByDocument = true, AssumedStayMinutes = 120, RemoteTraining = true,
         };
         var diff = new RecommendedConfigDiff(
             CurrentFlags(), current,
@@ -114,7 +114,6 @@ public class RecommendedConfigUiTests : TestContext
         Assert.True(request.ByDocument);
         Assert.Equal(120, request.AssumedStayMinutes);
         Assert.True(request.RemoteTraining);
-        Assert.Equal("FirstLog", request.TrainingEntryTrigger);
     }
 
     // ---- El diálogo ----
@@ -230,7 +229,7 @@ public class RecommendedConfigUiTests : TestContext
         var aligned = StudioTemplate();
         // El gym del fake tiene la configuración de siempre; una plantilla igual a ella no tiene diferencias.
         aligned.Modules = CurrentFlags();
-        aligned.Checkin = new RecommendedCheckin { Mode = "Rotating", AssumedStayMinutes = 120, RemoteTraining = false, TrainingEntryTrigger = "Start" };
+        aligned.Checkin = new RecommendedCheckin { Mode = "Rotating", AssumedStayMinutes = 120, RemoteTraining = false };
         aligned.Memberships = new RecommendedMemberships { GraceDays = 3, ExpiringDays = 7, EnrollmentFee = 0 };
         aligned.Type = "Gym";
 

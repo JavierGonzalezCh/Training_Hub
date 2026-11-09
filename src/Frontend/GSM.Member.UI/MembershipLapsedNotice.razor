@@ -1,0 +1,38 @@
+@inject MemberContext MemberCtx
+@inject GymContext GymCtx
+
+@* C5: sin registro en la puerta el día cuenta aunque la membresía esté vencida; la app solo avisa, sin bloquear nada. *@
+@if (Message is { } message)
+{
+    <section class="gsm-m-card gsm-m-alert" role="status" data-testid="membership-lapsed-notice">
+        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Info" /></span>
+        <div class="gsm-m-card__body">
+            <p class="gsm-m-card__text">@message</p>
+        </div>
+    </section>
+}
+
+@code {
+    private string? Message
+    {
+        get
+        {
+            if (MemberCtx.Detail is not { } member)
+            {
+                return null;
+            }
+
+            if (member.CommercialStatus is "current" or "expiring" or "grace" or "scheduled" or "frozen")
+            {
+                return null;
+            }
+
+            var gym = GymCtx.Gym?.Name ?? "tu gimnasio";
+            return member.CurrentMembership is { } current
+                ? $"Tu plan {current.PlanName} está vencido. Comunícate con {gym} para renovarlo."
+                : member.CommercialStatus == "expired"
+                    ? $"Tu plan está vencido. Comunícate con {gym} para renovarlo."
+                    : $"No tienes un plan vigente. Comunícate con {gym}.";
+        }
+    }
+}

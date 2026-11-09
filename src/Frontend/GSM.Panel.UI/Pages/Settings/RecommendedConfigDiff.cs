@@ -63,13 +63,6 @@ public sealed class RecommendedConfigDiff(
                 OnOff(checkin.RemoteTraining == true), OnOff(wantedCheckin.RemoteTraining)));
         }
 
-        if (!string.Equals(checkin.TrainingEntryTrigger ?? "Start", wantedCheckin.TrainingEntryTrigger, StringComparison.OrdinalIgnoreCase))
-        {
-            list.Add(new ConfigChoice(
-                "checkin.TrainingEntryTrigger", "checkin", "Cuándo cuenta el día sin registro en la puerta",
-                TriggerText(checkin.TrainingEntryTrigger), TriggerText(wantedCheckin.TrainingEntryTrigger)));
-        }
-
         var wantedMemberships = recommended.Memberships;
         if (memberships.GraceDays != wantedMemberships.GraceDays)
         {
@@ -141,9 +134,6 @@ public sealed class RecommendedConfigDiff(
             ByDocument = checkin.ByDocument,
             AssumedStayMinutes = selected.Contains("checkin.AssumedStayMinutes") ? wanted.AssumedStayMinutes : checkin.AssumedStayMinutes,
             RemoteTraining = selected.Contains("checkin.RemoteTraining") ? wanted.RemoteTraining : checkin.RemoteTraining == true,
-            TrainingEntryTrigger = selected.Contains("checkin.TrainingEntryTrigger")
-                ? wanted.TrainingEntryTrigger
-                : checkin.TrainingEntryTrigger ?? "Start",
         };
     }
 
@@ -172,9 +162,4 @@ public sealed class RecommendedConfigDiff(
 
     private static string ModeText(string mode)
         => string.Equals(mode, "Static", StringComparison.OrdinalIgnoreCase) ? "Cartel impreso" : "Pantalla en la entrada";
-
-    private static string TriggerText(string? trigger)
-        => string.Equals(trigger, "FirstLog", StringComparison.OrdinalIgnoreCase)
-            ? "Al registrar el primer ejercicio"
-            : "Al iniciar el entrenamiento";
 }

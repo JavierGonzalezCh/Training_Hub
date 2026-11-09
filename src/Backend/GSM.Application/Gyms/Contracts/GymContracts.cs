@@ -76,7 +76,7 @@ public sealed record RecommendedConfiguration(
     RecommendedMemberships Memberships,
     RecommendedRoutines Routines);
 
-public sealed record RecommendedCheckin(string Mode, int AssumedStayMinutes, bool RemoteTraining, string TrainingEntryTrigger);
+public sealed record RecommendedCheckin(string Mode, int AssumedStayMinutes, bool RemoteTraining);
 
 public sealed record RecommendedMemberships(int GraceDays, int ExpiringDays, decimal EnrollmentFee);
 

@@ -17,8 +17,8 @@ using Xunit;
 namespace GSM.IntegrationTests;
 
 /// <summary>
-/// T4 — <c>RemoteTraining</c> (entrenar fuera de la sede) y <c>TrainingEntryTrigger</c> (el día cuenta al iniciar o al
-/// registrar el primer ejercicio), sobre el conteo por entrenamiento de A8.
+/// T4 — <c>RemoteTraining</c> (entrenar fuera de la sede) y el conteo del día al registrar el primer ejercicio
+/// (C4: es la única forma sin registro en la puerta; C5: la membresía vencida no lo impide).
 /// </summary>
 public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
@@ -29,14 +29,13 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
     [Fact]
     public async Task A_closed_gym_blocks_the_training_count_unless_the_members_train_remotely()
     {
-        var local = await SeedAsync(remote: false, closedToday: true);
-        var ex = await Assert.ThrowsAsync<ConflictException>(() => StartAsync(local));
-        Assert.Contains("cerrado", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var local = await SeedAsync(remote: false, closedToday: true, withRoutine: true);
+        await LogAsync(local, local.Lines[0]);
+        Assert.Equal(0, await EntryCountAsync(local));
 
-        var remote = await SeedAsync(remote: true, closedToday: true);
-        var (response, created) = await StartAsync(remote);
-        Assert.True(created);
-        Assert.Equal("Routine", response.Method);
+        var remote = await SeedAsync(remote: true, closedToday: true, withRoutine: true);
+        await LogAsync(remote, remote.Lines[0]);
+        Assert.Equal(1, await EntryCountAsync(remote));
     }
 
     [Fact]
@@ -54,8 +53,8 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
     [InlineData(true, 0)]
     public async Task Remote_training_entries_do_not_count_for_occupancy_or_peak_hours(bool remote, int expected)
     {
-        var w = await SeedAsync(remote, closedToday: false);
-        await StartAsync(w);
+        var w = await SeedAsync(remote, closedToday: false, withRoutine: true);
+        await LogAsync(w, w.Lines[0]);
 
         using var s = Scope(w, UserRole.Staff);
         var reader = s.ServiceProvider.GetRequiredService<IAttendanceReader>();
@@ -72,27 +71,19 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
         var update = s.ServiceProvider.GetRequiredService<UpdateCheckinSettingsHandler>();
 
         var saved = await update.HandleAsync(
-            new UpdateCheckinSettingsRequest("Rotating", RemoteTraining: true, TrainingEntryTrigger: "FirstLog"), default);
+            new UpdateCheckinSettingsRequest("Rotating", RemoteTraining: true), default);
         Assert.True(saved.RemoteTraining);
-        Assert.Equal("FirstLog", saved.TrainingEntryTrigger);
 
         var kept = await update.HandleAsync(new UpdateCheckinSettingsRequest("Rotating"), default);
         Assert.True(kept.RemoteTraining);
-        Assert.Equal("FirstLog", kept.TrainingEntryTrigger);
-
-        await Assert.ThrowsAsync<ValidationDomainException>(() => update.HandleAsync(
-            new UpdateCheckinSettingsRequest("Rotating", TrainingEntryTrigger: "whenever"), default));
     }
 
     // ---- first_log ----
 
     [Fact]
-    public async Task With_first_log_the_button_is_refused_and_the_first_exercise_counts_the_day_once()
+    public async Task The_first_exercise_counts_the_day_once()
     {
-        var w = await SeedAsync(remote: true, closedToday: false, trigger: TrainingEntryTrigger.FirstLog, withRoutine: true);
-
-        var ex = await Assert.ThrowsAsync<ForbiddenDomainException>(() => StartAsync(w));
-        Assert.Contains("primer ejercicio", ex.Message);
+        var w = await SeedAsync(remote: true, closedToday: false, withRoutine: true);
         Assert.Equal(0, await EntryCountAsync(w));
 
         await LogAsync(w, w.Lines[0]);
@@ -110,9 +101,9 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
     }
 
     [Fact]
-    public async Task With_start_the_first_exercise_does_not_create_an_entry_by_itself()
+    public async Task With_the_door_qr_on_logging_an_exercise_does_not_create_an_entry()
     {
-        var w = await SeedAsync(remote: false, closedToday: false, trigger: TrainingEntryTrigger.Start, withRoutine: true);
+        var w = await SeedAsync(remote: false, closedToday: false, withRoutine: true, checkinQr: true);
 
         await LogAsync(w, w.Lines[0]);
 
@@ -120,49 +111,35 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
     }
 
     [Fact]
-    public async Task With_first_log_and_an_expired_membership_the_exercise_is_saved_and_the_day_does_not_count()
+    public async Task With_an_expired_membership_the_first_exercise_still_counts_the_day()
     {
-        var w = await SeedAsync(
-            remote: true, closedToday: false, trigger: TrainingEntryTrigger.FirstLog, withRoutine: true, endedDaysAgo: 10);
+        var w = await SeedAsync(remote: true, closedToday: false, withRoutine: true, endedDaysAgo: 10);
 
         await LogAsync(w, w.Lines[0]);
 
         using var s = Scope(w, UserRole.Member);
         var db = s.ServiceProvider.GetRequiredService<GsmDbContext>();
-        Assert.Equal(0, await EntryCountAsync(w));
+        Assert.Equal(1, await EntryCountAsync(w));
         Assert.True(await db.Set<GSM.Domain.Routines.RoutineExerciseLog>().AnyAsync(l => l.MemberId == w.MemberId));
-        // El rechazo queda como intento, igual que con el QR.
-        Assert.True(await db.Set<CheckinAttempt>().AnyAsync(a => a.MemberId == w.MemberId));
+        // Sin rechazo: no queda intento de check-in.
+        Assert.False(await db.Set<CheckinAttempt>().AnyAsync(a => a.MemberId == w.MemberId));
     }
 
     [Fact]
-    public async Task A_rejected_first_exercise_is_retried_by_the_next_one_once_the_membership_is_renewed()
+    public async Task An_inactive_member_does_not_count_the_day_by_training()
     {
-        var w = await SeedAsync(
-            remote: true, closedToday: false, trigger: TrainingEntryTrigger.FirstLog, withRoutine: true, endedDaysAgo: 10);
-
-        await LogAsync(w, w.Lines[0]);
-        Assert.Equal(0, await EntryCountAsync(w));
-
-        // Recepción renueva la membresía y el miembro sigue entrenando ese mismo día.
+        var w = await SeedAsync(remote: true, closedToday: false, withRoutine: true);
         using (var scope = factory.CreateScopeWithMigration())
         {
             scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
             var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
-            var plan = await db.Set<MembershipPlan>().IgnoreQueryFilters().FirstAsync(p => p.GymId == w.GymId);
-            db.Add(Membership.Create(w.GymId, w.MemberId, plan.Id, Today.AddDays(-1), 30));
+            (await db.Set<Member>().IgnoreQueryFilters().SingleAsync(m => m.Id == w.MemberId)).Deactivate(Today);
             await db.SaveChangesAsync();
         }
 
-        await LogAsync(w, w.Lines[1]);
-        Assert.Equal(1, await EntryCountAsync(w));
+        await LogAsync(w, w.Lines[0]);
 
-        // Un tercer ejercicio no suma otra visita.
-        using (var scope = Scope(w, UserRole.Member))
-        {
-            var logs = scope.ServiceProvider.GetRequiredService<GsmDbContext>().Set<GSM.Domain.Routines.RoutineExerciseLog>();
-            Assert.Equal(2, await logs.CountAsync(l => l.MemberId == w.MemberId));
-        }
+        Assert.Equal(0, await EntryCountAsync(w));
     }
 
     [Fact]
@@ -171,11 +148,9 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
         var template = CheckinTemplates.For(GymType.PersonalTrainer);
 
         Assert.True(template.RemoteTraining);
-        Assert.Equal(TrainingEntryTrigger.FirstLog, template.TrainingEntryTrigger);
         foreach (var type in new[] { GymType.Gym, GymType.Box, GymType.Studio, GymType.Academy, GymType.Other })
         {
             Assert.False(CheckinTemplates.For(type).RemoteTraining);
-            Assert.Equal(TrainingEntryTrigger.Start, CheckinTemplates.For(type).TrainingEntryTrigger);
         }
     }
 
@@ -188,12 +163,6 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
         user.ActAs(role == UserRole.Member ? w.MemberUserId : Guid.CreateVersion7(), w.GymId, role);
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(Today);
         return scope;
-    }
-
-    private async Task<(CheckInResponse Response, bool Created)> StartAsync(World w)
-    {
-        using var s = Scope(w, UserRole.Member);
-        return await s.ServiceProvider.GetRequiredService<CheckInHandler>().HandleRoutineStartAsync(default);
     }
 
     private async Task LogAsync(World w, Guid routineExerciseId)
@@ -213,9 +182,9 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
     private async Task<World> SeedAsync(
         bool remote,
         bool closedToday,
-        TrainingEntryTrigger trigger = TrainingEntryTrigger.Start,
         bool withRoutine = false,
-        int endedDaysAgo = -10)
+        int endedDaysAgo = -10,
+        bool checkinQr = false)
     {
         Guid gymId;
         Guid memberId;
@@ -227,10 +196,10 @@ public sealed class RemoteTrainingTests(ApiFactory factory) : IClassFixture<ApiF
 
             var gym = Gym.Create("Remote Gym", $"rt-{Guid.NewGuid():N}"[..16]);
             var flags = GymFeatureFlags.Default(gym.Id);
-            flags.Update(true, true, true, true, true, false, false);
+            flags.Update(true, true, true, true, true, checkinQr, false);
 
             var settings = CheckinSettings.Default(gym.Id);
-            settings.Update(CheckinMode.Rotating, false, remoteTraining: remote, trainingEntryTrigger: trigger);
+            settings.Update(CheckinMode.Rotating, false, remoteTraining: remote);
 
             var member = Member.Create(gym.Id, "Ana", "Prueba", $"doc-{Guid.NewGuid():N}"[..12], Today.AddDays(-100));
             member.LinkUser(userId);

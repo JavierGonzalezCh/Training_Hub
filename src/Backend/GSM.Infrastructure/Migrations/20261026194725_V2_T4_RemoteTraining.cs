@@ -128,13 +128,9 @@ namespace GSM.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: false);
 
-            migrationBuilder.AddColumn<TrainingEntryTrigger>(
-                name: "training_entry_trigger",
-                schema: "attendance",
-                table: "checkin_settings",
-                type: "attendance.training_entry_trigger",
-                nullable: false,
-                defaultValue: TrainingEntryTrigger.Start);
+            // C4: el enum de C# ya no existe; la columna se crea con SQL para no depender de su mapeo.
+            migrationBuilder.Sql(
+                "ALTER TABLE attendance.checkin_settings ADD COLUMN training_entry_trigger attendance.training_entry_trigger NOT NULL DEFAULT 'start';");
         }
 
         /// <inheritdoc />

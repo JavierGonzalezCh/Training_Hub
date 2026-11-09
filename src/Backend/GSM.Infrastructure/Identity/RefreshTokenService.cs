@@ -39,6 +39,14 @@ public sealed class RefreshTokenService(GsmDbContext dbContext, IOptions<JwtOpti
             : null;
     }
 
+    public async Task<string> DescribeInactiveAsync(string plaintextToken, CancellationToken cancellationToken = default)
+    {
+        var hash = Hash(plaintextToken);
+        var token = await dbContext.RefreshTokens
+            .FirstOrDefaultAsync(t => t.TokenHash == hash, cancellationToken);
+        return token is null ? "invalid" : token.RevokedAt is not null ? "revoked" : "expired";
+    }
+
     public async Task RevokeAsync(string plaintextToken, CancellationToken cancellationToken = default)
     {
         var hash = Hash(plaintextToken);

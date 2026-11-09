@@ -55,8 +55,7 @@ public sealed class GymController : ControllerBase
             type.ToString(),
             GymMapper.ToResponse(GSM.Domain.Gyms.GymFeatureFlags.ForType(gym.Id, type)),
             new RecommendedCheckin(
-                checkin.Mode.ToString(), checkin.AssumedStayMinutes, checkin.RemoteTraining,
-                checkin.TrainingEntryTrigger.ToString()),
+                checkin.Mode.ToString(), checkin.AssumedStayMinutes, checkin.RemoteTraining),
             new RecommendedMemberships(memberships.GraceDays, memberships.ExpiringDays, memberships.EnrollmentFee),
             new RecommendedRoutines(routines.ReviewWeeks)));
     }

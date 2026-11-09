@@ -1,0 +1,28 @@
+@implements IDisposable
+@inject SessionEvents Events
+@inject GsmAuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+
+@* E5: cuando la renovación de la sesión falla, los tokens ya se borraron; aquí se avisa a la interfaz y se lleva al login
+   con el mensaje «Tu sesión terminó», conservando la ruta para volver. *@
+
+@code {
+    public const string QueryKey = "expired";
+
+    protected override void OnInitialized() => Events.Ended += OnEnded;
+
+    private void OnEnded() => _ = InvokeAsync(() =>
+    {
+        AuthState.NotifyChanged();
+        var current = Navigation.ToBaseRelativePath(Navigation.Uri);
+        if (current.StartsWith("login", StringComparison.OrdinalIgnoreCase) || current.StartsWith("app/entrar", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var login = ReturnUrl.LoginFor(current);
+        Navigation.NavigateTo(login + (login.Contains('?') ? "&" : "?") + QueryKey + "=1", replace: true);
+    });
+
+    public void Dispose() => Events.Ended -= OnEnded;
+}

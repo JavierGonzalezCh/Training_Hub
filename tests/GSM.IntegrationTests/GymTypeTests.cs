@@ -148,7 +148,6 @@ public sealed class GymTypeTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.False(recommended.Modules.CheckinQr);
         Assert.False(recommended.Modules.ShowFrontDesk);
         Assert.True(recommended.Checkin.RemoteTraining);
-        Assert.Equal("FirstLog", recommended.Checkin.TrainingEntryTrigger);
         Assert.Equal(5, recommended.Memberships.GraceDays);
         Assert.Equal(4, recommended.Routines.ReviewWeeks);
     }

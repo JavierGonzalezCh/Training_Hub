@@ -11,6 +11,11 @@ public sealed class PaymentRepository(GsmDbContext dbContext) : IPaymentReposito
 
     public void Add(Payment payment) => Payments.Add(payment);
 
+    public Task<PaymentSettings?> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => dbContext.Set<PaymentSettings>().FirstOrDefaultAsync(s => s.GymId == gymId, cancellationToken);
+
+    public void Add(PaymentSettings settings) => dbContext.Set<PaymentSettings>().Add(settings);
+
     public Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default)
         => Payments.FirstOrDefaultAsync(p => p.Id == paymentId, cancellationToken);
 

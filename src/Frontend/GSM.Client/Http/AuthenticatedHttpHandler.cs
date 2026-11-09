@@ -11,7 +11,8 @@ namespace GSM.Client.Http;
 /// así que solo puede haber <b>un refresh en vuelo</b>: si varias llamadas fallan a la vez,
 /// todas esperan al mismo refresh.
 /// </summary>
-public sealed class AuthenticatedHttpHandler(ITokenStore tokenStore, ITokenRefresher refresher)
+public sealed class AuthenticatedHttpHandler(
+    ITokenStore tokenStore, ITokenRefresher refresher, SessionEvents? sessionEvents = null)
     : DelegatingHandler
 {
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
@@ -73,7 +74,20 @@ public sealed class AuthenticatedHttpHandler(ITokenStore tokenStore, ITokenRefre
                 : await refresher.RefreshAsync(current.RefreshToken, cancellationToken);
             if (refreshed is null)
             {
+                // E5: varias pestañas comparten el almacén y el refresh token rota. Si otra pestaña renovó antes, su
+                // par nuevo ya está guardado: se usa en lugar de borrarlo.
+                var latest = await tokenStore.GetAsync(cancellationToken);
+                if (latest is not null && latest.RefreshToken != current.RefreshToken)
+                {
+                    return latest;
+                }
+
                 await tokenStore.ClearAsync(cancellationToken);
+                if (!isKiosk)
+                {
+                    sessionEvents?.RaiseEnded();
+                }
+
                 return null;
             }
 

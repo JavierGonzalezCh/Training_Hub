@@ -15,6 +15,7 @@ public static class GsmClientServiceCollectionExtensions
         var baseUri = new Uri(apiBaseUrl, UriKind.Absolute);
 
         services.AddSingleton(new ApiClientOptions { ApiBaseUrl = apiBaseUrl });
+        services.AddSingleton<SessionEvents>();
         services.AddTransient<AuthenticatedHttpHandler>();
 
         // Refresh: cliente desnudo, sin el handler autenticado, para no entrar en bucle en el 401.

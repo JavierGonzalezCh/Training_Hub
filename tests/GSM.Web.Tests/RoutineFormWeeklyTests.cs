@@ -64,6 +64,12 @@ public class RoutineFormWeeklyTests : TestContext
         cut.Find("select[data-testid='weekday-1']").Change("5");
 
         Assert.Equal(5, draft.Days[1].DayOfWeek);
+        var exercise = new ExerciseResponse { Id = Guid.NewGuid(), Name = "Sentadilla" };
+        foreach (var day in draft.Days)
+        {
+            day.Exercises = [new DraftExercise { Exercise = exercise, Sets = [new DraftSet { RepsMin = 8 }] }];
+        }
+
         Assert.Null(draft.Validate());
         var request = draft.ToRequest();
         Assert.Equal("weekly", request.ScheduleMode);

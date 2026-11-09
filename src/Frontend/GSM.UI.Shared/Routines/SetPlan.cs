@@ -130,7 +130,7 @@ public static class SetPlan
         return string.Join("; ", runs.Select(r =>
         {
             var text = Describe(r.First, unilateral, withRir);
-            var prefix = IsNormal(r.First) ? string.Empty : SetTypeLabel(r.First.SetType) + " ";
+            var prefix = string.Empty;
             return text.Length == 0 ? $"{prefix}{r.Count} × serie" : $"{prefix}{r.Count} × {text}";
         }));
     }

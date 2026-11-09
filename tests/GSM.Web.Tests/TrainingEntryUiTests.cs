@@ -14,8 +14,8 @@ using static GSM.Web.Tests.CommercialStatusUiTests;
 namespace GSM.Web.Tests;
 
 /// <summary>
-/// A8 — en un gym sin registro de entrada en la puerta, el inicio del miembro ofrece "Registrar entrenamiento" en lugar
-/// del escaneo del QR, y al tocarlo el día queda contado.
+/// A8/C4 — en un gym sin registro de entrada en la puerta, el inicio del miembro dice que el día cuenta al registrar
+/// el primer ejercicio, sin botón.
 /// </summary>
 public class TrainingEntryUiTests : TestContext
 {
@@ -68,37 +68,12 @@ public class TrainingEntryUiTests : TestContext
     }
 
     [Fact]
-    public void Without_door_registration_the_home_offers_to_register_the_training_and_counts_the_day()
+    public void Without_door_registration_the_home_says_the_day_counts_with_the_first_exercise()
     {
-        var cut = RenderHome(routineEntry: true);
-        _attendance.Handlers["StartTrainingCheckinAsync"] = _ => new CheckInResponse
-        {
-            Method = "Routine", CheckedInAt = DateTimeOffset.UtcNow,
-            UnlockedAchievements = new List<UnlockedAchievement>(),
-        };
+        var cut = RenderHome(routineEntry: true, firstLog: true);
 
-        Assert.Empty(cut.FindAll(".gsm-m-checkin:not([data-testid])"));   // sin la tarjeta del QR
-        cut.Find("[data-testid='training-entry-start']").Click();
-
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='training-entry-done']")));
-        Assert.Single(_attendance.Calls, c => c.Method == "StartTrainingCheckinAsync");
-        // El inicio se recarga para que la racha y el progreso reflejen el día contado.
-        Assert.Equal(2, _me.Calls.Count(c => c.Method == "GetMyHomeAsync"));
-    }
-
-    [Fact]
-    public void A_rejection_shows_the_server_reason_and_the_day_does_not_count()
-    {
-        var cut = RenderHome(routineEntry: true);
-        _attendance.Handlers["StartTrainingCheckinAsync"] = _ => throw new GsmApiException(
-            "Conflict", 409, "{\"detail\":\"Tu membresía venció el 01/10/2026. Pasa por recepción para renovarla.\"}",
-            new Dictionary<string, IEnumerable<string>>(), null);
-
-        cut.Find("[data-testid='training-entry-start']").Click();
-
-        cut.WaitForAssertion(() =>
-            Assert.Contains("Pasa por recepción", cut.Find("[data-testid='training-entry-error']").TextContent));
-        Assert.Empty(cut.FindAll("[data-testid='training-entry-done']"));
+        Assert.Empty(cut.FindAll("[data-testid='training-entry-start']"));
+        Assert.Contains("primer ejercicio", cut.Find("[data-testid='training-entry-first-log']").TextContent);
     }
 
     [Fact]
@@ -108,16 +83,6 @@ public class TrainingEntryUiTests : TestContext
 
         Assert.NotEmpty(cut.FindAll("[data-testid='training-entry-done']"));
         Assert.Empty(cut.FindAll("[data-testid='training-entry-start']"));
-    }
-
-    [Fact]
-    public void With_first_log_the_home_offers_no_button_to_count_the_day()
-    {
-        var cut = RenderHome(routineEntry: true, firstLog: true);
-
-        Assert.Empty(cut.FindAll("[data-testid='training-entry-start']"));
-        Assert.Empty(cut.FindAll("[data-testid='training-entry']"));
-        Assert.Empty(cut.FindAll("[data-testid='training-entry-first-log']"));
     }
 
     [Fact]
@@ -136,13 +101,9 @@ public class TrainingEntryUiTests : TestContext
         Services.AddMudServices();
         Services.AddSingleton(DispatchProxy.Create<IAttendanceClient, FakeClient>());
 
-        var cut = RenderComponent<TrainingEntryCard>(p => p
-            .Add(c => c.Title, "¿Empiezas a entrenar?")
-            .Add(c => c.ButtonText, "Iniciar rutina")
-            .Add(c => c.FirstLog, true)
-            .Add(c => c.ShowFirstLogHint, true));
+        var cut = RenderComponent<TrainingEntryCard>();
 
-        Assert.Contains("Tu día cuenta en cuanto registres tu primer ejercicio", cut.Find("[data-testid='training-entry-first-log']").TextContent);
+        Assert.Contains("Tu día cuenta cuando registres tu primer ejercicio", cut.Find("[data-testid='training-entry-first-log']").TextContent);
         Assert.Empty(cut.FindAll("[data-testid='training-entry-start']"));
     }
 

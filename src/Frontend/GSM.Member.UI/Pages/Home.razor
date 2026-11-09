@@ -221,10 +221,7 @@
     private RenderFragment EntryBlock => @<text>
         @if (GymCtx.FeatureFlags?.RoutineEntry == true)
         {
-            <TrainingEntryCard Title="Registrar entrenamiento" ButtonText="Registrar entrenamiento"
-                               FirstLog="GymCtx.FeatureFlags?.RoutineEntryFirstLog == true"
-                               CountedAt="@(_home?.Entry is { CheckedInToday: true } entry ? entry.CheckedInAt : null)"
-                               OnCounted="ReloadHomeAsync" />
+            <TrainingEntryCard CountedAt="@(_home?.Entry is { CheckedInToday: true } entry ? entry.CheckedInAt : null)" />
         }
         else if (_home?.Entry is { CheckedInToday: true, CheckedInAt: { } enteredAt })
         {

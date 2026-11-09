@@ -157,7 +157,6 @@ public sealed class GymTemplateTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Equal(CheckinTemplates.For(type).Mode, checkin.Mode);
         Assert.Equal(CheckinTemplates.For(type).AssumedStayMinutes, checkin.AssumedStayMinutes);
         Assert.Equal(CheckinTemplates.For(type).RemoteTraining, checkin.RemoteTraining);
-        Assert.Equal(CheckinTemplates.For(type).TrainingEntryTrigger, checkin.TrainingEntryTrigger);
 
         var membership = await db.Set<MembershipSettings>().IgnoreQueryFilters().SingleAsync(s => s.GymId == gymId);
         Assert.Equal(MembershipTemplates.For(type).GraceDays, membership.GraceDays);

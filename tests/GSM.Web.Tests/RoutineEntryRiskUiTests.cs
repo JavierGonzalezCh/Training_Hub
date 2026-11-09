@@ -45,7 +45,7 @@ public class RoutineEntryRiskUiTests : TestContext
     }
 
     private (IRenderedComponent<CheckinTab> Tab, IRenderedComponent<MudDialogProvider> Dialogs, FakeClient Fake) RenderCheckinTab(
-        bool remote = false, string trigger = "Start", bool byDocument = true)
+        bool remote = false, bool byDocument = true)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
@@ -54,7 +54,7 @@ public class RoutineEntryRiskUiTests : TestContext
         var fake = (FakeClient)(object)attendance;
         fake.Handlers["SettingsGETAsync"] = _ => new CheckinSettingsResponse
         {
-            Mode = "Rotating", ByDocument = byDocument, AssumedStayMinutes = 120, RemoteTraining = remote, TrainingEntryTrigger = trigger,
+            Mode = "Rotating", ByDocument = byDocument, AssumedStayMinutes = 120, RemoteTraining = remote,
         };
         fake.Handlers["SettingsPUTAsync"] = args =>
         {
@@ -62,7 +62,7 @@ public class RoutineEntryRiskUiTests : TestContext
             return new CheckinSettingsResponse
             {
                 Mode = put.Mode, ByDocument = put.ByDocument ?? false, AssumedStayMinutes = 120,
-                RemoteTraining = put.RemoteTraining, TrainingEntryTrigger = put.TrainingEntryTrigger,
+                RemoteTraining = put.RemoteTraining,
             };
         };
         Services.AddSingleton(attendance);
@@ -116,12 +116,11 @@ public class RoutineEntryRiskUiTests : TestContext
     }
 
     [Fact]
-    public void The_two_new_options_load_from_the_server_and_are_sent_when_saving()
+    public void The_remote_training_option_is_sent_when_saving()
     {
-        var (tab, _, fake) = RenderCheckinTab(remote: false, trigger: "Start");
+        var (tab, _, fake) = RenderCheckinTab(remote: false);
 
         tab.Find("[data-testid='checkin-remote-training']").Change(true);
-        tab.Find("[data-testid='checkin-trigger'] input[value='FirstLog']").Change("FirstLog");
         tab.FindAll("button").First(b => b.TextContent.Contains("Guardar")).Click();
 
         tab.WaitForAssertion(() =>
@@ -129,14 +128,13 @@ public class RoutineEntryRiskUiTests : TestContext
             var put = Assert.IsType<UpdateCheckinSettingsRequest>(
                 Assert.Single(fake.Calls, c => c.Method == "SettingsPUTAsync").Args[0]);
             Assert.True(put.RemoteTraining);
-            Assert.Equal("FirstLog", put.TrainingEntryTrigger);
         });
     }
 
     [Fact]
     public void With_remote_training_on_turning_the_document_off_does_not_warn()
     {
-        var (tab, dialogs, fake) = RenderCheckinTab(remote: true, trigger: "FirstLog");
+        var (tab, dialogs, fake) = RenderCheckinTab(remote: true);
 
         TurnDocumentOffAndSave(tab);
 

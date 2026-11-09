@@ -64,7 +64,8 @@ public sealed class Payment : BaseEntity, ITenantEntity
         string? notes,
         Guid registeredBy,
         DateTimeOffset paidAt,
-        Guid? shiftId = null)
+        Guid? shiftId = null,
+        bool affectsCashDrawer = true)
     {
         if (gymId == Guid.Empty)
         {
@@ -104,7 +105,7 @@ public sealed class Payment : BaseEntity, ITenantEntity
             RegisteredBy = registeredBy,
             PaidAt = paidAt,
             ShiftId = shiftId,
-            AffectsCashDrawer = method.GoesToCashDrawer(),
+            AffectsCashDrawer = method.GoesToCashDrawer() && affectsCashDrawer,
         };
     }
 

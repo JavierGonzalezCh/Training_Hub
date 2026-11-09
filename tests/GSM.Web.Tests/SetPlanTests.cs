@@ -51,7 +51,7 @@ public sealed class SetPlanTests
             new SetTargetResponse { Number = 3, SetType = "normal", RepsMin = 8, RepsMax = 12, WeightKg = 40 },
         };
 
-        Assert.Equal("Calentamiento 1 × 12 · 20 kg; 2 × 8–12 · 40 kg", SetPlan.Summary(targets));
+        Assert.Equal("1 × 12 · 20 kg; 2 × 8–12 · 40 kg", SetPlan.Summary(targets));
     }
 
     [Theory]

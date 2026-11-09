@@ -142,6 +142,15 @@ public sealed class RoutineDraft
             return "El nombre es obligatorio.";
         }
 
+        for (var i = 0; i < Days.Count; i++)
+        {
+            var day = Days[i];
+            if (!(!IsWeekly && day.IsRest) && day.RequestLines().Count == 0)
+            {
+                return $"Día {i + 1}: agrega un ejercicio o márcalo como día de descanso.";
+            }
+        }
+
         if (!IsWeekly)
         {
             return null;

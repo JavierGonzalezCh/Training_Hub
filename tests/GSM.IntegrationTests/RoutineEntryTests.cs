@@ -15,51 +15,23 @@ using Xunit;
 namespace GSM.IntegrationTests;
 
 /// <summary>
-/// A8 — en un gym sin registro de entrada en la puerta (QR y documento apagados), el miembro cuenta su día al
-/// iniciar el entrenamiento: una entrada con método <c>routine</c> que suma a visitas, racha y logros.
+/// A8/C4 — un gym sin registro de entrada en la puerta es el que tiene el QR y el documento apagados; ahí el día
+/// cuenta al registrar el primer ejercicio (ver <c>RemoteTrainingTests</c>).
 /// </summary>
 public sealed class RoutineEntryTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     private static readonly DateOnly Today = new(2026, 10, 5);
 
-    [Fact]
-    public async Task Without_any_door_registration_starting_the_training_counts_the_day_once()
-    {
-        var w = await SeedAsync(endedDaysAgo: -10, checkinQr: false, byDocument: false);
-
-        var (first, created) = await StartAsync(w);
-        Assert.True(created);
-        Assert.Equal("Routine", first.Method);
-        Assert.True(first.CountsForProgress);
-
-        // Iniciar la rutina otra vez el mismo día devuelve la misma entrada: no suma una segunda visita.
-        var (again, createdAgain) = await StartAsync(w);
-        Assert.False(createdAgain);
-        Assert.Equal(first.AttendanceId, again.AttendanceId);
-
-        using var s = Scope(w, UserRole.Member);
-        var reader = s.ServiceProvider.GetRequiredService<IAttendanceReader>();
-        Assert.Equal(1, await reader.GetVisitCountAsync(w.MemberId));
-        var saved = await s.ServiceProvider.GetRequiredService<GsmDbContext>()
-            .Set<GSM.Domain.Attendance.Attendance>().SingleAsync(a => a.MemberId == w.MemberId);
-        Assert.Equal(AttendanceMethod.Routine, saved.Method);
-    }
-
     [Theory]
     [InlineData(true, false)]   // QR encendido
     [InlineData(false, true)]   // solo documento
     [InlineData(true, true)]
-    public async Task With_any_door_registration_on_starting_the_training_is_forbidden(bool checkinQr, bool byDocument)
+    public async Task With_any_door_registration_on_there_is_no_routine_entry(bool checkinQr, bool byDocument)
     {
         var w = await SeedAsync(endedDaysAgo: -10, checkinQr, byDocument);
 
-        var ex = await Assert.ThrowsAsync<ForbiddenDomainException>(() => StartAsync(w));
-        Assert.Contains("recepción", ex.Message);
-
         using var s = Scope(w, UserRole.Member);
         Assert.False(await s.ServiceProvider.GetRequiredService<IAttendanceReader>().IsRoutineEntryAsync(w.GymId));
-        Assert.False(await s.ServiceProvider.GetRequiredService<GsmDbContext>()
-            .Set<GSM.Domain.Attendance.Attendance>().AnyAsync(a => a.MemberId == w.MemberId));
     }
 
     [Fact]
@@ -71,33 +43,6 @@ public sealed class RoutineEntryTests(ApiFactory factory) : IClassFixture<ApiFac
         Assert.True(await s.ServiceProvider.GetRequiredService<IAttendanceReader>().IsRoutineEntryAsync(w.GymId));
     }
 
-    [Fact]
-    public async Task Within_grace_it_counts_and_past_grace_it_is_rejected_like_the_qr()
-    {
-        var inGrace = await SeedAsync(endedDaysAgo: 1, checkinQr: false, byDocument: false);
-        var (res, created) = await StartAsync(inGrace);
-        Assert.True(created);
-        Assert.Equal(2, res.GraceDaysLeft);
-
-        var expired = await SeedAsync(endedDaysAgo: 4, checkinQr: false, byDocument: false);
-        var ex = await Assert.ThrowsAsync<ConflictException>(() => StartAsync(expired));
-        Assert.Contains("recepción", ex.Message);
-
-        using var s = Scope(expired, UserRole.Member);
-        Assert.False(await s.ServiceProvider.GetRequiredService<GsmDbContext>()
-            .Set<GSM.Domain.Attendance.Attendance>().AnyAsync(a => a.MemberId == expired.MemberId));
-    }
-
-    [Fact]
-    public async Task Staff_cannot_start_a_training_entry()
-    {
-        var w = await SeedAsync(endedDaysAgo: -10, checkinQr: false, byDocument: false);
-
-        using var s = Scope(w, UserRole.Staff);
-        await Assert.ThrowsAsync<ForbiddenDomainException>(
-            () => s.ServiceProvider.GetRequiredService<CheckInHandler>().HandleRoutineStartAsync(default));
-    }
-
     private IServiceScope Scope(World w, UserRole role)
     {
         var scope = factory.CreateScopeWithMigration();
@@ -105,12 +50,6 @@ public sealed class RoutineEntryTests(ApiFactory factory) : IClassFixture<ApiFac
         user.ActAs(role == UserRole.Member ? w.MemberUserId : Guid.CreateVersion7(), w.GymId, role);
         scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(Today);
         return scope;
-    }
-
-    private async Task<(CheckInResponse Response, bool Created)> StartAsync(World w)
-    {
-        using var s = Scope(w, UserRole.Member);
-        return await s.ServiceProvider.GetRequiredService<CheckInHandler>().HandleRoutineStartAsync(default);
     }
 
     /// <param name="endedDaysAgo">Días desde el último día cubierto (negativo = aún vigente).</param>

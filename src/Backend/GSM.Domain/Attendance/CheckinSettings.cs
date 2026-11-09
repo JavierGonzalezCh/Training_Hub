@@ -36,9 +36,6 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
     /// </summary>
     public bool RemoteTraining { get; private set; }
 
-    /// <summary>Cuándo cuenta el día sin registro en la puerta. Solo tiene efecto con QR y documento apagados.</summary>
-    public TrainingEntryTrigger TrainingEntryTrigger { get; private set; } = TrainingEntryTrigger.Start;
-
     public const int DefaultAssumedStayMinutes = 120;
 
     public const int MinAssumedStayMinutes = 15;
@@ -59,14 +56,8 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
         CheckinMode mode,
         bool? byDocument = null,
         int? assumedStayMinutes = null,
-        bool? remoteTraining = null,
-        TrainingEntryTrigger? trainingEntryTrigger = null)
+        bool? remoteTraining = null)
     {
-        if (trainingEntryTrigger is { } trigger && !Enum.IsDefined(trigger))
-        {
-            throw new ValidationDomainException("Momento de conteo del entrenamiento inválido.");
-        }
-
         if (!Enum.IsDefined(mode))
         {
             throw new ValidationDomainException("Modo de check-in inválido.");
@@ -92,11 +83,6 @@ public sealed class CheckinSettings : BaseEntity, ITenantEntity
         if (remoteTraining is { } remote)
         {
             RemoteTraining = remote;
-        }
-
-        if (trainingEntryTrigger is { } newTrigger)
-        {
-            TrainingEntryTrigger = newTrigger;
         }
     }
 

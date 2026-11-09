@@ -133,6 +133,30 @@ public sealed class RoutineTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task A_training_day_without_exercises_is_rejected_but_a_rest_day_is_fine()
+    {
+        var world = await SeedAsync();
+        using var scope = Staff(world.GymA, world.StaffA);
+        var assign = scope.ServiceProvider.GetRequiredService<AssignRoutineHandler>();
+
+        await Assert.ThrowsAsync<ValidationDomainException>(() => assign.HandleAsync(
+            world.MemberA, new SaveRoutineRequest("Vacía", null, [new RoutineDayInput("D1", false, [])]), default));
+
+        var routine = await assign.HandleAsync(
+            world.MemberA,
+            new SaveRoutineRequest("Con descanso", null,
+            [
+                new RoutineDayInput("D1", false,
+                [
+                    new RoutineExerciseInput(world.SystemExerciseIds[0], TestSets.Normal(3, 10), 60, null),
+                ]),
+                new RoutineDayInput("Descanso", true, []),
+            ]),
+            default);
+        Assert.Equal(2, routine.Days.Count);
+    }
+
+    [Fact]
     public async Task Series_are_planned_one_by_one_and_a_superset_round_trips()
     {
         var world = await SeedAsync();

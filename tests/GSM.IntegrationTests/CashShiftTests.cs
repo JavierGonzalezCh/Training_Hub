@@ -603,6 +603,51 @@ public sealed class CashShiftTests(ApiFactory factory) : IClassFixture<ApiFactor
         return scope;
     }
 
+    // ---------------------------------------------------------------- caja opcional (P2)
+
+    [Fact]
+    public async Task With_the_drawer_off_cash_is_recorded_without_a_shift_and_moves_no_drawer()
+    {
+        var w = await SeedAsync();
+        using (var owner = At(w, w.OwnerId, UserRole.Owner, Hours(8)))
+        {
+            var saved = await owner.ServiceProvider.GetRequiredService<UpdatePaymentSettingsHandler>()
+                .HandleAsync(new UpdatePaymentSettingsRequest(false), default);
+            Assert.False(saved.UseCashDrawer);
+        }
+
+        using var ana = At(w, w.AnaId, UserRole.Staff, Hours(9));
+        var payment = await Record(ana, 40_000m, PaymentMethod.Cash);
+
+        Assert.Null(payment.ShiftId);
+        Assert.False(payment.AffectsCashDrawer);
+
+        // Anular un efectivo sin caja tampoco pide decidir la devolución ni mueve el cajón.
+        var reversal = await Void(ana, payment.Id, "Error de cobro", null);
+        Assert.False(reversal.AffectsCashDrawer);
+    }
+
+    [Fact]
+    public async Task With_the_drawer_on_by_default_cash_still_needs_an_open_shift()
+    {
+        var w = await SeedAsync();
+        using var ana = At(w, w.AnaId, UserRole.Staff, Hours(8));
+
+        var settings = await ana.ServiceProvider.GetRequiredService<GetPaymentSettingsHandler>().HandleAsync(default);
+        Assert.True(settings.UseCashDrawer);
+        await Assert.ThrowsAsync<ConflictException>(() => Record(ana, 10_000m, PaymentMethod.Cash));
+    }
+
+    [Fact]
+    public void The_personal_trainer_template_turns_the_drawer_off_and_the_rest_keep_it()
+    {
+        Assert.False(PaymentTemplates.For(GymType.PersonalTrainer).UseCashDrawer);
+        foreach (var type in new[] { GymType.Gym, GymType.Box, GymType.Studio, GymType.Academy, GymType.Other })
+        {
+            Assert.True(PaymentTemplates.For(type).UseCashDrawer);
+        }
+    }
+
     private static Task<PaymentResponse> Record(
         IServiceScope scope, decimal amount, PaymentMethod method, string concept = "Cobro")
         => scope.ServiceProvider.GetRequiredService<RecordPaymentHandler>()

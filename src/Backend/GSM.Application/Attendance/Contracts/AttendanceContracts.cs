@@ -116,17 +116,15 @@ public sealed record ListAttendanceQuery
 /// <param name="ByDocument">La entrada con documento en el kiosco está encendida (A4; apagada por defecto).</param>
 /// <param name="AssumedStayMinutes">Permanencia asumida para estimar la ocupación (A5; 120 por defecto).</param>
 /// <param name="RemoteTraining">Los miembros entrenan fuera de la sede (T4): sin horario de apertura para el conteo por entrenamiento, sin aviso de riesgo y sin aforo de esas entradas.</param>
-/// <param name="TrainingEntryTrigger"><c>Start</c> (al tocar «Iniciar rutina») o <c>FirstLog</c> (al registrar el primer ejercicio). Solo aplica sin registro en la puerta.</param>
 public sealed record CheckinSettingsResponse(
-    string Mode, bool ByDocument, int AssumedStayMinutes, bool RemoteTraining = false, string TrainingEntryTrigger = "Start");
+    string Mode, bool ByDocument, int AssumedStayMinutes, bool RemoteTraining = false);
 
 /// <param name="ByDocument">Enciende o apaga la entrada con documento en el kiosco. Nulo = no cambia.</param>
 /// <param name="AssumedStayMinutes">Permanencia asumida en minutos (15 a 480). Nulo = no cambia.</param>
 /// <param name="RemoteTraining">Nulo = no cambia.</param>
-/// <param name="TrainingEntryTrigger"><c>Start</c> o <c>FirstLog</c>. Nulo = no cambia.</param>
 public sealed record UpdateCheckinSettingsRequest(
     string Mode, bool? ByDocument = null, int? AssumedStayMinutes = null,
-    bool? RemoteTraining = null, string? TrainingEntryTrigger = null);
+    bool? RemoteTraining = null);
 
 /// <summary>
 /// Cuánta gente hay en el gym ahora (estimación: entradas no anuladas de las últimas <c>AssumedStayMinutes</c>,

@@ -15,7 +15,25 @@ public sealed class RoutineDraftTests
         Assert.NotNull(draft.Validate());
 
         draft.Name = "Full body";
+        // F7: el día vacío no se puede guardar sin ejercicio ni descanso.
+        Assert.Contains("Día 1", draft.Validate());
+
+        draft.Days[0].IsRest = true;
         Assert.Null(draft.Validate());
+    }
+
+    [Fact]
+    public void A_day_with_an_exercise_is_valid_and_an_empty_weekly_day_is_not()
+    {
+        var exercise = new ExerciseResponse { Id = Guid.NewGuid(), Name = "Sentadilla" };
+        var draft = RoutineDraft.Empty();
+        draft.Name = "Pierna";
+        draft.Days[0].Exercises = [new DraftExercise { Exercise = exercise, Sets = [new DraftSet { RepsMin = 8 }] }];
+        Assert.Null(draft.Validate());
+
+        draft.Days[0].Exercises = [];
+        draft.Days[0].IsRest = false;
+        Assert.NotNull(draft.Validate());
     }
 
     [Fact]

@@ -44,9 +44,13 @@ public sealed class RecordPaymentHandler(
         }
 
         // Cobrar en efectivo exige caja abierta (409). Todo pago queda ligado al turno abierto, sea cual sea el método.
-        var shiftId = request.Method.GoesToCashDrawer()
-            ? (await drawer.RequireOpenForCashAsync(cancellationToken)).Id
-            : (await drawer.GetOpenAsync(cancellationToken))?.Id;
+        // Con la caja apagada (P2) el efectivo se registra sin turno y no mueve ninguna caja.
+        var useDrawer = await drawer.UseCashDrawerAsync(cancellationToken);
+        Guid? shiftId = !useDrawer
+            ? null
+            : request.Method.GoesToCashDrawer()
+                ? (await drawer.RequireOpenForCashAsync(cancellationToken)).Id
+                : (await drawer.GetOpenAsync(cancellationToken))?.Id;
 
         var payment = Payment.Create(
             gymId,
@@ -58,7 +62,8 @@ public sealed class RecordPaymentHandler(
             request.Notes,
             registeredBy,
             clock.UtcNow,
-            shiftId);
+            shiftId,
+            affectsCashDrawer: useDrawer);
 
         payments.Add(payment);
         await unitOfWork.SaveChangesAsync(cancellationToken);

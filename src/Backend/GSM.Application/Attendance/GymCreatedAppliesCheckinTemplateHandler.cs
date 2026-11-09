@@ -27,7 +27,7 @@ public sealed class GymCreatedAppliesCheckinTemplateHandler(
         var row = CheckinSettings.Default(domainEvent.GymId);
         row.Update(
             template.Mode, assumedStayMinutes: template.AssumedStayMinutes,
-            remoteTraining: template.RemoteTraining, trainingEntryTrigger: template.TrainingEntryTrigger);
+            remoteTraining: template.RemoteTraining);
         settings.Add(row);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

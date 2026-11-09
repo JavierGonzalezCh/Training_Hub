@@ -383,7 +383,7 @@ else if (_member is not null)
                                         {
                                             <section class="gsm-routine-day @(day.IsRest ? "is-rest" : null)">
                                                 <h3 class="gsm-routine-day__title">
-                                                    <span class="gsm-routine-day__num">@(day.DayOfWeek is { } weekday ? RoutineLabels.IsoWeekdayLabel(weekday) : $"Día {day.Position}")</span> @day.Name
+                                                    <span class="gsm-routine-day__num">@(day.DayOfWeek is { } weekday ? RoutineLabels.IsoWeekdayLabel(weekday) : $"Día {day.Position}")</span> @(day.Name is { } dayName && dayName != $"Día {day.Position}" ? dayName : null)
                                                 </h3>
                                                 @if (day.IsRest)
                                                 {
