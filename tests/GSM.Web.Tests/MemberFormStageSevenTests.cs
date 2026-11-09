@@ -119,4 +119,23 @@ public class MemberFormStageSevenTests : TestContext
         Assert.Contains("Días entrenados de los que le tocaban según su rutina", cut.Find("[data-testid='adherence-caption']").TextContent);
         Assert.NotEmpty(cut.FindAll("[data-testid='adherence-legend'] li"));
     }
+
+    [Fact]
+    public void Picking_another_country_keeps_it_while_the_number_is_still_empty_and_emits_its_e164()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        RenderComponent<MudPopoverProvider>();
+        string? value = null;
+        var cut = RenderComponent<PhoneField>(p => p
+            .Add(c => c.Value, value)
+            .Add(c => c.ValueChanged, Microsoft.AspNetCore.Components.EventCallback.Factory.Create<string?>(this, v => value = v)));
+
+        cut.InvokeAsync(() => cut.Instance.GetType().GetMethod("OnIsoChangedAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(cut.Instance, ["DE"]));
+        cut.SetParametersAndRender(p => p.Add(c => c.Value, value));
+        cut.Find("input[data-testid='phone-number']").Input("15112345678");
+
+        Assert.Equal("+4915112345678", value);
+    }
 }

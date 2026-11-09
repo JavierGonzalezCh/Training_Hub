@@ -133,14 +133,17 @@
     private string _digits = string.Empty;
     private string? _localError;
     private string? _lastValue;
+    private bool _initialized;
 
     protected override void OnParametersSet()
     {
         // Solo se reparte el valor de fuera cuando cambió desde fuera (no el que acabamos de emitir).
-        if (Value == _lastValue && _lastValue is not null)
+        if (_initialized && Value == _lastValue)
         {
             return;
         }
+
+        _initialized = true;
 
         _lastValue = Value;
         (_code, _digits) = Split(Value);
@@ -219,7 +222,7 @@
     private async Task EmitAsync()
     {
         var value = Join(_code, _digits);
-        _lastValue = value ?? string.Empty;
+        _lastValue = value;
         _localError = Validate(value);
         await ValueChanged.InvokeAsync(value);
     }
