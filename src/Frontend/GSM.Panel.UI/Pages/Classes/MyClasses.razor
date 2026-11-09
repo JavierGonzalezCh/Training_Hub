@@ -4,8 +4,13 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
-<PageTitle>Mis clases — TrainingHub OS</PageTitle>
+@if (!Embedded)
+{
+    <PageTitle>Mis clases — TrainingHub OS</PageTitle>
+}
 
+@if (!Embedded)
+{
 <PageHeader Title="Mis clases">
     <Actions>
         @* La navegación de semana va en un grupo: en el celular baja entera a su línea en vez de repartir las flechas. *@
@@ -16,6 +21,15 @@
         </div>
     </Actions>
 </PageHeader>
+}
+else
+{
+    <div class="d-flex align-center mb-2" style="gap:.5rem">
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => ShiftWeekAsync(-7))" aria-label="Semana anterior" />
+        <MudText Typo="Typo.body1" Class="gsm-mono">@GsmFormat.Day(_weekStart) – @GsmFormat.Day(_weekStart.AddDays(6))</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => ShiftWeekAsync(7))" aria-label="Semana siguiente" />
+    </div>
+}
 
 @if (_loading)
 {
@@ -59,6 +73,10 @@ else
 }
 
 @code {
+    /// <summary>Dentro de la pestaña «Mis clases» de Clases: sin título de página propio.</summary>
+    [Parameter]
+    public bool Embedded { get; set; }
+
     private readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly _weekStart = StartOfWeek(DateOnly.FromDateTime(DateTime.Today));
     private List<ScheduleEntry> _entries = [];

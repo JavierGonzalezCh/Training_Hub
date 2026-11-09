@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Security.Claims;
 using Bunit;
+using GSM.UI.Shared.Auth;
+using Bunit.TestDoubles;
 using GSM.Client.Generated;
 using GSM.Panel.UI.Navigation.Modules;
 using GSM.Panel.UI.Pages.Classes;
@@ -22,6 +24,7 @@ public class ClassInstructorUiTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        this.AddTestAuthorization().SetAuthorized("ana");
         _client = DispatchProxy.Create<IClassesClient, FakeClient>();
         _fake = (FakeClient)(object)_client;
         _fake.Handlers["TrainersAsync"] = _ => new List<ClassInstructorOption>
@@ -121,13 +124,17 @@ public class ClassInstructorUiTests : TestContext
     }
 
     [Fact]
-    public void My_classes_menu_entry_is_only_visible_with_the_Trainer_permission_or_as_Owner()
+    public void My_classes_is_no_longer_a_second_menu_entry_it_is_a_tab_inside_Classes()
     {
-        var entry = new ClassesPanelModule().MenuEntries.Single(e => e.Href == "/classes/mine");
+        Assert.DoesNotContain(new ClassesPanelModule().MenuEntries, e => e.Href == "/classes/mine");
+    }
 
-        Assert.False(entry.IsVisibleTo(User("staff")));
-        Assert.True(entry.IsVisibleTo(User("staff", "trainer")));
-        Assert.True(entry.IsVisibleTo(User("owner")));
+    [Fact]
+    public void The_classes_page_offers_the_My_classes_tab_only_with_the_Trainer_permission_or_as_Owner()
+    {
+        Assert.True(User("staff", "trainer").HasPermission("trainer"));
+        Assert.True(User("owner").HasPermission("trainer"));
+        Assert.False(User("staff").HasPermission("trainer"));
     }
 
     private static ClaimsPrincipal User(string role, params string[] permissions)

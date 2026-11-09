@@ -1,5 +1,6 @@
 using System.Reflection;
 using Bunit;
+using Bunit.TestDoubles;
 using GSM.Client.Generated;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
@@ -42,6 +43,7 @@ public class ClassSeriesEndUiTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        this.AddTestAuthorization().SetAuthorized("ana");
         var proxy = DispatchProxy.Create<IClassesClient, FakeClient>();
         var fake = (FakeClient)(object)proxy;
         fake.Handlers["ClassesAllAsync"] = _ => classes;

@@ -1,5 +1,6 @@
 using System.Reflection;
 using Bunit;
+using Bunit.TestDoubles;
 using GSM.Client.Generated;
 using GSM.Panel.UI.Pages.Classes;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,6 +55,7 @@ public class ClassHoursUiTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        this.AddTestAuthorization().SetAuthorized("ana");
         var proxy = DispatchProxy.Create<IClassesClient, FakeClient>();
         var fake = (FakeClient)(object)proxy;
         fake.Handlers["ScheduleAsync"] = _ => new ScheduleResponse
@@ -92,6 +94,7 @@ public class ClassHoursUiTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        this.AddTestAuthorization().SetAuthorized("ana");
         var proxy = DispatchProxy.Create<IClassesClient, FakeClient>();
         var fake = (FakeClient)(object)proxy;
         fake.Handlers["ClassesAllAsync"] = _ => classes;

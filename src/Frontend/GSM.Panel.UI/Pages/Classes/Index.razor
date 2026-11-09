@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthState
 
 <PageTitle>Clases — TrainingHub OS</PageTitle>
 
@@ -22,6 +23,21 @@
     </Actions>
 </PageHeader>
 
+@* Quien da clases (permiso Trainer, y el Owner) ve en el mismo módulo todas las clases o solo las suyas. *@
+@if (_canSeeMine)
+{
+    <MudTabs Elevation="0" Rounded="true" Class="mb-4" @bind-ActivePanelIndex="_tab" data-testid="classes-tabs">
+        <MudTabPanel Text="Todas las clases" />
+        <MudTabPanel Text="Mis clases" />
+    </MudTabs>
+}
+
+@if (_tab == 1)
+{
+    <MyClasses Embedded="true" />
+}
+else
+{
 @if (_outsideHours.Count > 0)
 {
     <MudAlert Severity="Severity.Warning" Class="mb-4" id="outside-hours">
@@ -109,12 +125,21 @@ else
     </MudTable>
 }
 
+}
+
 @code {
+    private int _tab;
+    private bool _canSeeMine;
+
     private List<ClassListItem> _classes = [];
     private List<ClassOutsideHoursItem> _outsideHours = [];
     private bool _loading = true;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        _canSeeMine = (await AuthState.GetAuthenticationStateAsync()).User.HasPermission(GsmPermissions.Trainer);
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
