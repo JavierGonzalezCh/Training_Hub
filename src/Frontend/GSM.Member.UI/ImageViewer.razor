@@ -1,18 +1,25 @@
-@* Visor de una imagen a pantalla completa (la foto de un anuncio). Un toque sobre la foto la amplía al doble y se recorre
-   arrastrando; en el celular también vale pellizcar. Se cierra con la X, con Escape o tocando fuera de la foto. *@
+@* Visor de una imagen (la foto de un anuncio): la foto pasa al frente dentro de un marco, con su título debajo, y el
+   resto de la pantalla queda en sombra. Un toque sobre la foto la amplía al doble y se recorre arrastrando; en el celular
+   también vale pellizcar. Se cierra con la X, con Escape o tocando la sombra. *@
 @if (Src is not null)
 {
     <div class="gsm-viewer" role="dialog" aria-modal="true" aria-label="@(Alt ?? "Imagen")" data-testid="image-viewer"
          tabindex="-1" @ref="_root" @onkeydown="OnKeyDown" @onclick="CloseAsync">
-        <button type="button" class="gsm-viewer__close" aria-label="Cerrar" data-testid="image-viewer-close" @onclick="CloseAsync"
-                @onclick:stopPropagation="true">
-            <MudIcon Icon="@Icons.Material.Filled.Close" />
-        </button>
-        <div class="gsm-viewer__stage @(_zoomed ? "is-zoomed" : null)" @onclick:stopPropagation="true">
-            <img src="@Src" alt="@Alt" class="gsm-viewer__image" data-testid="image-viewer-image"
-                 @onclick="ToggleZoom" />
-        </div>
-        <span class="gsm-viewer__hint" aria-hidden="true">@(_zoomed ? "Toca la foto para alejar" : "Toca la foto para ampliar")</span>
+        <figure class="gsm-viewer__frame @(_zoomed ? "is-zoomed" : null)" @onclick:stopPropagation="true">
+            <button type="button" class="gsm-viewer__close" aria-label="Cerrar" data-testid="image-viewer-close" @onclick="CloseAsync">
+                <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+            </button>
+            <div class="gsm-viewer__stage">
+                <img src="@Src" alt="@Alt" class="gsm-viewer__image" data-testid="image-viewer-image" @onclick="ToggleZoom" />
+            </div>
+            <figcaption class="gsm-viewer__caption">
+                @if (!string.IsNullOrWhiteSpace(Alt))
+                {
+                    <span class="gsm-viewer__title">@Alt</span>
+                }
+                <span class="gsm-viewer__hint">@(_zoomed ? "Toca la foto para alejar" : "Toca la foto para ampliar")</span>
+            </figcaption>
+        </figure>
     </div>
 }
 
@@ -20,6 +27,7 @@
     /// <summary>La imagen abierta; nulo, el visor está cerrado.</summary>
     [Parameter] public string? Src { get; set; }
 
+    /// <summary>Texto de la imagen; se muestra como título debajo de la foto.</summary>
     [Parameter] public string? Alt { get; set; }
 
     [Parameter] public EventCallback OnClose { get; set; }

@@ -331,7 +331,7 @@ public class AnnouncementSchedulingUiTests : TestContext
             cut.Find("[data-testid=image-viewer-image]").GetAttribute("src"));
 
         cut.Find("[data-testid=image-viewer-image]").Click();
-        Assert.NotEmpty(cut.FindAll(".gsm-viewer__stage.is-zoomed"));
+        Assert.NotEmpty(cut.FindAll(".gsm-viewer__frame.is-zoomed"));
 
         cut.Find("[data-testid=image-viewer-close]").Click();
         Assert.Empty(cut.FindAll("[data-testid=image-viewer]"));
