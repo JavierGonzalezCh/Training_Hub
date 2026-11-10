@@ -198,4 +198,30 @@ public class RoutineTemplateUiTests : TestContext
             Assert.DoesNotContain(fake.Calls, c => c.Method == "AssignRoutineTemplateAsync");
         });
     }
+
+    [Fact]
+    public void The_template_editor_offers_the_gallery_and_marks_the_chosen_cover()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var (client, fake) = Fake<IRoutineTemplatesClient>();
+        fake.Handlers["ListRoutineImagesAsync"] = _ => new List<RoutineImageResponse>
+        {
+            new() { Key = "peso-muerto", Title = "Peso muerto", Url = "/_content/GSM.UI.Shared/routine-images/peso-muerto.jpg" },
+            new() { Key = "cintas-correr", Title = "Cintas de correr", Url = "/_content/GSM.UI.Shared/routine-images/cintas-correr.jpg" },
+        };
+        Services.AddSingleton(client);
+        Services.AddSingleton(Fake<IExercisesClient>().Client);
+        RenderComponent<MudPopoverProvider>();
+
+        var editor = RenderComponent<GSM.Panel.UI.Pages.RoutineTemplates.Editor>();
+
+        editor.WaitForAssertion(() =>
+            Assert.Equal("true", editor.Find("[data-testid='template-image-none']").GetAttribute("aria-pressed")));
+        editor.Find("[data-testid='template-image-peso-muerto']").Click();
+
+        Assert.Equal("true", editor.Find("[data-testid='template-image-peso-muerto']").GetAttribute("aria-pressed"));
+        Assert.Equal("false", editor.Find("[data-testid='template-image-none']").GetAttribute("aria-pressed"));
+        Assert.Contains("peso-muerto.jpg", editor.Find("[data-testid='template-image-peso-muerto'] img").GetAttribute("src"));
+    }
 }

@@ -23283,6 +23283,45 @@
         }
       }
     },
+    "/api/routine-templates/images": {
+      "get": {
+        "tags": [
+          "RoutineTemplates"
+        ],
+        "operationId": "ListRoutineImages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineImageResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineImageResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineImageResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/routine-templates/{id}": {
       "get": {
         "tags": [
@@ -38800,6 +38839,25 @@
           }
         }
       },
+      "RoutineImageResponse": {
+        "required": [
+          "key",
+          "title",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
       "RoutineListItem": {
         "required": [
           "id",
@@ -39525,6 +39583,12 @@
           },
           "routine": {
             "$ref": "#/components/schemas/SaveRoutineRequest"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

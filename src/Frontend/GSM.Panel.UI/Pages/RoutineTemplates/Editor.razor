@@ -46,6 +46,22 @@ else
                       MaxLength="120" Class="mb-3" data-testid="template-name" />
         <MudTextField T="string" @bind-Value="_description" Label="Descripción (opcional)" Lines="2"
                       MaxLength="500" data-testid="template-description" />
+
+        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Portada</MudText>
+        <div class="gsm-image-picker" data-testid="template-image-picker">
+            <button type="button" class="@PickerClass(null)" @onclick="@(() => _imageUrl = null)"
+                    aria-pressed="@(_imageUrl is null ? "true" : "false")" data-testid="template-image-none">
+                <span class="gsm-image-picker__none">Sin portada</span>
+            </button>
+            @foreach (var image in _gallery)
+            {
+                <button type="button" class="@PickerClass(image.Url)" @onclick="@(() => _imageUrl = image.Url)"
+                        aria-pressed="@(_imageUrl == image.Url ? "true" : "false")" title="@image.Title"
+                        data-testid="@($"template-image-{image.Key}")">
+                    <img src="@image.Url" alt="@image.Title" loading="lazy" />
+                </button>
+            }
+        </div>
     </MudPaper>
 
     <RoutineForm Draft="_draft" />
@@ -65,6 +81,11 @@ else
     private RoutineDraft _draft = RoutineDraft.Empty();
     private string _templateName = string.Empty;
     private string? _description;
+    private string? _imageUrl;
+    private List<RoutineImageResponse> _gallery = [];
+
+    private string PickerClass(string? url)
+        => _imageUrl == url ? "gsm-image-picker__item is-selected" : "gsm-image-picker__item";
     private int _unavailable;
     private IReadOnlyList<string> _missingHere = [];
     private bool _loading = true;
@@ -74,7 +95,7 @@ else
     private bool _leavingAfterSave;
 
     /// <summary>Lo que se guardaría, para comparar con lo cargado.</summary>
-    private string Fingerprint() => $"{_templateName}\u001f{_description}\u001f{_draft.Fingerprint()}";
+    private string Fingerprint() => $"{_templateName}\u001f{_description}\u001f{_imageUrl}\u001f{_draft.Fingerprint()}";
 
     private bool IsDirty() => !_leavingAfterSave && _snapshot is not null && Fingerprint() != _snapshot;
 
@@ -86,6 +107,15 @@ else
 
     private async Task LoadAsync()
     {
+        try
+        {
+            _gallery = (await Templates.ListRoutineImagesAsync()).ToList();
+        }
+        catch (GsmApiException)
+        {
+            // Sin galería el editor sigue funcionando; la portada queda como esté.
+        }
+
         if (TemplateId is not { } id)
         {
             _loading = false;
@@ -97,6 +127,7 @@ else
             var template = await Templates.GetRoutineTemplateAsync(id);
             _templateName = template.Name;
             _description = template.Description;
+            _imageUrl = template.ImageUrl;
             _unavailable = template.UnavailableExerciseCount;
             _missingHere = template.UnavailableHere?.Where(n => n != "Ejercicio retirado").ToList() ?? [];
             _draft = RoutineDraft.From(template.Routine);
@@ -130,6 +161,7 @@ else
             Name = _templateName.Trim(),
             Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
             Routine = _draft.ToRequest(),
+            ImageUrl = _imageUrl,
         };
 
         _saving = true;

@@ -8,17 +8,16 @@ namespace GSM.Application.Routines;
 /// </summary>
 public static class RoutineBaseTemplates
 {
-    public const string ImageBase = "/_content/GSM.UI.Shared/routine-templates/";
-
     public sealed record Line(string Exercise, IReadOnlyList<Set> Sets, int RestSeconds, string? Notes = null);
 
     public sealed record Set(int? RepsMin = null, int? RepsMax = null, int? DurationSeconds = null);
 
     public sealed record Day(string Name, IReadOnlyList<Line> Lines);
 
-    public sealed record Template(string Key, string Name, string Description, IReadOnlyList<Day> Days)
+    /// <summary><c>Image</c>: clave de la portada en <see cref="RoutineImageGallery"/>.</summary>
+    public sealed record Template(string Key, string Name, string Description, string Image, IReadOnlyList<Day> Days)
     {
-        public string ImageUrl => ImageBase + Key + ".svg";
+        public string ImageUrl => RoutineImageGallery.UrlOf(Image);
     }
 
     private static IReadOnlyList<Set> Reps(int sets, int min, int? max = null)
@@ -34,6 +33,7 @@ public static class RoutineBaseTemplates
     [
         new("full-body-principiante", "Full body principiante",
             "Tres días de cuerpo completo con máquinas y mancuernas. Para quien empieza o vuelve a entrenar.",
+            "sala-mancuernas",
             [
                 new("Día A", [
                     L("Prensa de piernas", Reps(3, 10, 12)),
@@ -59,6 +59,7 @@ public static class RoutineBaseTemplates
             ]),
         new("torso-pierna", "Torso / Pierna",
             "Cuatro días alternando tren superior e inferior. Intermedio, con barra y poleas.",
+            "prensa-piernas",
             [
                 new("Torso A", [
                     L("Press de banca plana con barra", Reps(4, 6, 8), 150),
@@ -93,6 +94,7 @@ public static class RoutineBaseTemplates
             ]),
         new("push-pull-legs", "Push / Pull / Legs",
             "Empuje, tirón y pierna en tres días que se repiten. Intermedio a avanzado.",
+            "press-banca",
             [
                 new("Push", [
                     L("Press de banca plana con barra", Reps(4, 6, 8), 150),
@@ -120,6 +122,7 @@ public static class RoutineBaseTemplates
             ]),
         new("fuerza-5x5", "Fuerza 5×5",
             "Dos días que se alternan con los básicos de barra. Sube el peso cuando completes las cinco series.",
+            "peso-muerto",
             [
                 new("Día A", [
                     L("Sentadilla con barra", Reps(5, 5), 180),
@@ -134,6 +137,7 @@ public static class RoutineBaseTemplates
             ]),
         new("cardio-core", "Cardio + core",
             "Dos días de resistencia y abdomen, con poco equipo. Sirve para bajar de peso o como complemento.",
+            "cintas-correr",
             [
                 new("Día A", [
                     L("Cinta de correr", Seconds(1, 1200), 0, "Ritmo en que puedas hablar."),

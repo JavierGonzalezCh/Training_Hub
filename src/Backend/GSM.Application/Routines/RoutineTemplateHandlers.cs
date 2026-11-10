@@ -45,6 +45,18 @@ internal static class RoutineTemplating
             stripped.Days.Sum(d => d.Exercises.Count));
     }
 
+    /// <summary>La portada debe salir de la galería: una URL arbitraria no se acepta.</summary>
+    public static string? ValidImage(string? imageUrl)
+    {
+        var url = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
+        if (url is not null && !RoutineImageGallery.Contains(url))
+        {
+            throw new ValidationDomainException("La imagen debe ser una de la galería de rutinas.");
+        }
+
+        return url;
+    }
+
     public static string Serialize(SaveRoutineRequest request) => JsonSerializer.Serialize(request, Json);
 
     public static SaveRoutineRequest ReadContent(RoutineTemplate template)
@@ -172,6 +184,7 @@ public sealed class CreateRoutineTemplateHandler(
         var template = RoutineTemplate.Create(
             gymId, request.Name, request.Description, prepared.Mode, prepared.Content,
             prepared.DayCount, prepared.ExerciseCount, currentUser.UserId ?? Guid.Empty);
+        template.SetImage(RoutineTemplating.ValidImage(request.ImageUrl));
         templates.Add(template);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -230,6 +243,7 @@ public sealed class UpdateRoutineTemplateHandler(
         var prepared = await RoutineTemplating.PrepareAsync(exercises, clock, gymId, request.Routine, cancellationToken);
         template.Update(
             request.Name, request.Description, prepared.Mode, prepared.Content, prepared.DayCount, prepared.ExerciseCount);
+        template.SetImage(RoutineTemplating.ValidImage(request.ImageUrl));
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Plantilla de rutina {TemplateId} actualizada", templateId);
@@ -283,4 +297,10 @@ public sealed class AssignRoutineFromTemplateHandler(
         logger.LogInformation("Asignando la plantilla {TemplateId} al miembro {MemberId}", templateId, memberId);
         return await assign.HandleAsync(memberId, content, cancellationToken);
     }
+}
+
+public sealed class ListRoutineImagesHandler
+{
+    public IReadOnlyList<RoutineImageResponse> HandleAsync()
+        => RoutineImageGallery.All.Select(i => new RoutineImageResponse(i.Key, i.Title, i.Url)).ToList();
 }

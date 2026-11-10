@@ -5,7 +5,12 @@ namespace GSM.Application.Routines.Contracts;
 /// modo rotativo o semanal, días, líneas y series); los ids de días y líneas se ignoran. El nombre de la plantilla
 /// es <c>Name</c>; el de <c>Routine</c> es el que llevará la rutina al asignarla.
 /// </summary>
-public sealed record SaveRoutineTemplateRequest(string Name, string? Description, SaveRoutineRequest Routine);
+/// <summary><c>ImageUrl</c>: portada elegida de la galería (<c>GET /api/routine-templates/images</c>); nula = sin portada.</summary>
+public sealed record SaveRoutineTemplateRequest(
+    string Name, string? Description, SaveRoutineRequest Routine, string? ImageUrl = null);
+
+/// <summary>Una imagen de la galería de portadas.</summary>
+public sealed record RoutineImageResponse(string Key, string Title, string Url);
 
 /// <summary>Guardar una rutina ya armada (de un miembro) como plantilla.</summary>
 public sealed record SaveRoutineAsTemplateRequest(string Name, string? Description);

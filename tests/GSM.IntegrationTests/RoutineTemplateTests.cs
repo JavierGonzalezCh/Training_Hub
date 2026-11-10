@@ -1,4 +1,4 @@
-using GSM.Application.Routines;
+﻿using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
 using GSM.Domain.Common.Exceptions;
 using GSM.Domain.Equipment;
@@ -266,7 +266,7 @@ public sealed class RoutineTemplateTests(ApiFactory factory) : IClassFixture<Api
         Assert.All(list, t =>
         {
             Assert.NotNull(t.BaseKey);
-            Assert.EndsWith(".svg", t.ImageUrl);
+            Assert.True(RoutineImageGallery.Contains(t.ImageUrl));
             Assert.Empty(t.UnavailableHere!); // sin inventario cargado no se filtra nada
             Assert.Equal(
                 RoutineBaseTemplates.All.Single(b => b.Key == t.BaseKey).Days.Sum(d => d.Lines.Count), t.ExerciseCount);
@@ -314,6 +314,49 @@ public sealed class RoutineTemplateTests(ApiFactory factory) : IClassFixture<Api
         var cardio = list.Single(t => t.BaseKey == "cardio-core");
         Assert.DoesNotContain("Burpees", cardio.UnavailableHere!);
         Assert.Contains("Cinta de correr", cardio.UnavailableHere!);
+    }
+
+    [Fact]
+    public async Task A_template_cover_must_come_from_the_gallery()
+    {
+        var w = await SeedAsync();
+        var cover = RoutineImageGallery.All[0].Url;
+
+        Guid id;
+        using (var scope = AsOwner(w.Gym))
+        {
+            id = (await scope.ServiceProvider.GetRequiredService<CreateRoutineTemplateHandler>()
+                .HandleAsync(new SaveRoutineTemplateRequest("Con portada", null, TwoDayRequest(w), cover), default)).Id;
+        }
+
+        using (var scope = AsOwner(w.Gym))
+        {
+            var detail = await scope.ServiceProvider.GetRequiredService<GetRoutineTemplateHandler>().HandleAsync(id, default);
+            Assert.Equal(cover, detail.ImageUrl);
+
+            await Assert.ThrowsAsync<ValidationDomainException>(() => scope.ServiceProvider
+                .GetRequiredService<UpdateRoutineTemplateHandler>()
+                .HandleAsync(id, new SaveRoutineTemplateRequest(
+                    "Con portada", null, TwoDayRequest(w), "https://example.com/otra.jpg"), default));
+        }
+
+        using (var scope = AsOwner(w.Gym))
+        {
+            // Quitar la portada también es válido.
+            await scope.ServiceProvider.GetRequiredService<UpdateRoutineTemplateHandler>()
+                .HandleAsync(id, new SaveRoutineTemplateRequest("Con portada", null, TwoDayRequest(w)), default);
+            var detail = await scope.ServiceProvider.GetRequiredService<GetRoutineTemplateHandler>().HandleAsync(id, default);
+            Assert.Null(detail.ImageUrl);
+        }
+    }
+
+    [Fact]
+    public void Every_gallery_image_exists_as_a_file()
+    {
+        var root = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "../../../../../src/Frontend/GSM.UI.Shared/wwwroot/routine-images"));
+        Assert.All(RoutineImageGallery.All, i => Assert.True(File.Exists(Path.Combine(root, i.Key + ".jpg")), i.Key));
+        Assert.Equal(RoutineImageGallery.All.Count, RoutineImageGallery.All.Select(i => i.Key).Distinct().Count());
     }
 
     private IServiceScope AsOwner((Guid GymId, Guid OwnerId) gym)

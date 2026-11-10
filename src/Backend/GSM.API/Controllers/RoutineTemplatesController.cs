@@ -1,4 +1,4 @@
-using GSM.API.Auth;
+﻿using GSM.API.Auth;
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
 using GSM.Domain.Identity;
@@ -19,6 +19,13 @@ public sealed class RoutineTemplatesController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<RoutineTemplateListItem>>> List(
         [FromServices] ListRoutineTemplatesHandler handler, CancellationToken cancellationToken)
         => Ok(await handler.HandleAsync(cancellationToken));
+
+    /// <summary>RT2: galería de portadas que una plantilla puede usar.</summary>
+    [HttpGet("images")]
+    [EndpointName("ListRoutineImages")]
+    [ProducesResponseType<IReadOnlyList<RoutineImageResponse>>(StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<RoutineImageResponse>> Images([FromServices] ListRoutineImagesHandler handler)
+        => Ok(handler.HandleAsync());
 
     [HttpGet("{id:guid}")]
     [EndpointName("GetRoutineTemplate")]
