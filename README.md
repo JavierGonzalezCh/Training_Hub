@@ -1,11 +1,41 @@
 # GSM — TrainingHub
 
-Sistema de gestión de gimnasios B2B SaaS (**TrainingHub**: panel OS y app del miembro GO; `GSM` es el codename del código). API en .NET 10 + PostgreSQL y frontend en Blazor WASM + MAUI.
+Sistema de gestión de gimnasios B2B SaaS. El nombre comercial es **TrainingHub**; `GSM` (Gym System
+Management) es el codename que se usa en el código, los proyectos y la base de datos.
 
-El contexto del proyecto, las convenciones y el estado de cada módulo están en [`CLAUDE.md`](CLAUDE.md);
-la arquitectura, la especificación de cada módulo y las convenciones de trabajo, en [`docs/`](docs/)
-(empieza por [`docs/DESARROLLO.md`](docs/DESARROLLO.md)). Este archivo solo explica **cómo levantar el
-sistema en una máquina de desarrollo**.
+## Qué es
+
+Una plataforma multi-gimnasio (multi-tenant): cada negocio —gym, box, estudio, entrenador personal o
+academia— tiene sus datos aislados, y una cuenta SuperAdmin administra la cartera completa.
+
+| Producto | Para quién | Dónde |
+|---|---|---|
+| **TrainingHub OS** | El equipo del gym (owner y staff) | Panel web (`/`) y app nativa en modo staff |
+| **TrainingHub GO** | El miembro | PWA en `/app` y app nativa (Android) |
+| **Admin** | El SuperAdmin de la plataforma | `/admin`: gyms, suscripciones, impersonación, métricas |
+| **Kiosco** | La recepción del gym | `/kiosk`: muestra el QR de entrada |
+
+Módulos: Identity (cuentas, accesos por gym, permisos), Gyms, Members, Memberships (planes, gracia,
+congelar/cancelar), Payments (pagos, anulaciones, caja por turno), Attendance (check-in con QR del gym,
+aforo), Achievements (logros, rachas, ranking), Routines (rutinas, plantillas, progreso, cumplimiento),
+Classes (horarios y reservas), Comunicaciones (novedades y recordatorios), Equipment (inventario de
+máquinas), Notifications (bandeja, correos, push), SuperAdmin y Logs.
+
+**Stack:** .NET 10, ASP.NET Core, EF Core 10, PostgreSQL 18, JWT + ASP.NET Identity. Frontend en Blazor
+WASM + MudBlazor y MAUI Blazor Hybrid. Monolito modular: un schema de Postgres por módulo.
+
+```
+src/Backend/    GSM.Domain · GSM.Application · GSM.Infrastructure · GSM.API   (GSM.sln)
+src/Frontend/   GSM.Client · GSM.UI.Shared · GSM.Panel.UI · GSM.Member.UI · GSM.Web   (GSM.Frontend.slnx)
+                GSM.Mobile (MAUI, fuera del .slnx)
+tests/          GSM.IntegrationTests (contra Postgres) · GSM.Web.Tests (bUnit)
+scripts/        cliente NSwag, datos de demostración y de prueba, carriles
+docs/           arquitectura, especificación por módulo y convenciones
+```
+
+El contexto completo, las convenciones y las notas de cada módulo están en [`CLAUDE.md`](CLAUDE.md); la
+arquitectura y la especificación de cada módulo, en [`docs/`](docs/) (empieza por
+[`docs/DESARROLLO.md`](docs/DESARROLLO.md)). El resto de este archivo explica **cómo ponerlo a funcionar**.
 
 ---
 
@@ -118,7 +148,13 @@ cd src/Frontend/GSM.Web
 dotnet run --launch-profile https
 ```
 
-`https://localhost:7220` (panel, `/admin`, `/kiosk` y la app del miembro en `/app`). El cliente de la API se regenera con `scripts/generate-client.ps1` (ver `docs/DESARROLLO.md` §4). La app nativa (`GSM.Mobile`) se compila aparte: `dotnet build src/Frontend/GSM.Mobile -f net10.0-android -p:RuntimeIdentifier=android-arm64`.
+`https://localhost:7220` (panel, `/admin`, `/kiosk` y la app del miembro en `/app`). Se entra con el correo o
+el celular; un miembro sin cuenta entra la primera vez con su número de documento y crea su contraseña. El
+cliente de la API se regenera con `scripts/generate-client.ps1` (ver `docs/DESARROLLO.md` §4).
+
+La app nativa (`GSM.Mobile`, Android y Windows) se compila aparte:
+`dotnet build src/Frontend/GSM.Mobile -f net10.0-android -p:RuntimeIdentifier=android-arm64`.
+Compila para Android, pero aún no se ha verificado en un dispositivo real.
 
 ### APK de la app Android (release)
 
@@ -157,12 +193,13 @@ Nada de esto impide desarrollar, pero conviene saber en qué estado está:
   `curl -k -X POST https://localhost:7219/internal/jobs/communications/run -H "X-Job-Secret: dev-only-jobs-secret-change-me-32-bytes+"`
   y en producción la invoca una tarea programada de Dokploy (ver `docs/DEPLOY-DOKPLOY-PLAN.md`).
 
-- **Despliegue** — hay `docker-compose.yml` (API, web, migraciones y tarea periódica; **la base de datos es un Postgres externo**,
+- **Despliegue** — producción corre en un servidor propio con Dokploy y **cada push a `main` despliega solo**. Hay
+  `docker-compose.yml` (API, web y tarea periódica; las migraciones se aplican aparte; **la base de datos es un Postgres externo**,
   fuera del compose) y un Dockerfile por servicio. Guía en la sección «Docker» de abajo; el plan completo (servidor, copias, alertas) está
   en `docs/DEPLOY-DOKPLOY-PLAN.md`.
-- **Cloudflare R2** (`Storage:R2`) — sin credenciales, las subidas de archivo responden 500.
-- **Resend** (`Email:Resend`) — sin API key, los correos se escriben en el log en vez de enviarse.
-- **Firebase** (`Notifications:Fcm`) — sin configurar no hay push (web ni Android).
+- **Cloudflare R2** (`Storage:R2`) — configurado en producción; en local, sin credenciales, las subidas de archivo responden 500.
+- **Resend** (`Email:Resend`) — sin API key, los correos se escriben en el log en vez de enviarse. En producción está en modo de pruebas (falta verificar el dominio).
+- **Firebase** (`Notifications:Fcm`) — incompleto: sin configurar no hay push (web ni Android).
 - **`Checkin:SigningKey`** — clave HMAC (≥ 32 caracteres) de los QR del gym. Vacía en `appsettings.json` y la API
   no arranca sin ella; en desarrollo viene en `appsettings.Development.json`. En producción hay que definirla.
 
@@ -201,5 +238,7 @@ cd src/Backend
 GSM_MIGRATIONS_CONNECTION="Host=...;Port=5432;Database=gsm_prod_db;Username=...;Password=..." dotnet ef database update --project GSM.Infrastructure
 ```
 
-Orden de un despliegue con cambios de esquema: **copia de la base → migraciones → desplegar**. Después de la primera migración, crear el SuperAdmin con
+Orden de un despliegue con cambios de esquema: **copia de la base → migraciones → desplegar**. Si la migración crea
+un enum de Postgres, comprueba que el contenedor de la API se recreó (`docker ps`) y, si no, reinícialo: Npgsql lee
+los tipos solo al arrancar y el enum nuevo da 500 hasta entonces. Después de la primera migración, crear el SuperAdmin con
 `docker compose run --rm api --seed-superadmin`.
