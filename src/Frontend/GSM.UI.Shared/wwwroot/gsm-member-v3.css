@@ -261,3 +261,7 @@
 .gsm-m-shell .gsm-m-chip[aria-pressed="true"] { border-color: var(--gsm-m-secondary); }
 .gsm-m-shell .mud-button-outlined.mud-button-outlined-secondary,
 .gsm-m-shell .mud-button-outlined.mud-button-outlined-tertiary { border-color: var(--gsm-m-secondary); }
+
+/* Plan: las acciones de la rutina lado a lado, del mismo ancho, aun en celular. */
+.gsm-m-plan-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.gsm-m-plan-actions .mud-button-root { min-width: 0; white-space: normal; line-height: 1.2; }

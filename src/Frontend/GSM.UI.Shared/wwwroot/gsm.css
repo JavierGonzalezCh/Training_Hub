@@ -4969,3 +4969,96 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     font-size: 12px;
     color: var(--mud-palette-text-secondary);
 }
+
+/* ---- Formulario de rutina (RoutineForm): cabecera en una columna, días plegables y un recuadro por ejercicio ---- */
+.gsm-rform-head {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.gsm-rform-day {
+    margin-bottom: 0.85rem;
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius-lg);
+    background: var(--gsm-surface);
+    overflow: hidden;
+}
+
+.gsm-rform-day.is-open {
+    border-color: color-mix(in srgb, var(--gsm-accent) 45%, var(--gsm-border));
+}
+
+.gsm-rform-day__head {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.5rem 0.35rem 0.25rem;
+}
+
+.gsm-rform-day__toggle {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.6rem;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0.35rem 0.5rem;
+    border: 0;
+    border-radius: var(--gsm-radius);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.gsm-rform-day__toggle:hover { background: rgba(255, 255, 255, 0.04); }
+
+.gsm-rform-day__label {
+    font-size: var(--gsm-fs-micro);
+    letter-spacing: 0.08em;
+    color: var(--gsm-text-2);
+}
+
+.gsm-rform-day__title {
+    font-weight: 700;
+}
+
+.gsm-rform-day__summary {
+    font-size: var(--gsm-fs-small);
+    color: var(--gsm-text-2);
+}
+
+.gsm-rform-day__body {
+    padding: 0.25rem 1rem 1rem;
+    border-top: 1px solid var(--gsm-border);
+}
+
+.gsm-rform-day__body > .d-flex:first-child { padding-top: 0.75rem; }
+
+/* Cada ejercicio en su recuadro. Uno unido al anterior (superserie) se pega a él: comparten borde y una franja roja. */
+.gsm-rform-day .gsm-routine-line {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--gsm-border);
+    border-radius: var(--gsm-radius);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.gsm-rform-day .gsm-routine-line.is-grouped {
+    border-left: 3px solid var(--gsm-accent);
+}
+
+.gsm-rform-day .gsm-routine-line:has(+ .gsm-routine-line.is-linked) {
+    margin-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.gsm-rform-day .gsm-routine-line.is-linked {
+    border-top: 1px dashed color-mix(in srgb, var(--gsm-accent) 60%, transparent);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}

@@ -17,8 +17,32 @@ public class RoutineFormWeeklyTests : TestContext
         Services.AddSingleton<IExercisesClient>(new ExercisesClient(new HttpClient { BaseAddress = new Uri("http://localhost") }));
     }
 
+    // Los días después del primero arrancan plegados: se abren todos para revisar sus controles.
     private IRenderedComponent<RoutineForm> Render(RoutineDraft draft)
-        => RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, draft));
+    {
+        var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, draft));
+        for (var i = 1; i < draft.Days.Count; i++)
+        {
+            cut.Find($"[data-testid='day-toggle-{i}']").Click();
+        }
+
+        return cut;
+    }
+
+    [Fact]
+    public void Only_the_first_day_starts_open_and_a_collapsed_day_shows_its_summary()
+    {
+        var draft = WeeklyDraft();
+        var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, draft));
+
+        Assert.Equal("true", cut.Find("[data-testid='day-toggle-0']").GetAttribute("aria-expanded"));
+        Assert.Equal("false", cut.Find("[data-testid='day-toggle-1']").GetAttribute("aria-expanded"));
+        Assert.Empty(cut.FindAll("[data-testid='weekday-1']"));
+        Assert.Contains("Sin ejercicios", cut.Find("[data-testid='day-1']").TextContent);
+
+        cut.Find("[data-testid='day-toggle-1']").Click();
+        Assert.Single(cut.FindAll("[data-testid='weekday-1']"));
+    }
 
     private static RoutineDraft WeeklyDraft()
     {

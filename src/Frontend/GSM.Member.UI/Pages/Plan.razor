@@ -54,25 +54,22 @@ else
 
     <RoutineNoteCard Notes="@routine.Notes" SelfAssigned="@routine.SelfAssigned" />
 
-    @* Con la rutina del entrenador, el miembro puede armar la suya (la del entrenador queda dada de baja, con aviso). *@
-    @if (!routine.SelfAssigned && GymCtx.FeatureFlags?.MembersCanCreateRoutines == true)
-    {
-        <div class="mb-3">
-            <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Add"
-                       OnClick="@(() => CreateOwnAsync(routine))" data-testid="plan-create-own">Crear mi propia rutina</MudButton>
-        </div>
-    }
-
-    @* Cualquier rutina se edita aquí (los cambios los revisa el entrenador); solo la que armó el miembro se elimina. *@
+    @* Acciones en una sola fila: editar cualquier rutina (los cambios los revisa el entrenador); con la del entrenador,
+       armar la propia (la del entrenador queda dada de baja, con aviso); solo la que armó el miembro se elimina. *@
     @if (GymCtx.FeatureFlags?.MembersCanCreateRoutines == true)
     {
-        <div class="d-flex flex-wrap mb-3" style="gap:.5rem">
+        <div class="gsm-m-plan-actions mb-3">
             <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Edit"
                        Href="/app/rutina/editar" data-testid="plan-edit-routine">Editar mi rutina</MudButton>
             @if (routine.SelfAssigned)
             {
                 <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Outlined.Delete"
                            OnClick="@(() => DeleteAsync(routine))" data-testid="plan-delete-routine">Eliminar mi rutina</MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Add"
+                           OnClick="@(() => CreateOwnAsync(routine))" data-testid="plan-create-own">Crear mi propia rutina</MudButton>
             }
         </div>
     }

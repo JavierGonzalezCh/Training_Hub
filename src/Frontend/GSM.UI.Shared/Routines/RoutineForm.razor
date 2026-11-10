@@ -2,22 +2,10 @@
 @* Formulario de rutina (días y ejercicios). Lo usan el editor del staff y el autoservicio del miembro. *@
 @inject IExercisesClient ExercisesApi
 
-<MudGrid Class="mb-4">
-    <MudItem xs="12" sm="6">
-        <MudTextField T="string" @bind-Value="Draft.Name" Label="Nombre de la rutina" Required="true" />
-    </MudItem>
-    <MudItem xs="12" sm="6">
-        @if (ForStaff)
-        {
-            <MudTextField T="string" @bind-Value="Draft.Notes" Label="Indicaciones para el miembro" Lines="2" MaxLength="1000"
-                          HelperText="El miembro las ve arriba en su rutina. Lo interno va en las notas de su ficha." data-testid="routine-notes" />
-        }
-        else
-        {
-            <MudTextField T="string" @bind-Value="Draft.Notes" Label="Notas" Lines="2" MaxLength="1000" data-testid="routine-notes" />
-        }
-    </MudItem>
-    <MudItem xs="12" sm="6">
+@* Cabecera en una columna: nombre, calendario (con su nota del descanso debajo) y, al final, las observaciones. *@
+<div class="gsm-rform-head mb-4">
+    <MudTextField T="string" @bind-Value="Draft.Name" Label="Nombre de la rutina" Required="true" />
+    <div>
         <label class="gsm-native-field">
             <span>Calendario</span>
             <select data-testid="schedule-mode" value="@Draft.ScheduleMode" @onchange="@(e => OnModeChanged(e.Value?.ToString() ?? RoutineDraft.RotatingMode))">
@@ -25,15 +13,15 @@
                 <option value="@RoutineDraft.WeeklyMode" selected="@Draft.IsWeekly">Semanal: cada día en un día de la semana</option>
             </select>
         </label>
-    </MudItem>
-    <MudItem xs="12" sm="6" Class="d-flex align-center">
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1" data-testid="schedule-rest-note">
             @(Draft.IsWeekly
                 ? "El día de la semana sin entrenamiento es descanso."
                 : "El descanso es un día más del ciclo.")
         </MudText>
-    </MudItem>
-</MudGrid>
+    </div>
+    <MudTextField T="string" @bind-Value="Draft.Notes" Label="Observaciones" Lines="3" MaxLength="1000" data-testid="routine-notes"
+                  HelperText="@(ForStaff ? "El miembro las ve arriba en su rutina. Lo interno va en las notas de su ficha." : null)" />
+</div>
 
 @if (Draft.ModeChanged)
 {
@@ -46,9 +34,27 @@
 {
     var day = Draft.Days[dayIndex];
     var index = dayIndex;
-    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--gsm-border)">
+    var open = !_collapsed.Contains(day);
+    <section class="gsm-rform-day @(open ? "is-open" : null)" data-testid="@($"day-{index}")">
+        <div class="gsm-rform-day__head">
+            <button type="button" class="gsm-rform-day__toggle" aria-expanded="@(open ? "true" : "false")"
+                    data-testid="@($"day-toggle-{index}")" @onclick="@(() => ToggleDay(day))">
+                <MudIcon Icon="@(open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" />
+                <span class="gsm-rform-day__label gsm-mono">DÍA @(index + 1)</span>
+                <span class="gsm-rform-day__title">@DayTitle(day)</span>
+                <span class="gsm-rform-day__summary">@DaySummary(day)</span>
+            </button>
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => MoveDay(index, -1))"
+                           aria-label="@($"Subir el día {index + 1}")" title="Subir" />
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == Draft.Days.Count - 1" OnClick="@(() => MoveDay(index, 1))"
+                           aria-label="@($"Bajar el día {index + 1}")" title="Bajar" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Draft.Days.RemoveAt(index))"
+                           aria-label="@($"Quitar el día {index + 1}")" title="Quitar día" />
+        </div>
+        @if (open)
+        {
+        <div class="gsm-rform-day__body">
         <div class="d-flex align-center flex-wrap mb-3" style="gap:0.75rem">
-            <MudText Typo="Typo.overline" Class="gsm-mono" Color="Color.Secondary">DÍA @(index + 1)</MudText>
             @if (Draft.IsWeekly)
             {
                 <label class="gsm-native-field">
@@ -76,13 +82,6 @@
             {
                 <MudSwitch T="bool" @bind-Value="day.IsRest" Label="Marcar como día de descanso" Color="Color.Primary" data-testid="@($"day-rest-{index}")" />
             }
-            <MudSpacer />
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => MoveDay(index, -1))"
-                           aria-label="@($"Subir el día {index + 1}")" title="Subir" />
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == Draft.Days.Count - 1" OnClick="@(() => MoveDay(index, 1))"
-                           aria-label="@($"Bajar el día {index + 1}")" title="Bajar" />
-            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Draft.Days.RemoveAt(index))"
-                           aria-label="@($"Quitar el día {index + 1}")" title="Quitar día" />
         </div>
 
         @if (Draft.IsWeekly || !day.IsRest)
@@ -92,8 +91,9 @@
                 var lineIndex = day.Exercises.IndexOf(exercise);
                 var linked = day.IsLinkedWithPrevious(exercise);
                 var fields = exercise.Fields;
-                <div class="gsm-routine-line mb-3 pl-3" data-testid="@($"line-{index}-{lineIndex}")"
-                     style="@(exercise.Group is not null ? "border-left:3px solid var(--mud-palette-primary)" : "border-left:3px solid transparent")">
+                @* Cada ejercicio en su propio recuadro; uno unido al anterior (superserie) se pega a él y comparten borde. *@
+                <div class="gsm-routine-line @(exercise.Group is not null ? "is-grouped" : null) @(linked ? "is-linked" : null)"
+                     data-testid="@($"line-{index}-{lineIndex}")">
                     <MudGrid Class="mb-1">
                         <MudItem xs="12" sm="5">
                             <MudAutocomplete OpenOnFocus="false" T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Select(e))"
@@ -188,10 +188,12 @@
                 Añadir ejercicio
             </MudButton>
         }
-    </MudPaper>
+        </div>
+        }
+    </section>
 }
 
-<MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Class="mb-6" Disabled="!Draft.CanAddDay" OnClick="@(() => Draft.AddDay())">
+<MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Class="mb-6" Disabled="!Draft.CanAddDay" OnClick="AddDay">
     Añadir día
 </MudButton>
 
@@ -207,6 +209,52 @@
 
     // Líneas con la lista de alternativas abierta ("Cambiar por…").
     private readonly HashSet<DraftExercise> _picking = [];
+
+    // Días plegados. Al abrir una rutina con varios días queda abierto solo el primero; un día nuevo se abre.
+    private readonly HashSet<DraftDay> _collapsed = [];
+    private RoutineDraft? _seenDraft;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_seenDraft, Draft))
+        {
+            return;
+        }
+
+        _seenDraft = Draft;
+        _collapsed.Clear();
+        foreach (var day in Draft.Days.Skip(1))
+        {
+            _collapsed.Add(day);
+        }
+    }
+
+    private void ToggleDay(DraftDay day)
+    {
+        if (!_collapsed.Remove(day))
+        {
+            _collapsed.Add(day);
+        }
+    }
+
+    private void AddDay() => Draft.AddDay();
+
+    private static string DayTitle(DraftDay day)
+        => !string.IsNullOrWhiteSpace(day.Name) ? day.Name : day.SuggestedName ?? "Sin nombre";
+
+    private string DaySummary(DraftDay day)
+    {
+        if (!Draft.IsWeekly && day.IsRest)
+        {
+            return "Descanso";
+        }
+
+        var exercises = day.Exercises.Count(e => e.Exercise is not null);
+        var sets = day.Exercises.Where(e => e.Exercise is not null).Sum(e => e.Sets.Count);
+        return exercises == 0
+            ? "Sin ejercicios"
+            : $"{exercises} {(exercises == 1 ? "ejercicio" : "ejercicios")} · {sets} {(sets == 1 ? "serie" : "series")}";
+    }
 
     private void TogglePicker(DraftExercise line)
     {
