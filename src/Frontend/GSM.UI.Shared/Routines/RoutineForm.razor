@@ -94,43 +94,27 @@
                 @* Cada ejercicio en su propio recuadro; uno unido al anterior (superserie) se pega a él y comparten borde. *@
                 <div class="gsm-routine-line @(exercise.Group is not null ? "is-grouped" : null) @(linked ? "is-linked" : null)"
                      data-testid="@($"line-{index}-{lineIndex}")">
-                    <MudGrid Class="mb-1">
-                        <MudItem xs="12" sm="5">
-                            <MudAutocomplete OpenOnFocus="false" T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Select(e))"
-                                              SearchFunc="SearchExercisesAsync" ToStringFunc="@(e => e?.Name ?? string.Empty)"
-                                              Label="Ejercicio" Placeholder="Busca por nombre" Dense="true" />
-                        </MudItem>
-                        <MudItem xs="6" sm="2">
-                            <MudNumericField T="int?" @bind-Value="exercise.RestSeconds" Label="@(exercise.Group is not null ? "Descanso por vuelta (s)" : "Descanso (s)")" />
-                        </MudItem>
-                        <MudItem xs="12" sm="4" Class="d-flex align-center">
-                            @if (lineIndex > 0)
-                            {
-                                <MudButton Variant="@(linked ? Variant.Filled : Variant.Outlined)" Size="Size.Small" Color="Color.Primary"
-                                           data-testid="@($"link-{index}-{lineIndex}")"
-                                           OnClick="@(() => day.ToggleLinkWithPrevious(exercise))">
-                                    @(linked ? "En superserie con el anterior" : "Unir con el anterior")
-                                </MudButton>
-                            }
-                        </MudItem>
-                        @if (exercise.Exercise is not null)
+                    @* Orden: ejercicio; descanso entre series con «Unir con el anterior» al lado; las series. Las
+                       alternativas no se eligen aquí: el sistema las calcula del ejercicio y el miembro cambia al entrenar. *@
+                    <div class="gsm-rform-ex__top">
+                        <MudAutocomplete OpenOnFocus="false" T="ExerciseResponse" Value="exercise.Exercise" ValueChanged="@(e => exercise.Select(e))"
+                                          SearchFunc="SearchExercisesAsync" ToStringFunc="@(e => e?.Name ?? string.Empty)"
+                                          Label="Ejercicio" Placeholder="Busca por nombre" Dense="true" Class="gsm-rform-ex__name" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))"
+                                       aria-label="@($"Quitar {exercise.Exercise?.Name ?? "el ejercicio"} del día {index + 1}")" title="Quitar ejercicio" />
+                    </div>
+                    <div class="gsm-rform-ex__rest">
+                        <MudNumericField T="int?" @bind-Value="exercise.RestSeconds" Style="max-width:12rem"
+                                         Label="@(exercise.Group is not null ? "Descanso por vuelta (s)" : "Descanso entre series (s)")" />
+                        @if (lineIndex > 0)
                         {
-                            <MudItem xs="12" Class="pt-0">
-                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.SwapHoriz"
-                                           data-testid="@($"change-{index}-{lineIndex}")"
-                                           OnClick="@(() => TogglePicker(exercise))">Cambiar por…</MudButton>
-                                @if (_picking.Contains(exercise))
-                                {
-                                    <AlternativePicker ExerciseId="exercise.Exercise.Id" TestIdPrefix="@($"line-{index}-{lineIndex}-")"
-                                                       OnPick="@(alt => ReplaceAsync(exercise, alt))" />
-                                }
-                            </MudItem>
+                            <MudButton Variant="@(linked ? Variant.Filled : Variant.Outlined)" Size="Size.Small" Color="Color.Primary"
+                                       data-testid="@($"link-{index}-{lineIndex}")"
+                                       OnClick="@(() => day.ToggleLinkWithPrevious(exercise))">
+                                @(linked ? "Unido al anterior" : "Unir con el anterior")
+                            </MudButton>
                         }
-                        <MudItem xs="6" sm="1" Class="d-flex justify-end">
-                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => day.Exercises.Remove(exercise))"
-                                           aria-label="@($"Quitar {exercise.Exercise?.Name ?? "el ejercicio"} del día {index + 1}")" title="Quitar ejercicio" />
-                        </MudItem>
-                    </MudGrid>
+                    </div>
 
                     @if (exercise.EquipmentWarning is { } warning)
                     {
@@ -141,6 +125,7 @@
 
                     @if (exercise.Exercise is not null)
                     {
+                        <span class="gsm-rform-ex__sets-label">Series</span>
                         @for (var setIndex = 0; setIndex < exercise.Sets.Count; setIndex++)
                         {
                             var set = exercise.Sets[setIndex];
@@ -207,9 +192,6 @@
     [Parameter, EditorRequired]
     public RoutineDraft Draft { get; set; } = default!;
 
-    // Líneas con la lista de alternativas abierta ("Cambiar por…").
-    private readonly HashSet<DraftExercise> _picking = [];
-
     // Días plegados. Al abrir una rutina con varios días queda abierto solo el primero; un día nuevo se abre.
     private readonly HashSet<DraftDay> _collapsed = [];
     private RoutineDraft? _seenDraft;
@@ -246,7 +228,8 @@
     {
         if (!Draft.IsWeekly && day.IsRest)
         {
-            return "Descanso";
+            // Si el día ya se llama «Descanso», no se repite.
+            return string.Equals(DayTitle(day), "Descanso", StringComparison.OrdinalIgnoreCase) ? string.Empty : "Descanso";
         }
 
         var exercises = day.Exercises.Count(e => e.Exercise is not null);
@@ -254,21 +237,6 @@
         return exercises == 0
             ? "Sin ejercicios"
             : $"{exercises} {(exercises == 1 ? "ejercicio" : "ejercicios")} · {sets} {(sets == 1 ? "serie" : "series")}";
-    }
-
-    private void TogglePicker(DraftExercise line)
-    {
-        if (!_picking.Remove(line))
-        {
-            _picking.Add(line);
-        }
-    }
-
-    private Task ReplaceAsync(DraftExercise line, ExerciseAlternativeResponse alternative)
-    {
-        line.ReplaceWith(alternative);
-        _picking.Remove(line);
-        return Task.CompletedTask;
     }
 
     private void OnModeChanged(string mode) => Draft.SetMode(mode);

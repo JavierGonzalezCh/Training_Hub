@@ -128,48 +128,16 @@ public class ExerciseAlternativesUiTests : TestContext
         return draft;
     }
 
-    // --- Editor: "Cambiar por…" ---
+    // --- Editor: las alternativas no se eligen al armar la rutina ---
 
     [Fact]
-    public void Change_for_lists_recommended_first_and_flags_what_the_gym_cannot_do_today()
+    public void The_routine_form_has_no_change_for_the_system_suggests_alternatives_while_training()
     {
         RenderComponent<MudPopoverProvider>();
         var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, DraftWithExistingLine()));
 
-        cut.Find("[data-testid='change-0-0']").Click();
-
-        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll("[data-testid^='line-0-0-alt-']").Count));
-        var items = cut.FindAll("[data-testid^='line-0-0-alt-']");
-        Assert.Contains("Prensa de piernas", items[0].TextContent);
-        Assert.Contains("Recomendada", cut.Find($"[data-testid='line-0-0-source-{RecommendedId}']").TextContent);
-        Assert.Contains("Sugerida", cut.Find($"[data-testid='line-0-0-source-{SuggestedId}']").TextContent);
-        Assert.NotNull(cut.Find($"[data-testid='line-0-0-unavailable-{RecommendedId}']"));
-        Assert.Empty(cut.FindAll($"[data-testid='line-0-0-unavailable-{SuggestedId}']"));
-    }
-
-    [Fact]
-    public void Picking_an_alternative_puts_it_in_a_new_line_and_the_old_one_is_left_out_of_the_request()
-    {
-        var draft = DraftWithExistingLine();
-        var line = draft.Days[0].Exercises[0];
-        line.RestSeconds = 90;
-        line.Notes = "Cuidar la espalda";
-        RenderComponent<MudPopoverProvider>();
-        var cut = RenderComponent<RoutineForm>(p => p.Add(x => x.Draft, draft));
-
-        cut.Find("[data-testid='change-0-0']").Click();
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll($"[data-testid='line-0-0-pick-{SuggestedId}']")));
-        cut.Find($"[data-testid='line-0-0-pick-{SuggestedId}']").Click();
-
-        Assert.Equal(SuggestedId, line.Exercise!.Id);
-        Assert.Null(line.Id); // línea nueva: la anterior se retira en el servidor y conserva su historial
-        Assert.Equal((90, "Cuidar la espalda"), (line.RestSeconds, line.Notes));
-        Assert.True(line.Fields.Time);              // el ejercicio nuevo mide tiempo: las series de partida cambian
-        Assert.Empty(cut.FindAll("[data-testid='line-0-0-alternatives']"));
-
-        var sent = Assert.Single(draft.ToRequest().Days.Single().Exercises);
-        Assert.Equal(SuggestedId, sent.ExerciseId);
-        Assert.Null(sent.Id);
+        Assert.Empty(cut.FindAll("[data-testid^='change-']"));
+        Assert.DoesNotContain("Cambiar por", cut.Markup);
     }
 
     // --- App del miembro: "Hacer otro ejercicio hoy" ---

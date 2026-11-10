@@ -5062,3 +5062,19 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
 }
+
+/* La cabecera del día se lee de izquierda a derecha (también en la app del miembro, que centra sus botones). */
+.gsm-rform-day .gsm-rform-day__toggle { justify-content: flex-start; }
+
+/* Un ejercicio: nombre (con quitar), descanso con «Unir con el anterior» al lado y, debajo, sus series. */
+.gsm-rform-ex__top { display: flex; align-items: flex-start; gap: 0.5rem; }
+.gsm-rform-ex__name { flex: 1; min-width: 0; }
+.gsm-rform-ex__rest { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0.25rem 0 0.75rem; }
+.gsm-rform-ex__sets-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: var(--gsm-fs-micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gsm-text-2);
+}
