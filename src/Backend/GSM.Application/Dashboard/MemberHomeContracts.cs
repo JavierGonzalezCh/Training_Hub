@@ -77,11 +77,15 @@ public sealed record HomeNextClassBlock(
 
 /// <summary>7. Tu progreso: racha, congeladores y, si participa, su puesto en el ranking del mes.</summary>
 /// <param name="Ranking">Nulo si el gym apagó el ranking o la gamificación.</param>
+/// <param name="RecentMedals">Las últimas medallas ganadas (hasta 3), de la más reciente a la más antigua.</param>
 public sealed record HomeProgressBlock(
     int CurrentStreak,
     int FreezesAvailable,
     int TotalVisits,
-    HomeRankingStanding? Ranking);
+    HomeRankingStanding? Ranking,
+    IReadOnlyList<HomeMedal>? RecentMedals = null);
+
+public sealed record HomeMedal(Guid AchievementId, string Name, string? IconUrl, DateTimeOffset UnlockedAt);
 
 /// <param name="Position">Puesto del mes; nulo si no participa o todavía no tiene días en el mes.</param>
 public sealed record HomeRankingStanding(bool Participating, int? Position, int Days);

@@ -414,6 +414,29 @@
                             }
                         </p>
                     }
+                    @if (GymCtx.FeatureFlags?.ShowGamification != false && progress.RecentMedals is { Count: > 0 } medals)
+                    {
+                        @* Las últimas medallas ganadas (hasta 3), de la más reciente a la más antigua. *@
+                        <div class="gsm-m-medals" data-testid="home-medals">
+                            <span class="gsm-m-medals__label">@(medals.Count == 1 ? "Tu última medalla" : "Tus últimas medallas")</span>
+                            <div class="gsm-m-medals__row">
+                                @foreach (var medal in medals)
+                                {
+                                    <figure class="gsm-m-medals__item" data-testid="home-medal">
+                                        @if (!string.IsNullOrEmpty(medal.IconUrl))
+                                        {
+                                            <img src="@medal.IconUrl" alt="" loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" />
+                                        }
+                                        <figcaption>@medal.Name</figcaption>
+                                    </figure>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
                 <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
             </a>

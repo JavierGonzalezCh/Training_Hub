@@ -302,3 +302,12 @@
     inset: auto; top: 8px; left: 8px; z-index: 2;
     width: 22px; height: 22px; border-radius: 50%; background: var(--gsm-ok, #3fb950);
 }
+
+/* Inicio: las últimas medallas ganadas dentro de «Tu progreso». */
+.gsm-m-medals { margin-top: 0.75rem; }
+.gsm-m-medals__label { display: block; margin-bottom: 0.4rem; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gsm-text-2); }
+.gsm-m-medals__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.gsm-m-medals__item { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; text-align: center; }
+.gsm-m-medals__item img { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45)); }
+.gsm-m-medals__item figcaption { font-size: 0.72rem; line-height: 1.2; color: var(--gsm-text-2); overflow-wrap: anywhere; }
+.gsm-m-medals__item > .mud-icon-root { width: 56px; height: 56px; padding: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.06); color: #d4a64a; }

@@ -75,6 +75,11 @@ public class MemberHomeUiTests : TestContext
         {
             CurrentStreak = 9, FreezesAvailable = 2, TotalVisits = 40,
             Ranking = new HomeRankingStanding { Participating = true, Position = 3, Days = 12 },
+            RecentMedals =
+            [
+                new HomeMedal { AchievementId = Guid.NewGuid(), Name = "Hábito de Hierro", IconUrl = "/medals/habito.png", UnlockedAt = DateTimeOffset.UtcNow },
+                new HomeMedal { AchievementId = Guid.NewGuid(), Name = "Imparable", IconUrl = "/medals/imparable.png", UnlockedAt = DateTimeOffset.UtcNow.AddDays(-1) },
+            ],
         },
         News = new HomeNewsBlock
         {
@@ -82,6 +87,19 @@ public class MemberHomeUiTests : TestContext
             UnreadAnnouncements = 2,
         },
     };
+
+    [Fact]
+    public void The_latest_medals_show_in_the_progress_card_newest_first()
+    {
+        var cut = RenderHome(FullHome(), narrow: true);
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='home-medals']")));
+
+        var medals = cut.FindAll("[data-testid='home-medal']");
+        Assert.Equal(2, medals.Count);
+        Assert.Contains("Hábito de Hierro", medals[0].TextContent);
+        Assert.Equal("/medals/habito.png", medals[0].QuerySelector("img")!.GetAttribute("src"));
+        Assert.Contains("Tus últimas medallas", cut.Find("[data-testid='home-medals']").TextContent);
+    }
 
     [Fact]
     public void Pending_consents_come_right_after_the_greeting_before_everything_else()

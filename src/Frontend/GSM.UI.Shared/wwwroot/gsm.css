@@ -3443,6 +3443,14 @@ a.gsm-m-card:hover {
     color: var(--gsm-text-2);
 }
 
+.gsm-notice__medal {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+}
+
 .gsm-notice__body {
     display: flex;
     flex: 1;

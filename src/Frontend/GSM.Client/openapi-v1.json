@@ -30785,6 +30785,34 @@
           }
         }
       },
+      "HomeMedal": {
+        "required": [
+          "achievementId",
+          "name",
+          "iconUrl",
+          "unlockedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "achievementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "iconUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unlockedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "HomeNewsBlock": {
         "required": [
           "featured",
@@ -30908,6 +30936,15 @@
                 "$ref": "#/components/schemas/HomeRankingStanding"
               }
             ]
+          },
+          "recentMedals": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/HomeMedal"
+            }
           }
         }
       },
@@ -34636,6 +34673,12 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

@@ -29,7 +29,20 @@ public interface IAchievementReader
 
     /// <summary>El premio de un desbloqueo concreto (para programar el aviso de vencimiento). Nulo si no existe o no tiene premio.</summary>
     Task<PendingRewardView?> GetRewardAsync(Guid memberAchievementId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// La medalla de cada desbloqueo pedido (para los avisos «Desbloqueaste…» de la bandeja). Los que no existan no vienen.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, AchievementMedalView>> GetMedalsAsync(
+        IReadOnlyCollection<Guid> memberAchievementIds, CancellationToken cancellationToken = default);
+
+    /// <summary>Las últimas medallas que ganó el miembro (sin las retiradas), de la más reciente a la más antigua.</summary>
+    Task<IReadOnlyList<AchievementMedalView>> GetRecentMedalsAsync(
+        Guid memberId, int take, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Una medalla ganada: el logro, su imagen y cuándo se ganó.</summary>
+public sealed record AchievementMedalView(Guid AchievementId, string Name, string? IconUrl, DateTimeOffset UnlockedAt);
 
 public sealed record MemberAchievementView(
     Guid AchievementId,

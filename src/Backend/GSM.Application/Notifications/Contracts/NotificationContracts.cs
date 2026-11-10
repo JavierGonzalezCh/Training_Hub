@@ -8,7 +8,8 @@ public sealed record NotificationItem(
     string Body,
     string? Link,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? ReadAt);
+    DateTimeOffset? ReadAt,
+    string? ImageUrl = null);
 
 /// <summary>Un aviso de la bandeja del staff (campana del panel).</summary>
 /// <param name="RequiresAction">De acción: se atiende para todos. Si no, es informativo y cada persona lo lee.</param>

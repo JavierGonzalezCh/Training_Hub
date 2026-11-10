@@ -108,7 +108,15 @@ else
                 {
                     <li>
                         <button type="button" class="gsm-notice @(n.ReadAt is null ? "is-unread" : null)" @onclick="() => OpenNotification(n)">
-                            <span class="gsm-notice__icon" aria-hidden="true"><MudIcon Icon="@CommunicationLabels.NotificationIcon(n.Type)" /></span>
+                            @if (!string.IsNullOrEmpty(n.ImageUrl))
+                            {
+                                @* Un logro desbloqueado lleva su medalla. *@
+                                <img class="gsm-notice__medal" src="@n.ImageUrl" alt="" loading="lazy" data-testid="notice-medal" />
+                            }
+                            else
+                            {
+                                <span class="gsm-notice__icon" aria-hidden="true"><MudIcon Icon="@CommunicationLabels.NotificationIcon(n.Type)" /></span>
+                            }
                             <span class="gsm-notice__body">
                                 <span class="gsm-notice__title">@n.Title</span>
                                 <span class="gsm-notice__text">@n.Body</span>

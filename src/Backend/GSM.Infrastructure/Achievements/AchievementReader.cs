@@ -107,6 +107,35 @@ public sealed class AchievementReader(
         return x is null ? null : ToView(x);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, AchievementMedalView>> GetMedalsAsync(
+        IReadOnlyCollection<Guid> memberAchievementIds, CancellationToken cancellationToken = default)
+    {
+        if (memberAchievementIds.Count == 0)
+        {
+            return new Dictionary<Guid, AchievementMedalView>();
+        }
+
+        var ids = memberAchievementIds.ToList();
+        var rows = await (
+                from row in dbContext.Set<MemberAchievement>()
+                join achievement in dbContext.Set<Achievement>() on row.AchievementId equals achievement.Id
+                where ids.Contains(row.Id)
+                select new { row.Id, achievement.Name, achievement.IconUrl, row.AchievementId, row.UnlockedAt })
+            .ToListAsync(cancellationToken);
+        return rows.ToDictionary(r => r.Id, r => new AchievementMedalView(r.AchievementId, r.Name, r.IconUrl, r.UnlockedAt));
+    }
+
+    public async Task<IReadOnlyList<AchievementMedalView>> GetRecentMedalsAsync(
+        Guid memberId, int take, CancellationToken cancellationToken = default)
+        => await (
+                from row in dbContext.Set<MemberAchievement>()
+                join achievement in dbContext.Set<Achievement>() on row.AchievementId equals achievement.Id
+                where row.MemberId == memberId && row.RevokedAt == null
+                orderby row.UnlockedAt descending
+                select new AchievementMedalView(achievement.Id, achievement.Name, achievement.IconUrl, row.UnlockedAt))
+            .Take(Math.Clamp(take, 1, 10))
+            .ToListAsync(cancellationToken);
+
     private IQueryable<RewardRow> RewardQuery()
         => from row in dbContext.Set<MemberAchievement>()
            join achievement in dbContext.Set<Achievement>() on row.AchievementId equals achievement.Id

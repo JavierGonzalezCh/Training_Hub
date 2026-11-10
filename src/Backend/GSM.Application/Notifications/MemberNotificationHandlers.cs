@@ -1,3 +1,4 @@
+using GSM.Application.Achievements.Public;
 using GSM.Application.Common;
 using GSM.Application.Common.Abstractions;
 using GSM.Application.Gyms.Public;
@@ -15,7 +16,8 @@ public sealed class ListMyNotificationsHandler(
     IClock clock,
     IGymReader gyms,
     IMemberReader members,
-    INotificationRepository notifications)
+    INotificationRepository notifications,
+    IAchievementReader achievements)
 {
     public async Task<PagedResult<NotificationItem>> HandleAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -26,7 +28,18 @@ public sealed class ListMyNotificationsHandler(
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 50);
         var (items, total) = await notifications.ListForMemberAsync(self.Id, clock.UtcNow, page, pageSize, cancellationToken);
-        return new PagedResult<NotificationItem>(items.Select(ToItem).ToList(), page, pageSize, total);
+
+        // Un logro desbloqueado se muestra con su medalla: se lee en Achievements por el desbloqueo (ReferenceId).
+        var unlocks = items.Where(n => n.Type == NotificationType.AchievementUnlocked).Select(n => n.ReferenceId).Distinct().ToList();
+        var medals = await achievements.GetMedalsAsync(unlocks, cancellationToken);
+        return new PagedResult<NotificationItem>(
+            items.Select(n => ToItem(n) with
+            {
+                ImageUrl = n.Type == NotificationType.AchievementUnlocked && medals.TryGetValue(n.ReferenceId, out var medal)
+                    ? medal.IconUrl
+                    : null,
+            }).ToList(),
+            page, pageSize, total);
     }
 
     internal static NotificationItem ToItem(Notification n)

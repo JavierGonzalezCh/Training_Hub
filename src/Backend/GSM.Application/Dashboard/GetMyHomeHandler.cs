@@ -175,7 +175,12 @@ public sealed class GetMyHomeHandler(
             return view is null ? null : new HomeRankingStanding(view.Participating, view.Position, view.Days);
         });
 
-        return new HomeProgressBlock(current.CurrentStreak, current.FreezesAvailable, current.TotalVisits, standing);
+        // Las últimas medallas, también un extra: sin ellas el bloque se muestra igual.
+        var medals = await RunAsync<IReadOnlyList<HomeMedal>>("progress-medals", async () =>
+            (IReadOnlyList<HomeMedal>)(await achievements.GetRecentMedalsAsync(memberId, 3, cancellationToken))
+                .Select(m => new HomeMedal(m.AchievementId, m.Name, m.IconUrl, m.UnlockedAt)).ToList());
+
+        return new HomeProgressBlock(current.CurrentStreak, current.FreezesAvailable, current.TotalVisits, standing, medals);
     }
 
     // 8. Novedades

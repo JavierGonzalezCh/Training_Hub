@@ -257,6 +257,33 @@ public sealed class ManualAchievementTests(ApiFactory factory) : IClassFixture<A
         Assert.Equal("Manual", created.ConditionType);
     }
 
+    [Fact]
+    public async Task The_medal_of_an_unlock_is_found_for_its_notice_and_the_latest_ones_come_newest_first()
+    {
+        var w = await SeedAsync();
+        var first = await CreateManualAsync(w, "Primera medalla", "/_content/GSM.UI.Shared/achievements/primera.png");
+        var second = await CreateManualAsync(w, "Segunda medalla", "/_content/GSM.UI.Shared/achievements/segunda.png");
+        await GrantAsync(w, first, "Primera");
+        await GrantAsync(w, second, "Segunda");
+
+        using var scope = Owner(w);
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        var reader = scope.ServiceProvider.GetRequiredService<IAchievementReader>();
+
+        // El aviso «Desbloqueaste…» apunta al desbloqueo; con él se encuentra la medalla.
+        var notice = await db.Set<Notification>().FirstAsync(n => n.RecipientMemberId == w.Member
+            && n.Type == NotificationType.AchievementUnlocked && n.Title.Contains("Primera medalla"));
+        var medals = await reader.GetMedalsAsync([notice.ReferenceId, Guid.CreateVersion7()], default);
+        var medal = Assert.Single(medals).Value;
+        Assert.Equal(("Primera medalla", "/_content/GSM.UI.Shared/achievements/primera.png"), (medal.Name, medal.IconUrl));
+
+        // Las últimas, de la más reciente a la más antigua.
+        await db.Set<MemberAchievement>().Where(u => u.AchievementId == first)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.UnlockedAt, new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero)));
+        var recent = await reader.GetRecentMedalsAsync(w.Member, 3, default);
+        Assert.Equal(["Segunda medalla", "Primera medalla"], recent.Select(m => m.Name));
+    }
+
     // ---- helpers ----
 
     private IServiceScope Owner(World w) => ScopeAs(w, w.OwnerId, UserRole.Owner);
@@ -271,11 +298,11 @@ public sealed class ManualAchievementTests(ApiFactory factory) : IClassFixture<A
         return scope;
     }
 
-    private async Task<Guid> CreateManualAsync(World w, string name)
+    private async Task<Guid> CreateManualAsync(World w, string name, string? iconUrl = null)
     {
         using var scope = Owner(w);
         var created = await scope.ServiceProvider.GetRequiredService<CreateAchievementHandler>().HandleAsync(
-            new CreateAchievementRequest(name, null, null, AchievementConditionType.Manual, 1), default);
+            new CreateAchievementRequest(name, null, iconUrl, AchievementConditionType.Manual, 1), default);
         return created.Id;
     }
 
