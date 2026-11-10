@@ -3636,11 +3636,19 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 .gsm-m-open.is-closed::before { background: var(--gsm-danger); }
 
 /* El gym ahora dentro del saludo del inicio: abierto/cerrado y qué tan lleno está, en píldoras de vidrio. */
+.gsm-m-hero__side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
 .gsm-m-hero__now {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.85rem;
+    justify-content: flex-end;
+    gap: 0.4rem;
 }
 
 .gsm-m-hero__now:empty { display: none; }

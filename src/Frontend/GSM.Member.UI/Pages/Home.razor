@@ -82,16 +82,18 @@
                     <span class="gsm-m-hero__hello">Hola,</span>
                     <h1 class="gsm-m-hero__name">@member.FirstName</h1>
                 </div>
-                @if (_home?.Status?.Access is { } access)
-                {
-                    <CommercialStatusChip Status="@access.Commercial" />
-                }
-                else
-                {
-                    <StatusChip Status="@member.Status" />
-                }
+                <div class="gsm-m-hero__side">
+                    @if (_home?.Status?.Access is { } access)
+                    {
+                        <CommercialStatusChip Status="@access.Commercial" />
+                    }
+                    else
+                    {
+                        <StatusChip Status="@member.Status" />
+                    }
+                    @GymNowBlock
+                </div>
             </div>
-            @GymNowBlock
         </section>
     </text>;
 
