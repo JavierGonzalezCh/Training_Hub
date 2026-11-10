@@ -33,6 +33,14 @@ else
         </MudAlert>
     }
 
+    @if (_missingHere.Count > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4" data-testid="template-missing-equipment">
+            Este gym no tiene el equipo para: @string.Join(", ", _missingHere). Cámbialos por alternativas o déjalos
+            si el miembro entrena en otro lugar.
+        </MudAlert>
+    }
+
     <MudPaper Elevation="0" Class="pa-4 mb-4" Outlined="true">
         <MudTextField T="string" @bind-Value="_templateName" Label="Nombre de la plantilla" Required="true"
                       MaxLength="120" Class="mb-3" data-testid="template-name" />
@@ -58,6 +66,7 @@ else
     private string _templateName = string.Empty;
     private string? _description;
     private int _unavailable;
+    private IReadOnlyList<string> _missingHere = [];
     private bool _loading = true;
     private bool _saving;
     private string? _error;
@@ -89,6 +98,7 @@ else
             _templateName = template.Name;
             _description = template.Description;
             _unavailable = template.UnavailableExerciseCount;
+            _missingHere = template.UnavailableHere?.Where(n => n != "Ejercicio retirado").ToList() ?? [];
             _draft = RoutineDraft.From(template.Routine);
         }
         catch (GsmApiException ex)

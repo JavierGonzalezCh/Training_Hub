@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Security.Claims;
 using Bunit;
 using GSM.Client;
@@ -140,6 +140,61 @@ public class RoutineTemplateUiTests : TestContext
         provider.WaitForAssertion(() =>
         {
             Assert.NotEmpty(provider.FindAll("[data-testid='assign-template-empty']"));
+            Assert.DoesNotContain(fake.Calls, c => c.Method == "AssignRoutineTemplateAsync");
+        });
+    }
+
+    [Fact]
+    public void A_template_the_gym_cannot_fully_do_shows_a_small_missing_equipment_chip()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var (client, fake) = Fake<IRoutineTemplatesClient>();
+        var missing = Item("Fuerza 5×5");
+        missing.ImageUrl = "/_content/GSM.UI.Shared/routine-templates/fuerza-5x5.svg";
+        missing.UnavailableHere = ["Sentadilla con barra", "Press militar con barra"];
+        var fine = Item("Cardio + core");
+        fine.UnavailableHere = [];
+        fake.Handlers["ListRoutineTemplatesAsync"] = _ => new List<RoutineTemplateListItem> { missing, fine };
+        Services.AddSingleton(client);
+        RenderComponent<MudPopoverProvider>();
+
+        var page = RenderComponent<TemplatesIndex>();
+
+        page.WaitForAssertion(() =>
+        {
+            Assert.Contains("Faltan máquinas (2)", page.Find($"[data-testid='template-missing-{missing.Id}']").TextContent);
+            Assert.Empty(page.FindAll($"[data-testid='template-missing-{fine.Id}']"));
+            Assert.Contains("fuerza-5x5.svg", page.Markup);
+        });
+    }
+
+    [Fact]
+    public async Task Choosing_a_template_with_missing_equipment_warns_before_assigning()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var (client, fake) = Fake<IRoutineTemplatesClient>();
+        var template = Item("Fuerza 5×5");
+        template.UnavailableHere = ["Sentadilla con barra"];
+        fake.Handlers["ListRoutineTemplatesAsync"] = _ => new List<RoutineTemplateListItem> { template };
+        Services.AddSingleton(client);
+        RenderComponent<MudPopoverProvider>();
+        var provider = RenderComponent<MudDialogProvider>();
+        var dialogs = Services.GetRequiredService<IDialogService>();
+
+        await provider.InvokeAsync(() => dialogs.ShowAsync<AssignFromTemplateDialog>(
+            "Asignar desde plantilla", new DialogParameters<AssignFromTemplateDialog> { { x => x.MemberId, Guid.NewGuid() } }));
+        provider.WaitForAssertion(() => Assert.NotEmpty(provider.FindAll("[data-testid='assign-template-select']")));
+        Assert.Empty(provider.FindAll("[data-testid='assign-template-missing']"));
+
+        var select = provider.FindComponent<MudSelect<Guid?>>();
+        await provider.InvokeAsync(() => select.Instance.ValueChanged.InvokeAsync(template.Id));
+
+        provider.WaitForAssertion(() =>
+        {
+            Assert.Contains("Sentadilla con barra", provider.Find("[data-testid='assign-template-missing']").TextContent);
+            Assert.Contains("Asignar de todos modos", provider.Find("[data-testid='assign-template-submit']").TextContent);
             Assert.DoesNotContain(fake.Calls, c => c.Method == "AssignRoutineTemplateAsync");
         });
     }

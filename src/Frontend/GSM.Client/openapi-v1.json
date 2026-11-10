@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "https://localhost:7219/"
+      "url": "https://localhost:7231/"
     }
   ],
   "paths": {
@@ -39062,6 +39062,27 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "baseKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unavailableHere": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -39125,6 +39146,21 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unavailableHere": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

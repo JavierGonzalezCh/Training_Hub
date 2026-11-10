@@ -56015,6 +56015,15 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
         public System.DateTimeOffset CreatedAt { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("imageUrl")]
+        public string? ImageUrl { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("baseKey")]
+        public string? BaseKey { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("unavailableHere")]
+        public System.Collections.Generic.ICollection<string>? UnavailableHere { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -56056,6 +56065,12 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
         public System.DateTimeOffset CreatedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("imageUrl")]
+        public string? ImageUrl { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("unavailableHere")]
+        public System.Collections.Generic.ICollection<string>? UnavailableHere { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

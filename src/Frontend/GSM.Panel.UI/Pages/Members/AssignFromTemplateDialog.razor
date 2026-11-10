@@ -1,4 +1,4 @@
-@* R11: elegir una plantilla de rutina y asignarla al miembro (copia su contenido; reemplaza la rutina activa). *@
+﻿@* R11: elegir una plantilla de rutina y asignarla al miembro (copia su contenido; reemplaza la rutina activa). *@
 @inject IRoutineTemplatesClient Templates
 
 <MudDialog>
@@ -26,6 +26,16 @@
                     </MudSelectItem>
                 }
             </MudSelect>
+            @if (SelectedMissing.Count > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" data-testid="assign-template-missing">
+                    El gym no tiene el equipo para @(SelectedMissing.Count == 1 ? "un ejercicio" : $"{SelectedMissing.Count} ejercicios")
+                    de esta plantilla: @string.Join(", ", SelectedMissing).
+                    El miembro tendrá que cambiarlos al entrenar.
+                    <MudLink Href="@($"/routine-templates/{_selected}")" Target="_blank" Class="ml-1"
+                             data-testid="assign-template-review">Revisar la plantilla</MudLink>
+                </MudAlert>
+            }
         }
         @if (_error is not null)
         {
@@ -36,7 +46,7 @@
         <MudButton OnClick="@(() => MudDialog.Cancel())">Cancelar</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync"
                    Disabled="_submitting || _selected is null" data-testid="assign-template-submit">
-            @(_submitting ? "Asignando..." : "Asignar rutina")
+            @(_submitting ? "Asignando..." : SelectedMissing.Count > 0 ? "Asignar de todos modos" : "Asignar rutina")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -49,6 +59,9 @@
     public Guid MemberId { get; set; }
 
     private List<RoutineTemplateListItem> _items = [];
+
+    private IReadOnlyList<string> SelectedMissing
+        => (IReadOnlyList<string>?)_items.FirstOrDefault(i => i.Id == _selected)?.UnavailableHere?.ToList() ?? [];
     private Guid? _selected;
     private bool _loading = true;
     private bool _submitting;

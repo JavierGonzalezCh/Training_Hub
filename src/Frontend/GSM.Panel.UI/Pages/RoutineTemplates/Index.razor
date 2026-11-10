@@ -34,36 +34,55 @@ else if (_items.Count == 0)
 }
 else
 {
-    <MudTable Items="_items" Hover="true" Dense="true" Elevation="0" data-testid="templates-table">
-        <HeaderContent>
-            <MudTh>Nombre</MudTh>
-            <MudTh>Calendario</MudTh>
-            <MudTh>Días</MudTh>
-            <MudTh>Ejercicios</MudTh>
-            <MudTh></MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Nombre">
-                <MudLink Href="@($"/routine-templates/{context.Id}")" Underline="Underline.None">@context.Name</MudLink>
-                @if (!string.IsNullOrWhiteSpace(context.Description))
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>
-                }
-            </MudTd>
-            <MudTd DataLabel="Calendario">@(context.ScheduleMode == "weekly" ? "Semanal" : "Rotativo")</MudTd>
-            <MudTd DataLabel="Días">@context.DayCount</MudTd>
-            <MudTd DataLabel="Ejercicios">@context.ExerciseCount</MudTd>
-            <MudTd Style="text-align:right">
-                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => Edit(context))"
-                           data-testid="@($"template-edit-{context.Id}")">Editar</MudButton>
-                @if (_canDelete)
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Disabled="_busy.Contains(context.Id)"
-                               OnClick="@(() => DeleteAsync(context))" data-testid="@($"template-delete-{context.Id}")">Eliminar</MudButton>
-                }
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+    <div class="gsm-template-grid" data-testid="templates-table">
+        @foreach (var item in _items)
+        {
+            var missing = item.UnavailableHere ?? [];
+            <MudPaper Outlined="true" Elevation="0" Class="gsm-template-card" data-testid="@($"template-card-{item.Id}")">
+                <a href="@($"/routine-templates/{item.Id}")" class="gsm-template-cover"
+                   style="@CoverStyle(item)" aria-label="@item.Name"></a>
+                <div class="pa-3 d-flex flex-column gap-1" style="flex:1">
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                        <MudLink Href="@($"/routine-templates/{item.Id}")" Underline="Underline.None" Typo="Typo.subtitle1">
+                            <b>@item.Name</b>
+                        </MudLink>
+                        @if (item.BaseKey is not null)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0">Base</MudChip>
+                        }
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@item.Description</MudText>
+                    }
+                    <MudText Typo="Typo.caption">
+                        @(item.ScheduleMode == "weekly" ? "Semanal" : "Rotativo") · @item.DayCount @(item.DayCount == 1 ? "día" : "días") · @item.ExerciseCount ejercicios
+                    </MudText>
+                    @if (missing.Count > 0)
+                    {
+                        <div class="d-flex align-center gap-1">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Outlined.WarningAmber" Class="ma-0"
+                                     data-testid="@($"template-missing-{item.Id}")">
+                                Faltan máquinas (@missing.Count)
+                            </MudChip>
+                            <InfoTip Text="@($"Este gym no puede hacer: {string.Join(", ", missing)}. Revisa la plantilla antes de usarla.")"
+                                     TestId="@($"template-missing-info-{item.Id}")" />
+                        </div>
+                    }
+                    <div class="d-flex gap-2 mt-auto pt-2">
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => Edit(item))"
+                                   data-testid="@($"template-edit-{item.Id}")">Editar</MudButton>
+                        @if (_canDelete)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Disabled="_busy.Contains(item.Id)"
+                                       OnClick="@(() => DeleteAsync(item))" data-testid="@($"template-delete-{item.Id}")">Eliminar</MudButton>
+                        }
+                    </div>
+                </div>
+            </MudPaper>
+        }
+    </div>
 }
 
 @code {
@@ -86,6 +105,12 @@ else
 
         await LoadAsync();
     }
+
+    /// <summary>Portada de la plantilla; sin imagen, el degradado de la marca.</summary>
+    private static string CoverStyle(RoutineTemplateListItem item)
+        => string.IsNullOrWhiteSpace(item.ImageUrl)
+            ? "background: linear-gradient(135deg, #B50016, #140306);"
+            : $"background-image: url('{item.ImageUrl}');";
 
     private void Edit(RoutineTemplateListItem item) => Navigation.NavigateTo($"/routine-templates/{item.Id}");
 

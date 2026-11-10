@@ -4766,3 +4766,23 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 /* InfoTip: el detalle se abre con clic y se cierra al hacer clic fuera. */
 .gsm-infotip-wrap { position: relative; display: inline-flex; }
 .gsm-infotip-pop { max-width: 18rem; z-index: 1200 !important; font-size: .85rem; line-height: 1.4; }
+
+/* RT1: plantillas de rutina como tarjetas con portada. */
+.gsm-template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.gsm-template-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.gsm-template-cover {
+    display: block;
+    aspect-ratio: 16 / 9;
+    background-size: cover;
+    background-position: center;
+}
