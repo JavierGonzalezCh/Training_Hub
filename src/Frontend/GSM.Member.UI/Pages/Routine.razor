@@ -135,13 +135,22 @@ else
         }
         else if (today.IsRest)
         {
-            <section class="gsm-m-card" data-testid="rest-today">
+            <section class="gsm-m-card" data-testid="rest-today" style="align-items:flex-start">
+
                 <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.SelfImprovement" /></span>
                 <div class="gsm-m-card__body">
                     <h2 class="gsm-m-card__title">Hoy descansas</h2>
-                    <p class="gsm-m-card__text">Recupérate. Si igual quieres entrenar, elige un día de tu plan.</p>
+                    @* Recuperación activa: cardio suave y corto, que no compite con la recuperación de los músculos. *@
+                    <p class="gsm-m-card__text" data-testid="rest-advice">
+                        Descansar es tan importante como entrenar: es cuando tus músculos se recuperan y se hacen más fuertes.
+                    </p>
+                    <p class="gsm-m-card__text">
+                        Si quieres moverte, te recomendamos cardio suave: 20 a 30 minutos de caminata, bicicleta o elíptica a un
+                        ritmo en el que puedas conversar.
+                    </p>
+                    <p class="gsm-m-card__text">Si prefieres entrenar, elige una sesión de tu plan.</p>
+                    <a class="gsm-m-chip mt-2 d-inline-flex" href="/app/plan" data-testid="pick-plan-day">Elegir una sesión</a>
                 </div>
-                <a class="gsm-m-chip" href="/app/plan" data-testid="pick-plan-day">Elegir un día</a>
             </section>
         }
 

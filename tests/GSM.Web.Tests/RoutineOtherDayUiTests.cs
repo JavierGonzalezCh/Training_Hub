@@ -162,6 +162,8 @@ public class RoutineOtherDayUiTests : TestContext
         Assert.Contains("Hoy descansas", rest.Markup);
         Assert.Empty(rest.FindAll(".gsm-m-ex"));
         Assert.Equal("/app/plan", rest.Find("[data-testid='pick-plan-day']").GetAttribute("href"));
+        Assert.Contains("tan importante como entrenar", rest.Find("[data-testid='rest-advice']").TextContent);
+        Assert.Contains("cardio suave", rest.Markup);
     }
 
     [Fact]
