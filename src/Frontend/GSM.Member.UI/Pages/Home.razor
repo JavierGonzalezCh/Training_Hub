@@ -33,9 +33,8 @@
                 @PendingBlock
                 @EntryBlock
                 @TrainingBlock
-                @BodyBlock
                 @NextClassBlock
-                @ProgressBlock
+                @BodyBlock
             </div>
         }
         else
@@ -54,7 +53,6 @@
                 @MedalsBlock
                 @PendingBlock
                 @NextClassBlock
-                @ProgressBlock
             </div>
         }
     </div>
@@ -303,6 +301,14 @@
                 }
             </div>
         }
+        else if (_home?.Progress is { } onlyStreak)
+        {
+            @* Sin días planeados no hay anillo de la semana: la racha va sola, para no perderla. *@
+            <a class="gsm-m-card gsm-m-statcard" href="/app/progreso" data-testid="home-streak">
+                <span class="gsm-m-card__kicker"><MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Size="Size.Small" /> Racha</span>
+                <span class="gsm-m-statcard__value">@onlyStreak.CurrentStreak<small>@(onlyStreak.CurrentStreak == 1 ? "día" : "días")</small></span>
+            </a>
+        }
     </text>;
 
     // 5b'. Medallas: las últimas ganadas y el próximo logro con lo que falta. Va justo después de la racha para motivar;
@@ -443,42 +449,6 @@
                     <MemberOccupancyCard Compact="true" />
                 }
             </div>
-        }
-    </text>;
-
-    // 8. Tu progreso en una línea (racha, congeladores y ranking); abre la pestaña Progreso.
-    private RenderFragment ProgressBlock => @<text>
-        @if (_home?.Progress is { } progress)
-        {
-            // La racha ya está arriba, junto a la semana, cuando el miembro tiene días planeados: aquí no se repite.
-            var streakAbove = _week is { PlannedDays: > 0 };
-            var freezers = progress.FreezesAvailable == 1 ? "1 congelador disponible" : $"{progress.FreezesAvailable} congeladores disponibles";
-            var ranking = progress.Ranking is { Participating: true } standing
-                ? standing.Position is { } place ? $"Puesto {place} del ranking del mes" : "Aún sin puesto en el ranking del mes"
-                : null;
-            <a class="gsm-m-card" id="home-progress" href="/app/progreso" aria-label="Abrir tu progreso">
-                <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@(streakAbove ? Icons.Material.Outlined.EmojiEvents : Icons.Material.Outlined.LocalFireDepartment)" /></span>
-                <div class="gsm-m-card__body">
-                    <span class="gsm-m-card__kicker">Tu progreso</span>
-                    @if (streakAbove)
-                    {
-                        <h2 class="gsm-m-card__title" id="home-ranking">@(ranking ?? "Logros, fuerza y ranking")</h2>
-                        <p class="gsm-m-card__text">@freezers</p>
-                    }
-                    else
-                    {
-                        <h2 class="gsm-m-card__title">Racha de @(progress.CurrentStreak == 1 ? "1 día" : $"{progress.CurrentStreak} días")</h2>
-                        <p class="gsm-m-card__text">
-                            @freezers
-                            @if (ranking is not null)
-                            {
-                                <span id="home-ranking">· @ranking</span>
-                            }
-                        </p>
-                    }
-                </div>
-                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
-            </a>
         }
     </text>;
 

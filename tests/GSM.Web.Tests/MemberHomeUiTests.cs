@@ -111,7 +111,6 @@ public class MemberHomeUiTests : TestContext
         // La franja va arriba, antes del aviso de membresía y del entrenamiento; ya no dentro de «Tu progreso».
         var markup = cut.Markup;
         Assert.True(markup.IndexOf("home-medals", StringComparison.Ordinal) < markup.IndexOf("home-training", StringComparison.Ordinal));
-        Assert.Empty(cut.Find("#home-progress").QuerySelectorAll("[data-testid='home-medal']"));
     }
 
     [Fact]
@@ -173,7 +172,7 @@ public class MemberHomeUiTests : TestContext
     {
         var cut = RenderHome(FullHome(), narrow: true);
 
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-next-class")));
         Assert.Single(_me.Calls, c => c.Method == "GetMyHomeAsync");
         Assert.DoesNotContain(_me.Calls, c => c.Method is "HoursAsync" or "GetMyOccupancyAsync" or "RoutinesGETAsync");
     }
@@ -182,14 +181,14 @@ public class MemberHomeUiTests : TestContext
     public void On_the_phone_the_blocks_come_in_a_single_column_in_the_spec_order()
     {
         var cut = RenderHome(FullHome(), narrow: true);
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-next-class")));
 
         Assert.Empty(cut.FindAll(".gsm-m-home__side"));
         var markup = cut.Markup;
         var order = new[]
         {
             "gsm-m-hero", "gym-open-badge", "home-notice", "home-news", "home-offer", "checkin-done", "home-training",
-            "home-next-class", "home-progress",
+            "home-next-class",
         };
         var positions = order.Select(marker => markup.IndexOf(marker, StringComparison.Ordinal)).ToArray();
         Assert.All(positions, p => Assert.True(p >= 0));
@@ -200,7 +199,7 @@ public class MemberHomeUiTests : TestContext
     public void On_desktop_the_left_column_holds_status_entry_and_training_and_the_right_the_rest()
     {
         var cut = RenderHome(FullHome(), narrow: false);
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-next-class")));
 
         var main = cut.Find(".gsm-m-home__main");
         var side = cut.Find(".gsm-m-home__side");
@@ -209,13 +208,12 @@ public class MemberHomeUiTests : TestContext
         Assert.NotEmpty(main.QuerySelectorAll("#home-notice"));
         Assert.NotEmpty(main.QuerySelectorAll("#checkin-done"));
         Assert.NotEmpty(main.QuerySelectorAll("#home-training"));
-        Assert.Empty(main.QuerySelectorAll("#home-next-class, #home-progress"));
+        Assert.Empty(main.QuerySelectorAll("#home-next-class"));
 
         // El gym ahora va dentro del saludo, no en su propia tarjeta.
         Assert.NotEmpty(main.QuerySelectorAll(".gsm-m-hero #gym-open-badge"));
         Assert.NotEmpty(side.QuerySelectorAll("[data-testid='home-offer']"));
         Assert.NotEmpty(side.QuerySelectorAll("#home-next-class"));
-        Assert.NotEmpty(side.QuerySelectorAll("#home-progress"));
         Assert.Empty(side.QuerySelectorAll("#home-training, .gsm-m-hero"));
     }
 
@@ -353,33 +351,16 @@ public class MemberHomeUiTests : TestContext
     }
 
     [Fact]
-    public void Progress_opens_the_progress_tab_and_shows_the_ranking_position_when_participating()
+    public void The_progress_card_is_gone_and_the_streak_shows_once_even_without_planned_days()
     {
         var cut = RenderHome(FullHome(), narrow: true);
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-next-class")));
 
-        cut.WaitForAssertion(() =>
-        {
-            var progress = cut.Find("#home-progress");
-            Assert.Contains("puesto 3", cut.Find("#home-ranking").TextContent, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal("/app/progreso", progress.GetAttribute("href"));
-
-            // La racha sale una sola vez: arriba con la semana si hay días planeados; si no, en esta tarjeta.
-            var streakCards = cut.FindAll(".gsm-m-statcard").Count;
-            Assert.Equal(streakCards > 0, !progress.TextContent.Contains("Racha de", StringComparison.Ordinal));
-            Assert.True(streakCards > 0 || progress.TextContent.Contains("Racha de 9 días", StringComparison.Ordinal));
-        });
-    }
-
-    [Fact]
-    public void Not_participating_in_the_ranking_shows_no_ranking_line()
-    {
-        var home = FullHome();
-        home.Progress.Ranking = new HomeRankingStanding { Participating = false, Days = 0 };
-
-        var cut = RenderHome(home, narrow: true);
-
-        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("#home-progress")));
-        Assert.Empty(cut.FindAll("#home-ranking"));
+        Assert.Empty(cut.FindAll("#home-progress"));
+        // Sin días planeados no hay anillo: la racha va sola.
+        var streak = cut.Find("[data-testid='home-streak']");
+        Assert.Contains("9", streak.TextContent);
+        Assert.Equal("/app/progreso", streak.GetAttribute("href"));
     }
 
     [Fact]
