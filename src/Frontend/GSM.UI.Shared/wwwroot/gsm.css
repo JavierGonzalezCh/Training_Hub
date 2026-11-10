@@ -3065,6 +3065,86 @@ a.gsm-m-card:hover {
     border-radius: 8px;
     margin-top: 0.75rem;
 }
+
+/* La foto del anuncio es un botón que abre el visor. */
+.gsm-announcement__zoom {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: zoom-in;
+}
+
+/* Visor de imagen a pantalla completa (ImageViewer). */
+.gsm-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    outline: none;
+}
+
+.gsm-viewer__stage {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    touch-action: pinch-zoom pan-x pan-y;
+}
+
+.gsm-viewer__image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    cursor: zoom-in;
+}
+
+.gsm-viewer__stage.is-zoomed {
+    display: grid;
+    place-items: safe center;
+}
+
+.gsm-viewer__stage.is-zoomed .gsm-viewer__image {
+    max-width: none;
+    max-height: none;
+    width: 200%;
+    cursor: zoom-out;
+}
+
+.gsm-viewer__close {
+    position: absolute;
+    top: max(0.75rem, env(safe-area-inset-top));
+    right: 0.75rem;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    background: rgba(30, 30, 30, 0.85);
+    color: #fff;
+    cursor: pointer;
+}
+
+.gsm-viewer__hint {
+    position: absolute;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    pointer-events: none;
+}
 .gsm-tag--archived { color: var(--gsm-text-3); }
 
 /* Panel: lista de anuncios como tarjetas, no como tabla: el texto es el contenido. */

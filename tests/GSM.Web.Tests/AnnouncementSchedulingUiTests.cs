@@ -307,4 +307,33 @@ public class AnnouncementSchedulingUiTests : TestContext
             cards[0].QuerySelector("[data-testid=feed-image]")!.GetAttribute("src"));
         Assert.Null(cards[1].QuerySelector("[data-testid=feed-image]"));
     }
+
+    [Fact]
+    public void Tapping_the_announcement_image_opens_a_viewer_that_zooms_and_closes()
+    {
+        var auth = this.AddTestAuthorization();
+        auth.SetAuthorized("ana");
+        auth.SetRoles("member");
+        var http = new HttpClient(new ImageFeedApi()) { BaseAddress = new Uri("http://localhost") };
+        Services.AddSingleton<IMeClient>(new MeClient(http));
+        var gym = new GSM.UI.Shared.Auth.GymContext();
+        gym.Set(new MeResponse { FeatureFlags = new MeFeatureFlags { ShowCommunity = true } }, impersonating: false);
+        Services.AddSingleton(gym);
+        Services.AddSingleton<GSM.Member.UI.NewsUnreadState>();
+        RenderComponent<MudPopoverProvider>();
+
+        var cut = RenderComponent<News>();
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid=feed-image-open]")));
+        Assert.Empty(cut.FindAll("[data-testid=image-viewer]"));
+
+        cut.Find("[data-testid=feed-image-open]").Click();
+        Assert.Equal("https://files.test/announcements/a.png",
+            cut.Find("[data-testid=image-viewer-image]").GetAttribute("src"));
+
+        cut.Find("[data-testid=image-viewer-image]").Click();
+        Assert.NotEmpty(cut.FindAll(".gsm-viewer__stage.is-zoomed"));
+
+        cut.Find("[data-testid=image-viewer-close]").Click();
+        Assert.Empty(cut.FindAll("[data-testid=image-viewer]"));
+    }
 }

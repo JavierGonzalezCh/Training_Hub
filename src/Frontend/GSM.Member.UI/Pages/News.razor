@@ -67,7 +67,10 @@ else
                         <p class="gsm-feed-card__body">@item.Body</p>
                         @if (!string.IsNullOrEmpty(item.ImageUrl))
                         {
-                            <img class="gsm-announcement__image" src="@item.ImageUrl" alt="" loading="lazy" data-testid="feed-image" />
+                            <button type="button" class="gsm-announcement__zoom" aria-label="Ver la imagen de «@item.Title»"
+                                    data-testid="feed-image-open" @onclick="() => OpenImage(item.ImageUrl, item.Title)">
+                                <img class="gsm-announcement__image" src="@item.ImageUrl" alt="" loading="lazy" data-testid="feed-image" />
+                            </button>
                         }
                         <div class="gsm-reactions" role="group" aria-label="Reacciones">
                             @foreach (var kind in CommunicationLabels.Reactions)
@@ -131,8 +134,25 @@ else
     }
 }
 
+<ImageViewer Src="@_viewerSrc" Alt="@_viewerAlt" OnClose="CloseImage" />
+
 @code {
     private enum Tab { Announcements, ForYou }
+
+    private string? _viewerSrc;
+    private string? _viewerAlt;
+
+    private void OpenImage(string? src, string? alt)
+    {
+        _viewerSrc = src;
+        _viewerAlt = alt;
+    }
+
+    private void CloseImage()
+    {
+        _viewerSrc = null;
+        _viewerAlt = null;
+    }
 
     private Tab _tab = Tab.Announcements;
     private bool _loading = true;
