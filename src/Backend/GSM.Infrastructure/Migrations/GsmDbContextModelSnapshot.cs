@@ -87,6 +87,7 @@ namespace GSM.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "muscle", new[] { "chest", "back", "shoulders", "biceps", "triceps", "forearms", "quadriceps", "hamstrings", "glutes", "calves", "abs", "lower_back", "neck", "full_body", "traps", "obliques", "adductors", "abductors" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "power_lift", new[] { "squat", "bench", "deadlift" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "routine_day_override_reason", new[] { "swap", "reorganize", "shift" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "routine_review_reason", new[] { "scheduled", "created_by_member", "edited_by_member" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "schedule_mode", new[] { "rotating", "weekly" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "routines", "tracking_type", new[] { "reps_weight", "reps", "time", "distance", "time_distance", "weight_distance" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "superadmin", "impersonation_mode", new[] { "read", "write" });
@@ -4307,6 +4308,12 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("date")
                         .HasColumnName("review_on");
 
+                    b.Property<RoutineReviewReason>("ReviewReason")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("routines.routine_review_reason")
+                        .HasDefaultValue(RoutineReviewReason.Scheduled)
+                        .HasColumnName("review_reason");
+
                     b.Property<ScheduleMode>("ScheduleMode")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("routines.schedule_mode")
@@ -4616,6 +4623,11 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("BaseKey")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("base_key");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -4646,6 +4658,11 @@ namespace GSM.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("gym_id");
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("image_url");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -4664,6 +4681,11 @@ namespace GSM.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_routine_templates");
+
+                    b.HasIndex("GymId", "BaseKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_routine_templates_gym_id_base_key")
+                        .HasFilter("base_key is not null");
 
                     b.HasIndex("GymId", "Name")
                         .HasDatabaseName("ix_routine_templates_gym_id_name");

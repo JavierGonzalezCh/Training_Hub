@@ -137,6 +137,35 @@ public sealed class MeController : ControllerBase
     }
 
     /// <summary>
+    /// El miembro edita su propia rutina (solo las que armó él). Queda pendiente de revisión del entrenador. 403 si es del
+    /// entrenador o el auto-servicio está apagado; 404 si no es suya.
+    /// </summary>
+    [HttpPut("routines/{id:guid}")]
+    [ProducesResponseType<RoutineResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<RoutineResponse>> UpdateMyRoutine(
+        Guid id,
+        SaveRoutineRequest request,
+        [FromServices] UpdateMyRoutineHandler handler,
+        CancellationToken cancellationToken)
+        => Ok(await handler.HandleAsync(id, request, cancellationToken));
+
+    /// <summary>El miembro elimina su propia rutina: se da de baja y queda sin rutina activa (el historial se conserva).</summary>
+    [HttpDelete("routines/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteMyRoutine(
+        Guid id,
+        [FromServices] DeactivateMyRoutineHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
     /// Planificador: qué toca cada día de la semana (lunes a domingo) que contiene <c>date</c> (hoy si no viene), con
     /// los cambios del miembro y si ya lo hizo. 403 si <c>show_routines = false</c>; 422 a más de 26 semanas de hoy.
     /// </summary>

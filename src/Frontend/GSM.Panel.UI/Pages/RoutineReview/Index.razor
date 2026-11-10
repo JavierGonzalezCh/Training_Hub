@@ -25,12 +25,13 @@ else if (_items.Count == 0)
 else
 {
     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-        Rutinas con la revisión vencida o que vencen en los próximos @_windowDays días. La rutina sigue activa aunque la fecha pase.
+        Rutinas que armó o cambió un miembro (revisa la rutina completa) y rutinas con la revisión vencida o que vence en los próximos @_windowDays días. La rutina sigue activa aunque la fecha pase.
     </MudText>
     <MudTable Items="_items" Hover="true" Dense="true" Elevation="0" data-testid="review-table">
         <HeaderContent>
             <MudTh>Miembro</MudTh>
             <MudTh>Rutina</MudTh>
+            <MudTh>Motivo</MudTh>
             <MudTh>Revisión</MudTh>
             <MudTh>Última revisión</MudTh>
             <MudTh></MudTh>
@@ -42,6 +43,10 @@ else
                 </MudLink>
             </MudTd>
             <MudTd DataLabel="Rutina">@context.RoutineName</MudTd>
+            <MudTd DataLabel="Motivo">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@(ByMember(context) ? Color.Warning : Color.Default)"
+                         data-testid="@($"review-reason-{context.RoutineId}")">@ReasonLabel(context)</MudChip>
+            </MudTd>
             <MudTd DataLabel="Revisión">
                 <MudText Color="@(context.ReviewOn < _today ? Color.Error : Color.Default)">
                     @GsmFormat.Day(context.ReviewOn)@(context.ReviewOn < _today ? $" · {_today.DayNumber - context.ReviewOn.DayNumber} d de atraso" : "")
@@ -62,6 +67,15 @@ else
 }
 
 @code {
+    private static bool ByMember(RoutineDueItem item) => item.ReviewReason is "CreatedByMember" or "EditedByMember";
+
+    private static string ReasonLabel(RoutineDueItem item) => item.ReviewReason switch
+    {
+        "CreatedByMember" => "Rutina nueva del miembro",
+        "EditedByMember" => "Editada por el miembro",
+        _ => "Revisión periódica",
+    };
+
     private readonly DateOnly _today = GsmFormat.Today();
     private readonly HashSet<Guid> _busy = [];
     private List<RoutineDueItem> _items = [];

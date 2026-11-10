@@ -217,7 +217,7 @@ public sealed class RoutineReader(GsmDbContext dbContext, IClock clock) : IRouti
         var today = clock.Today;
         var until = today.AddDays(windowDays);
 
-        var query = Routines.Where(r => r.IsActive && !r.SelfAssigned && r.ReviewOn <= until);
+        var query = Routines.Where(r => r.IsActive && (!r.SelfAssigned || r.ReviewReason != RoutineReviewReason.Scheduled) && r.ReviewOn <= until);
         if (memberIds is not null)
         {
             query = query.Where(r => memberIds.Contains(r.MemberId));

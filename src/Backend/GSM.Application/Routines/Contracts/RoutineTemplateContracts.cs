@@ -10,6 +10,11 @@ public sealed record SaveRoutineTemplateRequest(string Name, string? Description
 /// <summary>Guardar una rutina ya armada (de un miembro) como plantilla.</summary>
 public sealed record SaveRoutineAsTemplateRequest(string Name, string? Description);
 
+/// <summary>
+/// <c>ImageUrl</c>: portada (nula = genérica). <c>BaseKey</c>: plantilla base de la que salió (RT1), nula si la creó
+/// el gym. <c>UnavailableHere</c>: nombres de los ejercicios que hoy no se pueden hacer en este gym (le falta la
+/// máquina o el equipo, Equipment §5) o que ya no son visibles; vacío si todo se puede hacer.
+/// </summary>
 public sealed record RoutineTemplateListItem(
     Guid Id,
     string Name,
@@ -17,7 +22,10 @@ public sealed record RoutineTemplateListItem(
     string ScheduleMode,
     int DayCount,
     int ExerciseCount,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? ImageUrl = null,
+    string? BaseKey = null,
+    IReadOnlyList<string>? UnavailableHere = null);
 
 /// <summary>
 /// <c>Routine</c> trae el contenido con la forma de una rutina (nombres de ejercicio, series, grupos musculares) para
@@ -34,4 +42,6 @@ public sealed record RoutineTemplateResponse(
     int ExerciseCount,
     int UnavailableExerciseCount,
     RoutineResponse Routine,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? ImageUrl = null,
+    IReadOnlyList<string>? UnavailableHere = null);

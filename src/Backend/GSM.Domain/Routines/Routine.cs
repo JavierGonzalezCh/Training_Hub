@@ -45,6 +45,12 @@ public sealed class Routine : BaseEntity, ITenantEntity
     /// </summary>
     public DateOnly ReviewOn { get; private set; }
 
+    /// <summary>
+    /// Motivo de la revisión pendiente. Una rutina que arma o cambia el propio miembro queda para revisión
+    /// completa de inmediato (<see cref="ReviewOn"/> = hoy); al revisarla vuelve a <see cref="RoutineReviewReason.Scheduled"/>.
+    /// </summary>
+    public RoutineReviewReason ReviewReason { get; private set; } = RoutineReviewReason.Scheduled;
+
     public DateTimeOffset? LastReviewedAt { get; private set; }
 
     public Guid? LastReviewedBy { get; private set; }
@@ -75,6 +81,13 @@ public sealed class Routine : BaseEntity, ITenantEntity
             ReviewOn = startsOn.AddDays(7 * ValidReviewWeeks(reviewWeeks)),
         };
 
+        if (draft.SelfAssigned)
+        {
+            // La armó el miembro: el entrenador la revisa de inmediato, no al cabo del plazo.
+            routine.ReviewOn = startsOn;
+            routine.ReviewReason = RoutineReviewReason.CreatedByMember;
+        }
+
         routine.ApplyHeaderAndDays(draft, startsOn);
         return routine;
     }
@@ -84,7 +97,7 @@ public sealed class Routine : BaseEntity, ITenantEntity
     /// id se crea y lo que ya no viene se retira con <paramref name="today"/> sin borrarse. No cambia
     /// <see cref="StartsOn"/>: es el ancla histórica del ciclo.
     /// </summary>
-    public void Replace(RoutineDraft draft, DateOnly today)
+    public void Replace(RoutineDraft draft, DateOnly today, bool editedByMember = false)
     {
         if (draft.ScheduleMode != ScheduleMode)
         {
@@ -93,6 +106,15 @@ public sealed class Routine : BaseEntity, ITenantEntity
         }
 
         ApplyHeaderAndDays(draft, today);
+
+        if (editedByMember && SelfAssigned)
+        {
+            ReviewOn = today;
+            if (ReviewReason == RoutineReviewReason.Scheduled)
+            {
+                ReviewReason = RoutineReviewReason.EditedByMember;
+            }
+        }
     }
 
     /// <summary>
@@ -115,6 +137,7 @@ public sealed class Routine : BaseEntity, ITenantEntity
         LastReviewedAt = now;
         LastReviewedBy = reviewedBy;
         ReviewOn = today.AddDays(7 * ValidReviewWeeks(reviewWeeks));
+        ReviewReason = RoutineReviewReason.Scheduled;
     }
 
     private static int ValidReviewWeeks(int weeks)

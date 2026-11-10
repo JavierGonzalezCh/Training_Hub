@@ -15,6 +15,13 @@ public sealed class RoutineTemplateRepository(GsmDbContext dbContext) : IRoutine
     public async Task<IReadOnlyList<RoutineTemplate>> ListAsync(CancellationToken cancellationToken = default)
         => await Templates.OrderBy(t => t.Name).ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlySet<string>> GetBaseKeysAsync(Guid gymId, CancellationToken cancellationToken = default)
+        => (await Templates.IgnoreQueryFilters().AsNoTracking()
+                .Where(t => t.GymId == gymId && t.BaseKey != null)
+                .Select(t => t.BaseKey!)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+
     public void Add(RoutineTemplate template) => Templates.Add(template);
 
     public void Remove(RoutineTemplate template) => Templates.Remove(template);

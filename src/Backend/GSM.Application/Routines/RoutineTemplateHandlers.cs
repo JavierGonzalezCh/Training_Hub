@@ -45,12 +45,34 @@ internal static class RoutineTemplating
             stripped.Days.Sum(d => d.Exercises.Count));
     }
 
+    public static string Serialize(SaveRoutineRequest request) => JsonSerializer.Serialize(request, Json);
+
     public static SaveRoutineRequest ReadContent(RoutineTemplate template)
         => JsonSerializer.Deserialize<SaveRoutineRequest>(template.Content, Json)
            ?? throw new ValidationDomainException("La plantilla está vacía.");
 
-    public static RoutineTemplateListItem ToListItem(RoutineTemplate t)
-        => new(t.Id, t.Name, t.Description, t.ScheduleMode, t.DayCount, t.ExerciseCount, t.CreatedAt);
+    public static RoutineTemplateListItem ToListItem(RoutineTemplate t, IReadOnlyList<string>? unavailableHere = null)
+        => new(t.Id, t.Name, t.Description, t.ScheduleMode, t.DayCount, t.ExerciseCount, t.CreatedAt,
+            t.ImageUrl, t.BaseKey, unavailableHere ?? []);
+
+    public static IReadOnlyList<Guid> ExerciseIds(SaveRoutineRequest content)
+        => content.Days.SelectMany(d => d.Exercises ?? []).Select(e => e.ExerciseId).Distinct().ToList();
+
+    /// <summary>
+    /// Nombres de los ejercicios de la plantilla que hoy no se pueden hacer en el gym: no visibles ("Ejercicio
+    /// retirado") o sin el equipo disponible según Equipment §5 (un gym sin inventario no filtra nada).
+    /// </summary>
+    public static IReadOnlyList<string> UnavailableHere(
+        SaveRoutineRequest content,
+        IReadOnlyDictionary<Guid, Exercise> visible,
+        IReadOnlyDictionary<Guid, ExerciseEquipmentInfo> availability)
+        => ExerciseIds(content)
+            .Select(id => visible.TryGetValue(id, out var e)
+                ? (availability.TryGetValue(id, out var info) && !info.IsAvailable ? e.Name : null)
+                : "Ejercicio retirado")
+            .OfType<string>()
+            .Distinct()
+            .ToList();
 
     /// <summary>Convierte una rutina existente en el cuerpo de una plantilla (nombres y ids de ejercicio, series, grupos).</summary>
     public static SaveRoutineRequest FromResponse(RoutineResponse routine)
@@ -72,12 +94,27 @@ internal static class RoutineTemplating
             routine.ScheduleMode);
 }
 
-public sealed class ListRoutineTemplatesHandler(ICurrentUserService currentUser, IRoutineTemplateRepository templates)
+public sealed class ListRoutineTemplatesHandler(
+    ICurrentUserService currentUser,
+    IRoutineTemplateRepository templates,
+    IExerciseRepository exercises,
+    ExerciseEquipmentResolver equipment)
 {
     public async Task<IReadOnlyList<RoutineTemplateListItem>> HandleAsync(CancellationToken cancellationToken)
     {
         _ = currentUser.RequireGymId();
-        return (await templates.ListAsync(cancellationToken)).Select(RoutineTemplating.ToListItem).ToList();
+        var list = await templates.ListAsync(cancellationToken);
+        var contents = list.ToDictionary(t => t.Id, RoutineTemplating.ReadContent);
+
+        // Una sola consulta de ejercicios y de disponibilidad para todas las plantillas.
+        var ids = contents.Values.SelectMany(RoutineTemplating.ExerciseIds).Distinct().ToList();
+        var visible = (await exercises.ListVisibleByIdsAsync(ids, cancellationToken)).ToDictionary(e => e.Id);
+        var availability = await equipment.ResolveAsync(visible.Values.Select(ExerciseNeed.Of).ToList(), cancellationToken);
+
+        return list
+            .Select(t => RoutineTemplating.ToListItem(
+                t, RoutineTemplating.UnavailableHere(contents[t.Id], visible, availability)))
+            .ToList();
     }
 }
 
@@ -108,9 +145,13 @@ public sealed class GetRoutineTemplateHandler(
         var machines = await equipment.ResolveAsync(RoutineMapper.EquipmentNeeds(shape, visible), cancellationToken);
         var routine = RoutineMapper.ToResponse(shape, visible, machines) with { Id = template.Id };
 
+        var entities = (await exercises.ListVisibleByIdsAsync(ids, cancellationToken)).ToDictionary(e => e.Id);
+        var availability = await equipment.ResolveAsync(entities.Values.Select(ExerciseNeed.Of).ToList(), cancellationToken);
+
         return new RoutineTemplateResponse(
             template.Id, template.Name, template.Description, template.ScheduleMode,
-            template.DayCount, template.ExerciseCount, unavailable, routine, template.CreatedAt);
+            template.DayCount, template.ExerciseCount, unavailable, routine, template.CreatedAt,
+            template.ImageUrl, RoutineTemplating.UnavailableHere(content, entities, availability));
     }
 }
 

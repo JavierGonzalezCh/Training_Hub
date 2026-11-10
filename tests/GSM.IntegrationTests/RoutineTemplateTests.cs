@@ -1,6 +1,7 @@
 using GSM.Application.Routines;
 using GSM.Application.Routines.Contracts;
 using GSM.Domain.Common.Exceptions;
+using GSM.Domain.Equipment;
 using GSM.Domain.Gyms;
 using GSM.Domain.Identity;
 using GSM.Domain.Members;
@@ -241,6 +242,78 @@ public sealed class RoutineTemplateTests(ApiFactory factory) : IClassFixture<Api
         using var scope = AsOwner(w.Gym);
         return (await scope.ServiceProvider.GetRequiredService<CreateRoutineTemplateHandler>()
             .HandleAsync(new SaveRoutineTemplateRequest(name, null, TwoDayRequest(w)), default)).Id;
+    }
+
+    [Fact]
+    public async Task Base_templates_are_seeded_once_with_image_and_every_one_can_be_assigned()
+    {
+        var w = await SeedAsync();
+
+        using (var scope = AsOwner(w.Gym))
+        {
+            var seeder = scope.ServiceProvider.GetRequiredService<SeedBaseRoutineTemplatesHandler>();
+            Assert.Equal(RoutineBaseTemplates.All.Count, await seeder.HandleAsync(w.Gym.GymId, default));
+            Assert.Equal(0, await seeder.HandleAsync(w.Gym.GymId, default));
+        }
+
+        IReadOnlyList<RoutineTemplateListItem> list;
+        using (var scope = AsOwner(w.Gym))
+        {
+            list = await scope.ServiceProvider.GetRequiredService<ListRoutineTemplatesHandler>().HandleAsync(default);
+        }
+
+        Assert.Equal(5, list.Count);
+        Assert.All(list, t =>
+        {
+            Assert.NotNull(t.BaseKey);
+            Assert.EndsWith(".svg", t.ImageUrl);
+            Assert.Empty(t.UnavailableHere!); // sin inventario cargado no se filtra nada
+            Assert.Equal(
+                RoutineBaseTemplates.All.Single(b => b.Key == t.BaseKey).Days.Sum(d => d.Lines.Count), t.ExerciseCount);
+        });
+
+        // Cada plantilla base pasa las reglas de una rutina real (series coherentes con lo que mide cada ejercicio).
+        foreach (var template in list)
+        {
+            using var scope = AsOwner(w.Gym);
+            var routine = await scope.ServiceProvider.GetRequiredService<AssignRoutineFromTemplateHandler>()
+                .HandleAsync(w.MemberId, template.Id, default);
+            Assert.Equal(template.DayCount, routine.CycleLength);
+        }
+
+        // Otro gym no las ve hasta que se le siembran.
+        using var other = AsOwner(w.OtherGym);
+        Assert.Empty(await other.ServiceProvider.GetRequiredService<ListRoutineTemplatesHandler>().HandleAsync(default));
+    }
+
+    [Fact]
+    public async Task A_template_lists_the_exercises_the_gym_cannot_do_with_its_inventory()
+    {
+        var w = await SeedAsync();
+        using (var scope = AsOwner(w.Gym))
+        {
+            await scope.ServiceProvider.GetRequiredService<SeedBaseRoutineTemplatesHandler>().HandleAsync(w.Gym.GymId, default);
+            var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+            db.Add(EquipmentItem.Create(
+                w.Gym.GymId, null, "Mancuernas", EquipmentType.Dumbbell, null, null, null, null, 1, null, null));
+            await db.SaveChangesAsync();
+        }
+
+        using var read = AsOwner(w.Gym);
+        var list = await read.ServiceProvider.GetRequiredService<ListRoutineTemplatesHandler>().HandleAsync(default);
+
+        var strength = list.Single(t => t.BaseKey == "fuerza-5x5");
+        Assert.Contains("Sentadilla con barra", strength.UnavailableHere!);
+        Assert.Contains("Press de banca plana con barra", strength.UnavailableHere!);
+
+        var detail = await read.ServiceProvider.GetRequiredService<GetRoutineTemplateHandler>().HandleAsync(strength.Id, default);
+        Assert.Equal(strength.UnavailableHere, detail.UnavailableHere);
+        Assert.Equal(0, detail.UnavailableExerciseCount);
+
+        // Con solo mancuernas, los ejercicios con mancuernas o peso corporal no aparecen.
+        var cardio = list.Single(t => t.BaseKey == "cardio-core");
+        Assert.DoesNotContain("Burpees", cardio.UnavailableHere!);
+        Assert.Contains("Cinta de correr", cardio.UnavailableHere!);
     }
 
     private IServiceScope AsOwner((Guid GymId, Guid OwnerId) gym)

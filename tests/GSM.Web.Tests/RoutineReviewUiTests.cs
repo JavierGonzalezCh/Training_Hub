@@ -233,6 +233,32 @@ public class RoutineReviewUiTests : TestContext
     }
 
     [Fact]
+    public void Each_row_says_why_the_routine_is_up_for_review()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        var fresh = Item("Ana Pérez", 0);
+        fresh.ReviewReason = "CreatedByMember";
+        var edited = Item("Luis Gómez", 0);
+        edited.ReviewReason = "EditedByMember";
+        var periodic = Item("Eva Ríos", -2);
+        periodic.ReviewReason = "Scheduled";
+        var (client, fake) = Fake<IRoutinesClient>();
+        fake.Handlers["GetRoutinesDueForReviewAsync"] = _ => new DueRoutinesResponse
+        {
+            Items = new List<RoutineDueItem> { fresh, edited, periodic }, Mine = false, WindowDays = 7,
+        };
+        Services.AddSingleton(client);
+        RenderComponent<MudPopoverProvider>();
+
+        var page = RenderComponent<ReviewIndex>();
+
+        Assert.Contains("Rutina nueva del miembro", page.Find($"[data-testid='review-reason-{fresh.RoutineId}']").TextContent);
+        Assert.Contains("Editada por el miembro", page.Find($"[data-testid='review-reason-{edited.RoutineId}']").TextContent);
+        Assert.Contains("Revisión periódica", page.Find($"[data-testid='review-reason-{periodic.RoutineId}']").TextContent);
+    }
+
+    [Fact]
     public void The_list_says_so_when_nothing_is_due()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

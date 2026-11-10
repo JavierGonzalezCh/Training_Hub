@@ -165,4 +165,12 @@ public sealed class ExerciseRepository(GsmDbContext dbContext, ICurrentUserServi
     public void RemoveHidden(GymHiddenExercise hidden) => HiddenRows.Remove(hidden);
 
     public void Add(Exercise exercise) => Exercises.Add(exercise);
+
+    public async Task<IReadOnlyDictionary<string, Guid>> GetSystemIdsByNameAsync(
+        IReadOnlyCollection<string> names, CancellationToken cancellationToken = default)
+        => names.Count == 0
+            ? new Dictionary<string, Guid>()
+            : await Exercises.AsNoTracking()
+                .Where(e => e.GymId == null && e.IsActive && names.Contains(e.Name))
+                .ToDictionaryAsync(e => e.Name, e => e.Id, cancellationToken);
 }

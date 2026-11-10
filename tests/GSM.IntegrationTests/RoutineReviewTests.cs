@@ -246,6 +246,162 @@ public sealed class RoutineReviewTests(ApiFactory factory) : IClassFixture<ApiFa
         Assert.Equal(Day.AddDays(42), filled);
     }
 
+    [Fact]
+    public async Task A_routine_the_member_creates_is_due_for_review_right_away_with_its_reason()
+    {
+        var w = await SeedAsync();
+        await AllowSelfServiceAsync(w);
+
+        var created = await AsMember(w, scope => scope.ServiceProvider.GetRequiredService<SelfAssignRoutineHandler>()
+            .HandleAsync(OneDayRequest(w), default));
+
+        // El mismo día, sin esperar el plazo, y el entrenador la ve con su motivo.
+        var due = await DueAsync(w, w.OwnerId, UserRole.Owner, Day);
+        var item = Assert.Single(due.Items, i => i.RoutineId == created.Id);
+        Assert.Equal("CreatedByMember", item.ReviewReason);
+        Assert.Equal(Day, item.ReviewOn);
+
+        // Las del staff siguen por plazo: no aparecen hoy.
+        Assert.DoesNotContain(due.Items, i => i.RoutineId == w.MemberWithTrainerRoutineId);
+
+        // Al revisarla sale de la lista (y las del miembro no vuelven por plazo).
+        using (var scope = AsOwner(w))
+        {
+            await scope.ServiceProvider.GetRequiredService<ReviewRoutineHandler>().HandleAsync(created.Id, default);
+        }
+
+        var after = await DueAsync(w, w.OwnerId, UserRole.Owner, Day.AddDays(60));
+        Assert.DoesNotContain(after.Items, i => i.RoutineId == created.Id);
+        Assert.Equal(RoutineReviewReason.Scheduled, (await GetRoutineAsync(w, created.Id)).ReviewReason);
+    }
+
+    [Fact]
+    public async Task Editing_their_own_routine_puts_it_back_in_the_review_list_as_edited()
+    {
+        var w = await SeedAsync();
+        await AllowSelfServiceAsync(w);
+
+        var created = await AsMember(w, scope => scope.ServiceProvider.GetRequiredService<SelfAssignRoutineHandler>()
+            .HandleAsync(OneDayRequest(w), default));
+        using (var scope = AsOwner(w))
+        {
+            await scope.ServiceProvider.GetRequiredService<ReviewRoutineHandler>().HandleAsync(created.Id, default);
+        }
+
+        var edited = await AsMember(w, scope => scope.ServiceProvider.GetRequiredService<UpdateMyRoutineHandler>()
+            .HandleAsync(created.Id, OneDayRequest(w) with { Name = "Rutina cambiada" }, default));
+        Assert.Equal("Rutina cambiada", edited.Name);
+
+        var due = await DueAsync(w, w.OwnerId, UserRole.Owner, Day);
+        Assert.Equal("EditedByMember", Assert.Single(due.Items, i => i.RoutineId == created.Id).ReviewReason);
+    }
+
+    [Fact]
+    public async Task A_member_cannot_edit_or_delete_a_routine_the_trainer_built_or_someone_elses()
+    {
+        var w = await SeedAsync();
+        await AllowSelfServiceAsync(w);
+
+        await Assert.ThrowsAsync<ForbiddenDomainException>(() => AsMember(w, scope =>
+            scope.ServiceProvider.GetRequiredService<UpdateMyRoutineHandler>()
+                .HandleAsync(w.MemberWithTrainerRoutineId, OneDayRequest(w), default)));
+        await Assert.ThrowsAsync<ForbiddenDomainException>(() => AsMember(w, async scope =>
+        {
+            await scope.ServiceProvider.GetRequiredService<DeactivateMyRoutineHandler>()
+                .HandleAsync(w.MemberWithTrainerRoutineId, default);
+            return 0;
+        }));
+        await Assert.ThrowsAsync<NotFoundException>(() => AsMember(w, scope =>
+            scope.ServiceProvider.GetRequiredService<UpdateMyRoutineHandler>()
+                .HandleAsync(w.MemberWithoutTrainerRoutineId, OneDayRequest(w), default)));
+    }
+
+    [Fact]
+    public async Task A_member_can_delete_their_own_routine_and_is_left_without_an_active_one()
+    {
+        var w = await SeedAsync();
+        await AllowSelfServiceAsync(w);
+
+        // Al armar la suya, la del entrenador queda dada de baja (una sola activa).
+        var created = await AsMember(w, scope => scope.ServiceProvider.GetRequiredService<SelfAssignRoutineHandler>()
+            .HandleAsync(OneDayRequest(w), default));
+        await AsMember(w, async scope =>
+        {
+            await scope.ServiceProvider.GetRequiredService<DeactivateMyRoutineHandler>().HandleAsync(created.Id, default);
+            return 0;
+        });
+
+        var routine = await GetRoutineAsync(w, created.Id);
+        Assert.False(routine.IsActive);
+        Assert.Equal(Day, routine.DeactivatedOn);
+
+        // Y una rutina ya dada de baja no se vuelve a editar.
+        await Assert.ThrowsAsync<ConflictException>(() => AsMember(w, scope =>
+            scope.ServiceProvider.GetRequiredService<UpdateMyRoutineHandler>()
+                .HandleAsync(created.Id, OneDayRequest(w), default)));
+    }
+
+    [Fact]
+    public async Task Editing_a_routine_of_the_member_as_staff_does_not_flag_it_as_edited_by_the_member()
+    {
+        var w = await SeedAsync();
+        await AllowSelfServiceAsync(w);
+
+        var created = await AsMember(w, scope => scope.ServiceProvider.GetRequiredService<SelfAssignRoutineHandler>()
+            .HandleAsync(OneDayRequest(w), default));
+        using (var scope = AsOwner(w))
+        {
+            await scope.ServiceProvider.GetRequiredService<ReviewRoutineHandler>().HandleAsync(created.Id, default);
+            await scope.ServiceProvider.GetRequiredService<UpdateRoutineHandler>()
+                .HandleAsync(created.Id, OneDayRequest(w) with { Name = "Ajuste del entrenador" }, default);
+        }
+
+        Assert.Equal(RoutineReviewReason.Scheduled, (await GetRoutineAsync(w, created.Id)).ReviewReason);
+    }
+
+    private async Task AllowSelfServiceAsync(World w)
+    {
+        using var scope = factory.CreateScopeWithMigration();
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAsSystem();
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+        await db.Database.ExecuteSqlRawAsync(
+            "update gyms.gym_feature_flags set members_can_create_routines = true, show_routines = true where gym_id = {0}", w.GymId);
+    }
+
+    private async Task<T> AsMember<T>(World w, Func<IServiceScope, Task<T>> action)
+    {
+        using var scope = factory.CreateScopeWithMigration();
+        scope.ServiceProvider.GetRequiredService<MutableCurrentUser>().ActAs(w.MemberUserId, w.GymId, UserRole.Member);
+        scope.ServiceProvider.GetRequiredService<MutableClock>().PinToBusinessDay(Day);
+        return await action(scope);
+    }
+
+    [Fact]
+    public async Task The_migration_flags_the_routines_members_already_built_for_review()
+    {
+        var w = await SeedAsync();
+        await AllowSelfServiceAsync(w);
+        var created = await AsMember(w, scope => scope.ServiceProvider.GetRequiredService<SelfAssignRoutineHandler>()
+            .HandleAsync(OneDayRequest(w), default));
+
+        using var scope = AsOwner(w);
+        var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
+
+        // Simula una rutina propia anterior a la columna (sin motivo) y corre el UPDATE de la migración; se revierte.
+        await using var tx = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlRawAsync(
+            "update routines.routines set review_reason = 'scheduled', review_on = date '2030-01-01' where id = {0};", created.Id);
+        await db.Database.ExecuteSqlRawAsync(
+            "UPDATE routines.routines SET review_reason = 'created_by_member', "
+            + "review_on = (now() AT TIME ZONE 'America/Bogota')::date WHERE self_assigned AND is_active;");
+        var reason = await db.Database
+            .SqlQueryRaw<string>("select review_reason::text as \"Value\" from routines.routines where id = {0}", created.Id)
+            .SingleAsync();
+        await tx.RollbackAsync();
+
+        Assert.Equal("created_by_member", reason);
+    }
+
     // --- helpers -------------------------------------------------------------------------------
 
     private async Task<DueRoutinesResponse> DueAsync(

@@ -10,6 +10,9 @@ public interface IRoutineTemplateRepository
     /// <summary>Todas las del gym, por nombre.</summary>
     Task<IReadOnlyList<RoutineTemplate>> ListAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Las <c>BaseKey</c> de las plantillas base que ya tiene el gym (sin filtro global: lo usan rutas sin usuario).</summary>
+    Task<IReadOnlySet<string>> GetBaseKeysAsync(Guid gymId, CancellationToken cancellationToken = default);
+
     void Add(RoutineTemplate template);
 
     void Remove(RoutineTemplate template);

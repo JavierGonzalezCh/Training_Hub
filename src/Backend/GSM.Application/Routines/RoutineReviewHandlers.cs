@@ -60,7 +60,7 @@ public sealed class UpdateRoutineSettingsHandler(
 /// <summary>
 /// Rutinas activas con fecha de revisión vencida o dentro de los próximos <see cref="WindowDays"/> días. Si
 /// <c>mine</c> no viene, el entrenador (staff con el permiso <c>Trainer</c>) ve por defecto las de sus miembros
-/// asignados; el Owner y el resto de staff ven todas. Solo miembros activos y rutinas armadas por el staff.
+/// asignados; el Owner y el resto de staff ven todas. Solo miembros activos. Las armadas por el staff entran por plazo; las del propio miembro, mientras tengan pendiente su revisión (nueva o editada).
 /// </summary>
 public sealed class ListRoutinesDueForReviewHandler(
     ICurrentUserService currentUser,
@@ -103,7 +103,8 @@ public sealed class ListRoutinesDueForReviewHandler(
             r.Name,
             r.StartsOn,
             r.ReviewOn,
-            r.LastReviewedAt)).ToList();
+            r.LastReviewedAt,
+            r.ReviewReason.ToString())).ToList();
 
         return new DueRoutinesResponse(items, onlyMine, WindowDays);
     }

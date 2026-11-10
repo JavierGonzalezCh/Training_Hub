@@ -12,6 +12,8 @@ public sealed class RoutineTemplate : BaseEntity, ITenantEntity
 {
     public const int MaxNameLength = 120;
     public const int MaxDescriptionLength = 500;
+    public const int MaxImageUrlLength = 500;
+    public const int MaxBaseKeyLength = 60;
 
     private RoutineTemplate()
     {
@@ -36,6 +38,15 @@ public sealed class RoutineTemplate : BaseEntity, ITenantEntity
 
     public Guid CreatedBy { get; private set; }
 
+    /// <summary>Imagen de portada (URL absoluta o ruta de una imagen de muestra). Nula: la interfaz usa una genérica.</summary>
+    public string? ImageUrl { get; private set; }
+
+    /// <summary>
+    /// Clave de la plantilla base de la que nació (p. ej. <c>full-body-beginner</c>); nula si la creó el gym. Hace
+    /// idempotente la siembra: un gym tiene como máximo una copia de cada plantilla base.
+    /// </summary>
+    public string? BaseKey { get; private set; }
+
     public static RoutineTemplate Create(
         Guid gymId, string name, string? description, string scheduleMode, string content,
         int dayCount, int exerciseCount, Guid createdBy)
@@ -48,6 +59,35 @@ public sealed class RoutineTemplate : BaseEntity, ITenantEntity
         var template = new RoutineTemplate { GymId = gymId, CreatedBy = createdBy };
         template.Update(name, description, scheduleMode, content, dayCount, exerciseCount);
         return template;
+    }
+
+    /// <summary>Copia de una plantilla base del sistema para un gym.</summary>
+    public static RoutineTemplate CreateFromBase(
+        Guid gymId, string baseKey, string name, string? description, string scheduleMode, string content,
+        int dayCount, int exerciseCount, string? imageUrl, Guid createdBy)
+    {
+        var key = (baseKey ?? string.Empty).Trim();
+        if (key.Length is 0 or > MaxBaseKeyLength)
+        {
+            throw new ValidationDomainException("La clave de la plantilla base no es válida.");
+        }
+
+        var template = Create(gymId, name, description, scheduleMode, content, dayCount, exerciseCount, createdBy);
+        template.BaseKey = key;
+        template.SetImage(imageUrl);
+        return template;
+    }
+
+    public void SetImage(string? imageUrl)
+    {
+        var url = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
+        if (url is { Length: > MaxImageUrlLength })
+        {
+            throw new ValidationDomainException(
+                $"La dirección de la imagen admite como máximo {MaxImageUrlLength} caracteres.");
+        }
+
+        ImageUrl = url;
     }
 
     public void Update(

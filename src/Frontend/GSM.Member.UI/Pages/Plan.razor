@@ -6,6 +6,7 @@
 @inject IMeClient Me
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@inject IDialogService Dialogs
 
 <PageTitle>Plan — TrainingHub GO</PageTitle>
 
@@ -51,6 +52,26 @@ else
         </span>
     </div>
 
+    @* Con la rutina del entrenador, el miembro puede armar la suya (la del entrenador queda dada de baja, con aviso). *@
+    @if (!routine.SelfAssigned && GymCtx.FeatureFlags?.MembersCanCreateRoutines == true)
+    {
+        <div class="mb-3">
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Add"
+                       OnClick="@(() => CreateOwnAsync(routine))" data-testid="plan-create-own">Crear mi propia rutina</MudButton>
+        </div>
+    }
+
+    @* La rutina que armó el propio miembro se edita y se elimina aquí; la del entrenador, no. *@
+    @if (routine.SelfAssigned && GymCtx.FeatureFlags?.MembersCanCreateRoutines == true)
+    {
+        <div class="d-flex flex-wrap mb-3" style="gap:.5rem">
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Edit"
+                       Href="/app/rutina/editar" data-testid="plan-edit-routine">Editar mi rutina</MudButton>
+            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Outlined.Delete"
+                       OnClick="@(() => DeleteAsync(routine))" data-testid="plan-delete-routine">Eliminar mi rutina</MudButton>
+        </div>
+    }
+
     <ul class="gsm-m-daylist" aria-label="Los días de tu rutina">
         @* El día de hoy va primero y abre el entrenamiento de hoy; los demás, en el orden de la rutina. *@
         @foreach (var day in TrainingDays(routine).OrderBy(d => d.Id == TodayDayId ? 0 : 1))
@@ -93,6 +114,41 @@ else
     private static List<RoutineDayResponse> TrainingDays(RoutineResponse routine)
         => routine.Days.Where(d => !d.IsRest && d.Exercises.Count > 0)
             .OrderBy(d => d.DayOfWeek ?? d.Position).ThenBy(d => d.Position).ToList();
+
+    private async Task CreateOwnAsync(RoutineResponse routine)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Crear mi propia rutina",
+            $"Tu rutina «{routine.Name}», la de tu entrenador, dejará de estar activa mientras uses la tuya. Tu entrenador revisará la nueva y, si quieres volver a la suya, puede asignártela de nuevo.",
+            yesText: "Continuar", cancelText: "Cancelar");
+        if (confirmed == true)
+        {
+            Navigation.NavigateTo("/app/rutina/nueva");
+        }
+    }
+
+    private async Task DeleteAsync(RoutineResponse routine)
+    {
+        var confirmed = await Dialogs.ShowMessageBox(
+            "Eliminar mi rutina",
+            $"Tu rutina «{routine.Name}» dejará de estar activa y te quedarás sin rutina hasta crear otra. Tu historial de entrenamientos se conserva.",
+            yesText: "Eliminar", cancelText: "Cancelar");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await Me.RoutinesDELETEAsync(routine.Id);
+            _response = await Me.RoutinesGETAsync();
+            Snackbar.Add("Rutina eliminada.", Severity.Success);
+        }
+        catch (GsmApiException ex)
+        {
+            Snackbar.Add(ApiError.FromException(ex).DisplayMessage, Severity.Error);
+        }
+    }
 
     private void OpenDay(Guid? dayId)
         => Navigation.NavigateTo(dayId is { } id ? $"/app/rutina?dia={id}" : "/app/rutina");

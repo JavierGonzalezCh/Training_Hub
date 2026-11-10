@@ -1,0 +1,119 @@
+﻿@page "/app/rutina/editar"
+@layout MemberLayout
+@using GSM.UI.Shared.Routines
+@attribute [Authorize(Roles = GsmRoles.Member)]
+@inject GymContext GymCtx
+@inject IMeClient Me
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Editar mi rutina — TrainingHub GO</PageTitle>
+
+<MudLink Href="/app/plan" Class="mb-4 d-inline-block">← Volver</MudLink>
+
+@if (GymCtx.FeatureFlags?.MembersCanCreateRoutines != true)
+{
+    <MudAlert Severity="Severity.Normal">Tu gimnasio no permite que los miembros editen su propia rutina.</MudAlert>
+}
+else if (_loading)
+{
+    <GsmLoader />
+}
+else if (_draft is null)
+{
+    <MudAlert Severity="Severity.Normal" data-testid="routine-edit-unavailable">
+        Solo puedes editar la rutina que armaste tú. Si la armó tu entrenador, pídele los cambios a él.
+    </MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-2">Editar mi rutina</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        Tu entrenador revisará los cambios. Lo que quites deja de aparecer en tu plan; tu historial se conserva.
+    </MudText>
+    <UnsavedChangesGuard IsDirty="IsDirty" What="tu rutina" />
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+    }
+
+    <RoutineForm Draft="_draft" ShowRir="false" />
+
+    <div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving" data-testid="routine-edit-save">
+            @(_saving ? "Guardando..." : "Guardar cambios")
+        </MudButton>
+    </div>
+}
+
+@code {
+    private RoutineDraft? _draft;
+    private Guid _routineId;
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+    private string? _snapshot;
+    private bool _leavingAfterSave;
+
+    private bool IsDirty() => !_leavingAfterSave && _snapshot is not null && _draft is not null && _draft.Fingerprint() != _snapshot;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GymCtx.FeatureFlags?.MembersCanCreateRoutines != true)
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            var response = await Me.RoutinesGETAsync();
+            if (response.Routine is { SelfAssigned: true } routine)
+            {
+                _routineId = routine.Id;
+                _draft = RoutineDraft.From(routine);
+                _snapshot = _draft.Fingerprint();
+            }
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_draft is null)
+        {
+            return;
+        }
+
+        _error = _draft.Validate();
+        if (_error is not null)
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await Me.RoutinesPUTAsync(_routineId, _draft.ToRequest());
+            Snackbar.Add("Rutina actualizada.", Severity.Success);
+            _leavingAfterSave = true;
+            Navigation.NavigateTo("/app/plan");
+        }
+        catch (GsmApiException ex)
+        {
+            _error = ApiError.FromException(ex).DisplayMessage;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

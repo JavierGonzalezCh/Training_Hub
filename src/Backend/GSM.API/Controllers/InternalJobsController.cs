@@ -100,6 +100,23 @@ public sealed class InternalJobsController(IConfiguration configuration) : Contr
         return Ok(result);
     }
 
+    /// <summary>
+    /// RT1: copia las plantillas base de rutina a los gyms que no las tienen. Se ejecuta una sola vez tras desplegar
+    /// (los gyms nuevos las reciben al crearse); es idempotente por plantilla.
+    /// </summary>
+    [HttpPost("routines/seed-base-templates")]
+    public async Task<ActionResult<int>> SeedBaseRoutineTemplates(
+        [FromServices] GSM.Application.Routines.SeedBaseRoutineTemplatesForAllGymsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        if (!IsAuthorized())
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await handler.HandleAsync(cancellationToken));
+    }
+
     private bool IsAuthorized()
     {
         var expected = configuration["Jobs:Secret"];

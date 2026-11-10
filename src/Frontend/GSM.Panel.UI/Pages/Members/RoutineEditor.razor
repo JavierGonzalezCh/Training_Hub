@@ -117,7 +117,7 @@ else
         {
             if (RoutineId is { } id)
             {
-                await Routines.RoutinesPUTAsync(id, _draft.ToRequest());
+                await Routines.RoutinesPUT2Async(id, _draft.ToRequest());
             }
             else
             {

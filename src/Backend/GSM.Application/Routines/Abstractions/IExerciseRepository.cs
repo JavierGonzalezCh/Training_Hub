@@ -77,4 +77,8 @@ public interface IExerciseRepository
         string url, Guid excludeExerciseId, CancellationToken cancellationToken = default);
 
     void Add(Exercise exercise);
+
+    /// <summary>Ids de los ejercicios activos del catálogo del sistema (<c>gym_id</c> nulo) por nombre exacto.</summary>
+    Task<IReadOnlyDictionary<string, Guid>> GetSystemIdsByNameAsync(
+        IReadOnlyCollection<string> names, CancellationToken cancellationToken = default);
 }

@@ -16,7 +16,8 @@ public sealed record RoutineDueItem(
     string RoutineName,
     DateOnly StartsOn,
     DateOnly ReviewOn,
-    DateTimeOffset? LastReviewedAt);
+    DateTimeOffset? LastReviewedAt,
+    string ReviewReason);
 
 /// <summary>
 /// Rutinas por revisar, la más atrasada primero. <c>Mine</c> dice qué filtro se aplicó: <c>true</c> = solo los miembros
