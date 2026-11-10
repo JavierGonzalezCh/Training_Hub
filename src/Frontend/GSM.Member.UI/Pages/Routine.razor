@@ -93,6 +93,8 @@ else
         </div>
     </section>
 
+    <RoutineNoteCard Notes="@_response.Routine.Notes" SelfAssigned="@_response.Routine.SelfAssigned" />
+
     @if (_response.MissedSession is { } missedSession)
     {
         <MissedSessionCard @key="missedSession.MissedOn" Missed="missedSession" TodayName="@(_response.Today?.DayName ?? "la de hoy")"
@@ -358,11 +360,6 @@ else
                 </section>
             }
         }
-    }
-
-    @if (_response.Routine.Notes is { Length: > 0 } notes)
-    {
-        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mt-4">@notes</MudAlert>
     }
 }
 

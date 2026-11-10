@@ -107,7 +107,7 @@ public sealed class Routine : BaseEntity, ITenantEntity
 
         ApplyHeaderAndDays(draft, today);
 
-        if (editedByMember && SelfAssigned)
+        if (editedByMember)
         {
             ReviewOn = today;
             if (ReviewReason == RoutineReviewReason.Scheduled)

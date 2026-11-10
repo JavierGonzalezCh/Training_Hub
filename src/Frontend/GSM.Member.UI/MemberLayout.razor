@@ -44,9 +44,14 @@
             <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Color="Color.Inherit" OnClick="SwitchGymAsync" aria-label="Cambiar de gimnasio" />
         }
         <CheckinButton />
+        @if (!_loading)
+        {
+            <MemberBell Community="@(GymCtx.FeatureFlags?.ShowCommunity == true)" />
+        }
         @* Todo lo de la cuenta vive aquí: perfil, membresía, autorizaciones, avisos y contraseña. *@
         <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AriaLabel="Mi cuenta"
                  AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" data-testid="member-account-menu">
+            <MudMenuItem Icon="@Icons.Material.Filled.Storefront" Href="/app/gimnasio" data-testid="menu-my-gym">Mi gimnasio</MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/app/perfil">Mi perfil</MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Filled.CardMembership" Href="/app/membresia">Mi membresía</MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Outlined.Gavel" Href="/app/autorizaciones">Autorizaciones</MudMenuItem>
@@ -67,10 +72,6 @@
                     <NavLink class="gsm-nav-link" href="@item.Href" Match="@(item.MatchAll ? NavLinkMatch.All : NavLinkMatch.Prefix)">
                         <MudIcon Icon="@item.Icon" Size="Size.Small" /><span>@item.Title</span>
                     </NavLink>
-                }
-                @if (!_loading)
-                {
-                    <GymTabLink LinkClass="gsm-nav-link" LabelClass="" Community="@(GymCtx.FeatureFlags?.ShowCommunity == true)" />
                 }
             </nav>
         </MudDrawer>
@@ -100,7 +101,7 @@
        texto suelto y no navegaban. *@
     @if (Viewport.IsNarrow)
     {
-    @* Barra flotante de vidrio: Hoy, Plan, el botón central (la barra de press: el entrenamiento de hoy), Progreso y Gym. *@
+    @* Barra flotante de vidrio: Hoy, Plan, el botón central (la barra de press: el entrenamiento de hoy), Progreso y Clases (o Mi gym sin clases). *@
     <nav class="gsm-tabbar gsm-m-tabbar" aria-label="Navegación principal" data-testid="member-tabbar">
         <NavLink href="/app" Match="NavLinkMatch.All">
             <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />
@@ -122,7 +123,7 @@
         </NavLink>
         @if (!_loading)
         {
-            <GymTabLink Community="@(GymCtx.FeatureFlags?.ShowCommunity == true)" />
+            <GymTabLink ShowClasses="ClassesOn" />
         }
     </nav>
     }
@@ -139,8 +140,11 @@
 
     private bool RoutinesOn => GymCtx.FeatureFlags?.ShowRoutines != false;
 
+    private bool ClassesOn => GymCtx.FeatureFlags?.ShowClasses != false;
+
     // Los mismos destinos que la barra del celular (en escritorio, en el menú lateral): Hoy, Entrenar hoy, Plan,
-    // Progreso y Gym (GymTabLink, que reúne Mi gimnasio, Clases y Novedades). Sin rutinas no hay Entrenar ni Plan.
+    // Progreso, Clases (si el gym las tiene) y Mi gym: en escritorio caben todos. La barra del celular usa un quinto lugar
+    // adaptable (GymTabLink: Clases o, sin clases, Mi gym). Sin rutinas no hay Entrenar ni Plan.
     private IEnumerable<Destination> Destinations
     {
         get
@@ -153,6 +157,12 @@
             }
 
             yield return new("/app/progreso", "Progreso", Icons.Material.Filled.TrendingUp);
+            if (ClassesOn)
+            {
+                yield return new("/app/clases", "Clases", Icons.Material.Outlined.Event);
+            }
+
+            yield return new("/app/gimnasio", "Mi gym", Icons.Material.Filled.Storefront);
         }
     }
 

@@ -297,14 +297,20 @@ public sealed class RoutineReviewTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
-    public async Task A_member_cannot_edit_or_delete_a_routine_the_trainer_built_or_someone_elses()
+    public async Task A_member_can_edit_but_not_delete_the_trainer_routine_and_cannot_touch_someone_elses()
     {
         var w = await SeedAsync();
         await AllowSelfServiceAsync(w);
 
-        await Assert.ThrowsAsync<ForbiddenDomainException>(() => AsMember(w, scope =>
-            scope.ServiceProvider.GetRequiredService<UpdateMyRoutineHandler>()
-                .HandleAsync(w.MemberWithTrainerRoutineId, OneDayRequest(w), default)));
+        // Editar la del entrenador vale: sigue siendo del entrenador y queda por revisar como editada por el miembro.
+        await AsMember(w, scope => scope.ServiceProvider.GetRequiredService<UpdateMyRoutineHandler>()
+            .HandleAsync(w.MemberWithTrainerRoutineId, OneDayRequest(w), default));
+        var edited = await GetRoutineAsync(w, w.MemberWithTrainerRoutineId);
+        Assert.False(edited.SelfAssigned);
+        Assert.True(edited.IsActive);
+        Assert.Equal(RoutineReviewReason.EditedByMember, edited.ReviewReason);
+        Assert.Equal(Day, edited.ReviewOn);
+
         await Assert.ThrowsAsync<ForbiddenDomainException>(() => AsMember(w, async scope =>
         {
             await scope.ServiceProvider.GetRequiredService<DeactivateMyRoutineHandler>()

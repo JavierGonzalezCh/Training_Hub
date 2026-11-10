@@ -1,0 +1,16 @@
+@* Indicaciones generales de la rutina (el campo «Indicaciones para el miembro» del editor). Va arriba, junto a la rutina. *@
+@if (!string.IsNullOrWhiteSpace(Notes))
+{
+    <section class="gsm-m-card gsm-m-routine-note" data-testid="routine-note">
+        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.TipsAndUpdates" /></span>
+        <div class="gsm-m-card__body">
+            <span class="gsm-m-card__kicker">@(SelfAssigned ? "Tu nota" : "De tu entrenador")</span>
+            <p class="gsm-m-card__text">@Notes</p>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public string? Notes { get; set; }
+    [Parameter] public bool SelfAssigned { get; set; }
+}

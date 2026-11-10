@@ -22,7 +22,7 @@ else if (_loading)
 else if (_draft is null)
 {
     <MudAlert Severity="Severity.Normal" data-testid="routine-edit-unavailable">
-        Solo puedes editar la rutina que armaste tú. Si la armó tu entrenador, pídele los cambios a él.
+        No tienes una rutina activa para editar.
     </MudAlert>
 }
 else
@@ -69,7 +69,7 @@ else
         try
         {
             var response = await Me.RoutinesGETAsync();
-            if (response.Routine is { SelfAssigned: true } routine)
+            if (response.Routine is { } routine)
             {
                 _routineId = routine.Id;
                 _draft = RoutineDraft.From(routine);

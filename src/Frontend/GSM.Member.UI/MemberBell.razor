@@ -1,0 +1,60 @@
+﻿@* Campanita de la barra superior del miembro: lleva a Novedades (anuncios del gym y avisos personales). Siempre visible; el
+   contador de no leídos solo cuenta si el gym tiene las comunicaciones activas, y se consulta al entrar y cada 60 s
+   (el temporizador se libera al salir). *@
+@implements IAsyncDisposable
+@inject NewsUnreadState Unread
+
+<MudBadge Content="@(Unread.Total > 9 ? "9+" : Unread.Total.ToString())" Visible="@(Community && Unread.Total > 0)"
+          Color="Color.Error" Overlap="true" Origin="Origin.TopRight">
+    <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Color="Color.Inherit" Href="/app/novedades"
+                   aria-label="@Label" data-testid="member-bell" />
+</MudBadge>
+
+@code {
+    /// <summary>El gym tiene las comunicaciones activas: hay novedades que contar.</summary>
+    [Parameter] public bool Community { get; set; }
+
+    private PeriodicTimer? _timer;
+    private Task? _loop;
+
+    private string Label => Community && Unread.Total > 0 ? $"Notificaciones, {Unread.Total} sin leer" : "Notificaciones";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Community)
+        {
+            return;
+        }
+
+        Unread.Changed += OnChanged;
+        await Unread.RefreshAsync();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
+        _loop = PollAsync(_timer);
+    }
+
+    private async Task PollAsync(PeriodicTimer timer)
+    {
+        try
+        {
+            while (await timer.WaitForNextTickAsync())
+            {
+                await Unread.RefreshAsync();
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        Unread.Changed -= OnChanged;
+        _timer?.Dispose();
+        if (_loop is not null)
+        {
+            await _loop;
+        }
+    }
+}

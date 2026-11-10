@@ -9,12 +9,15 @@ using Microsoft.Extensions.Logging;
 
 namespace GSM.Application.Routines;
 
-/// <summary>Resuelve la rutina que el miembro puede tocar: la suya, vigente y armada por él mismo.</summary>
+/// <summary>
+/// Resuelve la rutina que el miembro puede tocar: la suya y vigente. Editar vale también para la que le dio el entrenador
+/// (queda por revisar); eliminar, solo para la que armó él mismo.
+/// </summary>
 internal static class MyRoutineAccess
 {
     public static async Task<Routine> RequireOwnActiveAsync(
         ICurrentUserService currentUser, IMemberReader members, IRoutineRepository routines, Guid routineId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool allowTrainerRoutine = false)
     {
         var self = await members.ResolveByUserIdAsync(currentUser.UserId ?? Guid.Empty, cancellationToken)
             ?? throw new ForbiddenDomainException("Tu cuenta no está vinculada a un miembro.");
@@ -25,9 +28,9 @@ internal static class MyRoutineAccess
             throw new NotFoundException("Rutina no encontrada.");
         }
 
-        if (!routine.SelfAssigned)
+        if (!routine.SelfAssigned && !allowTrainerRoutine)
         {
-            throw new ForbiddenDomainException("Esta rutina la armó tu entrenador: pídele los cambios a él.");
+            throw new ForbiddenDomainException("Esta rutina te la dio tu entrenador: puedes editarla, pero no eliminarla.");
         }
 
         if (!routine.IsActive)
@@ -61,11 +64,12 @@ public sealed class UpdateMyRoutineHandler(
         await RoutineFeatureGate.EnsureMemberModuleEnabledAsync(gyms, gymId, cancellationToken);
         await RoutineFeatureGate.EnsureSelfServiceEnabledAsync(gyms, gymId, cancellationToken);
 
-        var routine = await MyRoutineAccess.RequireOwnActiveAsync(currentUser, members, routines, routineId, cancellationToken);
+        var routine = await MyRoutineAccess.RequireOwnActiveAsync(
+            currentUser, members, routines, routineId, cancellationToken, allowTrainerRoutine: true);
 
         var catalog = await RoutineDrafting.ValidateExercisesVisibleAsync(exercises, request, cancellationToken);
         var draft = RoutineDrafting.ToDraft(
-            request, catalog, routine.AssignedBy, selfAssigned: true, keepIds: true, mode: routine.ScheduleMode);
+            request, catalog, routine.AssignedBy, routine.SelfAssigned, keepIds: true, mode: routine.ScheduleMode);
 
         routine.Replace(draft, clock.Today, editedByMember: true);
         routines.TrackNewChildren(routine);

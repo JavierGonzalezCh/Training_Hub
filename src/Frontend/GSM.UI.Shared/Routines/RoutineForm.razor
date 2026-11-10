@@ -7,7 +7,15 @@
         <MudTextField T="string" @bind-Value="Draft.Name" Label="Nombre de la rutina" Required="true" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <MudTextField T="string" @bind-Value="Draft.Notes" Label="Notas" />
+        @if (ForStaff)
+        {
+            <MudTextField T="string" @bind-Value="Draft.Notes" Label="Indicaciones para el miembro" Lines="2" MaxLength="1000"
+                          HelperText="El miembro las ve arriba en su rutina. Lo interno va en las notas de su ficha." data-testid="routine-notes" />
+        }
+        else
+        {
+            <MudTextField T="string" @bind-Value="Draft.Notes" Label="Notas" Lines="2" MaxLength="1000" data-testid="routine-notes" />
+        }
     </MudItem>
     <MudItem xs="12" sm="6">
         <label class="gsm-native-field">
@@ -190,6 +198,9 @@
 @code {
     /// <summary>Campo RIR por serie: lo usa el entrenador en el panel; la app del miembro no lo muestra.</summary>
     [Parameter] public bool ShowRir { get; set; } = true;
+
+    /// <summary>El editor del staff: las notas se presentan como indicaciones que verá el miembro.</summary>
+    [Parameter] public bool ForStaff { get; set; }
 
     [Parameter, EditorRequired]
     public RoutineDraft Draft { get; set; } = default!;

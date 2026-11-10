@@ -4,10 +4,9 @@
 @* Celda de acciones de una entrada: marca si ya está anulada o, con el permiso, ofrece anularla. *@
 @if (Entry.Voided == true)
 {
-    <MudTooltip Text="@($"{Entry.VoidedByName ?? "Staff"} · {Entry.VoidReason}")">
-        <MudChip T="string" Color="Color.Default" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono"
-                 data-testid="checkin-voided">ANULADA</MudChip>
-    </MudTooltip>
+    <MudChip T="string" Color="Color.Default" Variant="Variant.Text" Size="Size.Small" Class="gsm-mono"
+             data-testid="checkin-voided">ANULADA</MudChip>
+    <InfoTip Text="@($"{Entry.VoidedByName ?? "Staff"} · {Entry.VoidReason}")" TestId="checkin-void-reason" />
 }
 else
 {
