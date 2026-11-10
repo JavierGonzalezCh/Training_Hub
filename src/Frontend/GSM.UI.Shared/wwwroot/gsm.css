@@ -3635,6 +3635,35 @@ body:has(.gsm-tabbar--panel) .gsm-page.mud-container {
 .gsm-m-open.is-open::before { background: var(--gsm-ok); }
 .gsm-m-open.is-closed::before { background: var(--gsm-danger); }
 
+/* El gym ahora dentro del saludo del inicio: abierto/cerrado y qué tan lleno está, en píldoras de vidrio. */
+.gsm-m-hero__now {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+}
+
+.gsm-m-hero__now:empty { display: none; }
+
+.gsm-m-hero__now .gsm-m-open,
+.gsm-m-occupancy-pill {
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
+
+.gsm-m-occupancy-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.gsm-m-occupancy-pill.is-full { border-color: rgba(255, 255, 255, 0.55); }
+
 .gsm-m-week {
     list-style: none;
     margin: 0.5rem 0 0;

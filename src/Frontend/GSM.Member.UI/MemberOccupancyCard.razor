@@ -3,13 +3,22 @@
 
 @if ((Resolved ? Level : _level) is { } level)
 {
-    <section class="gsm-m-card" data-testid="member-occupancy" role="status">
-        <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Groups" /></span>
-        <div class="gsm-m-card__body">
-            <h2 class="gsm-m-card__title">¿Qué tan lleno está?</h2>
-            <p class="gsm-m-card__text"><strong>@Label(level)</strong> · estimación según las entradas recientes</p>
-        </div>
-    </section>
+    @if (Compact)
+    {
+        <span class="gsm-m-occupancy-pill is-@level" data-testid="member-occupancy" role="status">
+            <MudIcon Icon="@Icons.Material.Outlined.Groups" Size="Size.Small" /> @Label(level)
+        </span>
+    }
+    else
+    {
+        <section class="gsm-m-card" data-testid="member-occupancy" role="status">
+            <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Groups" /></span>
+            <div class="gsm-m-card__body">
+                <h2 class="gsm-m-card__title">¿Qué tan lleno está?</h2>
+                <p class="gsm-m-card__text"><strong>@Label(level)</strong> · estimación según las entradas recientes</p>
+            </div>
+        </section>
+    }
 }
 
 @code {
@@ -22,6 +31,10 @@
 
     [Parameter]
     public bool Resolved { get; set; }
+
+    /// <summary>Una píldora («Tranquilo», «Lleno») en lugar de la tarjeta: la usa el saludo del inicio.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
 
     private string? _level;
 

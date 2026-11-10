@@ -83,7 +83,20 @@ public class MemberHomeUiTests : TestContext
         },
     };
 
-    private IRenderedComponent<Home> RenderHome(MemberHomeResponse? home, bool narrow, bool withPlan = false)
+    [Fact]
+    public void Pending_consents_come_right_after_the_greeting_before_everything_else()
+    {
+        var cut = RenderHome(FullHome(), narrow: true, pendingConsents: 2);
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll(".gsm-m-pending-consents")));
+
+        var markup = cut.Markup;
+        var consents = markup.IndexOf("gsm-m-pending-consents", StringComparison.Ordinal);
+        Assert.True(markup.IndexOf("gsm-m-hero", StringComparison.Ordinal) < consents);
+        Assert.True(consents < markup.IndexOf("home-notice", StringComparison.Ordinal));
+        Assert.True(consents < markup.IndexOf("home-news", StringComparison.Ordinal));
+    }
+
+    private IRenderedComponent<Home> RenderHome(MemberHomeResponse? home, bool narrow, bool withPlan = false, int pendingConsents = 0)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
@@ -93,7 +106,8 @@ public class MemberHomeUiTests : TestContext
         _me = (FakeClient)(object)me;
         _me.Handlers["GetMyHomeAsync"] = _ => home;
         var consents = DispatchProxy.Create<IMeConsentsClient, FakeClient>();
-        ((FakeClient)(object)consents).Handlers["ListMyConsentsAsync"] = _ => new List<MemberConsentStatus>();
+        ((FakeClient)(object)consents).Handlers["ListMyConsentsAsync"] = _ => Enumerable.Range(0, pendingConsents)
+            .Select(_ => new MemberConsentStatus { Status = "pending" }).ToList();
         Services.AddSingleton(me);
         Services.AddSingleton(consents);
         Services.AddSingleton<IQrScanner>(new NoScanner());
@@ -143,8 +157,8 @@ public class MemberHomeUiTests : TestContext
         var markup = cut.Markup;
         var order = new[]
         {
-            "gsm-m-hero", "home-notice", "home-news", "home-offer", "checkin-done", "home-training",
-            "home-next-class", "gym-open-badge", "home-progress",
+            "gsm-m-hero", "gym-open-badge", "home-notice", "home-news", "home-offer", "checkin-done", "home-training",
+            "home-next-class", "home-progress",
         };
         var positions = order.Select(marker => markup.IndexOf(marker, StringComparison.Ordinal)).ToArray();
         Assert.All(positions, p => Assert.True(p >= 0));
@@ -164,9 +178,10 @@ public class MemberHomeUiTests : TestContext
         Assert.NotEmpty(main.QuerySelectorAll("#home-notice"));
         Assert.NotEmpty(main.QuerySelectorAll("#checkin-done"));
         Assert.NotEmpty(main.QuerySelectorAll("#home-training"));
-        Assert.Empty(main.QuerySelectorAll("#home-next-class, #home-progress, #gym-open-badge"));
+        Assert.Empty(main.QuerySelectorAll("#home-next-class, #home-progress"));
 
-        Assert.NotEmpty(side.QuerySelectorAll("#gym-open-badge"));
+        // El gym ahora va dentro del saludo, no en su propia tarjeta.
+        Assert.NotEmpty(main.QuerySelectorAll(".gsm-m-hero #gym-open-badge"));
         Assert.NotEmpty(side.QuerySelectorAll("[data-testid='home-offer']"));
         Assert.NotEmpty(side.QuerySelectorAll("#home-next-class"));
         Assert.NotEmpty(side.QuerySelectorAll("#home-progress"));

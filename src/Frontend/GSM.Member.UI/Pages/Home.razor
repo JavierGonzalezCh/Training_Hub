@@ -11,9 +11,10 @@
 
 <PageTitle>Hoy — TrainingHub GO</PageTitle>
 
-@* Hoy (pestaña de inicio): el tablero de contexto rápido. Una sola llamada (GET /api/me/home). Orden: saludo, aviso de
-   la membresía (solo si hay algo que atender, con su acción), pendientes, la entrada de hoy, lo que toca entrenar con
-   «Empezar a entrenar» (la acción principal), tu clase, el gym ahora y tu progreso. El QR de la entrada no está aquí:
+@* Hoy (pestaña de inicio): el tablero de contexto rápido. Una sola llamada (GET /api/me/home). Orden: saludo (con el gym
+   ahora: abierto y qué tan lleno está), autorizaciones por aceptar, la semana y la racha, aviso de la membresía (solo si
+   hay algo que atender), novedades, pendientes, la entrada de hoy, lo que toca entrenar con «Empezar a entrenar» (la
+   acción principal), tu clase y tu progreso. El QR de la entrada no está aquí:
    vive en el encabezado de toda la app (CheckinButton). Las novedades están en la pestaña Gym. En escritorio, a la
    izquierda saludo, aviso, entrada y entrenamiento; a la derecha el resto. Un bloque nulo no se pinta. *@
 @if (MemberCtx.Detail is { } member)
@@ -23,15 +24,15 @@
         {
             <div class="gsm-m-home__main">
                 @Hero(member)
+                @ConsentsBlock
+                @WeekBlock
                 @MembershipBlock(member)
                 @NewsBlock
                 @PendingBlock
                 @EntryBlock
                 @TrainingBlock
-                @WeekBlock
                 @BodyBlock
                 @NextClassBlock
-                @GymNowBlock
                 @ProgressBlock
             </div>
         }
@@ -39,6 +40,7 @@
         {
             <div class="gsm-m-home__main">
                 @Hero(member)
+                @ConsentsBlock
                 @MembershipBlock(member)
                 @NewsBlock
                 @EntryBlock
@@ -49,7 +51,6 @@
                 @WeekBlock
                 @PendingBlock
                 @NextClassBlock
-                @GymNowBlock
                 @ProgressBlock
             </div>
         }
@@ -90,6 +91,7 @@
                     <StatusChip Status="@member.Status" />
                 }
             </div>
+            @GymNowBlock
         </section>
     </text>;
 
@@ -166,8 +168,8 @@
         }
     </text>;
 
-    // 3. Pendientes: autorizaciones por aceptar, ofertas de la lista de espera y premios por reclamar.
-    private RenderFragment PendingBlock => @<text>
+    // 1b. Autorizaciones por aceptar: lo primero después del saludo, porque el miembro debe aceptarlas.
+    private RenderFragment ConsentsBlock => @<text>
         @if (_pendingConsents > 0)
         {
             <a class="gsm-m-card gsm-m-pending-consents" href="/app/autorizaciones">
@@ -182,6 +184,10 @@
                 <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
             </a>
         }
+    </text>;
+
+    // 3. Pendientes: ofertas de la lista de espera y premios por reclamar.
+    private RenderFragment PendingBlock => @<text>
         @if (_home?.Pending is { } pending)
         {
             foreach (var offer in pending.WaitlistOffers)
@@ -347,7 +353,8 @@
         }
     </text>;
 
-    // 7. El gym ahora (abierto o cerrado y qué tan lleno está). Si el bloque no llegó, cada pieza se pide sola.
+    // El gym ahora (abierto o cerrado y qué tan lleno está), dentro del saludo: no ocupa una tarjeta propia. Si el bloque
+    // no llegó, cada pieza se pide sola.
     private RenderFragment GymNowBlock => @<text>
         @if (!_loaded)
         {
@@ -355,19 +362,23 @@
         }
         else if (_home?.Gym is { } gymNow)
         {
-            <div class="mb-3"><GymOpenBadge Status="@gymNow.OpenStatus" /></div>
-            @if (GymCtx.FeatureFlags?.ShowFrontDesk != false)
-            {
-                <MemberOccupancyCard Resolved="true" Level="@gymNow.OccupancyLevel" />
-            }
+            <div class="gsm-m-hero__now">
+                <GymOpenBadge Status="@gymNow.OpenStatus" />
+                @if (GymCtx.FeatureFlags?.ShowFrontDesk != false)
+                {
+                    <MemberOccupancyCard Resolved="true" Level="@gymNow.OccupancyLevel" Compact="true" />
+                }
+            </div>
         }
         else
         {
-            <div class="mb-3"><GymOpenBadge /></div>
-            @if (GymCtx.FeatureFlags?.ShowFrontDesk != false)
-            {
-                <MemberOccupancyCard />
-            }
+            <div class="gsm-m-hero__now">
+                <GymOpenBadge />
+                @if (GymCtx.FeatureFlags?.ShowFrontDesk != false)
+                {
+                    <MemberOccupancyCard Compact="true" />
+                }
+            </div>
         }
     </text>;
 
