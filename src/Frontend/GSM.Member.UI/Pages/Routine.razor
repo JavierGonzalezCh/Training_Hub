@@ -199,7 +199,7 @@ else
                     <div class="gsm-m-ex__row">
                     <button type="button" class="gsm-m-ex__head" aria-expanded="@(state.Open ? "true" : "false")"
                             @onclick="() => state.Open = !state.Open">
-                        <span class="gsm-m-ex__thumb" style="background-image:url('@PlaceholderMedia.Exercise(exercise.ImageUrl, exercise.PrimaryMuscle, 160)')" aria-hidden="true">
+                        <span class="gsm-m-ex__thumb" style="background-image:url('@PlaceholderMedia.Exercise(exercise.ImageUrl, exercise.PrimaryMuscle, 700)')" aria-hidden="true">
                             @if (state.Done)
                             {
                                 <span class="gsm-m-ex__done"><MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" /></span>
