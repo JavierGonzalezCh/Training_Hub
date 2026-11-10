@@ -252,7 +252,7 @@
         @if (GymCtx.FeatureFlags?.ShowRoutines != false && _home?.Training is { } training)
         {
             <section class="gsm-m-card gsm-m-today" id="home-training" aria-labelledby="home-training-title"
-                     style="background-image:url('@PlaceholderMedia.Gym')">
+                     style="background-image:url('@(training.IsRest ? PlaceholderMedia.Rest : PlaceholderMedia.Gym)')">
                 <div class="gsm-m-card__body">
                     <span class="gsm-m-card__kicker">@(training.IsRest ? "Hoy" : "Hoy toca")</span>
                     <h2 class="gsm-m-card__title gsm-m-today__title" id="home-training-title">@training.DayName</h2>

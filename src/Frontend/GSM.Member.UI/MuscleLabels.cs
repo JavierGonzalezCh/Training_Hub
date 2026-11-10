@@ -72,6 +72,9 @@ public static class PlaceholderMedia
 
     public const string Gym = Base + "photo-1534438327276-14e5300c3a48?w=900&q=70&auto=format&fit=crop";
 
+    /// <summary>El día de descanso: alguien meditando al atardecer (descanso y recuperación, no entrenamiento).</summary>
+    public const string Rest = Base + "photo-1506126613408-eca07ce68773?w=900&q=70&auto=format&fit=crop";
+
     public static string Exercise(string? imageUrl, string? primaryMuscle, int width = 300)
         => !string.IsNullOrWhiteSpace(imageUrl)
             ? imageUrl

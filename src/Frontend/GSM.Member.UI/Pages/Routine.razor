@@ -67,7 +67,7 @@ else
     var heroFirst = heroExercises.FirstOrDefault();
     @* Encabezado: la foto del día y lo importante de la rutina. *@
     <section class="gsm-m-dayhero" data-testid="day-hero"
-             style="background-image:url('@(heroFirst is null ? PlaceholderMedia.Gym : PlaceholderMedia.Exercise(heroFirst.ImageUrl, heroFirst.PrimaryMuscle, 900))')">
+             style="background-image:url('@(heroFirst is not null ? PlaceholderMedia.Exercise(heroFirst.ImageUrl, heroFirst.PrimaryMuscle, 900) : heroDay is null && heroToday is { IsRest: true } ? PlaceholderMedia.Rest : PlaceholderMedia.Gym)')">
         <div class="gsm-m-dayhero__top">
             <span class="gsm-m-chip-glass">@_response.Routine.Name</span>
             <a class="gsm-m-chip-glass" href="/app/progreso?tab=fuerza" data-testid="progress-link">
