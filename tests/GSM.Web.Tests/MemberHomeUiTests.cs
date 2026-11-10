@@ -329,10 +329,13 @@ public class MemberHomeUiTests : TestContext
         cut.WaitForAssertion(() =>
         {
             var progress = cut.Find("#home-progress");
-            Assert.Contains("9", progress.TextContent);
-            Assert.Contains("Racha de 9 días", progress.TextContent);
-            Assert.Contains("puesto 3", cut.Find("#home-ranking").TextContent);
+            Assert.Contains("puesto 3", cut.Find("#home-ranking").TextContent, StringComparison.OrdinalIgnoreCase);
             Assert.Equal("/app/progreso", progress.GetAttribute("href"));
+
+            // La racha sale una sola vez: arriba con la semana si hay días planeados; si no, en esta tarjeta.
+            var streakCards = cut.FindAll(".gsm-m-statcard").Count;
+            Assert.Equal(streakCards > 0, !progress.TextContent.Contains("Racha de", StringComparison.Ordinal));
+            Assert.True(streakCards > 0 || progress.TextContent.Contains("Racha de 9 días", StringComparison.Ordinal));
         });
     }
 

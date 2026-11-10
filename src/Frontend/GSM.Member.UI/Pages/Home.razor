@@ -388,18 +388,32 @@
     private RenderFragment ProgressBlock => @<text>
         @if (_home?.Progress is { } progress)
         {
+            // La racha ya está arriba, junto a la semana, cuando el miembro tiene días planeados: aquí no se repite.
+            var streakAbove = _week is { PlannedDays: > 0 };
+            var freezers = progress.FreezesAvailable == 1 ? "1 congelador disponible" : $"{progress.FreezesAvailable} congeladores disponibles";
+            var ranking = progress.Ranking is { Participating: true } standing
+                ? standing.Position is { } place ? $"Puesto {place} del ranking del mes" : "Aún sin puesto en el ranking del mes"
+                : null;
             <a class="gsm-m-card" id="home-progress" href="/app/progreso" aria-label="Abrir tu progreso">
-                <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.LocalFireDepartment" /></span>
+                <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@(streakAbove ? Icons.Material.Outlined.EmojiEvents : Icons.Material.Outlined.LocalFireDepartment)" /></span>
                 <div class="gsm-m-card__body">
                     <span class="gsm-m-card__kicker">Tu progreso</span>
-                    <h2 class="gsm-m-card__title">Racha de @(progress.CurrentStreak == 1 ? "1 día" : $"{progress.CurrentStreak} días")</h2>
-                    <p class="gsm-m-card__text">
-                        @(progress.FreezesAvailable == 1 ? "1 congelador disponible" : $"{progress.FreezesAvailable} congeladores disponibles")
-                        @if (progress.Ranking is { Participating: true } standing)
-                        {
-                            <span id="home-ranking">· @(standing.Position is { } place ? $"puesto {place} del ranking del mes" : "aún sin puesto en el ranking del mes")</span>
-                        }
-                    </p>
+                    @if (streakAbove)
+                    {
+                        <h2 class="gsm-m-card__title" id="home-ranking">@(ranking ?? "Logros, fuerza y ranking")</h2>
+                        <p class="gsm-m-card__text">@freezers</p>
+                    }
+                    else
+                    {
+                        <h2 class="gsm-m-card__title">Racha de @(progress.CurrentStreak == 1 ? "1 día" : $"{progress.CurrentStreak} días")</h2>
+                        <p class="gsm-m-card__text">
+                            @freezers
+                            @if (ranking is not null)
+                            {
+                                <span id="home-ranking">· @ranking</span>
+                            }
+                        </p>
+                    }
                 </div>
                 <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />
             </a>
