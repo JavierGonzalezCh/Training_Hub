@@ -19,4 +19,5 @@ public sealed record FeaturedAnnouncementView(
     string Title,
     bool Pinned,
     bool Important,
-    DateTimeOffset PublishedAt);
+    DateTimeOffset PublishedAt,
+    string? ImageUrl = null);

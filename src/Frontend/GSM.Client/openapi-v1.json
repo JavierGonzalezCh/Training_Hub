@@ -30758,6 +30758,12 @@
           "publishedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

@@ -94,4 +94,5 @@ public sealed record HomeFeaturedAnnouncement(
     string Title,
     bool Pinned,
     bool Important,
-    DateTimeOffset PublishedAt);
+    DateTimeOffset PublishedAt,
+    string? ImageUrl = null);

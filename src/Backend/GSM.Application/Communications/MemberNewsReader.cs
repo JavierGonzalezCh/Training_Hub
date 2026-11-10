@@ -24,7 +24,7 @@ public sealed class MemberNewsReader(
         return new MemberNewsView(
             first is null || first.PublishedAt is null
                 ? null
-                : new FeaturedAnnouncementView(first.Id, first.Title, first.Pinned, first.IsImportant, first.PublishedAt.Value),
+                : new FeaturedAnnouncementView(first.Id, first.Title, first.Pinned, first.IsImportant, first.PublishedAt.Value, first.ImageUrl),
             unread);
     }
 }

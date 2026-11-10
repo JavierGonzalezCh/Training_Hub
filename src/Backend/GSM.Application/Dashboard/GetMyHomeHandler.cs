@@ -184,7 +184,7 @@ public sealed class GetMyHomeHandler(
     {
         var view = await news.GetAsync(memberId, cancellationToken);
         return new HomeNewsBlock(
-            view.Featured is { } f ? new HomeFeaturedAnnouncement(f.Id, f.Title, f.Pinned, f.Important, f.PublishedAt) : null,
+            view.Featured is { } f ? new HomeFeaturedAnnouncement(f.Id, f.Title, f.Pinned, f.Important, f.PublishedAt, f.ImageUrl) : null,
             view.UnreadAnnouncements);
     }
 

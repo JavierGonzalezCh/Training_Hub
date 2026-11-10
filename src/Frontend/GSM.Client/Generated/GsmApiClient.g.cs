@@ -49998,6 +49998,9 @@ namespace GSM.Client.Generated
         [System.Text.Json.Serialization.JsonPropertyName("publishedAt")]
         public System.DateTimeOffset PublishedAt { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("imageUrl")]
+        public string? ImageUrl { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

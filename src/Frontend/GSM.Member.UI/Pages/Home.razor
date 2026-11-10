@@ -144,7 +144,11 @@
         @if (GymCtx.FeatureFlags?.ShowCommunity == true && _home?.News is { Featured: { } featured } news
              && (news.UnreadAnnouncements > 0 || featured.Pinned))
         {
-            <a class="gsm-m-card gsm-m-news" id="home-news" href="/app/novedades">
+            <a class="gsm-m-card gsm-m-news @(string.IsNullOrEmpty(featured.ImageUrl) ? null : "gsm-m-news--photo")" id="home-news" href="/app/novedades">
+                @if (!string.IsNullOrEmpty(featured.ImageUrl))
+                {
+                    <img class="gsm-m-news__photo" src="@featured.ImageUrl" alt="" loading="lazy" data-testid="home-news-image" />
+                }
                 <span class="gsm-m-card__icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Campaign" /></span>
                 <div class="gsm-m-card__body">
                     <span class="gsm-m-card__kicker">@(featured.Pinned ? "Novedades · Fijado" : "Novedades")</span>

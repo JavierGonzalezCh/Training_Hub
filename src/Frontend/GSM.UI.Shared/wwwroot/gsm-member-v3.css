@@ -230,6 +230,9 @@
 
 /* Hoy: novedades del gym en una sola tarjeta (el título en una o dos líneas, nunca más). */
 .gsm-m-news__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Con foto: la imagen del anuncio ocupa el ancho arriba de la tarjeta y la fila de texto queda debajo. */
+.gsm-m-news--photo { flex-wrap: wrap; padding-top: 0; overflow: hidden; }
+.gsm-m-news__photo { flex: 0 0 calc(100% + 2.2rem); width: calc(100% + 2.2rem); margin: 0 -1.1rem 0.15rem; aspect-ratio: 16 / 9; max-height: 220px; object-fit: cover; display: block; }
 .gsm-m-news__more { flex: none; padding: 0.35rem 0.7rem; border-radius: 999px; background: var(--gsm-m-hot); color: #fff; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 
 /* Logros: la medalla de cada logro (gris y con candado mientras falta). */
