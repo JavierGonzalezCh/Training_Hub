@@ -82,7 +82,7 @@ else
             var isToday = day.Id == TodayDayId;
             <li>
                 <a class="gsm-m-card gsm-m-daycard @(isToday ? "is-today" : null)" href="@(isToday ? "/app/rutina" : $"/app/rutina?dia={day.Id}")" data-testid="@($"plan-day-{day.Id}")">
-                    <span class="gsm-m-daycard__photo" style="background-image:url('@PlaceholderMedia.Exercise(day.Exercises.FirstOrDefault()?.ImageUrl, primary.FirstOrDefault(), 200)')" aria-hidden="true"></span>
+                    <span class="gsm-m-daycard__photo" style="background-image:url('@PlaceholderMedia.Exercise(day.Exercises.FirstOrDefault()?.ImageUrl, primary.FirstOrDefault(), 700)')" aria-hidden="true"></span>
                     <div class="gsm-m-card__body">
                         <span class="gsm-m-card__kicker">@(isToday ? "Hoy" : routine.ScheduleMode == "weekly" && day.DayOfWeek is { } wd ? RoutineLabels.IsoWeekdayLabel(wd) : $"Día {day.Position}")</span>
                         <h3 class="gsm-m-card__title">@day.Name</h3>
