@@ -180,7 +180,24 @@ public sealed class GetMyHomeHandler(
             (IReadOnlyList<HomeMedal>)(await achievements.GetRecentMedalsAsync(memberId, 3, cancellationToken))
                 .Select(m => new HomeMedal(m.AchievementId, m.Name, m.IconUrl, m.UnlockedAt)).ToList());
 
-        return new HomeProgressBlock(current.CurrentStreak, current.FreezesAvailable, current.TotalVisits, standing, medals);
+        // El próximo logro: el automático sin ganar que está más cerca (mayor avance relativo). Sin manuales (no hay
+        // avance) ni el del ranking del mes (no se mide con una barra). Extra: si falla, el bloque se muestra igual.
+        var next = await RunAsync("progress-next", async () =>
+        {
+            var all = await achievements.GetForMemberAsync(memberId, currentUser.RequireGymId(), cancellationToken);
+            var candidate = all
+                .Where(a => !a.Unlocked && !a.IsManual && a.ConditionValue > 0
+                    && a.ConditionType != Domain.Achievements.AchievementConditionType.MonthlyRankingTop)
+                .OrderByDescending(a => Math.Min(1d, (double)a.Progress / a.ConditionValue))
+                .ThenBy(a => a.ConditionValue - a.Progress)
+                .FirstOrDefault();
+            return candidate is null
+                ? null
+                : new HomeNextAchievement(candidate.AchievementId, candidate.Name, candidate.IconUrl,
+                    candidate.ConditionType.ToString(), candidate.ConditionValue, Math.Min(candidate.Progress, candidate.ConditionValue));
+        });
+
+        return new HomeProgressBlock(current.CurrentStreak, current.FreezesAvailable, current.TotalVisits, standing, medals, next);
     }
 
     // 8. Novedades

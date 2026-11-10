@@ -311,3 +311,24 @@
 .gsm-m-medals__item img { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45)); }
 .gsm-m-medals__item figcaption { font-size: 0.72rem; line-height: 1.2; color: var(--gsm-text-2); overflow-wrap: anywhere; }
 .gsm-m-medals__item > .mud-icon-root { width: 56px; height: 56px; padding: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.06); color: #d4a64a; }
+
+/* Inicio: franja de medallas justo después de la racha. A la izquierda las últimas ganadas (encimadas); a la derecha el
+   próximo logro en gris con lo que falta y su barra. Baja, de una fila, para no empujar «Empezar a entrenar». */
+.gsm-m-shell .gsm-m-medalstrip { display: flex; align-items: center; gap: 0.9rem; padding: 0.8rem 1rem; }
+.gsm-m-medalstrip__earned { display: flex; flex: none; padding-left: 10px; }
+.gsm-m-medalstrip__medal { display: grid; place-items: center; width: 48px; height: 48px; margin-left: -10px; border-radius: 50%; }
+.gsm-m-medalstrip__medal img { width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55)); }
+.gsm-m-medalstrip__medal > .mud-icon-root { width: 40px; height: 40px; padding: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); color: #d4a64a; }
+.gsm-m-medalstrip__next { display: flex; flex: 1; min-width: 0; align-items: center; gap: 0.7rem; padding-left: 0.9rem; border-left: 1px solid rgba(255, 255, 255, 0.1); }
+.gsm-m-medalstrip__earned:only-child + .gsm-m-medalstrip__next, .gsm-m-medalstrip__next:first-child { padding-left: 0; border-left: 0; }
+.gsm-m-medalstrip__locked { flex: none; display: grid; place-items: center; width: 44px; height: 44px; }
+.gsm-m-medalstrip__locked img { width: 44px; height: 44px; object-fit: contain; filter: grayscale(1) brightness(0.55); }
+.gsm-m-medalstrip__locked > .mud-icon-root { color: var(--gsm-text-2); }
+.gsm-m-medalstrip__text { display: flex; flex-direction: column; min-width: 0; gap: 0.1rem; }
+.gsm-m-medalstrip__text strong { font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gsm-m-medalstrip__left { font-size: 0.8rem; color: var(--gsm-text-2); }
+.gsm-m-medalstrip__bar { display: block; height: 5px; margin-top: 0.3rem; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.gsm-m-medalstrip__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--gsm-m-hot, #B50016); }
+.gsm-m-shell .gsm-m-medalstrip > .gsm-m-medalstrip__earned { flex: 0 0 auto; width: auto; }
+.gsm-m-medalstrip__medal, .gsm-m-medalstrip__medal img { width: 40px; height: 40px; }
+.gsm-m-medalstrip__medal { margin-left: -12px; }

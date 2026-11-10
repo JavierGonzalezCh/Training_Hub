@@ -30840,6 +30840,51 @@
           }
         }
       },
+      "HomeNextAchievement": {
+        "required": [
+          "achievementId",
+          "name",
+          "iconUrl",
+          "conditionType",
+          "conditionValue",
+          "progress"
+        ],
+        "type": "object",
+        "properties": {
+          "achievementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "iconUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "conditionType": {
+            "type": "string"
+          },
+          "conditionValue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "progress": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "HomeNextClassBlock": {
         "required": [
           "classId",
@@ -30945,6 +30990,16 @@
             "items": {
               "$ref": "#/components/schemas/HomeMedal"
             }
+          },
+          "nextAchievement": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HomeNextAchievement"
+              }
+            ]
           }
         }
       },

@@ -12,7 +12,8 @@
 <PageTitle>Hoy — TrainingHub GO</PageTitle>
 
 @* Hoy (pestaña de inicio): el tablero de contexto rápido. Una sola llamada (GET /api/me/home). Orden: saludo (con el gym
-   ahora: abierto y qué tan lleno está), autorizaciones por aceptar, la semana y la racha, aviso de la membresía (solo si
+   ahora: abierto y qué tan lleno está), autorizaciones por aceptar, la semana y la racha, las medallas y el próximo
+   logro, aviso de la membresía (solo si
    hay algo que atender), novedades, pendientes, la entrada de hoy, lo que toca entrenar con «Empezar a entrenar» (la
    acción principal), tu clase y tu progreso. El QR de la entrada no está aquí:
    vive en el encabezado de toda la app (CheckinButton). Las novedades están en la pestaña Gym. En escritorio, a la
@@ -26,6 +27,7 @@
                 @Hero(member)
                 @ConsentsBlock
                 @WeekBlock
+                @MedalsBlock
                 @MembershipBlock(member)
                 @NewsBlock
                 @PendingBlock
@@ -49,6 +51,7 @@
             </div>
             <div class="gsm-m-home__side">
                 @WeekBlock
+                @MedalsBlock
                 @PendingBlock
                 @NextClassBlock
                 @ProgressBlock
@@ -302,6 +305,65 @@
         }
     </text>;
 
+    // 5b'. Medallas: las últimas ganadas y el próximo logro con lo que falta. Va justo después de la racha para motivar;
+    // es una franja baja para no empujar «Empezar a entrenar». Abre Progreso → Logros.
+    private RenderFragment MedalsBlock => @<text>
+        @if (GymCtx.FeatureFlags?.ShowGamification != false && _home?.Progress is { } progress
+             && (progress.RecentMedals is { Count: > 0 } || progress.NextAchievement is not null))
+        {
+            <a class="gsm-m-card gsm-m-medalstrip" href="/app/progreso?tab=logros" data-testid="home-medals" aria-label="Abrir tus logros">
+                @if (progress.RecentMedals is { Count: > 0 } medals)
+                {
+                    <div class="gsm-m-medalstrip__earned" aria-label="@(medals.Count == 1 ? "Tu última medalla" : "Tus últimas medallas")">
+                        @foreach (var medal in medals)
+                        {
+                            <span class="gsm-m-medalstrip__medal" title="@medal.Name" data-testid="home-medal">
+                                @if (!string.IsNullOrEmpty(medal.IconUrl))
+                                {
+                                    <img src="@medal.IconUrl" alt="@medal.Name" loading="lazy" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" aria-label="@medal.Name" />
+                                }
+                            </span>
+                        }
+                    </div>
+                }
+                @if (progress.NextAchievement is { } next)
+                {
+                    var pct = next.ConditionValue <= 0 ? 0 : Math.Clamp(next.Progress * 100 / next.ConditionValue, 0, 100);
+                    <div class="gsm-m-medalstrip__next" data-testid="home-next-achievement">
+                        <span class="gsm-m-medalstrip__locked" aria-hidden="true">
+                            @if (!string.IsNullOrEmpty(next.IconUrl))
+                            {
+                                <img src="@next.IconUrl" alt="" loading="lazy" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" />
+                            }
+                        </span>
+                        <div class="gsm-m-medalstrip__text">
+                            <span class="gsm-m-card__kicker">Próximo logro</span>
+                            <strong>@next.Name</strong>
+                            <span class="gsm-m-medalstrip__left">@AchievementConditionLabels.Remaining(next.ConditionType, next.Progress, next.ConditionValue)</span>
+                            <span class="gsm-m-medalstrip__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@pct"
+                                  aria-label="@($"Avance de {next.Name}")"><span style="@($"width:{pct}%")"></span></span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="gsm-m-medalstrip__text">
+                        <span class="gsm-m-card__kicker">@(progress.RecentMedals!.Count == 1 ? "Tu última medalla" : "Tus últimas medallas")</span>
+                        <strong>@progress.RecentMedals!.First().Name</strong>
+                    </div>
+                }
+            </a>
+        }
+    </text>;
+
     // 5c. Tu cuerpo hoy: recuperación estimada por músculo (de tus registros).
     private RenderFragment BodyBlock => @<text>
         @if (GymCtx.FeatureFlags?.ShowRoutines != false && _body is { } body && body.DaysSinceLastWorkout is not null)
@@ -413,29 +475,6 @@
                                 <span id="home-ranking">· @ranking</span>
                             }
                         </p>
-                    }
-                    @if (GymCtx.FeatureFlags?.ShowGamification != false && progress.RecentMedals is { Count: > 0 } medals)
-                    {
-                        @* Las últimas medallas ganadas (hasta 3), de la más reciente a la más antigua. *@
-                        <div class="gsm-m-medals" data-testid="home-medals">
-                            <span class="gsm-m-medals__label">@(medals.Count == 1 ? "Tu última medalla" : "Tus últimas medallas")</span>
-                            <div class="gsm-m-medals__row">
-                                @foreach (var medal in medals)
-                                {
-                                    <figure class="gsm-m-medals__item" data-testid="home-medal">
-                                        @if (!string.IsNullOrEmpty(medal.IconUrl))
-                                        {
-                                            <img src="@medal.IconUrl" alt="" loading="lazy" />
-                                        }
-                                        else
-                                        {
-                                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" />
-                                        }
-                                        <figcaption>@medal.Name</figcaption>
-                                    </figure>
-                                }
-                            </div>
-                        </div>
                     }
                 </div>
                 <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="gsm-m-card__go" />

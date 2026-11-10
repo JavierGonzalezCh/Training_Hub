@@ -80,6 +80,11 @@ public class MemberHomeUiTests : TestContext
                 new HomeMedal { AchievementId = Guid.NewGuid(), Name = "Hábito de Hierro", IconUrl = "/medals/habito.png", UnlockedAt = DateTimeOffset.UtcNow },
                 new HomeMedal { AchievementId = Guid.NewGuid(), Name = "Imparable", IconUrl = "/medals/imparable.png", UnlockedAt = DateTimeOffset.UtcNow.AddDays(-1) },
             ],
+            NextAchievement = new HomeNextAchievement
+            {
+                AchievementId = Guid.NewGuid(), Name = "Centurión", IconUrl = "/medals/centurion.png",
+                ConditionType = "Visits", ConditionValue = 100, Progress = 98,
+            },
         },
         News = new HomeNewsBlock
         {
@@ -89,16 +94,24 @@ public class MemberHomeUiTests : TestContext
     };
 
     [Fact]
-    public void The_latest_medals_show_in_the_progress_card_newest_first()
+    public void The_medal_strip_shows_the_latest_medals_and_what_is_left_for_the_next_one()
     {
         var cut = RenderHome(FullHome(), narrow: true);
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='home-medals']")));
 
         var medals = cut.FindAll("[data-testid='home-medal']");
         Assert.Equal(2, medals.Count);
-        Assert.Contains("Hábito de Hierro", medals[0].TextContent);
         Assert.Equal("/medals/habito.png", medals[0].QuerySelector("img")!.GetAttribute("src"));
-        Assert.Contains("Tus últimas medallas", cut.Find("[data-testid='home-medals']").TextContent);
+
+        var next = cut.Find("[data-testid='home-next-achievement']");
+        Assert.Contains("Centurión", next.TextContent);
+        Assert.Contains("Te faltan 2 visitas", next.TextContent);
+        Assert.Equal("98", next.QuerySelector("[role='progressbar']")!.GetAttribute("aria-valuenow"));
+
+        // La franja va arriba, antes del aviso de membresía y del entrenamiento; ya no dentro de «Tu progreso».
+        var markup = cut.Markup;
+        Assert.True(markup.IndexOf("home-medals", StringComparison.Ordinal) < markup.IndexOf("home-training", StringComparison.Ordinal));
+        Assert.Empty(cut.Find("#home-progress").QuerySelectorAll("[data-testid='home-medal']"));
     }
 
     [Fact]

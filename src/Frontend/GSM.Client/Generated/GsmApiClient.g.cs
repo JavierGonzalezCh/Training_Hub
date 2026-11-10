@@ -50082,6 +50082,39 @@ namespace GSM.Client.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class HomeNextAchievement
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("achievementId")]
+        public System.Guid AchievementId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("iconUrl")]
+        public string? IconUrl { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("conditionType")]
+        public string ConditionType { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("conditionValue")]
+        public int ConditionValue { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("progress")]
+        public int Progress { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class HomeNextClassBlock
     {
 
@@ -50150,6 +50183,9 @@ namespace GSM.Client.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("recentMedals")]
         public System.Collections.Generic.ICollection<HomeMedal>? RecentMedals { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("nextAchievement")]
+        public HomeNextAchievement? NextAchievement { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

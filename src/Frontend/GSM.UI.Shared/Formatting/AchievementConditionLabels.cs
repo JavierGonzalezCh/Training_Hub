@@ -98,6 +98,39 @@ public static class AchievementConditionLabels
         _ => conditionType,
     };
 
+    /// <summary>
+    /// Lo que falta para el logro, en palabras: «Te faltan 2 visitas», «Te falta 1 día de racha». Para el inicio.
+    /// </summary>
+    public static string Remaining(string conditionType, int progress, int value)
+    {
+        var left = Math.Max(0, value - progress);
+        if (left == 0)
+        {
+            return "¡Ya casi lo tienes!";
+        }
+
+        var (one, many) = conditionType switch
+        {
+            "Visits" => ("visita", "visitas"),
+            "Streak" => ("día de racha", "días de racha"),
+            "RoutineSessions" => ("día con rutina", "días con rutina"),
+            "Classes" => ("clase", "clases"),
+            "TenureMonths" => ("mes", "meses"),
+            "Referrals" => ("amigo referido", "amigos referidos"),
+            "PersonalRecords" => ("récord personal", "récords personales"),
+            "LiftedVolume" => ("kg levantado", "kg levantados"),
+            "EarlyVisits" => ("entrada antes de las 8:00", "entradas antes de las 8:00"),
+            "LateVisits" => ("entrada desde las 20:00", "entradas desde las 20:00"),
+            "Weekends" => ("fin de semana", "fines de semana"),
+            "CompleteSessions" => ("sesión completa", "sesiones completas"),
+            "DistinctClasses" => ("clase distinta", "clases distintas"),
+            "PowerLifts" => ("levantamiento", "levantamientos"),
+            _ => ("paso", "pasos"),
+        };
+        var amount = left.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("es-CO"));
+        return left == 1 ? $"Te falta 1 {one}" : $"Te faltan {amount} {many}";
+    }
+
     /// <summary>Lo que se muestra como avance: «7/10», o para el ranking «Top 10».</summary>
     public static string Progress(string conditionType, int progress, int value)
         => conditionType == "MonthlyRankingTop"
