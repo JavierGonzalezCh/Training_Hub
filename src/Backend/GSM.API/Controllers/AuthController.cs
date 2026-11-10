@@ -92,7 +92,7 @@ public sealed class AuthController : ControllerBase
     [HttpPost("refresh")]
     [AllowAnonymous]
     [SubscriptionGateExempt]
-    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [EnableRateLimiting(RateLimitPolicies.Refresh)]
     [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthTokensResponse>> Refresh(
@@ -115,7 +115,7 @@ public sealed class AuthController : ControllerBase
     [HttpPost("kiosk/refresh")]
     [AllowAnonymous]
     [SubscriptionGateExempt]
-    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [EnableRateLimiting(RateLimitPolicies.Refresh)]
     [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

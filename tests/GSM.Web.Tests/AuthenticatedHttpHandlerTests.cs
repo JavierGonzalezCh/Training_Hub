@@ -70,4 +70,68 @@ public sealed class AuthenticatedHttpHandlerTests
         Assert.Equal("r2", (await store.GetAsync())!.RefreshToken);
         Assert.Equal(0, ended);
     }
+
+    [Theory]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    public async Task A_refresh_that_could_not_be_done_keeps_the_session(HttpStatusCode refreshStatus)
+    {
+        var store = new InMemoryTokenStore();
+        await store.SetAsync(Tokens("old", "r1"));
+        var events = new SessionEvents();
+        var ended = 0;
+        events.Ended += () => ended++;
+        var api = new Inner(r => r.RequestUri!.AbsolutePath.EndsWith("refresh", StringComparison.Ordinal)
+            ? new HttpResponseMessage(refreshStatus)
+            : new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        var refresher = new HttpTokenRefresher(new HttpClient(api) { BaseAddress = new Uri("http://x/") });
+        var handler = new AuthenticatedHttpHandler(store, refresher, events) { InnerHandler = api };
+
+        var response = await new HttpClient(handler) { BaseAddress = new Uri("http://x/") }.GetAsync("api/ping");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal("r1", (await store.GetAsync())!.RefreshToken);
+        Assert.Equal(0, ended);
+    }
+
+    [Fact]
+    public async Task A_refresh_rejected_by_the_server_ends_the_session()
+    {
+        var store = new InMemoryTokenStore();
+        await store.SetAsync(Tokens("old", "r1"));
+        var events = new SessionEvents();
+        var ended = 0;
+        events.Ended += () => ended++;
+        var api = new Inner(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        var refresher = new HttpTokenRefresher(new HttpClient(api) { BaseAddress = new Uri("http://x/") });
+        var handler = new AuthenticatedHttpHandler(store, refresher, events) { InnerHandler = api };
+
+        await new HttpClient(handler) { BaseAddress = new Uri("http://x/") }.GetAsync("api/ping");
+
+        Assert.Null(await store.GetAsync());
+        Assert.Equal(1, ended);
+    }
+
+    [Fact]
+    public void While_a_screen_holds_the_session_its_end_waits_until_released()
+    {
+        var events = new SessionEvents();
+        var ended = 0;
+        var whileHeld = 0;
+        events.Ended += () => ended++;
+        events.EndedWhileHeld += () => whileHeld++;
+
+        var hold = events.Hold();
+        events.GetType().GetMethod("RaiseEnded", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(events, null);
+
+        Assert.Equal(0, ended);
+        Assert.Equal(1, whileHeld);
+        Assert.True(events.EndPending);
+
+        hold.Dispose();
+        Assert.Equal(1, ended);
+        Assert.False(events.EndPending);
+    }
 }

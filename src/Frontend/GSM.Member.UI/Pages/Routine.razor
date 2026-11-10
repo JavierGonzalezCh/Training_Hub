@@ -10,6 +10,7 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject GSM.Client.Http.SessionEvents SessionEvents
 @implements IDisposable
 
 <PageTitle>Entrenar — TrainingHub GO</PageTitle>
@@ -496,6 +497,13 @@ else
             return;
         }
 
+        SessionEvents.EndedWhileHeld += OnSessionEndedWhileTraining;
+
+        // Series que quedaron en este equipo sin poder enviarse (sin red o con la sesión cerrada): se envían primero,
+        // para que lo que se carga a continuación ya las incluya.
+        await LoadPendingAsync();
+        await FlushPendingAsync();
+
         try
         {
             _response = await Me.RoutinesGETAsync();
@@ -791,6 +799,9 @@ else
             // Sin almacenamiento local la duración cuenta desde ahora.
         }
 
+        // Mientras entrena, nada lo saca de aquí: si la sesión se cierra, se avisa y se sigue; el login espera a que salga.
+        _hold ??= SessionEvents.Hold();
+
         var firstPending = exercises.FindIndex(e => !StateOf(e).Done);
         _session = new SessionState
         {
@@ -884,10 +895,30 @@ else
 
         row.Done = !row.Done;
         state.Saving = true;
+        var done = state.Rows.Where(r => r.Done).ToList();
+        var request = done.Count == 0 ? null : new LogRoutineExerciseRequest
+        {
+            ReplacementExerciseId = state.Replacement?.Id,
+            Sets = done.Select(r => new LogSetRequest
+            {
+                SetType = r.Type,
+                Reps = r.Reps,
+                WeightKg = r.Weight,
+                DurationSeconds = r.DurationSeconds,
+                DistanceM = r.DistanceM,
+                Rir = r.Rir,
+            }).ToList(),
+        };
         try
         {
-            var done = state.Rows.Where(r => r.Done).ToList();
-            if (done.Count == 0)
+            if (_pending.ContainsKey(exercise.Id) || SessionEvents.EndPending)
+            {
+                // Ya hay algo de este ejercicio sin enviar (o la sesión está cerrada): se encola detrás, en orden.
+                await QueueAsync(exercise.Id, request, state);
+                return;
+            }
+
+            if (request is null)
             {
                 if (state.Done)
                 {
@@ -898,19 +929,7 @@ else
                 return;
             }
 
-            await RoutineExercises.LogPOSTAsync(exercise.Id, new LogRoutineExerciseRequest
-            {
-                ReplacementExerciseId = state.Replacement?.Id,
-                Sets = done.Select(r => new LogSetRequest
-                {
-                    SetType = r.Type,
-                    Reps = r.Reps,
-                    WeightKg = r.Weight,
-                    DurationSeconds = r.DurationSeconds,
-                    DistanceM = r.DistanceM,
-                    Rir = r.Rir,
-                }).ToList(),
-            });
+            await RoutineExercises.LogPOSTAsync(exercise.Id, request);
             state.Done = true;
 
             var performed = PerformedId(exercise, state);
@@ -927,6 +946,12 @@ else
                 }
             }
         }
+        catch (Exception ex) when (IsTransient(ex))
+        {
+            // Sin red, la API reiniciándose o la sesión cerrada: la serie no se pierde. Queda en este equipo y se envía
+            // sola en cuanto se pueda.
+            await QueueAsync(exercise.Id, request, state);
+        }
         catch (GsmApiException ex)
         {
             row.Done = !row.Done;
@@ -937,6 +962,158 @@ else
             state.Saving = false;
         }
     }
+
+    // ---------- Series sin enviar (modo sesión sin conexión) ----------
+
+    private const string PendingKey = "gsm.pending-logs";
+
+    /// <summary>
+    /// Lo último que hay que enviar por cada línea de la rutina: el registro completo de sus series hechas, o nulo para
+    /// borrarlo. Se guarda en este equipo para sobrevivir a recargar la página o a volver a iniciar sesión.
+    /// </summary>
+    private Dictionary<Guid, LogRoutineExerciseRequest?> _pending = [];
+    private IDisposable? _hold;
+    private CancellationTokenSource? _retryCts;
+    private bool _flushing;
+
+    private static bool IsTransient(Exception ex) => ex switch
+    {
+        GsmApiException api => api.StatusCode is 0 or 401 or 408 or 429 or >= 500,
+        HttpRequestException => true,
+        TaskCanceledException => true,
+        _ => false,
+    };
+
+    private async Task QueueAsync(Guid routineExerciseId, LogRoutineExerciseRequest? request, ExerciseState state)
+    {
+        var wasEmpty = _pending.Count == 0;
+        _pending[routineExerciseId] = request;
+        state.Done = request is not null;
+        await SavePendingAsync();
+        if (wasEmpty)
+        {
+            Snackbar.Add(SessionEvents.EndPending
+                ? "Tu sesión se cerró: la serie quedó guardada en este equipo y se enviará al volver a entrar."
+                : "Sin conexión: la serie quedó guardada en este equipo y se enviará sola.", Severity.Warning);
+        }
+
+        StartRetryLoop();
+    }
+
+    private async Task LoadPendingAsync()
+    {
+        try
+        {
+            var raw = await JS.InvokeAsync<string?>("localStorage.getItem", PendingKey);
+            if (!string.IsNullOrEmpty(raw))
+            {
+                _pending = System.Text.Json.JsonSerializer.Deserialize<Dictionary<Guid, LogRoutineExerciseRequest?>>(raw) ?? [];
+            }
+        }
+        catch (Exception)
+        {
+            // Sin almacenamiento local (o un valor dañado) no hay nada que reenviar.
+            _pending = [];
+        }
+    }
+
+    private async Task SavePendingAsync()
+    {
+        try
+        {
+            if (_pending.Count == 0)
+            {
+                await JS.InvokeVoidAsync("localStorage.removeItem", PendingKey);
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("localStorage.setItem", PendingKey, System.Text.Json.JsonSerializer.Serialize(_pending));
+            }
+        }
+        catch (Exception)
+        {
+            // Sin almacenamiento local la cola vive solo en memoria mientras la pantalla esté abierta.
+        }
+    }
+
+    private async Task FlushPendingAsync()
+    {
+        if (_flushing || _pending.Count == 0 || SessionEvents.EndPending)
+        {
+            return;
+        }
+
+        _flushing = true;
+        try
+        {
+            foreach (var (id, request) in _pending.ToList())
+            {
+                try
+                {
+                    if (request is null)
+                    {
+                        await RoutineExercises.LogDELETEAsync(id);
+                    }
+                    else
+                    {
+                        await RoutineExercises.LogPOSTAsync(id, request);
+                    }
+
+                    _pending.Remove(id);
+                }
+                catch (Exception ex) when (IsTransient(ex))
+                {
+                    break;
+                }
+                catch (GsmApiException)
+                {
+                    // El servidor lo rechazó (la línea ya no existe, un dato inválido): reenviarlo no lo arreglaría.
+                    _pending.Remove(id);
+                }
+            }
+
+            await SavePendingAsync();
+        }
+        finally
+        {
+            _flushing = false;
+        }
+    }
+
+    private void StartRetryLoop()
+    {
+        if (_retryCts is not null)
+        {
+            return;
+        }
+
+        _retryCts = new CancellationTokenSource();
+        var token = _retryCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!token.IsCancellationRequested && _pending.Count > 0)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(20), token);
+                    await InvokeAsync(async () =>
+                    {
+                        await FlushPendingAsync();
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            finally
+            {
+                _retryCts = null;
+            }
+        }, token);
+    }
+
+    private void OnSessionEndedWhileTraining() => _ = InvokeAsync(StateHasChanged);
 
     private async Task StartRestAsync(int seconds)
     {
@@ -1027,9 +1204,22 @@ else
     {
         StopRest();
         _session = null;
+        ReleaseHold();
     }
 
-    public void Dispose() => _restCts?.Cancel();
+    private void ReleaseHold()
+    {
+        _hold?.Dispose();
+        _hold = null;
+    }
+
+    public void Dispose()
+    {
+        _restCts?.Cancel();
+        _retryCts?.Cancel();
+        SessionEvents.EndedWhileHeld -= OnSessionEndedWhileTraining;
+        ReleaseHold();
+    }
 
     private RenderFragment SessionView(TodayView today) => __builder =>
     {
@@ -1037,6 +1227,19 @@ else
         if (GymCtx.FeatureFlags?.RoutineEntry == true)
         {
             <MembershipLapsedNotice />
+        }
+
+        if (SessionEvents.EndPending)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" data-testid="session-offline">
+                Tu sesión se cerró. Sigue entrenando: tus series quedan guardadas en este equipo y se envían cuando vuelvas a entrar.
+            </MudAlert>
+        }
+        else if (_pending.Count > 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" data-testid="session-pending">
+                Sin conexión: @(_pending.Count == 1 ? "1 ejercicio" : $"{_pending.Count} ejercicios") por enviar. Se guardan solos al volver la señal.
+            </MudAlert>
         }
 
         if (session.Summary)

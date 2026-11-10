@@ -137,6 +137,7 @@ public class EquipmentLinksUiTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        Services.AddSingleton<GSM.Client.Http.SessionEvents>();
         var http = new HttpClient(_api) { BaseAddress = new Uri("http://localhost") };
         Services.AddSingleton<IExercisesClient>(new ExercisesClient(http));
         Services.AddSingleton<IEquipmentClient>(new EquipmentClient(http));

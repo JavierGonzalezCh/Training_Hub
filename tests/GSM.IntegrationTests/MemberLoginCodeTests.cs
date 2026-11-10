@@ -426,7 +426,7 @@ public sealed class MemberLoginCodeTests(ApiFactory factory) : IClassFixture<Api
     // ---- Sesión persistente (§6) ----
 
     [Fact]
-    public async Task Every_renewal_extends_the_refresh_token_another_thirty_days()
+    public async Task Every_renewal_extends_the_refresh_token_another_ninety_days()
     {
         var w = await SeedAsync();
         await using var host = RealIdentityHost();
@@ -441,7 +441,7 @@ public sealed class MemberLoginCodeTests(ApiFactory factory) : IClassFixture<Api
         Assert.Equal(HttpStatusCode.OK, refreshed.StatusCode);
         var second = (await refreshed.Content.ReadFromJsonAsync<AuthTokensResponse>())!;
 
-        // El token usado ya no sirve; el nuevo sí, y vence 30 días después de la renovación.
+        // El token usado ya no sirve; el nuevo sí, y vence 90 días después de la renovación.
         Assert.NotEqual(first.RefreshToken, second.RefreshToken);
         Assert.Equal(HttpStatusCode.Unauthorized,
             (await client.PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(first.RefreshToken))).StatusCode);
@@ -450,8 +450,8 @@ public sealed class MemberLoginCodeTests(ApiFactory factory) : IClassFixture<Api
         var db = scope.ServiceProvider.GetRequiredService<GsmDbContext>();
         var newest = await db.RefreshTokens.AsNoTracking().Where(t => t.UserId == w.MemberUserId && t.RevokedAt == null)
             .OrderByDescending(t => t.ExpiresAt).FirstAsync();
-        Assert.True(newest.ExpiresAt > DateTimeOffset.UtcNow.AddDays(29));
-        Assert.True(newest.ExpiresAt <= DateTimeOffset.UtcNow.AddDays(30).AddMinutes(1));
+        Assert.True(newest.ExpiresAt > DateTimeOffset.UtcNow.AddDays(89));
+        Assert.True(newest.ExpiresAt <= DateTimeOffset.UtcNow.AddDays(90).AddMinutes(1));
     }
 
     // ---- Marca pública del gym ----

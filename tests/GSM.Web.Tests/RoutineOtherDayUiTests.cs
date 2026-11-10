@@ -90,6 +90,7 @@ public class RoutineOtherDayUiTests : TestContext
         _api = new FakeApi(todayIsRest, history);
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        Services.AddSingleton<GSM.Client.Http.SessionEvents>();
         var http = new HttpClient(_api) { BaseAddress = new Uri("http://localhost") };
         Services.AddSingleton<IExercisesClient>(new ExercisesClient(http));
         Services.AddSingleton<IMeClient>(new MeClient(http));

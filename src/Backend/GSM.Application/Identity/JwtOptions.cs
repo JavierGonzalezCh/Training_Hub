@@ -17,9 +17,14 @@ public sealed class JwtOptions
     [MinLength(32)]
     public string SigningKey { get; init; } = string.Empty;
 
+    /// <summary>Vida del access token. La app lo renueva sola; más largo, menos renovaciones mientras se entrena.</summary>
     [Range(1, 1440)]
-    public int AccessTokenMinutes { get; init; } = 15;
+    public int AccessTokenMinutes { get; init; } = 60;
 
+    /// <summary>
+    /// Vida del refresh token. Cada renovación emite uno nuevo con esta vida, así que la sesión solo vence si la persona
+    /// no abre la app en todo ese tiempo.
+    /// </summary>
     [Range(1, 365)]
-    public int RefreshTokenDays { get; init; } = 30;
+    public int RefreshTokenDays { get; init; } = 90;
 }

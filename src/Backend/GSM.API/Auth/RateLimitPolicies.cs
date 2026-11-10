@@ -6,6 +6,7 @@ namespace GSM.API.Auth;
 public static class RateLimitPolicies
 {
     public const string Login = "auth-login";
+    public const string Refresh = "auth-refresh";
     public const string ClientErrors = "client-errors";
 
     /// <summary>Ventana fija por IP para los endpoints anónimos de auth: frena fuerza bruta sin molestar al uso normal.</summary>
@@ -33,6 +34,20 @@ public static class RateLimitPolicies
                 return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                });
+            });
+
+            // Renovar la sesión no es adivinar contraseñas: el refresh token es aleatorio y largo. Todo un gym comparte
+            // la IP de su Wi-Fi y cada persona renueva sola cada pocos minutos, así que va aparte del login y con más
+            // margen; si se pasa, el cliente conserva la sesión y reintenta.
+            options.AddPolicy(Refresh, context =>
+            {
+                var key = "refresh:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+                return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 120,
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0,
                 });

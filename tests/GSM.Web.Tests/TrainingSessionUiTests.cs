@@ -40,11 +40,19 @@ public class TrainingSessionUiTests : TestContext
     {
         public List<(HttpMethod Method, string Path, string? Body)> Requests { get; } = [];
 
+        /// <summary>Simula que no hay conexión con la API al guardar series.</summary>
+        public bool LogsUnavailable { get; set; }
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var path = request.RequestUri!.PathAndQuery;
             var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
             Requests.Add((request.Method, path, body));
+
+            if (LogsUnavailable && path.Contains("/log"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+            }
 
             string json;
             if (request.Method == HttpMethod.Post && path.Contains("/log"))
@@ -102,6 +110,7 @@ public class TrainingSessionUiTests : TestContext
         _api = new FakeApi();
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        Services.AddSingleton<GSM.Client.Http.SessionEvents>();
         var http = new HttpClient(_api) { BaseAddress = new Uri("http://localhost") };
         Services.AddSingleton<IExercisesClient>(new ExercisesClient(http));
         Services.AddSingleton<IMeClient>(new MeClient(http));
@@ -160,6 +169,43 @@ public class TrainingSessionUiTests : TestContext
         var second = _api.Requests.Last(r => r.Method == HttpMethod.Post).Body!;
         Assert.Equal(2, JsonDocument.Parse(second).RootElement.GetProperty("sets").GetArrayLength());
         Assert.Contains("is-done", cut.Find("[data-testid='session-set-0']").ClassName);
+    }
+
+    [Fact]
+    public void Without_connection_a_checked_set_stays_done_and_is_kept_to_send_later()
+    {
+        var cut = Render();
+        _api.LogsUnavailable = true;
+        cut.Find("[data-testid='start-day']").Click();
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='session-check-0']")));
+
+        cut.Find("[data-testid='session-check-0']").Click();
+
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='session-pending']")));
+        Assert.Contains("is-done", cut.Find("[data-testid='session-set-0']").ClassName);
+        Assert.Contains(JSInterop.Invocations, i => i.Identifier == "localStorage.setItem"
+            && i.Arguments.FirstOrDefault() as string == "gsm.pending-logs");
+    }
+
+    [Fact]
+    public void If_the_session_ends_while_training_the_member_stays_and_is_told()
+    {
+        var cut = Render();
+        cut.Find("[data-testid='start-day']").Click();
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='session']")));
+
+        var events = Services.GetRequiredService<GSM.Client.Http.SessionEvents>();
+        var ended = 0;
+        events.Ended += () => ended++;
+        typeof(GSM.Client.Http.SessionEvents)
+            .GetMethod("RaiseEnded", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(events, null);
+
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("[data-testid='session-offline']")));
+        Assert.Equal(0, ended);
+
+        cut.Find("[data-testid='session-exit']").Click();
+        Assert.Equal(1, ended);
     }
 
     [Fact]

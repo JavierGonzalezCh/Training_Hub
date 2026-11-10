@@ -69,9 +69,19 @@ public sealed class AuthenticatedHttpHandler(
 
             // La sesión de un kiosco (A3) se renueva por su propia ruta: el token del dispositivo no rota.
             var isKiosk = JwtPayload.TryRead(current.AccessToken)?.Role == GsmRoles.Kiosk;
-            var refreshed = isKiosk
-                ? await refresher.RefreshKioskAsync(current.RefreshToken, cancellationToken)
-                : await refresher.RefreshAsync(current.RefreshToken, cancellationToken);
+            AuthTokens? refreshed;
+            try
+            {
+                refreshed = isKiosk
+                    ? await refresher.RefreshKioskAsync(current.RefreshToken, cancellationToken)
+                    : await refresher.RefreshAsync(current.RefreshToken, cancellationToken);
+            }
+            catch (RefreshUnavailableException)
+            {
+                // No se pudo renovar ahora (sin red, la API reiniciándose, demasiadas peticiones): la sesión sigue
+                // guardada y la próxima petición lo vuelve a intentar. Solo un rechazo del servidor la cierra.
+                return null;
+            }
             if (refreshed is null)
             {
                 // E5: varias pestañas comparten el almacén y el refresh token rota. Si otra pestaña renovó antes, su
@@ -128,7 +138,15 @@ public sealed class AuthenticatedHttpHandler(
     }
 }
 
-/// <summary>Llama a <c>/api/auth/refresh</c> sin pasar por el handler autenticado (evita el bucle).</summary>
+/// <summary>
+/// La renovación no se pudo hacer ahora (sin red, 5xx, 429): no es un rechazo de la sesión, así que no se cierra.
+/// </summary>
+public sealed class RefreshUnavailableException() : Exception("No se pudo renovar la sesión en este momento.");
+
+/// <summary>
+/// Llama a <c>/api/auth/refresh</c> sin pasar por el handler autenticado (evita el bucle). Devuelve nulo si el servidor
+/// rechazó la sesión (401/403) y lanza <see cref="RefreshUnavailableException"/> si no se pudo renovar por otra causa.
+/// </summary>
 public interface ITokenRefresher
 {
     Task<AuthTokens?> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default);
@@ -158,11 +176,17 @@ public sealed class HttpTokenRefresher(HttpClient httpClient) : ITokenRefresher
 
             if (!response.IsSuccessStatusCode)
             {
-                // Un kiosco sin supervisión solo pierde la sesión si el Owner la revocó (401/403); un 5xx o un corte
-                // de red no deben desemparejarlo: el error sube y la pantalla reintenta.
-                if (kiosk && (int)response.StatusCode is not (401 or 403))
+                // La sesión solo termina si el servidor la rechaza (401/403: vencida, revocada o cuenta desactivada). Un
+                // 429, un 5xx o un corte no la cierran: un kiosco deja subir el error y reintenta; una persona conserva
+                // sus tokens y se reintenta con la próxima petición.
+                if ((int)response.StatusCode is not (401 or 403))
                 {
-                    response.EnsureSuccessStatusCode();
+                    if (kiosk)
+                    {
+                        response.EnsureSuccessStatusCode();
+                    }
+
+                    throw new RefreshUnavailableException();
                 }
 
                 return null;
@@ -175,7 +199,7 @@ public sealed class HttpTokenRefresher(HttpClient httpClient) : ITokenRefresher
         }
         catch (HttpRequestException) when (!kiosk)
         {
-            return null;
+            throw new RefreshUnavailableException();
         }
     }
 
