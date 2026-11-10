@@ -61,6 +61,7 @@ public class RoutineOtherDayUiTests : TestContext
                     routine = new
                     {
                         id = Guid.NewGuid(), memberId = Guid.NewGuid(), name = "Fuerza", assignedBy = Guid.NewGuid(),
+                        notes = "Prioriza la técnica.",
                         startsOn = "2026-10-01", isActive = true, cycleLength = 7, scheduleMode = "weekly",
                         days = new object[]
                         {
@@ -164,6 +165,7 @@ public class RoutineOtherDayUiTests : TestContext
         Assert.Equal("/app/plan", rest.Find("[data-testid='pick-plan-day']").GetAttribute("href"));
         Assert.Contains("tan importante como entrenar", rest.Find("[data-testid='rest-advice']").TextContent);
         Assert.Contains("cardio suave", rest.Markup);
+        Assert.Empty(rest.FindAll("[data-testid='routine-note']")); // las observaciones son para entrenar
     }
 
     [Fact]
@@ -173,6 +175,7 @@ public class RoutineOtherDayUiTests : TestContext
 
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll($"[data-testid='ex-{LegLine}']")));
         Assert.Contains("descanso", cut.Find("[data-testid='other-day-notice']").TextContent);
+        Assert.Contains("Prioriza la técnica.", cut.Find("[data-testid='routine-note']").TextContent);
     }
 
     [Fact]

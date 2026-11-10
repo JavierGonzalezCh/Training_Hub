@@ -94,7 +94,12 @@ else
         </div>
     </section>
 
-    <RoutineNoteCard Notes="@_response.Routine.Notes" SelfAssigned="@_response.Routine.SelfAssigned" />
+    @* Las observaciones son para entrenar: en un día de descanso (sin un día elegido en Plan) no se muestran aquí;
+       siguen en Plan. *@
+    @if (heroDay is not null || heroToday is not { IsRest: true })
+    {
+        <RoutineNoteCard Notes="@_response.Routine.Notes" SelfAssigned="@_response.Routine.SelfAssigned" />
+    }
 
     @if (_response.MissedSession is { } missedSession)
     {
