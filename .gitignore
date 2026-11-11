@@ -494,3 +494,11 @@ docs/
 
 # Scripts que apuntan a producción: solo locales.
 scripts/seed-gym-prueba.ps1
+
+# Local, fuera del repo
+CLAUDE.md
+.claude/
+.impeccable/
+scripts/new-lane.ps1
+scripts/drop-lane.ps1
+apks/

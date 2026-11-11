@@ -29,13 +29,10 @@ src/Backend/    GSM.Domain · GSM.Application · GSM.Infrastructure · GSM.API  
 src/Frontend/   GSM.Client · GSM.UI.Shared · GSM.Panel.UI · GSM.Member.UI · GSM.Web   (GSM.Frontend.slnx)
                 GSM.Mobile (MAUI, fuera del .slnx)
 tests/          GSM.IntegrationTests (contra Postgres) · GSM.Web.Tests (bUnit)
-scripts/        cliente NSwag, datos de demostración y de prueba, carriles
-docs/           arquitectura, especificación por módulo y convenciones
+scripts/        cliente NSwag y datos de demostración
 ```
 
-El contexto completo, las convenciones y las notas de cada módulo están en [`CLAUDE.md`](CLAUDE.md); la
-arquitectura y la especificación de cada módulo, en [`docs/`](docs/) (empieza por
-[`docs/DESARROLLO.md`](docs/DESARROLLO.md)). El resto de este archivo explica **cómo ponerlo a funcionar**.
+El resto de este archivo explica **cómo ponerlo a funcionar**.
 
 ---
 
@@ -150,7 +147,7 @@ dotnet run --launch-profile https
 
 `https://localhost:7220` (panel, `/admin`, `/kiosk` y la app del miembro en `/app`). Se entra con el correo o
 el celular; un miembro sin cuenta entra la primera vez con su número de documento y crea su contraseña. El
-cliente de la API se regenera con `scripts/generate-client.ps1` (ver `docs/DESARROLLO.md` §4).
+cliente de la API se regenera con `scripts/generate-client.ps1`.
 
 La app nativa (`GSM.Mobile`, Android y Windows) se compila aparte:
 `dotnet build src/Frontend/GSM.Mobile -f net10.0-android -p:RuntimeIdentifier=android-arm64`.
@@ -191,12 +188,11 @@ Nada de esto impide desarrollar, pero conviene saber en qué estado está:
 
 - **Tareas periódicas y claves** — `Communications:UnsubscribeSigningKey`, `Communications:PublicApiBaseUrl` y `Jobs:Secret` tienen valores de desarrollo en `appsettings.Development.json`; en producción van por variable de entorno. La tarea periódica (recordatorios y envío de correos) no corre sola: en local se lanza a mano con
   `curl -k -X POST https://localhost:7219/internal/jobs/communications/run -H "X-Job-Secret: dev-only-jobs-secret-change-me-32-bytes+"`
-  y en producción la invoca una tarea programada de Dokploy (ver `docs/DEPLOY-DOKPLOY-PLAN.md`).
+  y en producción la invoca una tarea programada de Dokploy.
 
 - **Despliegue** — producción corre en un servidor propio con Dokploy y **cada push a `main` despliega solo**. Hay
   `docker-compose.yml` (API, web y tarea periódica; las migraciones se aplican aparte; **la base de datos es un Postgres externo**,
-  fuera del compose) y un Dockerfile por servicio. Guía en la sección «Docker» de abajo; el plan completo (servidor, copias, alertas) está
-  en `docs/DEPLOY-DOKPLOY-PLAN.md`.
+  fuera del compose) y un Dockerfile por servicio. Guía en la sección «Docker» de abajo.
 - **Cloudflare R2** (`Storage:R2`) — configurado en producción; en local, sin credenciales, las subidas de archivo responden 500.
 - **Resend** (`Email:Resend`) — sin API key, los correos se escriben en el log en vez de enviarse. En producción está en modo de pruebas (falta verificar el dominio).
 - **Firebase** (`Notifications:Fcm`) — incompleto: sin configurar no hay push (web ni Android).
